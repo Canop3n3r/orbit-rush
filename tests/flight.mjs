@@ -89,9 +89,10 @@ for (const [label, d] of [['low TWR booster (1.21), 3 stages', D('fairing', 'sat
 console.log('3. Fairing jettison and mission clock are consistent');
 {
   for (const [label, opts] of [['AUTO, default', {}], ['AUTO, booster flown', { reserve: 20, flyBooster: true }], ['AUTO, staged early', { reserve: 40 }]]) {
-    let jettAlt = null;
-    const r = simulateAuto(DEF, { ...opts, each: F => { if (jettAlt === null && F.flags.fairing) jettAlt = F.alt; } });
-    ok(r.F.flags.fairing === 1 && r.F.v.fairing === 0 && jettAlt !== null && Math.abs(jettAlt - P.FAIRING_ALT) < 1500, `${label}: fairing jettisoned at ${P.FAIRING_ALT / 1000} km`, jettAlt === null ? 'never' : km(jettAlt));
+    let jettAlt = null, jettQ = null;
+    const r = simulateAuto(DEF, { ...opts, each: F => { if (jettAlt === null && F.flags.fairing) { jettAlt = F.alt; jettQ = F.v.tel.heat; } } });
+    ok(r.F.flags.fairing === 1 && r.F.v.fairing === 0 && jettAlt !== null && jettAlt > P.FAIRING_ALT && jettAlt < P.FAIRING_ALT_MAX + 1500 && (jettQ < P.FAIRING_QDOT * 1.2 || jettAlt > P.FAIRING_ALT_MAX),
+      `${label}: fairing jettisoned above ${P.FAIRING_ALT / 1000} km once heating < 1.1 kW/m²`, jettAlt === null ? 'never' : `${km(jettAlt)}, ${jettQ.toFixed(0)} W/m²`);
   }
   // never staging: fairing still drops (it used to require stage 2)
   const F = new Flight(DEF); F.stagePress(); F.setAuto(true);

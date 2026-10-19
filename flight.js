@@ -2,7 +2,7 @@
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
 import * as P from './physics.js?v=pv2';
-import { TEMPLATES, buildVehicle, designStats, validate, cloneDesign, ORBIT_DV } from './parts.js?v=pv2';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=pv2';
 const { R, ATM, V } = P;
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
 export const WARPS = [1, 2, 4, 10, 25, 50, 100, 1000];
@@ -11,8 +11,25 @@ export const QALPHA_MAX = 12000;            // Pa·rad: structural limit on dyna
 export const QMAX = 80000;                  // Pa: over-pressure limit
 export const PHYS_DT = 0.02;                // s: fixed physics step (RK4) at low warp
 export const PRESETS = TEMPLATES;
+export const DEORBIT_PE = 45000;            // m: AUTO deorbit burn lowers periapsis to this (deep enough to be captured)
+export const SAFE_TOUCHDOWN = 12;           // m/s: capsule touchdown speed the crew (and the pod) survive
+export const CHUTE_AUTO = { drogueAlt: 11000, mainAlt: 4000 }; // m: AUTO deploys drogues / mains below these
+// Can a parachute stage be deployed now? Returns { ok, why } against the canopy's real limits (speed, Mach, q).
+export function chuteLimits(spec, tel, stage) {
+  const lim = stage === 'drogue' ? spec.drogue : spec.main;
+  if (stage === 'drogue') {
+    if (tel.machShown === null || tel.rho < 1e-5) return { ok: false, why: 'no air to inflate it', hard: true };
+    if (tel.mach > lim.machMax) return { ok: false, why: `Mach ${tel.mach.toFixed(1)} > ${lim.machMax}` };
+    if (tel.q > lim.qMax) return { ok: false, why: `q ${(tel.q / 1000).toFixed(1)} kPa > ${lim.qMax / 1000}` };
+  } else {
+    if (tel.vAir > lim.vMax) return { ok: false, why: `${tel.vAir.toFixed(0)} m/s > ${lim.vMax}` };
+    if (tel.q > lim.qMax) return { ok: false, why: `q ${(tel.q / 1000).toFixed(1)} kPa > ${lim.qMax / 1000}` };
+  }
+  return { ok: true, why: '' };
+}
 const DECK = 3, PAD_EF = [1, 0, 0];         // launch site on the equator (Earth-fixed unit vector)
 const wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
+const fmtKm = m => (m / 1000).toFixed(0) + ' km';
 // Droneship position (ECI) at clock t: an Earth-fixed point that turns with the planet.
 export const shipPos = (ship, t, rot = true) => V.rotZ(V.scale(ship.ef, R + DECK), rot ? P.OMEGA_E * t : 0);
 const surfDist = (a, b) => R * Math.acos(Math.max(-1, Math.min(1, V.dot(V.norm(a), V.norm(b)))));
@@ -71,7 +88,17 @@ export function simulateAuto(design, opts = {}) {
   }
   const o = P.orbitOf(F.v);
   return { F, orbit: !!F.flags.orbit && !F.flags.dead, ap: o.ap, pe: o.pe, dead: F.flags.dead, stranded: !!F.flags.stranded,
-    boosterLanded: !!(F.booster && F.booster.state === 'landed'), s2left: F.v.stages[F.v.stages.length - 1].fuel, cause: F.flags.cause, dvUsed: F.dvUsed };
+    boosterLanded: !!(F.booster && F.booster.state === 'landed'), s2left: F.v.stages[F.lastPow].fuel, cause: F.flags.cause, dvUsed: F.dvUsed };
+}
+// Full round trip on AUTO: fly to orbit, coast `coast` seconds, deorbit (O) and ride the capsule home.
+export function simulateMission(design, opts = {}) {
+  const r = simulateAuto(design, opts), F = r.F;
+  if (!r.orbit) return { ...r, recovered: false };
+  const dt = opts.dt || PHYS_DT, t1 = opts.coast || 60;
+  for (let t = 0; t < t1; t += dt) F.step(dt);
+  F.deorbit();
+  for (let t = 0; t < (opts.tReturn || 9000) && !F.flags.dead && !F.flags.recovered; t += dt) { if (opts.each) opts.each(F, t); F.step(F.alt > 130000 && F.ret && F.ret.phase === 'coast' ? Math.min(1, dt * 25) : dt); }
+  return { ...r, recovered: !!F.flags.recovered, dead: F.flags.dead, cause: F.flags.cause, touchdown: F.flags.touchdown, maxHeat: F.maxHeat, maxG: F.maxG, maxGret: F.maxGret, maxTskin: F.maxTskin };
 }
 // Hangar verdict: fly the design on AUTO headlessly and explain the outcome in plain words.
 export function assessDesign(design, opts = {}) {
@@ -81,7 +108,7 @@ export function assessDesign(design, opts = {}) {
   if (st.twr < 1) return { orbit: false, text: `AUTO can't fly this: liftoff TWR ${st.twr.toFixed(2)} < 1, so it never leaves the pad. Add Thumpers or remove weight.`, level: 'bad' };
   const r = simulateAuto(design, { dt: 1 / 20, earthRot: opts.earthRot });
   if (r.orbit) {
-    const top = r.F.v.stages[r.F.v.stages.length - 1];
+    const top = r.F.v.stages[r.F.lastPow];
     return { orbit: true, level: 'good', text: `✔ AUTO reaches orbit (Ap ${(r.ap / 1000).toFixed(0)} km / Pe ${(r.pe / 1000).toFixed(0)} km) using ${(r.dvUsed / 1000).toFixed(2)} km/s, with ${r.s2left.toFixed(1)} t of ${top.fuelMax.toFixed(0)} t left in the top stage.` };
   }
   const F = r.F, cause = F.flags.cause;
@@ -90,6 +117,7 @@ export function assessDesign(design, opts = {}) {
     tumble: 'it tumbled: the rocket is aerodynamically unstable and the controls could not hold it. Add Tail Fins at the bottom or more gimbal (Thumper/Mule).',
     overq: 'it went too fast too low (over-pressure). Use fewer first-stage engines or more fuel weight.',
     ground: 'it fell back to the ground: a stage was too weak to hold altitude. Give upper stages more thrust.',
+    burnup: `it overheated: ${r.F.flags.dead}. Add a fairing over the payload, or fly a shallower climb.`,
     fellback: 'the upper stage was too weak to keep climbing and fell back into the air. Give it more thrust (vacuum TWR ≥ 0.5: a second Lark or a Mule) or less fuel.',
     twr: "it can't lift off the pad.",
   }[cause];
@@ -111,7 +139,12 @@ export class Flight {
     this.ended = false; this.finalScore = null; this.stageArm = -1; this.realT = 0; this.rails = false;
     P.stepVehicle(v, 0); // fill telemetry
     this.flags = { liftoff: 0, maxq: 0, space: 0, orbit: 0, booster: '', boosterBonus: 0, dead: '', fairing: 0, maxAlt: 0, mach1: 0,
-      stranded: 0, cutoff: 0, highQ: 0, padTime: 0, flatLow: 0, steep: 0, stagedFuel: null, stagedAlt: 0, apAtOut: 0, cause: '' };
+      stranded: 0, cutoff: 0, highQ: 0, padTime: 0, flatLow: 0, steep: 0, stagedFuel: null, stagedAlt: 0, apAtOut: 0, cause: '',
+      recovered: 0, touchdown: null, reentry: 0, plasma: 0 };
+    // last stage with an engine (a recovery capsule on top has none) and the round-trip capability
+    this.lastPow = 0; v.stages.forEach((s, i) => { if (s.eng && s.eng.tv > 0) this.lastPow = i; });
+    this.rec = recoveryInfo(design); this.ret = null; this.maxHeat = 0; this.maxTskin = 0; this.maxGret = 0; this.parked = null;
+    v.chute = { state: 'stowed', t: 0 }; v.chuteCdA = 0;
   }
   call(name, ...a) { const f = this.h[name]; return f ? f(...a) : undefined; }
   toast(msg, color) { this.call('toast', msg, color); }
@@ -152,7 +185,10 @@ export class Flight {
     if (v.cur >= this.last) return;
     if (v.cur > 0) {
       const d = P.makeBooster(v); d.stageIndex = v.cur; this.shiftCom(() => { v.cur++; });
-      this.call('drop', d); this.toast(`STAGE ${v.cur} SEP — stage ${v.cur + 1} ignition`, '#fff'); return;
+      this.call('drop', d);
+      if (v.cur > this.lastPow) { v.throttle = v.ut = 0; this.toast('CAPSULE SEPARATION — heat shield first: SAS retrograde (3)', '#fff'); if (this.ret) this.ret.sepAt = this.met; }
+      else this.toast(`STAGE ${v.cur} SEP — stage ${v.cur + 1} ignition`, '#fff');
+      return;
     }
     const b = P.makeBooster(v); b.ut = 0; b.manual = false; b.maxH = bh; b.stagedAlt = bh; this.booster = b;
     this.shiftCom(() => { v.cur = 1; }); this.flags.stagedFuel = b.stages[0].fuel; this.flags.stagedAlt = bh;
@@ -174,6 +210,8 @@ export class Flight {
   }
   jettison() { const v = this.v; if (v.fairing <= 0) return; v.fairing = 0; this.flags.fairing = 1; this.call('jettison'); this.toast('Fairing separation', '#9cc3ff'); }
   setAuto(on, quiet) {
+    if (on && this.ret) { this.ret.auto = true; if (!quiet) this.toast('AUTO is flying the return (deorbit, reentry, parachutes)', '#9cc3ff'); return; }
+    if (!on && this.ret) { this.ret.auto = false; this.v.steerDir = null; }
     if (this.v.auto && !on) this.v.auto = false;
     this.autoOn = on; if (!on) this.v.steerDir = null;
     if (on) { this.v.guid = null; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; }
@@ -196,6 +234,112 @@ export class Flight {
     this.call('boosterControl', b.manual);
     return true;
   }
+  // ---------- coming home: deorbit burn, capsule separation, reentry, parachutes ----------
+  canDeorbit() { const f = this.flags; return this.ignited && !f.dead && !f.recovered && !this.ret && this.alt > 60000 && !this.flyingBooster(); }
+  deorbit() {
+    if (!this.canDeorbit()) { this.toast(this.ret ? 'Already on the way home' : 'Deorbit: get above 60 km first', '#ffb35c'); return false; }
+    const v = this.v; this.autoOn = false; v.auto = false; v.guid = null; this.autoWarp = false; this.setWarp(0, true);
+    const o = P.orbitOf(v), needBurn = o.pe > DEORBIT_PE + 5000 && v.cur <= this.lastPow;
+    this.ret = { phase: needBurn ? 'align' : 'sep', auto: true, t: 0, sepAt: null, burnFuel0: v.stages[v.cur].fuel };
+    v.sas = 'retrograde'; v.sasHold = null; v.ut = 0;
+    this.toast(needBurn ? 'DEORBIT: turning retrograde for the deorbit burn' : 'Coming home: separating for reentry', '#ffd23a');
+    return true;
+  }
+  cancelReturn() { if (!this.ret) return; this.ret = null; this.v.steerDir = null; this.v.ut = 0; this.toast('Return cancelled — you have control', '#9cc3ff'); }
+  updateReturn(dt) {
+    const R0 = this.ret, v = this.v, f = this.flags; if (!R0 || f.dead || f.recovered) return;
+    R0.t += dt; const h = this.alt, o = P.orbitOf(v);
+    const retro = V.scale(P.progradeOf(v), -1);
+    if (R0.auto) v.steerDir = retro;
+    if (R0.phase === 'align') {
+      v.throttle = 0; v.ut = 0;
+      const ang = Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), retro))));
+      if (ang < 0.06 && V.len(v.w) < 0.02 || R0.t > 90) { R0.phase = 'burn'; this.toast('DEORBIT BURN', '#ffd23a'); }
+    } else if (R0.phase === 'burn') {
+      const s = v.stages[v.cur];
+      if (R0.auto) v.ut = 1;
+      if (o.pe <= DEORBIT_PE || !s || s.fuel <= 0 || v.cur > this.lastPow) {
+        v.ut = 0; v.throttle = 0; R0.phase = 'sep'; R0.t = 0;
+        this.toast(o.pe <= DEORBIT_PE + 20000 ? `Deorbit burn complete — Pe ${(o.pe / 1000).toFixed(0)} km` : `Out of fuel: Pe still ${(o.pe / 1000).toFixed(0)} km`, o.pe <= DEORBIT_PE + 20000 ? '#7dffa6' : '#ffb35c');
+      }
+    } else if (R0.phase === 'sep') {
+      v.ut = 0;
+      if (R0.t > 3) {
+        if (this.rec.capsule && v.cur < this.last) { this.stage(); }
+        R0.phase = 'coast'; R0.t = 0;
+      }
+    } else if (R0.phase === 'coast') {
+      v.ut = 0;
+      if (h < 125000) { R0.phase = 'entry'; this.setWarp(0, true); this.toast('ENTRY INTERFACE — 120 km. Heat shield first!', '#ffb35c'); this.call('sound', 'beep', 700); }
+      else if (R0.auto) {
+        // warp toward entry interface, but never jump the rails past 140 km in one frame
+        const vr = -V.dot(v.v, V.norm(v.r)), tLeft = vr > 1 ? (h - 140000) / vr : 3000;
+        this.setWarp(tLeft > 900 ? 7 : tLeft > 300 ? 6 : tLeft > 60 ? 5 : 3, true);
+      }
+    } else if (R0.phase === 'entry') {
+      if (R0.auto && f.reentry && v.chute.state === 'stowed' && this.hasChute() && h < CHUTE_AUTO.drogueAlt && chuteLimits(this.chuteSpec(), v.tel, 'drogue').ok) this.deployChute();
+      if (R0.auto && v.chute.state === 'drogue' && h < CHUTE_AUTO.mainAlt && chuteLimits(this.chuteSpec(), v.tel, 'main').ok) this.deployChute();
+    }
+  }
+  hasChute() { const g = P.stackGeom(this.v); return !!g.chute && this.v.chute.state !== 'failed'; }
+  chuteSpec() { const g = P.stackGeom(this.v); return g.chute ? g.chute.p : null; }
+  // P: deploy the next parachute stage now. Outside its limits the canopy shreds (real consequence).
+  deployChute() {
+    const v = this.v, c = v.chute, spec = this.chuteSpec();
+    if (!spec || c.state === 'failed') { this.toast(c.state === 'failed' ? 'Parachutes are gone' : 'No parachutes on this craft', '#ffb35c'); return 'none'; }
+    if (c.state === 'main' || c.state === 'cut') return 'none';
+    const stage = c.state === 'stowed' ? 'drogue' : 'main', lim = chuteLimits(spec, v.tel, stage);
+    if (!lim.ok) {
+      if (lim.hard) { this.toast(`Too high to deploy parachutes (${lim.why})`, '#ffb35c'); return 'blocked'; }
+      c.state = 'failed'; v.chuteCdA = 0; this.toast(`💥 ${stage === 'drogue' ? 'Drogues' : 'Mains'} shredded: ${lim.why}`, '#ff6262'); this.call('chute', 'failed'); return 'shredded';
+    }
+    c.state = stage; c.t = 0; this.toast(stage === 'drogue' ? '🪂 Drogue chutes out' : '🪂 MAIN CHUTES', '#7dffa6'); this.call('chute', stage); this.call('sound', 'beep', 900);
+    return stage;
+  }
+  updateChute(dt) {
+    const v = this.v, c = v.chute, spec = this.chuteSpec(); if (!spec) { v.chuteCdA = 0; return; }
+    if (c.state === 'drogue' || c.state === 'main') {
+      c.t += dt; const S = spec[c.state], x = Math.min(1, c.t / S.open);
+      // reefed opening: the main inflates slowly (x^2) so the opening shock stays survivable
+      v.chuteCdA = (c.state === 'main' ? spec.drogue.cda * (1 - x) + S.cda * x * x : S.cda * x);
+      if (v.tel.q > S.qMax * 1.6 && c.t > 0.5) { c.state = 'failed'; v.chuteCdA = 0; this.toast('💥 Parachute torn away (too much dynamic pressure)', '#ff6262'); this.call('chute', 'failed'); }
+    } else v.chuteCdA = 0;
+  }
+  // Heat: parts past their limit fail. Fins and the parachute pack burn off; anything else destroys the craft.
+  checkHeat() {
+    const v = this.v, th = v.therm, tel = v.tel; if (!th) return;
+    if (tel.heat > this.maxHeat) this.maxHeat = tel.heat;
+    if (tel.Tskin > this.maxTskin) this.maxTskin = tel.Tskin;
+    if (!this.flags.plasma && tel.heat > 150000) { this.flags.plasma = 1; this.toast('🔥 Plasma! The shock layer is glowing', '#ffb35c'); }
+    if (!th.fail) return;
+    const e = th.fail, p = e.p, name = (PARTS[p.id] && PARTS[p.id].name) || p.id;
+    if (p.kind === 'fins' || p.kind === 'chute') {
+      for (const s of v.stages) { const i = s.parts.indexOf(p); if (i >= 0) s.parts.splice(i, 1); }
+      v._g = null; if (p.kind === 'chute') { v.chute.state = 'failed'; v.chuteCdA = 0; }
+      this.toast(`🔥 ${name} burned off (${p.Ts.toFixed(0)} K)`, '#ff6262'); return;
+    }
+    const where = V.dot(v.v, V.norm(v.r)) < 0 && this.flags.orbit || this.ret ? 'burned up on reentry' : 'overheated';
+    this.fail(th.failIn ? `${where} — ${name} interior overheated (${p.Ti.toFixed(0)} K)` : `${where} — ${name} reached ${p.Ts.toFixed(0)} K (limit ${e.th.Tmax} K)`, 'burnup');
+  }
+  touchdown(sp) {
+    const v = this.v, f = this.flags; f.touchdown = sp;
+    v.throttle = v.ut = 0;
+    if (sp <= SAFE_TOUCHDOWN) {
+      f.recovered = 1; this.toast(`🌊 TOUCHDOWN at ${sp.toFixed(1)} m/s — ${this.v.stages.some(s => s.parts.some(p => p.id === 'crew')) ? 'crew' : 'capsule'} recovered! +${4000 * (v.mult || 1)}`, '#7dffa6');
+      this.call('sound', 'landed'); this.call('recovered');
+      this.parked = { ef: V.norm(V.rotZ(v.r, v.earthRot ? -P.OMEGA_E * v.clock : 0)), lift: v.tel.ycom };
+      if (!this.endQueued) { this.endQueued = true; this.call('end', 3000, () => true); }
+    } else this.fail(`hit the ground at ${sp.toFixed(0)} m/s${v.chute.state === 'stowed' ? ' (no parachutes deployed)' : v.chute.state === 'failed' ? ' (parachutes failed)' : ''}`, 'impact');
+  }
+  // Put the vehicle straight into a circular-ish orbit at altitude h (tests and the ?scenario=orbit start).
+  placeInOrbit(h = 170000, stage = this.lastPow) {
+    const v = this.v; this.ignited = true; this.flags.liftoff = 1; this.flags.space = 1; this.flags.orbit = 1; this.flags.cutoff = 1; this.flags.fairing = 1;
+    while (v.cur < stage) { const d = P.makeBooster(v); v.cur++; }
+    v.fairing = 0; v._g = null; v.clamped = false; this.met = 600; v.ut = 0; v.throttle = 0; this.endQueued = true;
+    const r = R + h, vc = Math.sqrt(P.MU / r), th = 0.3; v.r = [r * Math.cos(th), r * Math.sin(th), 0]; v.v = [-vc * Math.sin(th), vc * Math.cos(th), 0];
+    v.q = P.V.qFromTo([0, 1, 0], V.norm(v.v)); v.w = [0, 0, 0]; v.clock = v.clock || 600; v.sas = 'prograde';
+    P.stepVehicle(v, 0); return this;
+  }
   // ---------- warp ----------
   canWarpToAp() {
     const v = this.v, h = this.alt, vr = V.dot(v.v, V.norm(v.r));
@@ -215,6 +359,8 @@ export class Flight {
     if (!this.ignited || this.flags.dead || v.clamped || this.alt < P.RAILS_ALT) return false;
     if (b && b.state === 'flying') return false;
     if (this.autoOn && v.guid !== 'done' && v.guid !== 'coast') return false;
+    if (this.ret && this.ret.phase !== 'coast') return false;
+    if (this.parked) return false;
     if (v.ut > 0 && v.stages[v.cur].fuel > 0 && !(this.autoOn && (v.guid === 'done' || v.guid === 'coast'))) return false;
     if (inp.pitch || inp.yaw || inp.roll || (v.trans || []).some(Boolean)) return false;
     return true;
@@ -223,6 +369,8 @@ export class Flight {
     const v = this.v, h = this.alt;
     if (!this.ignited || this.flags.dead) return [1, ''];
     if (this.flyingBooster()) return [1, 'flying booster'];
+    if (this.parked) return [1, ''];
+    if (this.ret && this.ret.phase === 'entry' && h < 60000) return [v.chute.state === 'main' ? 10 : 4, 'reentry'];
     if (h < ATM && v.thrust > 0) return [4, 'engines on in the air'];
     if (v.thrust > 0 && this.autoWarp) return [4, 'burning'];
     if (this.railsOK()) return [WARPS[WARPS.length - 1], ''];
@@ -247,35 +395,54 @@ export class Flight {
     this.realT += rdt; this.updateAutoWarp();
     const W = this.effWarp(), simDt = rdt * SIM_SPEED * W;
     this.rails = W > 1 && this.railsOK();
-    if (this.rails) { P.railsStep(this.v, simDt); this.met += simDt; this.postStep(); return simDt; }
-    const step = W > 4 ? PHYS_DT * 2 : PHYS_DT, N = Math.ceil(simDt / step - 1e-9);
-    for (let i = 0; i < N; i++) this.step(simDt / N);
-    return simDt;
+    if (this.rails) {
+      // never let one rails jump carry the craft deep below the rails altitude (deorbit coast)
+      const pr = P.propagate(this.v.r, this.v.v, simDt);
+      if (V.len(pr.r) - R > P.RAILS_ALT - 3000) { P.railsStep(this.v, simDt); this.met += simDt; this.postStep(); this.updateReturn(simDt); return simDt; }
+      this.rails = false; this.setWarp(Math.min(this.warpI, 5), true);
+    }
+    const W2 = this.rails ? W : Math.min(W, 50), simDt2 = rdt * SIM_SPEED * W2;
+    const step = W2 > 4 ? PHYS_DT * 2 : PHYS_DT, N = Math.ceil(simDt2 / step - 1e-9);
+    for (let i = 0; i < N; i++) this.step(simDt2 / N);
+    return simDt2;
   }
   // ---------- one physics step ----------
   step(dt) {
     const v = this.v, f = this.flags;
+    if (this.parked) { // recovered capsule: rides the turning Earth
+      v.clock += dt; const th = v.earthRot ? P.OMEGA_E * v.clock : 0; v.r = V.rotZ(V.scale(this.parked.ef, R + this.parked.lift), th); v.v = [-(v.earthRot ? P.OMEGA_E : 0) * v.r[1], (v.earthRot ? P.OMEGA_E : 0) * v.r[0], 0]; v.w = [0, 0, 0];
+      if (v.tel) { v.tel.q = 0; v.tel.heat = 0; v.tel.vAir = 0; v.tel.gload = 1; }
+      return;
+    }
+    if (this.ret) this.updateReturn(dt);
     if (!f.dead) {
       if (!this.ignited) { v.throttle = 0; v.steerDir = null; }
+      else if (this.ret) { v.throttle = v.cur <= this.lastPow ? v.ut : 0; if (!this.ret.auto) v.steerDir = null; }
       else if (this.autoOn && !v.clamped) {
         const gd = P.autoGuide(v); v.steerDir = gd.dir;
         if (gd.phase === 'done' && v.ut > 0) { v.ut = 0; if (!f.cutoff) { f.cutoff = 1; this.toast('AUTO cutoff — orbit reached', '#7dffa6'); } }
         v.throttle = v.auto ? gd.throttle : Math.min(v.ut, gd.throttle);
-        if (v.cur < this.last && v.stages[v.cur].fuel <= 0 && this.canStage()) { this.toast(v.cur === 0 ? 'AUTO: booster empty, staging' : `AUTO: stage ${v.cur + 1} empty, staging`, '#9cc3ff'); this.stage(); }
+        if (v.cur < this.lastPow && v.stages[v.cur].fuel <= 0 && this.canStage()) { this.toast(v.cur === 0 ? 'AUTO: booster empty, staging' : `AUTO: stage ${v.cur + 1} empty, staging`, '#9cc3ff'); this.stage(); }
       } else { v.throttle = this.autoOn ? Math.min(v.ut, P.qCap(v.tel ? v.tel.q : 0)) : v.ut; if (!this.autoOn) v.steerDir = null; }
       if (v.clamped) v.steerDir = null;
+      this.updateChute(dt);
       P.updateControl(v);
       const st = v.stages[v.cur], m0 = P.massOf(v);
       const e = P.stepVehicle(v, dt), h = this.alt, tel = v.tel;
+      if (this.ret && tel.gload > this.maxGret) this.maxGret = tel.gload;
+      if (this.ret && !f.reentry && h < 100000 && tel.heat > 1000) f.reentry = 1;
       if (v.thrust > 0 && !v.clamped) this.dvUsed += v.thrust / m0 * dt;
       if (tel.q > this.maxQ) this.maxQ = tel.q;
       if (!v.clamped && tel.gload > this.maxG) this.maxG = tel.gload;
       if (!v.clamped && !f.liftoff) { f.liftoff = 1; this.met = 0; this.toast('LIFTOFF!', '#fff'); }
       if (f.liftoff) this.met += dt;
-      if (e === 'ground') this.fail(this.met < 8 ? 'never cleared the tower' : 'hit the ground', 'ground');
+      const capsule = v.cur > this.lastPow || !(v.stages[v.cur].eng && v.stages[v.cur].eng.tv > 0);
+      if (capsule && !v.clamped && (h - tel.ycom <= 0 || e === 'ground')) this.touchdown(tel.vAir);
+      else if (e === 'ground') this.fail(this.met < 8 ? 'never cleared the tower' : 'hit the ground', 'ground');
       else {
-        if (tel.q > QMAX) this.fail('over-pressure (Max-Q too high)', 'overq');
-        else if (tel.q * Math.min(tel.aoa, Math.PI / 2) > QALPHA_MAX) {
+        this.checkHeat();
+        if (tel.q > QMAX * (capsule ? 2 : 1)) this.fail('over-pressure (Max-Q too high)', 'overq');
+        else if (tel.q * Math.min(tel.aoa, Math.PI - tel.aoa) > QALPHA_MAX) { // off-axis angle: flying base-first (a capsule) is axial load
           if (v.cur > 0 && V.dot(v.v, V.norm(v.r)) < 0) this.fail('upper stage fell back into the atmosphere and broke up', 'fellback');
           else this.fail(tel.aoa > 1.2 ? 'tumbled and broke up (aerodynamically unstable)' : 'aerodynamic breakup — too much angle of attack at high Q', tel.aoa > 1.2 ? 'tumble' : 'breakup');
         }
@@ -283,7 +450,7 @@ export class Flight {
         if (!f.mach1 && tel.mach > 1 && h < 30000) { f.mach1 = 1; this.toast('Mach 1 — supersonic', '#9cc3ff'); }
         if (!f.highQ && tel.q > 30000 && v.thrust > 0) { f.highQ = 1; this.toast(this.autoOn ? 'HIGH Q — AUTO is throttling down' : 'HIGH Q — throttle down (S)!', '#ffb35c'); }
         if (!f.maxq && this.maxQ > 8000 && tel.q < this.maxQ * 0.8) { f.maxq = 1; this.toast(`Max-Q passed (${(this.maxQ / 1000).toFixed(1)} kPa)`, '#9cc3ff'); }
-        if (!f.fairing && h > P.FAIRING_ALT) this.jettison();
+        if (!f.fairing && h > P.FAIRING_ALT && (tel.heat < P.FAIRING_QDOT || h > P.FAIRING_ALT_MAX)) this.jettison();
         if (v.thrust > 0 && !v.clamped) {
           const pitch = Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), V.norm(v.r)))));
           if (h < 40000 && pitch > 1.2 && !f.orbit) f.flatLow += dt;
@@ -297,7 +464,11 @@ export class Flight {
       const n = Math.max(1, Math.ceil(dt / (1 / 50) - 1e-9));
       for (let i = 0; i < n && b.state === 'flying'; i++) this.stepBooster(b, dt / n);
     }
-    if (!this.ended && !f.dead && f.orbit && v.thrust <= 0 && (!b || b.state !== 'flying') && !this.endQueued) { this.endQueued = true; this.call('end', 2500, () => !f.dead); }
+    if (!this.ended && !f.dead && f.orbit && v.thrust <= 0 && (!b || b.state !== 'flying') && !this.endQueued && !this.ret) {
+      // a craft that can come home keeps flying: the mission ends at touchdown (or press R)
+      if (this.rec.capsule && this.rec.shield && this.rec.chute) { if (!this.homeHint) { this.homeHint = 1; this.toast('Orbit! Press O to deorbit and bring the capsule home', '#ffd23a'); } }
+      else { this.endQueued = true; this.call('end', 2500, () => !f.dead); }
+    }
   }
   postStep() {
     const v = this.v, f = this.flags, h = this.alt;
@@ -305,9 +476,10 @@ export class Flight {
     if (!f.space && h > P.KARMAN) { f.space = 1; this.toast('🌌 SPACE! Kármán line (100 km) +1000', '#b98cff'); this.call('sound', 'beep', 1200); }
     const o = P.orbitOf(v);
     if (h > ATM && !f.orbit && o.pe > P.ORBIT_PE) { f.orbit = 1; this.toast('🛰️ ORBIT ACHIEVED! +3000', '#7dffa6'); this.call('sound', 'orbit'); }
-    if (!f.orbit && !f.stranded && v.cur === this.last && v.stages[v.cur].fuel <= 0) {
+    if (!f.orbit && !f.stranded && v.cur >= this.lastPow && (v.cur > this.lastPow || v.stages[v.cur].fuel <= 0) && !this.ret) {
       f.stranded = 1; f.apAtOut = o.ap; f.peAtOut = o.pe; f.cause = this.diagnose();
-      this.toast('Out of fuel — suborbital', '#ffb35c'); this.call('end', 2500, () => !f.orbit);
+      if (this.rec.capsule && this.rec.chute) this.toast('Out of fuel — suborbital. Press O to separate the capsule and ride it home', '#ffb35c');
+      else { this.toast('Out of fuel — suborbital', '#ffb35c'); this.call('end', 2500, () => !f.orbit); }
     }
   }
   stepBooster(b, dt) {
@@ -383,6 +555,7 @@ export class Flight {
     s += Math.min(f.maxAlt || 0, ATM) / 100;
     if (f.space) s += 1000;
     if (f.orbit) { s += 3000; if (isFinite(o.ap)) s += Math.max(0, 1500 - Math.abs(o.ap - o.pe) / 100); s += (top.fuel / top.fuelMax) * 800; }
+    if (f.recovered) s += 4000;
     s *= mult; s += f.boosterBonus; if (f.dead) s *= 0.5;
     return Math.round(s);
   }
@@ -392,6 +565,19 @@ export class Flight {
     const v = this.v, f = this.flags, b = this.booster, h = this.alt, sp = V.len(v.v), vr = V.dot(v.v, V.norm(v.r)), tel = v.tel || {};
     const o = P.orbitOf(v), engineOn = v.thrust > 0, s1 = v.stages[0], cs = v.stages[v.cur], fuelLeft = v.stages.slice(v.cur).reduce((t, x) => t + x.fuel, 0);
     if (f.dead) return 'Press R to go back to the hangar';
+    if (f.recovered) return 'Welcome home! Press R for the hangar';
+    if (this.ret) {
+      const R0 = this.ret, c = v.chute;
+      if (R0.phase === 'align') return 'Turning retrograde for the deorbit burn…';
+      if (R0.phase === 'burn') return `DEORBIT BURN — Pe ${(o.pe / 1000).toFixed(0)} km → ${DEORBIT_PE / 1000} km`;
+      if (R0.phase === 'sep') return this.rec.capsule ? 'Separating the capsule from the service stage…' : 'Coasting down';
+      if (R0.phase === 'coast') return `Coasting to entry interface (120 km) — ${fmtKm(h)}${R0.auto ? ' · warping' : ''}`;
+      if (c.state === 'failed') return 'Parachutes gone — brace for impact';
+      if (h > 40000) return tel.heat > 20000 ? `REENTRY: shield first (SAS retrograde) — ${(tel.heat / 1000).toFixed(0)} kW/m², shell ${tel.Tskin.toFixed(0)} K` : 'Entering the atmosphere — keep the heat shield facing the airflow (SAS 3)';
+      if (c.state === 'stowed') return this.hasChute() ? (R0.auto ? `Parachutes armed: drogues below ${CHUTE_AUTO.drogueAlt / 1000} km under Mach ${this.chuteSpec().drogue.machMax} (P to deploy now)` : 'P: deploy drogues (below Mach 1.2 and 15 kPa)') : 'No parachutes on this craft!';
+      if (c.state === 'drogue') return R0.auto ? `Drogues out — mains below ${CHUTE_AUTO.mainAlt / 1000} km under ${this.chuteSpec().main.vMax} m/s` : `Drogues out — P for mains under ${this.chuteSpec().main.vMax} m/s`;
+      return `Under main chutes — ${tel.vAir.toFixed(1)} m/s, touchdown ≤ ${SAFE_TOUCHDOWN} m/s is safe`;
+    }
     if (this.flyingBooster()) {
       const bh = V.len(b.r) - R, bsp = V.len(P.airVel(b, b.r, b.v)), bd = b.miss ?? 0;
       if (b.stages[0].fuel <= 0) return 'Out of fuel… brace!';
@@ -406,6 +592,7 @@ export class Flight {
     if (v.cur < this.last && cs.fuel <= 0) return v.cur === 0 ? 'Booster empty — SPACE twice to stage!' : `Stage ${v.cur + 1} empty — SPACE twice to stage!`;
     if (v.cur === 0 && this.last > 0 && h > 20000) return this.boosterCanLand() ? `SPACE twice to stage — booster has ${s1.fuel.toFixed(1)} t, enough to land` : `⚠ Booster ${s1.fuel.toFixed(1)} t: no longer enough to land it — stage soon (SPACE twice)`;
     if (fuelLeft <= 0 && !f.orbit) return 'Out of fuel — suborbital';
+    if (f.orbit && !engineOn && this.rec.capsule && this.rec.chute && (!b || b.state !== 'flying')) return 'In orbit 🛰️ — press O to deorbit and bring the capsule home';
     if (f.orbit) return engineOn ? 'In orbit! Cut throttle (X)' : b && b.state === 'flying' ? 'Orbit! Watch the booster: B · fly it: Y' : 'Orbit achieved 🛰️';
     if (v.auto) return 'Upper stage on AUTO (flying to orbit) — press Z/X/F or steer to take over';
     if (this.autoOn) {

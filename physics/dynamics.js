@@ -7,7 +7,8 @@
 import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=pv2';
 import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=pv2';
 import { atmosphere } from './atmosphere.js?v=pv2';
-import { cd0, normalModel, stagnationTemp, heatFlux } from './aero.js?v=pv2';
+import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=pv2';
+import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=pv2';
 import { stackGeom, massProps } from './vehicle.js?v=pv2';
 import { propagate } from './kepler.js?v=pv2';
 export const omegaOf = v => (v.earthRot === false ? 0 : OMEGA_E);
@@ -57,7 +58,11 @@ export function aeroAt(v, g, mp, r, vel, q, w) {
   if (atm.rho <= 0 || V < 0.5) return out;
   const u = scale(va, 1 / V), b = qrot(q, [0, 1, 0]), cosA = clamp(dot(b, u), -1, 1), alpha = Math.acos(cosA), sa = Math.sin(alpha), ca = Math.abs(cosA);
   const M = out.mach, qd = out.qd, A = g.A;
-  const cd = cd0(M) * g.cdShape + g.finCd + 0.5 * sa * sa;
+  // axial drag: the nose shape flying nose-first, the blunt base / heat shield flying base-first (capsule
+  // reentry), blended toward the free-molecular Cd ~2 in the rarefied upper thermosphere
+  const wb = clamp(-cosA, 0, 1), cdAx = cd0(M) * g.cdShape * (1 - wb) + bluntCd(M) * g.tailCd * wb;
+  const wr = rarefaction(knudsen(atm.rho, g.L));
+  const cd = (cdAx + g.finCd + 0.5 * sa * sa) * (1 - wr) + 2.0 * wr;
   let F = scale(u, -qd * A * cd);
   const nm = normalModel(g, M), cnL = nm.cna * sa * ca, cnX = g.crossK * sa * sa, cn = cnL + cnX;
   const ycp = cn > 1e-9 ? (nm.ycp * cnL + g.yBody * cnX) / cn : nm.ycp;
@@ -71,6 +76,14 @@ export function aeroAt(v, g, mp, r, vel, q, w) {
   let kd = 0; for (const c of nm.comps) kd += c.cna * (c.y - mp.ycom) ** 2; kd += g.crossK * 0.15 * (g.L * g.L / 12);
   const damp = 0.5 * atm.rho * V * A * kd;
   tau = [tau[0] - damp * w[0], tau[1] - 0.02 * qd * A * g.d * w[1] * g.d / (2 * V), tau[2] - damp * w[2]];
+  // parachutes: drag CdA (m^2) applied at the canister on top of the stack, so the canopy pulls the craft
+  // base-first (heat shield down) and damps its swinging like a pendulum
+  const cdaC = v.chuteCdA || 0;
+  if (cdaC > 0 && g.chute) {
+    const Fc = scale(u, -qd * cdaC), arm = g.chute.y - mp.ycom; F = add(F, Fc);
+    const tc = cross([0, arm, 0], qinv(q, Fc)), dc = qd * cdaC * arm * arm / V;
+    tau = [tau[0] + tc[0] - dc * w[0], tau[1] + tc[1] - 0.2 * dc * w[1], tau[2] + tc[2] - dc * w[2]];
+  }
   Object.assign(out, { F, tau, alpha, cd, cn, ycp, flowBody: qinv(q, wind) });
   return out;
 }
@@ -106,6 +119,7 @@ export function stepVehicle(v, dt) {
   v.r = nx[0]; v.v = nx[1]; v.q = qnorm(nx[2]); v.w = nx[3]; v.clock = t + dt;
   burn(v, eo, rcsUse, dt, g);
   tele(v, g, mp, a0.aero, T, eo, a0.ng);
+  heat(v, g, dt);
   if (len(v.r) < R_E) return 'ground';
   return null;
 }
@@ -115,17 +129,34 @@ function burn(v, eo, rcsUse, dt, g) {
 }
 // Telemetry exposed per frame (HUD, lessons, effects): Mach, dynamic pressure, AoA, g-load, stagnation
 // temperature, stagnation heat flux, flow direction in the body frame, CoM/CoP stations, atmosphere.
+// Rarefied flow: Kn is the Knudsen number at the leading end (mean free path / nose radius); in the
+// thermosphere there is no continuum shock layer, so Tstag falls back toward the air temperature and the HUD
+// stops quoting a Mach number (machShown = null). Tstag is also capped for dissociating air (aero.js).
 function tele(v, g, mp, ae, T, eo, ng) {
-  const st = ae.atm;
+  const st = ae.atm, rnL = leadingRadius(g, ae.flowBody), Kn = knudsen(st.rho, rnL), wr = rarefaction(Kn);
   v.thrust = T / 1000; v.qk = ae.qd / 1000; v.aoa = ae.alpha;
-  v.tel = { alt: ae.alt, mach: ae.mach, q: ae.qd, aoa: ae.alpha, gload: len(ng) / G0, rho: st.rho, p: st.p, T: st.T, a: st.a, layer: st.layer,
-    Tstag: stagnationTemp(st.T, ae.mach), heat: heatFlux(st.rho, ae.V, g.rn), flowBody: ae.flowBody, vAir: ae.V, ycom: mp.ycom, ycp: ae.ycp, L: g.L, cd: ae.cd, cn: ae.cn,
-    thrust: T, isp: eo.isp, mass: mp.m };
+  const prev = v.tel || {};
+  v.tel = { alt: ae.alt, mach: ae.mach, machShown: st.rho > 0 && wr < 0.5 ? ae.mach : null, q: ae.qd, aoa: ae.alpha, gload: len(ng) / G0, rho: st.rho, p: st.p, T: st.T, a: st.a, layer: st.layer,
+    Kn, regime: st.rho > 0 ? flowRegime(Kn) : 'vacuum', rarefied: wr, rnLead: rnL,
+    Tstag: st.rho > 0 ? stagnationTemp(st.T, ae.mach, wr) : st.T, heat: heatFlux(st.rho, ae.V, rnL), flowBody: ae.flowBody, vAir: ae.V, ycom: mp.ycom, ycp: ae.ycp, L: g.L, cd: ae.cd, cn: ae.cn,
+    thrust: T, isp: eo.isp, mass: mp.m, Tskin: prev.Tskin || 300, hotFrac: prev.hotFrac || 0, hot: prev.hot || null, ablating: 0, chuteCdA: v.chuteCdA || 0 };
+}
+// Per-part heating (thermal.js) after each step. Leaves v.therm (failure, hottest part) for flight.js.
+function heat(v, g, dt) {
+  if (!(dt > 0)) return;
+  initThermal(v);
+  const t = v.tel, r = stepThermal(v, g, t.heat, t.Tstag, t.T, t.rho, t.flowBody, dt);
+  v.therm = r; t.ablating = r.ablating; t.hotFrac = r.maxFrac;
+  t.hot = r.hottest ? { id: r.hottest.p.id, kind: r.hottest.p.kind, T: r.hottest.p.Ts, Tmax: r.hottest.th.Tmax } : null;
+  t.Tskin = r.hottest ? r.hottest.p.Ts : 300;
 }
 // "On rails": exact Kepler coast (no drag, no thrust), attitude frozen. For high time warp outside the air.
 export function railsStep(v, dt) {
   const s = propagate(v.r, v.v, dt); v.r = s.r; v.v = s.v; v.w = [0, 0, 0]; v.clock = (v.clock || 0) + dt; v.thrust = 0;
-  if (v.tel) { v.tel.alt = len(v.r) - R_E; v.tel.q = 0; v.tel.mach = 0; v.tel.gload = 0; v.tel.heat = 0; }
+  if (v.tel) { v.tel.alt = len(v.r) - R_E; v.tel.q = 0; v.tel.mach = 0; v.tel.machShown = null; v.tel.gload = 0; v.tel.heat = 0; v.tel.ablating = 0; }
+  // skins relax radiatively toward the ~300 K equilibrium of a sunlit/shadowed orbit while on rails
+  const k = Math.exp(-dt / 300);
+  for (let i = v.cur; i < v.stages.length; i++) for (const p of v.stages[i].parts) if (p.Ts !== undefined) { p.Ts = 300 + (p.Ts - 300) * k; p.Ti = 300 + (p.Ti - 300) * k; }
 }
 // ---------- 3-DOF point mass (spent boosters and debris): drag with Cd(M), ideal attitude ----------
 export function stepPoint(b, dt) {

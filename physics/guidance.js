@@ -10,8 +10,9 @@ import { massOf } from './vehicle.js?v=pv2';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
-export const INSERT_ALT = 178000; // m: altitude the vacuum insertion guidance levels off at
-export const FAIRING_ALT = 100000; // m: fairing jettisons at the Kármán line, where heating and drag are negligible
+export const FAIRING_ALT = 100000; // m: the fairing can go above the Kármán line…
+export const FAIRING_QDOT = 1135;   // W/m^2: …once the heating on the bare payload would be under ~1.1 kW/m² (the real-world rule)
+export const FAIRING_ALT_MAX = 140000; // m: …and always by this altitude
 const wrapA = x => Math.atan2(Math.sin(x), Math.cos(x));
 export const eastOf = r => { const up = norm(r), e = cross([0, 0, 1], up); return len(e) > 1e-6 ? norm(e) : [0, 1, 0]; };
 // Local frame for the trajectory plane: up (radial) and the horizontal direction of travel.

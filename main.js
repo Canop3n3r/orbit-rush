@@ -656,11 +656,11 @@ function hud() {
   const onPad = v.clamped || (h < 300 && tel.vAir < 60);
   const apS = onPad ? '—' : !isFinite(o.ap) ? 'escape' : fmtD(o.ap), peS = onPad ? '—' : o.pe < -R * 0.5 ? '(in planet)' : fmtD(o.pe);
   const qk = tel.q / 1000, qc = qk > 45 ? 'bad' : qk > 25 ? 'warn' : '', gc = tel.gload > 5 ? 'bad' : tel.gload > 4 ? 'warn' : '';
-  const qa = tel.q * Math.min(tel.aoa, Math.PI / 2), ac = qa > 9000 ? 'bad' : qa > 5000 ? 'warn' : '';
+  const qa = tel.q * Math.min(tel.aoa, Math.PI - tel.aoa), ac = qa > 9000 ? 'bad' : qa > 5000 ? 'warn' : '';
   const W = F.effWarp(), [wMax, wWhy] = F.warpLimit();
   const clock = !F.ignited ? 'T- HOLD (on pad)' : !flags.liftoff ? 'T- 0:00 IGNITION' : `T+ ${fmtT(F.met)}`;
   const autoTag = v.auto ? ` [AUTOPILOT ${v.guid || ''}]` : F.autoOn ? ` [AUTO ${v.guid || ''}]` : '';
-  const fair = v.fairing > 0 ? (flags.fairing ? 'fairing jettisoned' : `fairing on (drops at ${P.FAIRING_ALT / 1000} km)`) : '';
+  const fair = v.fairing > 0 ? (flags.fairing ? 'fairing jettisoned' : `fairing on (drops above ${P.FAIRING_ALT / 1000} km at q̇ < 1.1 kW/m²)`) : '';
   const hasRCS = v.stages.slice(v.cur).some(s => s.parts.some(p => p.kind === 'rcs'));
   const space = h > P.KARMAN ? '<span class="good">SPACE</span>' : tel.layer;
   let t = `${clock}${autoTag}${F.rails ? ' <span class="good">[RAILS]</span>' : ''}

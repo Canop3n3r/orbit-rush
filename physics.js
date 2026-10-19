@@ -1,7 +1,7 @@
 // Orbit Rush physics v2 — one import point for the game, the tests and the lessons.
 // Full-scale Earth (WGS84 radius, real GM, optional rotation), U.S. Standard Atmosphere 1976, Mach-dependent
 // aerodynamics with centre of pressure vs centre of mass, 6-DOF rigid-body dynamics (RK4), Kepler rails.
-// Modules (physics/): constants, vec, atmosphere, aero, kepler, vehicle, dynamics, control, guidance.
+// Modules (physics/): constants, vec, atmosphere, aero, kepler, vehicle, dynamics, control, guidance, thermal.
 export * from './physics/constants.js?v=pv2';
 export * from './physics/atmosphere.js?v=pv2';
 export * from './physics/aero.js?v=pv2';
@@ -10,6 +10,7 @@ export * from './physics/vehicle.js?v=pv2';
 export * from './physics/dynamics.js?v=pv2';
 export * from './physics/control.js?v=pv2';
 export * from './physics/guidance.js?v=pv2';
+export * from './physics/thermal.js?v=pv2';
 export * as V from './physics/vec.js?v=pv2';
 import { R_E, MU_E, KARMAN } from './physics/constants.js?v=pv2';
 import { elements, timeToAp as tta } from './physics/kepler.js?v=pv2';
