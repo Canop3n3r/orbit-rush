@@ -1,0 +1,52 @@
+// Compact flight HUD (f1u): thin edge strips, one short self-hiding text line, everything secondary in one drawer.
+// It re-parents existing controls (warp arrows, MAP, ☰, TAKE OVER, Pilot buttons, desktop #ctl) so their handlers keep working.
+const $ = id => document.getElementById(id);
+export function shortHint(s) {
+  if (!s) return '';
+  let t = String(s).replace(/\s+/g, ' ').trim();
+  const cut = [' — ', ' (', '. ', '; ', ': ', ' – '].map(k => t.indexOf(k)).filter(i => i > 8);
+  if (cut.length) t = t.slice(0, Math.min(...cut));
+  return t.length > 44 ? t.slice(0, 43).trimEnd() + '…' : t;
+}
+export function createCompact({ touch, onSpeedTap }) {
+  document.body.classList.add('cx');
+  const strip = document.createElement('div'); strip.id = 'strip';
+  strip.innerHTML = `<div id="sL"><div class="c"><b>ALT km</b><i id="sAlt">—</i></div><button class="c" id="sSpdB" title="Speed reference: surface / orbit / target" aria-label="Speed reference"><b id="sSpdL">SRF m/s</b><i id="sSpd">—</i></button><div class="c ev"><b id="sEvL">AP · PE km</b><i id="sEv">—</i></div></div><div id="sR"></div>`;
+  document.body.appendChild(strip);
+  const hintS = document.createElement('div'); hintS.id = 'hintS'; hintS.setAttribute('role', 'status'); document.body.appendChild(hintS);
+  const R = $('sR');
+  $('sSpdB').onclick = e => { e.currentTarget.blur(); onSpeedTap && onSpeedTap(); };
+  for (const id of ['wDn', 'wVal', 'wUp']) { const b = $(id); if (b) R.appendChild(b); }
+  const take = $('pTake'); if (take) { take.textContent = '✋'; take.title = 'Take over from the mission director'; take.setAttribute('aria-label', 'Take over'); R.prepend(take); }
+  // drawer: Pilot group (objective, engineer, photo, sound) + desktop flight buttons
+  const group = document.createElement('div'); group.id = 'dPilot'; group.className = 'mg';
+  group.innerHTML = '<h5>Pilot</h5>';
+  for (const id of ['pObj', 'pEng', 'pPhoto', 'pMute']) { const e = $(id); if (e) group.appendChild(e); }
+  let drawer;
+  if (touch) { R.appendChild($('mMap')); R.appendChild($('mMenuBtn')); drawer = $('mMenu'); drawer.insertBefore(group, drawer.children[1] || null); }
+  else {
+    const mb = document.createElement('button'); mb.id = 'dMap'; mb.textContent = 'MAP'; mb.title = 'Map (M)'; R.appendChild(mb);
+    const db = document.createElement('button'); db.id = 'dMenuBtn'; db.textContent = '☰'; db.setAttribute('aria-label', 'More'); R.appendChild(db);
+    drawer = document.createElement('div'); drawer.id = 'dMenu'; drawer.className = 'hidden'; document.body.appendChild(drawer);
+    drawer.appendChild(group); const fl = document.createElement('div'); fl.className = 'mg'; fl.innerHTML = '<h5>Flight</h5>'; drawer.appendChild(fl); if ($('ctl')) fl.appendChild($('ctl'));
+    const sc = $('score'); if (sc) { const g2 = document.createElement('div'); g2.className = 'mg'; g2.innerHTML = '<h5>Score</h5>'; g2.appendChild(sc); drawer.appendChild(g2); }
+    db.onclick = e => { e.currentTarget.blur(); drawer.classList.toggle('hidden'); };
+    document.addEventListener('pointerdown', e => { if (!drawer.classList.contains('hidden') && !e.target.closest('#dMenu,#dMenuBtn')) drawer.classList.add('hidden'); }, true);
+  }
+  // one text line: callout > newest toast > hint; the hint shows for 5 s after it changes, then hides
+  let hintText = '', hintT = 0;
+  const last = {};
+  const set = (id, txt) => { if (last[id] !== txt) { last[id] = txt; $(id).textContent = txt; } };
+  function update(d) { // { alt, spd, spdL, evL, ev, hint, now }
+    set('sAlt', d.alt); set('sSpd', d.spd); set('sSpdL', d.spdL); set('sEvL', d.evL); set('sEv', d.ev);
+    const now = d.now ?? performance.now(), h = shortHint(d.hint);
+    if (h !== hintText) { hintText = h; hintT = now; set('hintS', h); }
+    const call = document.querySelector('#callout.show'), toast = $('toasts') && $('toasts').lastElementChild;
+    let txt = '', kind = '';
+    if (call) { txt = shortHint(call.textContent); kind = 'call'; }
+    else if (toast) { txt = shortHint(toast.textContent); kind = 'toast'; }
+    else if (hintText && now - hintT < 5000) { txt = hintText; kind = 'hint'; }
+    set('hintS', txt); hintS.className = txt ? 'on ' + kind : '';
+  }
+  return { update, strip, drawer };
+}

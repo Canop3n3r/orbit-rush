@@ -2,12 +2,12 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import { MISSIONS } from './director.js?v=f1';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f1';
-import { ATLAS, poisOf } from './lore.js?v=f1';
+import { MISSIONS } from './director.js?v=f1u';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f1u';
+import { ATLAS, poisOf } from './lore.js?v=f1u';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f1';
+import { createNavball } from './navball.js?v=f1u';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();
@@ -31,19 +31,27 @@ export function createFunUI(ctx) {
       <path class="trk" d="M 162 40 A 85 85 0 0 1 162 160"/><path id="navFuel" class="fuel" d="M 162 160 A 85 85 0 0 0 162 40"/></svg>
       <canvas id="navBall" width="128" height="128" aria-label="Navball attitude indicator"></canvas>
       <span id="navThrT" class="navLab l">0%</span><span id="navFuelT" class="navLab r">S1</span>
+      <button id="navSasT" title="SAS modes" aria-label="SAS modes" aria-expanded="false">⊙</button>
       <div id="navSas">${SAS_RING.map(([m, ic, t], i) => `<button data-sas="${m}" title="${t}" aria-label="SAS ${t}" style="--i:${i}">${ic}</button>`).join('')}</div></div>`);
   document.body.appendChild(navEl);
   const navball = createNavball($('navBall')); let navMode = 'auto';
+  function cycleSpeed() { const ms = ['surface', 'orbit', 'target'], curM = navMode === 'auto' ? lastAuto : navMode; navMode = ms[(ms.indexOf(curM) + 1) % 3]; ctx.audio.ui('tick'); }
   $('navMode').onclick = e => { e.currentTarget.blur(); const ms = ['surface', 'orbit', 'target'], curM = navMode === 'auto' ? lastAuto : navMode; navMode = ms[(ms.indexOf(curM) + 1) % 3]; ctx.audio.ui('tick'); };
-  navEl.querySelectorAll('#navSas button').forEach(b => b.onclick = e => { e.currentTarget.blur(); ctx.setSas(b.dataset.sas); ctx.audio.ui('tick'); });
+  navEl.querySelectorAll('#navSas button').forEach(b => b.onclick = e => { e.currentTarget.blur(); ctx.setSas(b.dataset.sas); ctx.audio.ui('tick'); setFan(false); });
+  const SAS_IC = Object.fromEntries(SAS_RING.map(([m, ic]) => [m, ic])); Object.assign(SAS_IC, { antiradial: '▣', antinormal: '▽', off: '○' });
+  function setFan(on) { navEl.classList.toggle('fan', on); $('navSasT').setAttribute('aria-expanded', on ? 'true' : 'false'); }
+  $('navSasT').onclick = e => { e.currentTarget.blur(); setFan(!navEl.classList.contains('fan')); ctx.audio.ui('tick'); };
+  document.addEventListener('pointerdown', e => { if (navEl.classList.contains('fan') && !e.target.closest('#nav')) setFan(false); }, true);
+  let navOut = { mode: 'surface', sp: 0 };
   const THR_LEN = Math.PI * 85 * 0.5 * 1.18; $('navThr').style.strokeDasharray = $('navFuel').style.strokeDasharray = THR_LEN;
   let lastAuto = 'surface';
   function renderNav(st) { // { nose, top, r, vSurf, vOrb, vTgt, markers, throttle, fuel, stage, sas, cue, hasTarget, hasNode }
     navEl.classList.remove('hidden');
     if (navMode === 'target' && !st.hasTarget) navMode = 'auto';
     lastAuto = st.alt < 40000 ? 'surface' : 'orbit'; const mode = navMode === 'auto' ? lastAuto : navMode;
-    const vv = mode === 'surface' ? st.vSurf : mode === 'orbit' ? st.vOrb : st.vTgt, sp = Math.hypot(...(vv || [0, 0, 0]));
+    navOut.mode = mode; const vv = mode === 'surface' ? st.vSurf : mode === 'orbit' ? st.vOrb : st.vTgt, sp = Math.hypot(...(vv || [0, 0, 0]));
     $('navMode').firstChild.textContent = mode.toUpperCase() + ' '; $('navSpd').textContent = sp < 1e4 ? Math.round(sp) + ' m/s' : (sp / 1000).toFixed(2) + ' km/s';
+    navOut.sp = sp; { const t = SAS_IC[st.sas] || '⊙'; const bt = $('navSasT'); if (bt.textContent !== t) bt.textContent = t; }
     const pg = sp > 0.5 ? vv.map(x => x / sp) : null, m = { ...st.markers }; if (pg) { m.pro = pg; m.retro = pg.map(x => -x); }
     navball.draw({ nose: st.nose, top: st.top, r: st.r, markers: m });
     $('navThr').style.strokeDashoffset = THR_LEN * (1 - st.throttle); $('navThrT').textContent = Math.round(st.throttle * 100) + '%';
@@ -204,6 +212,6 @@ export function createFunUI(ctx) {
     const ds = $('decalSel'); if (ds) ds.onchange = () => onChange({ decal: ds.value });
     const ni = $('nameIn'); if (ni) ni.onchange = () => onChange({ name: ni.value.trim() || 'My rocket' });
   }
-  return { renderPilot, renderNav, hideNav, call, openHub, openAtlas, reveal, photo, drawGhost, openTunnel, boomCard, endExtras, paintRow, wirePaint, toggleEngineer, get engineer() { return engineer; },
+  return { renderPilot, renderNav, hideNav, cycleSpeed, get navOut() { return navOut; }, call, openHub, openAtlas, reveal, photo, drawGhost, openTunnel, boomCard, endExtras, paintRow, wirePaint, toggleEngineer, get engineer() { return engineer; },
     show(on) { hud.classList.toggle('hidden', !on); if (!on) callout.className = ''; } };
 }

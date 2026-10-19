@@ -458,3 +458,65 @@ body.touch #split button{min-width:var(--tap);min-height:var(--tap)}
 /* hangar: no layout shift when the AUTO verdict arrives; launch stays reachable on phones */
 #verdict{min-height:4.2em}#landPlan{min-height:2.8em}
 body.touch .builder #launchBtn{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:6}
+
+/* ===================== f1u compact remaster: the rocket is the hero ===================== */
+body.cx #pilot,body.cx #mhud,body.cx #mtop,body.cx #topStack,body.cx #navMode,body.cx #navCue,body.cx #bars,body.cx #warpBar,body.cx.touch #badge{display:none!important}
+body.cx:not(.eng) #tele,body.cx:not(.eng) #heat{display:none!important}
+body.cx.touch.sheet #tele{display:block!important}
+#hud.hidden ~ #strip,#hud.hidden ~ #hintS,body.photo #strip,body.photo #hintS,body.photo #craftTag{display:none!important}
+#strip{position:fixed;z-index:24;top:calc(6px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px));right:calc(6px + env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;font-variant-numeric:tabular-nums}
+#sL,#sR{display:flex;gap:4px;pointer-events:auto}
+#strip .c{width:62px;height:40px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 2px;background:var(--glass);border:1px solid var(--line);border-radius:10px;-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);color:var(--txt);overflow:hidden}
+#strip .c.ev{width:76px}
+#strip .c b{font:700 8.5px/1.1 var(--ui);letter-spacing:.6px;color:var(--dim);white-space:nowrap}
+#strip .c i{font:700 14px/1.15 var(--mono);font-style:normal;font-variant-numeric:tabular-nums;white-space:nowrap}
+#sSpdB{cursor:pointer;min-height:0!important}
+#sR button{width:44px!important;height:44px!important;min-width:0!important;min-height:0!important;padding:0!important;border-radius:10px!important;font:700 13px/1 var(--ui)!important;background:var(--glass)!important;border:1px solid var(--line)!important;color:var(--txt)!important;flex:none}
+#sR #wVal{width:52px!important;font-family:var(--mono)!important}
+#sR #pTake{background:#b8322ad9!important;border-color:#ff8a7a!important;border-radius:50%!important;font-size:18px!important}
+#sR #pTake.hidden{display:none}
+@media (orientation:portrait){body.touch #sR #wDn{display:none!important}}
+#hintS{position:fixed;z-index:24;top:calc(52px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);height:28px;box-sizing:border-box;max-width:min(520px,calc(100vw - 24px));padding:0 14px;border-radius:999px;font:600 13px/26px var(--ui);color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);pointer-events:none;opacity:0;transition:opacity .25s}
+#hintS.on{opacity:1}#hintS.call{color:#ffe9b0;font-weight:800}#hintS:not(.on){visibility:hidden}
+#craftTag{position:fixed;left:0;top:0;z-index:8;width:92px;box-sizing:border-box;padding:3px 8px;border-left:2px solid var(--acc);background:linear-gradient(90deg,#0b1424b0,#0b142400);font:700 11px/1.35 var(--mono);font-variant-numeric:tabular-nums;color:#eaf2ff;text-shadow:0 1px 2px #000;pointer-events:none;will-change:transform}
+#craftTag i{display:block;font-style:normal;white-space:nowrap}#craftTag.hidden{display:none}
+/* navball: small, at the bottom edge; SAS modes in a fan that opens on tap */
+body.cx #nav{--nb:120px;bottom:calc(14px + env(safe-area-inset-bottom,0px));gap:0}
+body.cx .navWrap{width:calc(var(--nb) + 56px);height:calc(var(--nb) + 16px)}
+body.cx .navArcs{width:calc(var(--nb) * 1.24);height:calc(var(--nb) * 1.24);bottom:calc(var(--nb) * -.1)}
+body.cx .navArcs path{stroke-width:5}
+body.cx .navLab{font-size:9px}
+body.cx #navSas{display:none}body.cx #nav.fan #navSas{display:block}
+#navSasT{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;padding:0;font:700 17px/1 var(--ui);color:var(--txt);background:var(--glass-hi);border:1px solid var(--line-hi);cursor:pointer;pointer-events:auto;z-index:2}
+#nav.fan #navSasT{background:#1d5fae;border-color:#8fd0ff}
+body.cx #navSas button{transform:rotate(calc(-81deg + var(--i) * 27deg)) translateY(calc(var(--nb) * -.5 - 30px)) rotate(calc(81deg - var(--i) * 27deg))}
+body.cx.touch #nav{--nb:88px;bottom:calc(10px + var(--sab))}
+@media (orientation:landscape) and (max-height:500px){body.cx.touch #nav{--nb:80px;left:auto;right:calc(6px + var(--sar));transform:none;bottom:calc(150px + var(--sab))}}
+/* slimmer controls: stick, roll, STAGE, AUTO, throttle */
+body.cx #mStick{width:96px;height:96px}body.cx #mStick i{left:27px;top:27px;width:40px;height:40px}body.cx #mStick::before{font-size:7px}
+body.cx #mRoll{width:96px;height:26px}body.cx #mRoll i{height:20px;top:2px}body.cx #mRoll span{line-height:26px;font-size:8px}
+body.cx #mleft{gap:6px}
+body.cx #mright{grid-template-columns:auto 40px;gap:6px}
+body.cx #mStage{width:68px;height:68px;font-size:13px!important}
+body.cx #mAuto,body.cx #mChute{min-width:68px;min-height:44px;font-size:12px}
+body.cx #mThr{width:40px;height:118px}body.cx #mThr b{font-size:8px}body.cx #mThr u{font-size:10px}
+/* the drawer */
+#mMenu #dPilot{grid-template-columns:repeat(3,1fr)}#dPilot #pObj{grid-column:1/-1;max-width:none;margin:0 0 4px}
+#dPilot button{min-height:44px;font-size:18px}
+#dMenu{position:fixed;z-index:30;right:calc(16px + env(safe-area-inset-right,0px));top:60px;width:300px;max-height:calc(100vh - 80px);overflow:auto;padding:10px 12px;background:var(--glass);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);animation:fUp .2s var(--ease)}
+#dMenu.hidden{display:none}#dMenu h5{margin:6px 0 4px;font:800 10px var(--ui);letter-spacing:1.2px;color:var(--dim);text-transform:uppercase}
+#dMenu .mg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}#dMenu #ctl{position:static!important;grid-column:1/-1;display:grid!important;grid-template-columns:1fr 1fr;gap:6px}
+#dMenu #ctl button{width:100%;min-height:40px}#dMenu #ctl .hidden{display:none}#dMenu #score{position:static!important;grid-column:1/-1}
+/* desktop: same minimal language, more room */
+body.cx:not(.touch) #strip{top:14px;left:16px;right:16px}
+body.cx:not(.touch) #strip .c{width:96px;height:44px}body.cx:not(.touch) #strip .c.ev{width:120px}
+body.cx:not(.touch) #strip .c b{font-size:9.5px}body.cx:not(.touch) #strip .c i{font-size:16px}
+body.cx:not(.touch) #hintS{top:66px}
+body.mapOn #craftTag{display:none!important}
+/* f1u phone fit */
+body.cx.touch #strip .c{height:44px}
+body.cx .navWrap{width:calc(var(--nb) + 44px)}
+@media (orientation:portrait){body.cx.touch #strip .c{width:54px}body.cx.touch #strip .c.ev{width:66px}body.cx.touch #sR #wVal{width:44px!important}
+ body.cx.touch #sR:has(#pTake:not(.hidden)) #mMap{display:none!important}}
+body.mapOn #hintS{display:none!important}
+@media (orientation:landscape) and (max-height:500px){body.cx.touch #hintS{top:calc(14px + env(safe-area-inset-top,0px));max-width:calc(100vw - 540px)}body.cx.touch #nav{--nb:72px}}

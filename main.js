@@ -1,28 +1,29 @@
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f1';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f1';
-import * as C from './physics/patched.js?v=f1';
-import { createSolarMap } from './solarmap.js?v=f1';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f1';
-import { FX } from './fx.js?v=f1';
-import { createAcademy } from './academy-ui.js?v=f1';
-import { createMobile, isTouch } from './mobile.js?v=f1';
-import { localize } from './wording.js?v=f1';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f1';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f1';
+import * as P from './physics.js?v=f1u';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f1u';
+import * as C from './physics/patched.js?v=f1u';
+import { createSolarMap } from './solarmap.js?v=f1u';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f1u';
+import { FX } from './fx.js?v=f1u';
+import { createAcademy } from './academy-ui.js?v=f1u';
+import { createMobile, isTouch } from './mobile.js?v=f1u';
+import { localize } from './wording.js?v=f1u';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f1u';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f1u';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f1';
-import * as GX from './gfx/gfx.js?v=f1';
-import { Director, MISSIONS } from './fun/director.js?v=f1';
-import * as PR from './fun/progress.js?v=f1';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f1';
-import { createAudio } from './fun/audio.js?v=f1';
-import { createFunUI } from './fun/ui.js?v=f1';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f1u';
+import * as GX from './gfx/gfx.js?v=f1u';
+import { Director, MISSIONS } from './fun/director.js?v=f1u';
+import * as PR from './fun/progress.js?v=f1u';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f1u';
+import { createAudio } from './fun/audio.js?v=f1u';
+import { createCompact } from './fun/compact.js?v=f1u';
+import { createFunUI } from './fun/ui.js?v=f1u';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -30,7 +31,7 @@ import { createFunUI } from './fun/ui.js?v=f1';
 const { R, ATM, V } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-export const BUILD = '2026-10-19-f1';
+export const BUILD = '2026-10-19-f1u';
 const DEG = 180 / Math.PI;
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
@@ -592,7 +593,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f1', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f1u', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -657,6 +658,7 @@ const hooks = {
 };
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
 function detachStage(i) {
+  if (v) WV.seps.push({ r: v.r.slice(), t: performance.now() }); WV.pulse = performance.now();
   const g = SG[i]; rocketG.remove(g); scene.add(g); g.position.set(0, 0, 0); g.userData.plume.visible = false; for (const e of g.userData.plume.userData.extra || []) e.visible = false; burst(0.5, 0.6, 1500); beep(660);
   let y = 0; for (let j = i + 1; j < SG.length; j++) { SG[j].position.y = y; y += SG[j].userData.h; }
   if (y < 14 && camDist > 45) camDist = 38; // a small capsule: bring the chase camera in
@@ -1294,6 +1296,7 @@ renderer.setAnimationLoop(() => {
   const O = focus === v ? v.r : booster.r;
   earth.position.set(-O[0], -O[1], -O[2]); earth.rotation.z = th;
   setRel(rocketG, base, O); toQ(v.q, rocketG.quaternion);
+  worldVis(base, O, nose);
   if (state === 'flight' && !F.flags.dead && SG[v.cur]) emit(v, SG[v.cur], pdt, base, nose);
   else for (let j = v.cur; j < SG.length; j++) SG[j].userData.plume.visible = false;
   const ovl = state === 'build' || (SET.overlay && state === 'flight' && !F.flags.dead && camMode !== 'map');
@@ -1357,7 +1360,7 @@ renderer.setAnimationLoop(() => {
   if (state === 'build') { camYaw += rdt * 0.15; camDist = Math.max(70, stackL() * 1.9); camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.36, 0, innerWidth, innerHeight); }
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   const mapOn = state === 'flight' && camMode === 'map';
-  if (smap.state.on !== mapOn) smap.show(mapOn);
+  if (smap.state.on !== mapOn) { smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
   updateSplit(rdt);
   if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.25, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
   if (mapOn) { smap.update(rdt); mapPost.render(); }
@@ -1495,6 +1498,8 @@ fun = createFunUI({
   tunnelGeom: mach => { const ab = aeroBalance(design, mach); if (!ab) return null; const vv = buildVehicle(design), g = P.stackGeom(vv); const COL = { engine: '#ff9a3c', tank: '#e8e8e8', pod: '#9cc3ff', payload: '#e0b84a', fins: '#555', decoupler: '#333', fairing: '#f4f4f4', shield: '#7a4a2a', chute: '#ff7a3c', rcs: '#8a9099' };
     return { parts: g.list.map(e => ({ y: e.y, h: e.h, d: e.kind === 'fins' ? (e.d || 2) * 1.8 : e.d, col: COL[e.kind] || '#ccc' })), L: g.L, ycom: ab.ycom, ycp: ab.ycp, stable: ab.stable, margin: ab.margin }; },
 });
+const cx = createCompact({ touch: TOUCH, onSpeedTap: () => fun.cycleSpeed() });
+{ const dm = document.getElementById('dMap'); if (dm) dm.onclick = e => { e.currentTarget.blur(); press('KeyM'); }; }
 { // top-centre stack: callout, hint, toasts never overlap each other
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
   for (const id of ['hint', 'toasts', 'callout']) { const e = document.getElementById(id); if (e) st.appendChild(e); } }
@@ -1537,9 +1542,77 @@ function funTick(rdt) {
   if (F.parked || f.landed) { const lat = Math.asin(v.r[2] / r) * 180 / Math.PI, lon = Math.atan2(v.r[1], v.r[0]) * 180 / Math.PI, np = nearestPoi(F.body, b.R, lat, lon); if (np) obj += ` · 📍 ${np.poi.name} ${(np.d / 1000).toFixed(0)} km`; }
   fun.renderPilot({ alt: P.altOf(v), spd: V.len(v.v), stages, objective: obj, prog: director ? director.progress : f.orbit ? 1 : Math.min(1, P.altOf(v) / 140000), orbit2d: o2, bodyR: b.R, bodyCol: BODY_COL[F.body], me: [r, 0], director: !!(director && director.active) });
 }
+// ---------- f1u: visuals on the rocket itself (world space), so the HUD can stay thin ----------
+const WV = (() => {
+  const grp = new THREE.Group(); grp.renderOrder = 5; scene.add(grp);
+  const mat = col => new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending });
+  const arrow = col => { const m = mat(col), g = new THREE.Group(), sh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 8), m), hd = new THREE.Mesh(new THREE.ConeGeometry(1.4, 3, 12), m);
+    g.add(sh, hd); g.userData = { sh, hd, m }; g.visible = false; grp.add(g); return g; };
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x4ad6ff, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1, 0.06, 6, 40), ringMat); ring.rotation.x = Math.PI / 2; ring.visible = false;
+  const sepGeo = new THREE.RingGeometry(0.8, 1, 48), sepPool = [];
+  const tag = document.createElement('div'); tag.id = 'craftTag'; tag.className = 'hidden'; tag.innerHTML = '<i id="ctAlt"></i><i id="ctSpd"></i>'; document.body.appendChild(tag);
+  return { grp, pro: arrow(0x7dffa6), tgt: arrow(0xff6ad5), ring, ringMat, ringOn: -1, seps: [], sepGeo, sepPool, tag, pulse: 0, box: null, boxT: 0 };
+})();
+const _wq = new THREE.Quaternion(), _wy = new THREE.Vector3(0, 1, 0), _wd = new THREE.Vector3(), _wb = new THREE.Box3(), _wb2 = new THREE.Box3(), _wp = new THREE.Vector3();
+function placeArrow(a, d, L, at) { if (!d) { a.visible = false; return; } _wd.set(d[0], d[1], d[2]).normalize(); a.quaternion.setFromUnitVectors(_wy, _wd);
+  const len = L * 1.15, w = Math.max(0.6, L / 26), u = a.userData; u.sh.scale.set(w, len, w); u.sh.position.y = len / 2 + L * 0.15; u.hd.scale.set(w, w, w); u.hd.position.y = len + L * 0.15 + 1.5 * w;
+  a.position.copy(at); a.visible = true; }
+function rocketScreenBox() { // projected bounding box of the craft (CSS px) — used by the tag and the ui_smoke "rocket not covered" check
+  if (!rocketG || !rocketG.visible) return null; _wb.makeEmpty(); rocketG.updateMatrixWorld(true);
+  rocketG.traverseVisible(o => { if (!o.isMesh || o.isPoints || o.isSprite || o.isInstancedMesh) return; const m = Array.isArray(o.material) ? o.material[0] : o.material; if (!m || m.blending === THREE.AdditiveBlending || (m.transparent && !m.depthWrite)) return;
+    for (let p = o; p && p !== rocketG; p = p.parent) if (p.userData && p.userData.isFx) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); _wb2.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld); _wb.union(_wb2); });
+  if (_wb.isEmpty()) return null;
+  const c = renderer.domElement.getBoundingClientRect(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, any = false;
+  for (let i = 0; i < 8; i++) { _wp.set(i & 1 ? _wb.max.x : _wb.min.x, i & 2 ? _wb.max.y : _wb.min.y, i & 4 ? _wb.max.z : _wb.min.z).project(camera); if (_wp.z > 1) continue; any = true;
+    const x = c.left + (_wp.x + 1) / 2 * c.width, y = c.top + (1 - _wp.y) / 2 * c.height; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  return any ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
+}
+function worldVis(base, O, nose) {
+  const on = state === 'flight' && F && !F.flags.dead && rocketG.visible && camMode !== 'map' && !photoOn && !replay;
+  const now = performance.now(), L = Math.max(10, stackL());
+  WV.grp.visible = on; WV.tag.classList.toggle('hidden', !on);
+  if (!on) { WV.ring.visible = false; return; }
+  _wp.copy(rocketG.position).addScaledVector(_wd.set(nose[0], nose[1], nose[2]), (v.tel.ycom || 0));
+  const vs = P.airVel(v), sp = V.len(F.flags.orbit || P.altOf(v) > 40000 ? v.v : vs);
+  placeArrow(WV.pro, F.ignited && sp > 20 ? (P.altOf(v) > 40000 ? v.v : vs) : null, L, _wp);
+  placeArrow(WV.tgt, v.targetDir || null, L * 0.8, _wp);
+  // active stage: a soft ring at its top edge, brighter for 2 s after staging
+  const g = SG[v.cur]; if (g && WV.ringOn !== v.cur) { WV.ringOn = v.cur; g.add(WV.ring); _wb.setFromObject(g); const r = Math.max(1.5, (_wb.max.x - _wb.min.x) / 2 + 0.25); WV.ring.scale.set(r, r, r * 1.6); WV.ring.position.set(0, g.userData.h, 0); }
+  if (g) { WV.ring.visible = SG.length - v.cur > 1; const k = Math.max(0, 1 - (now - WV.pulse) / 2000); WV.ringMat.opacity = 0.28 + 0.5 * k + 0.08 * Math.sin(now / 300); }
+  // separation markers: an expanding ring where each stage let go, fading over 3 s
+  WV.seps = WV.seps.filter(m => now - m.t < 3000);
+  WV.seps.forEach((m, i) => { let me = WV.sepPool[i]; if (!me) { me = new THREE.Mesh(WV.sepGeo, new THREE.MeshBasicMaterial({ color: 0xffd23a, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })); WV.sepPool[i] = me; WV.grp.add(me); }
+    const k = (now - m.t) / 3000; setRel(me, m.r, O); me.lookAt(camera.position); me.scale.setScalar(L * (0.3 + 1.6 * k)); me.material.opacity = 0.7 * (1 - k); me.visible = true; });
+  for (let i = WV.seps.length; i < WV.sepPool.length; i++) WV.sepPool[i].visible = false;
+  // the speed/altitude tag rides beside the craft
+  if (now - WV.boxT > 90) { WV.boxT = now; WV.box = rocketScreenBox(); }
+  const bx = WV.box, t = WV.tag;
+  let x = null, y = 0; const TW = 92, TH = 38, yc = Math.min(innerHeight * 0.72, Math.max(innerHeight * 0.22, bx ? bx.y + bx.h * 0.35 : 0));
+  if (bx && bx.w < innerWidth * 0.9) {
+    if (bx.x + bx.w + 12 + TW < innerWidth - 8) { x = bx.x + bx.w + 12; y = yc; } else if (bx.x - 12 - TW > 8) { x = bx.x - 12 - TW; y = yc; }
+    else if (bx.y + bx.h + 8 + TH < innerHeight * 0.8) { x = bx.x + bx.w / 2 - TW / 2; y = bx.y + bx.h + 8; } else if (bx.y - 8 - TH > innerHeight * 0.2) { x = bx.x + bx.w / 2 - TW / 2; y = bx.y - 8 - TH; } }
+  if (x !== null) { x = Math.max(8, Math.min(innerWidth - TW - 8, x));
+    t.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`; t.style.opacity = '1';
+    const a = $('ctAlt'), s2 = $('ctSpd'), at = fmtKm(P.altOf(v)) + ' km', st = Math.round(fun.navOut.sp).toLocaleString() + ' m/s'; if (a.textContent !== at) a.textContent = at; if (s2.textContent !== st) s2.textContent = st; }
+  else t.style.opacity = '0';
+}
+// compact strip: the same speed as the navball (one source), Ap/Pe or the next event, one short hint line
+const fmtKm = m => { const k = m / 1000; return Math.abs(k) < 100 ? k.toFixed(1) : Math.abs(k) < 1e5 ? Math.round(k).toLocaleString() : (k / 1e6).toFixed(2) + 'M'; };
+function stripTick() {
+  if (!F || !cx) return;
+  const no = fun.navOut, lab = { surface: 'SRF m/s', orbit: 'ORB m/s', target: 'TGT m/s' }[no.mode] || 'SRF m/s';
+  const sp = no.sp, b = F.booster, lc = F.landCue; let evL = 'AP · PE km', ev = '—';
+  if (F.flyingBooster() && b && isFinite(b.burnIn) && b.burnIn > 0.5) { evL = 'BURN T−'; ev = b.burnIn.toFixed(1) + ' s'; }
+  else if (lc && !F.flags.landed && lc.burnIn > 0.5 && lc.burnIn < 600 && V.dot(P.airVel(v), V.norm(v.r)) < 0) { evL = 'BURN T−'; ev = lc.burnIn.toFixed(1) + ' s'; }
+  else if (F.nodes.length) { evL = 'NODE T−'; ev = fmtDur(Math.max(0, F.nodes[0].t - (v.clock || 0))); }
+  else if (F.ignited) { const o = P.orbitOf(v); if (isFinite(o.ap)) ev = fmtKm(o.ap).replace(/\.\d$/, '') + '/' + (o.pe < -999e3 ? '—' : fmtKm(o.pe).replace(/\.\d$/, '')); }
+  cx.update({ alt: fmtKm(P.altOf(v)), spd: sp < 1e5 ? Math.round(sp).toLocaleString() : (sp / 1000).toFixed(0) + 'k', spdL: lab, evL, ev, hint: $('hint').style.display === 'none' ? '' : $('hint').textContent });
+}
 // Navball glue: ship frame, local horizon, the marker directions and the landing burn cue
 let navTgtT = 0, navTgt = null;
 function navTick() {
+  stripTick();
   if (camMode === 'map' || photoOn || !F || (split.on && innerHeight > innerWidth)) { fun.hideNav(); return; }
   const nose = P.noseOf(v), top = V.qrot(v.q, [0, 0, -1]), vs = P.airVel(v), up = V.norm(v.r), vo = v.v;
   const nrmv = V.len(V.cross(v.r, v.v)) > 1 ? V.norm(V.cross(v.r, v.v)) : null, pg = V.len(vo) > 1 ? V.norm(vo) : up, rad = V.norm(V.sub(up, V.scale(pg, V.dot(up, pg))));
@@ -1592,4 +1665,4 @@ $('standBtn').onclick = () => testStand(); $('tunnelBtn').onclick = () => fun.op
 addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e.preventDefault(); }, true);
 refreshBuild();
 setInterval(() => { const on = state === 'flight' && !replay; if (on !== funShown) { funShown = on; fun.show(on); } }, 200);
-window.__game = { fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };
+window.__game = { rocketBox: () => rocketScreenBox(), fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };
