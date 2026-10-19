@@ -55,7 +55,7 @@ export const flowStreaks = (q, M) => smooth(300, 9000, q) * (0.55 + 0.45 * smoot
 export const QUALITY = {
   low:  { flowCPU: 350,  flowGPU: 2500,  vapor: true, shock: true, plasmaShell: false, wake: true, diamonds: false, ablate: 2 },
   med:  { flowCPU: 1000, flowGPU: 6000,  vapor: true, shock: true, plasmaShell: true,  wake: true, diamonds: true,  ablate: 4 },
-  high: { flowCPU: 2200, flowGPU: 16000, vapor: true, shock: true, plasmaShell: true,  wake: true, diamonds: true,  ablate: 7 },
+  high: { flowCPU: 2200, flowGPU: 10000, vapor: true, shock: true, plasmaShell: true,  wake: true, diamonds: true,  ablate: 7 },
 };
 export const QUALITY_ORDER = ['low', 'med', 'high'];
 // Everything the renderer needs for one frame, from telemetry.

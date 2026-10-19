@@ -8,7 +8,7 @@
 //  - Shock cone / bow shock (Mach angle, standoff), compressed-air glow, transonic vapor cone (condensation collar),
 //    reentry plasma (bow cap, windward body glow, wake), coloured by stagnation temperature.
 import * as THREE from 'three/webgpu';
-import { fxState, QUALITY, shockStandoff } from './fxmap.js?v=fx1';
+import { fxState, QUALITY, shockStandoff } from './fxmap.js?v=ac1';
 const T = THREE.TSL;
 const { Fn, If, instancedArray, instancedBufferAttribute, instanceIndex, uniform, vec3, vec4, float, hash, length, normalize, dot, cross, max, mix,
   smoothstep, exp, sqrt, clamp, abs, sin, cos, uv, positionLocal, normalLocal, normalView, positionView, pow, oneMinus, texture, time, vec2 } = T;
@@ -198,7 +198,7 @@ export class FX {
       U.cam.value.copy(ctx.cam); U.streak.value = streakLen / vis; U.width.value = 0.06 + 0.002 * L;
       // in the plasma regime the shock layer, not the free stream, dominates: dim the streaks and tint them with the plasma colour
       const pk = Math.min(1, s.plasma * 1.3), pc = s.plasmaColor;
-      U.inten.value = s.flow * (this.gpu ? 0.5 : 0.8) * (1 + s.glow) * (1 - 0.93 * pk) * (this.gpu ? 1 - 0.4 * pk : 1);
+      U.inten.value = s.flow * (this.gpu ? 0.38 : 0.8) * (1 + s.glow) * (1 - 0.93 * pk) * (this.gpu ? 1 - 0.4 * pk : 1);
       U.color.value.setRGB(0.72 + 0.28 * s.glow, 0.84 - 0.2 * s.glow, 1.0 - 0.55 * s.glow).lerp(this._pc.setRGB(pc[0], pc[1], pc[2]), pk);
       if (this.gpu) { renderer.compute(F.computeNode); this.compute++; } else F.stepCPU(U.dt.value);
     }

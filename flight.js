@@ -1,8 +1,8 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=fx1';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=fx1';
+import * as P from './physics.js?v=ac1';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=ac1';
 const { R, ATM, V } = P;
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
 export const WARPS = [1, 2, 4, 10, 25, 50, 100, 1000];
@@ -13,7 +13,8 @@ export const PHYS_DT = 0.02;                // s: fixed physics step (RK4) at lo
 export const PRESETS = TEMPLATES;
 export const DEORBIT_PE = 45000;            // m: AUTO deorbit burn lowers periapsis to this (deep enough to be captured)
 export const SAFE_TOUCHDOWN = 12;           // m/s: capsule touchdown speed the crew (and the pod) survive
-export const CHUTE_AUTO = { drogueAlt: 11000, mainAlt: 4000 }; // m: AUTO deploys drogues / mains below these
+export const CHUTE_AUTO = { drogueAlt: 11000, mainAlt: 4000 };
+export const SAFE_LANDING = { speed: 8, tilt: 15 }; // m/s, degrees: a powered vertical landing the legs survive // m: AUTO deploys drogues / mains below these
 // Can a parachute stage be deployed now? Returns { ok, why } against the canopy's real limits (speed, Mach, q).
 export function chuteLimits(spec, tel, stage) {
   const lim = stage === 'drogue' ? spec.drogue : spec.main;
@@ -135,12 +136,12 @@ export class Flight {
     v.site = { ef: PAD_EF, lift: (opts.padZ ?? 0.4) + P.massProps(v).ycom, q0: P.padAttitude(PAD_EF) }; // r is the centre of mass
     const s0 = P.siteAt(v, 0); v.r = s0.r; v.v = s0.v; v.q = s0.q; v.clock = 0; v.ut = 0; v.auto = false; v.sas = 'stab';
     this.v = v; this.booster = null; this.ship = null; this.dvUsed = 0;
-    this.met = 0; this.ignited = false; this.maxQ = 0; this.maxG = 0; this.autoOn = false; this.warpI = 0; this.autoWarp = false;
+    this.met = 0; this.ignited = false; this.maxQ = 0; this.maxQEntry = 0; this.maxG = 0; this.autoThrottle = true; this.ascent = true; this.autoOn = false; this.warpI = 0; this.autoWarp = false;
     this.ended = false; this.finalScore = null; this.stageArm = -1; this.realT = 0; this.rails = false;
     P.stepVehicle(v, 0); // fill telemetry
     this.flags = { liftoff: 0, maxq: 0, space: 0, orbit: 0, booster: '', boosterBonus: 0, dead: '', fairing: 0, maxAlt: 0, mach1: 0,
       stranded: 0, cutoff: 0, highQ: 0, padTime: 0, flatLow: 0, steep: 0, stagedFuel: null, stagedAlt: 0, apAtOut: 0, cause: '',
-      recovered: 0, touchdown: null, reentry: 0, plasma: 0 };
+      recovered: 0, touchdown: null, reentry: 0, plasma: 0, landed: 0 };
     // last stage with an engine (a recovery capsule on top has none) and the round-trip capability
     this.lastPow = 0; v.stages.forEach((s, i) => { if (s.eng && s.eng.tv > 0) this.lastPow = i; });
     this.rec = recoveryInfo(design); this.ret = null; this.orbitSnap = null; this.maxHeat = 0; this.maxTskin = 0; this.maxGret = 0; this.parked = null;
@@ -332,13 +333,42 @@ export class Flight {
       this.endQueued = true; this.call('end', 3000, () => !this.ended);
     } else this.fail(`hit the ground at ${sp.toFixed(0)} m/s${v.chute.state === 'stowed' ? ' (no parachutes deployed)' : v.chute.state === 'failed' ? ' (parachutes failed)' : ''}`, 'impact');
   }
+  // Powered vertical landing on the ground (Academy lesson 10 and any hop): gentle and upright = landed.
+  landing(sp) {
+    const v = this.v, f = this.flags, tilt = Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), V.norm(v.r))))) * 180 / Math.PI;
+    f.touchdown = sp; v.throttle = v.ut = 0;
+    if (sp <= SAFE_LANDING.speed && tilt <= SAFE_LANDING.tilt) {
+      f.landed = 1; this.toast(`🎯 LANDED at ${sp.toFixed(1)} m/s, ${tilt.toFixed(0)}° tilt`, '#7dffa6'); this.call('sound', 'landed');
+      this.parked = { ef: V.norm(V.rotZ(v.r, v.earthRot ? -P.OMEGA_E * v.clock : 0)), lift: v.tel.ycom };
+      this.endQueued = true; this.call('end', 3000, () => !this.ended);
+    } else this.fail(`hit the ground at ${sp.toFixed(0)} m/s${tilt > SAFE_LANDING.tilt ? `, ${tilt.toFixed(0)}° from upright` : ''}`, 'ground');
+  }
+  // Start the flight from a given state (Academy lessons): altitude h, vertical/horizontal speed relative to the air,
+  // attitude 'up' | 'prograde' | 'retrograde', which stage is active, optional fuel (t) for that stage.
+  placeState({ h, vUp = 0, vEast = 0, stage = this.v.cur, att = 'up', fuel = null, sas = 'stab' }) {
+    const v = this.v; this.ignited = true; this.flags.liftoff = 1; this.flags.fairing = 1; this.ascent = false;
+    while (v.cur < stage) v.cur++;
+    v.fairing = 0; v._g = null; v.clamped = false; this.met = 600; v.ut = 0; v.throttle = 0;
+    if (fuel !== null) v.stages[v.cur].fuel = Math.min(fuel, v.stages[v.cur].fuelMax);
+    const r = R + h, th = 0.3, up = [Math.cos(th), Math.sin(th), 0], east = [-Math.sin(th), Math.cos(th), 0], w = v.earthRot ? P.OMEGA_E : 0;
+    v.r = V.scale(up, r); v.v = V.add(V.scale(up, vUp), V.scale(east, vEast + w * r));
+    const air = V.norm(V.add(V.scale(up, vUp), V.scale(east, vEast)));
+    v.q = att === 'up' ? P.padAttitude(up) : P.V.qFromTo([0, 1, 0], att === 'prograde' ? air : V.scale(air, -1));
+    v.w = [0, 0, 0]; v.clock = v.clock || 600; v.sas = sas; v.sasHold = null;
+    P.stepVehicle(v, 0); return this;
+  }
+  // Start in an orbit with periapsis pe and apoapsis ap (m), at periapsis, nose prograde (Academy lessons 6-8).
+  placeOrbit(pe, ap, stage = this.lastPow) {
+    this.placeInOrbit(pe, stage); const v = this.v, r = R + pe, a = R + (pe + ap) / 2, vp = Math.sqrt(P.MU * (2 / r - 1 / a));
+    v.v = V.scale(V.norm(v.v), vp); P.stepVehicle(v, 0); this.flags.orbit = P.orbitOf(v).pe > P.ORBIT_PE ? 1 : 0; this.ascent = false; return this;
+  }
   // Put the vehicle straight into a circular-ish orbit at altitude h (tests and the ?scenario=orbit start).
   placeInOrbit(h = 170000, stage = this.lastPow) {
     const v = this.v; this.ignited = true; this.flags.liftoff = 1; this.flags.space = 1; this.flags.orbit = 1; this.flags.cutoff = 1; this.flags.fairing = 1;
     while (v.cur < stage) { const d = P.makeBooster(v); v.cur++; }
     v.fairing = 0; v._g = null; v.clamped = false; this.met = 600; v.ut = 0; v.throttle = 0; this.endQueued = true;
     const r = R + h, vc = Math.sqrt(P.MU / r), th = 0.3; v.r = [r * Math.cos(th), r * Math.sin(th), 0]; v.v = [-vc * Math.sin(th), vc * Math.cos(th), 0];
-    v.q = P.V.qFromTo([0, 1, 0], V.norm(v.v)); v.w = [0, 0, 0]; v.clock = v.clock || 600; v.sas = 'prograde';
+    v.q = P.V.qFromTo([0, 1, 0], V.norm(v.v)); v.w = [0, 0, 0]; v.clock = v.clock || 600; v.sas = 'prograde'; this.ascent = false;
     P.stepVehicle(v, 0); return this;
   }
   // ---------- warp ----------
@@ -422,7 +452,7 @@ export class Flight {
       else if (this.autoOn && !v.clamped) {
         const gd = P.autoGuide(v); v.steerDir = gd.dir;
         if (gd.phase === 'done' && v.ut > 0) { v.ut = 0; if (!f.cutoff) { f.cutoff = 1; this.toast('AUTO cutoff — orbit reached', '#7dffa6'); } }
-        v.throttle = v.auto ? gd.throttle : Math.min(v.ut, gd.throttle);
+        v.throttle = v.auto ? gd.throttle : this.autoThrottle ? Math.min(v.ut, gd.throttle) : v.ut;
         if (v.cur < this.lastPow && v.stages[v.cur].fuel <= 0 && this.canStage()) { this.toast(v.cur === 0 ? 'AUTO: booster empty, staging' : `AUTO: stage ${v.cur + 1} empty, staging`, '#9cc3ff'); this.stage(); }
       } else { v.throttle = this.autoOn ? Math.min(v.ut, P.qCap(v.tel ? v.tel.q : 0)) : v.ut; if (!this.autoOn) v.steerDir = null; }
       if (v.clamped) v.steerDir = null;
@@ -433,12 +463,15 @@ export class Flight {
       if (this.ret && tel.gload > this.maxGret) this.maxGret = tel.gload;
       if (this.ret && !f.reentry && h < 100000 && tel.heat > 1000) f.reentry = 1;
       if (v.thrust > 0 && !v.clamped) this.dvUsed += v.thrust / m0 * dt;
-      if (tel.q > this.maxQ) this.maxQ = tel.q;
+      // Max-Q is an ascent figure: reentry and falling back are tracked separately (maxQEntry)
+      if (this.ascent && (this.ret || (f.space && V.dot(v.v, V.norm(v.r)) < 0) || f.orbit)) this.ascent = false;
+      if (this.ascent) { if (tel.q > this.maxQ) this.maxQ = tel.q; } else if (tel.q > this.maxQEntry) this.maxQEntry = tel.q;
       if (!v.clamped && tel.gload > this.maxG) this.maxG = tel.gload;
       if (!v.clamped && !f.liftoff) { f.liftoff = 1; this.met = 0; this.toast('LIFTOFF!', '#fff'); }
       if (f.liftoff) this.met += dt;
       const capsule = v.cur > this.lastPow || !(v.stages[v.cur].eng && v.stages[v.cur].eng.tv > 0);
       if (capsule && !v.clamped && (h - tel.ycom <= 0 || e === 'ground')) this.touchdown(tel.vAir);
+      else if (!v.clamped && f.liftoff && this.met > 8 && (h - tel.ycom <= 0 || e === 'ground')) this.landing(tel.vAir);
       else if (e === 'ground') this.fail(this.met < 8 ? 'never cleared the tower' : 'hit the ground', 'ground');
       else {
         this.checkHeat();

@@ -4,13 +4,13 @@
 // drag 0.5 rho V^2 Cd(M) A, body+fin normal force at the centre of pressure, RCS. Torques: aero (CoP vs CoM)
 // plus aerodynamic damping, engine gimbal, reaction wheels, RCS. Integrated with fixed-step RK4.
 // Each step leaves v.tel (telemetry) for the HUD, the lessons and the effects system.
-import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=fx1';
-import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=fx1';
-import { atmosphere } from './atmosphere.js?v=fx1';
-import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=fx1';
-import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=fx1';
-import { stackGeom, massProps } from './vehicle.js?v=fx1';
-import { propagate } from './kepler.js?v=fx1';
+import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=ac1';
+import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=ac1';
+import { atmosphere } from './atmosphere.js?v=ac1';
+import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=ac1';
+import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=ac1';
+import { stackGeom, massProps } from './vehicle.js?v=ac1';
+import { propagate } from './kepler.js?v=ac1';
 export const omegaOf = v => (v.earthRot === false ? 0 : OMEGA_E);
 export const altOf = v => len(v.r) - R_E;
 export const upOf = v => norm(v.r);
@@ -27,6 +27,8 @@ export function engineOut(v, p) {
   const pr = Math.min(1, p / P0), Tvac = s.eng.tv * 1000 * s.n * v.throttle, isp = s.eng.ispVac - (s.eng.ispVac - s.eng.ispSl) * pr;
   return { T: Tvac * isp / s.eng.ispVac, mdot: Tvac / (s.eng.ispVac * G0), isp };
 }
+// Full-throttle thrust (N) of the active stage at ambient pressure p (Pa), whatever the current throttle.
+export const maxThrust = (v, p) => engineOut({ ...v, throttle: 1 }, p).T;
 // Maximum control torque per body axis [pitch (x), roll (y), yaw (z)] in N·m from wheels, gimbal and RCS.
 export function authority(v, g, mp, T) {
   const s = v.stages[v.cur], rw = g.rw * 1000, gim = s && s.eng && s.eng.gimbal ? T * Math.sin(s.eng.gimbal) * Math.max(mp.ycom, 0.5) : 0;
