@@ -1,10 +1,11 @@
 import * as THREE from 'three/webgpu';
-import * as P from './physics.js?v=fp2';
-import { Flight, PRESETS, planBuild, SIM_SPEED, WARPS } from './flight.js?v=fp2';
+import * as P from './physics.js?v=pb1';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS } from './flight.js?v=pb1';
+import { PARTS, TEMPLATES, ORBIT_DV, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass } from './parts.js?v=pb1';
 const { R, MU, ATM } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-export const BUILD = '2026-10-19-fp2';
+export const BUILD = '2026-10-19-pb1';
 const wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
@@ -137,46 +138,67 @@ const M = {
   plumeCore: new THREE.MeshBasicMaterial({ color: 0xbfe0ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }),
 };
 const RAD = 1.85;
-function makeStage1(cfg) {
-  const g = new THREE.Group(), h = 10 + cfg.s1fuel * 0.75;
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(RAD, RAD, h, 32), M.white); body.position.y = h / 2 + 1.5; g.add(body);
-  const band = new THREE.Mesh(new THREE.CylinderGeometry(RAD + 0.02, RAD + 0.02, 2.5, 32), M.black); band.position.y = h + 0.3; g.add(band);
-  const n = cfg.engines;
+// Build one THREE.Group per stage (flight order) from the design's parts, stacked bottom-up inside each group.
+const PART_COL = { sat: 0xc9a34a, probe: 0xb8c4d6, crew: 0xdddddd };
+function bells(g, n, y, big, small) {
   for (let i = 0; i < n; i++) {
     const a = i / n * Math.PI * 2, rr = n === 1 ? 0 : 1.05;
-    const e = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.65, 1.6, 16), M.engine); e.position.set(Math.cos(a) * rr, 0.8, Math.sin(a) * rr); g.add(e);
+    const e = new THREE.Mesh(new THREE.CylinderGeometry(small ? 0.15 : big ? 0.25 : 0.3, small ? 0.35 : big ? 0.65 : 0.9, small ? 0.9 : 1.6, 16), M.engine);
+    e.position.set(Math.cos(a) * rr, y + (small ? 0.45 : 0.8), Math.sin(a) * rr); g.add(e);
   }
-  const plume = makePlume(1.6 + n * 0.25); g.add(plume);
-  const legs = new THREE.Group();
-  for (let i = 0; i < 4; i++) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.35, 9, 0.35), M.black); const a = i * Math.PI / 2 + 0.78; l.position.set(Math.cos(a) * 3.3, 2.2, Math.sin(a) * 3.3); l.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); legs.add(l); }
-  legs.visible = false; g.add(legs);
-  const fins = new THREE.Group();
-  for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 0.15), M.black); const a = i * Math.PI / 2; f.position.set(Math.cos(a) * (RAD + 0.7), h - 1, Math.sin(a) * (RAD + 0.7)); f.rotation.y = -a; fins.add(f); }
-  g.add(fins);
-  g.userData = { h: h + 1.5, plume, legs, scale: 1 + n * 0.25 };
-  return g;
+}
+function makeRocketGroups(design) {
+  const groups = splitStages(design), out = [];
+  groups.forEach((idx, si) => {
+    const g = new THREE.Group(); let y = 0, nEng = 0, payloadY = null, finsAt = [];
+    const list = idx.map(i => design.parts[i]).reverse(); // bottom → top
+    for (const p of list) {
+      const d = PARTS[p.id];
+      if (d.type === 'engine') { const n = p.n || 1; bells(g, n, y, p.id === 'thumper', p.id === 'spark'); y += p.id === 'spark' ? 0.9 : 1.6; nEng += n; }
+      else if (d.type === 'tank') {
+        const h = 1 + d.fuel * 0.75; const body = new THREE.Mesh(new THREE.CylinderGeometry(RAD, RAD, h, 32), M.white); body.position.y = y + h / 2; g.add(body);
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(RAD + 0.02, RAD + 0.02, Math.min(1.2, h * 0.15), 32), M.black); band.position.y = y + h - Math.min(0.6, h * 0.075); g.add(band);
+        if (finsAt.length) { finsAt = []; addFins(g, y + 1.2); }
+        y += h;
+      } else if (d.type === 'decoupler') { const m = new THREE.Mesh(new THREE.CylinderGeometry(RAD, RAD, 0.8, 32), M.black); m.position.y = y + 0.4; g.add(m); y += 0.8; }
+      else if (d.type === 'fins') finsAt.push(y);
+      else if (d.type === 'pod' || d.type === 'payload') {
+        if (payloadY === null) payloadY = y;
+        let m, h;
+        if (p.id === 'crew') { h = 3.6; m = new THREE.Mesh(new THREE.CylinderGeometry(0.7, RAD, h, 32), new THREE.MeshStandardMaterial({ color: PART_COL.crew, roughness: 0.5, metalness: 0.3 })); }
+        else if (p.id === 'probe') { h = 1.2; m = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.25, h, 8), new THREE.MeshStandardMaterial({ color: PART_COL.probe, metalness: 0.6, roughness: 0.3 })); }
+        else { h = 2.6; m = new THREE.Mesh(new THREE.BoxGeometry(2.2, h, 2.2), new THREE.MeshStandardMaterial({ color: PART_COL.sat, metalness: 0.6, roughness: 0.3 })); }
+        m.position.y = y + h / 2; g.add(m); y += h;
+      }
+    }
+    if (finsAt.length) addFins(g, Math.max(1.2, finsAt[0] + 1.2));
+    let fair = null;
+    if (si === groups.length - 1 && idx.some(i => design.parts[i].id === 'fairing')) {
+      const y0 = payloadY ?? y, fh = Math.max(4, y - y0 + 2.5); fair = new THREE.Group();
+      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(RAD + 0.25, RAD + 0.05, fh * 0.55, 32), M.white); cyl.position.y = fh * 0.275; fair.add(cyl);
+      const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.3, RAD + 0.25, fh * 0.6, 32), M.white); cone.position.y = fh * 0.55 + fh * 0.3; fair.add(cone);
+      fair.position.y = y0; g.add(fair); y = Math.max(y, y0 + fh * 1.15);
+    }
+    const plume = makePlume(si === 0 ? 1.4 + nEng * 0.25 : 1 + Math.min(nEng, 3) * 0.2); g.add(plume);
+    let legs = null;
+    if (si === 0) {
+      legs = new THREE.Group();
+      for (let i = 0; i < 4; i++) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.35, 9, 0.35), M.black); const a = i * Math.PI / 2 + 0.78; l.position.set(Math.cos(a) * 3.3, 2.2, Math.sin(a) * 3.3); l.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); legs.add(l); }
+      legs.visible = false; g.add(legs);
+    }
+    g.userData = { h: y, plume, legs, fair };
+    out.push(g);
+  });
+  return out;
+}
+function addFins(g, y) {
+  for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.2, 0.15), M.black); const a = i * Math.PI / 2; f.position.set(Math.cos(a) * (RAD + 0.8), y, Math.sin(a) * (RAD + 0.8)); f.rotation.y = -a; g.add(f); }
 }
 function makePlume(w) {
   const g = new THREE.Group();
   const outer = new THREE.Mesh(new THREE.ConeGeometry(w, 1, 24, 1, true), M.plume); outer.rotation.x = Math.PI; outer.position.y = -0.5; g.add(outer);
   const core = new THREE.Mesh(new THREE.ConeGeometry(w * 0.45, 1, 16, 1, true), M.plumeCore); core.rotation.x = Math.PI; core.position.y = -0.5; g.add(core);
   g.visible = false; return g;
-}
-function makeUpper(cfg) {
-  const g = new THREE.Group(), h = 5 + cfg.s2fuel * 0.8;
-  const inter = new THREE.Mesh(new THREE.CylinderGeometry(RAD, RAD, 2, 32), M.black); inter.position.y = 1; g.add(inter);
-  const e = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 1.1, 2, 16), M.engine); e.position.y = 0.6; g.add(e);
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(RAD, RAD, h, 32), M.white); body.position.y = 2 + h / 2; g.add(body);
-  const plume = makePlume(1.4); g.add(plume);
-  const fair = new THREE.Group(), pay = P.OPTS.payload[cfg.payload];
-  const fh = 5 + pay.m * 0.9;
-  const cyl = new THREE.Mesh(new THREE.CylinderGeometry(RAD + 0.25, RAD, fh * 0.5, 32), M.white); cyl.position.y = fh * 0.25; fair.add(cyl);
-  const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.3, RAD + 0.25, fh * 0.7, 32), M.white); cone.position.y = fh * 0.5 + fh * 0.35; fair.add(cone);
-  fair.position.y = 2 + h; g.add(fair);
-  const payload = new THREE.Mesh(cfg.payload === 2 ? new THREE.ConeGeometry(1.6, 3, 24) : new THREE.BoxGeometry(2, 1 + pay.m * 0.5, 2), new THREE.MeshStandardMaterial({ color: cfg.payload === 2 ? 0xdddddd : 0xc9a34a, metalness: 0.6, roughness: 0.3 }));
-  payload.position.y = 2 + h + 1.6; g.add(payload);
-  g.userData = { h: 2 + h + fh * 1.2, plume, fair };
-  return g;
 }
 
 // ---------- particles (instanced camera-facing quads; only live particles are touched each frame) ----------
@@ -231,42 +253,118 @@ function burst(vol, dur, freq) {
 }
 function beep(f = 880) { if (!ac) return; const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.08, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.25); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.3); }
 
-// ---------- build screen ----------
-const cfg = { ...PRESETS[0].cfg };
-const labels = { engines: v => v + '×', s1fuel: v => v + ' t', s2fuel: v => v + ' t', payload: (v, i) => P.OPTS.payload[i].name };
-PRESETS.forEach((pr, i) => {
-  const c = pr.cfg, sum = `${c.engines}× · ${c.s1fuel} t · ${c.s2fuel} t · ${P.OPTS.payload[c.payload].name}`;
-  const b = document.createElement('button'); b.innerHTML = (i === 0 ? '<span class="rec">★ RECOMMENDED</span>' : pr.name) + `<small>${sum}</small>`; b.title = pr.note;
-  b.onclick = () => { Object.assign(cfg, pr.cfg); refreshBuild(); }; b.dataset.p = i; $('presets').appendChild(b);
-});
-document.querySelectorAll('.opts[data-k]').forEach(el => {
-  const k = el.dataset.k;
-  P.OPTS[k].forEach((v, i) => {
-    const b = document.createElement('button'); b.textContent = labels[k](v, i);
-    const val = k === 'payload' ? i : v; b.onclick = () => { cfg[k] = val; refreshBuild(); }; b.dataset.v = val; el.appendChild(b);
-  });
-});
+// ---------- hangar: part-based builder ----------
+const LS_KEY = 'orbitrush.designs.v1';
+let design = cloneDesign(TEMPLATES[0]), selected = -1;
+const TYPE_ORDER = [['pod', 'Command'], ['payload', 'Payload'], ['fairing', 'Payload'], ['tank', 'Fuel tanks'], ['engine', 'Engines'], ['decoupler', 'Structure'], ['fins', 'Structure']];
+const TYPE_COL = { pod: '#9cc3ff', payload: '#e0b84a', fairing: '#e8e8e8', tank: '#f2f2f2', engine: '#ff9a3c', decoupler: '#888', fins: '#555' };
+const partStat = (id, p) => { const d = PARTS[id];
+  if (d.type === 'engine') return `${d.tv} kN · Isp ${d.ispSl}/${d.ispVac} s · ${d.m} t`;
+  if (d.type === 'tank') return `${d.fuel} t fuel · ${(d.fuel * 0.1).toFixed(1)} t empty`;
+  return `${(p ? partMass(p) : d.m).toFixed(1)} t${d.mult ? ' · ×' + d.mult + ' score' : ''}`; };
+function buildPalette() {
+  const el = $('palette'); el.innerHTML = ''; let lastH = '';
+  for (const [type, head] of TYPE_ORDER) {
+    if (head !== lastH) { const h = document.createElement('div'); h.className = 'palH'; h.textContent = head; el.appendChild(h); lastH = head; }
+    for (const [id, d] of Object.entries(PARTS)) if (d.type === type) {
+      const t = document.createElement('div'); t.className = 'tile'; t.draggable = true; t.title = d.desc + ' (click to add above the selected part, or drag into the stack)';
+      t.innerHTML = `<i style="background:${TYPE_COL[type]}"></i><b>${d.name}</b><small>${partStat(id)}</small>`;
+      t.onclick = () => addPart(id); t.ondragstart = e => { e.dataTransfer.setData('text/plain', 'new:' + id); e.dataTransfer.effectAllowed = 'copy'; };
+      t.dataset.id = id; el.appendChild(t);
+    }
+  }
+}
+function setDesign(d, keepSel) { design = d; if (!keepSel) selected = -1; selected = Math.min(selected, design.parts.length - 1); refreshBuild(); }
+// click: append at the bottom, or insert above the highlighted part (which stays highlighted)
+function addPart(id) { if (selected < 0) setDesign(insertPart(design, id, design.parts.length), true); else { const at = selected; selected = -1; design = insertPart(design, id, at); selected = at + 1; refreshBuild(); } }
+function dropAt(data, at) {
+  if (data.startsWith('new:')) { design = insertPart(design, data.slice(4), at); if (selected >= at) selected++; }
+  else if (data.startsWith('move:')) { const from = +data.slice(5); const to = from < at ? at - 1 : at; design = movePart(design, from, to); selected = -1; }
+  refreshBuild();
+}
+function renderStack(stats) {
+  const el = $('stack'); el.innerHTML = '';
+  const groups = splitStages(design), N = groups.length;
+  for (let gi = N - 1; gi >= 0; gi--) { // top stage first
+    const st = stats.stages[gi], hd = document.createElement('div'); hd.className = 'stageH';
+    hd.innerHTML = `<span>STAGE ${gi + 1}${gi === 0 ? ' · fires first' : gi === N - 1 ? ' · top' : ''}</span><em>${st.dv.toFixed(0)} m/s · TWR ${st.twr.toFixed(2)}</em>`;
+    const up = document.createElement('button'); up.textContent = '⇧'; up.title = 'Move this stage up (fires later)'; up.disabled = gi === N - 1; up.onclick = () => setDesign(swapStages(design, gi, gi + 1));
+    const dn = document.createElement('button'); dn.textContent = '⇩'; dn.title = 'Move this stage down (fires sooner)'; dn.disabled = gi === 0; dn.onclick = () => setDesign(swapStages(design, gi, gi - 1));
+    hd.append(up, dn); el.appendChild(hd);
+    for (const i of groups[gi]) {
+      const p = design.parts[i], d = PARTS[p.id], row = document.createElement('div');
+      row.className = 'prow' + (i === selected ? ' sel' : '') + (d.type === 'decoupler' ? ' dec' : ''); row.draggable = true;
+      row.innerHTML = `<i style="background:${TYPE_COL[d.type]}"></i><b>${d.name}</b><small>${partStat(p.id, p)}</small>`;
+      if (d.type === 'engine') {
+        const m = document.createElement('span'); m.className = 'cnt';
+        const minus = document.createElement('button'); minus.textContent = '−'; minus.onclick = e => { e.stopPropagation(); setDesign(setEngines(design, i, (p.n || 1) - 1), true); };
+        const plus = document.createElement('button'); plus.textContent = '+'; plus.onclick = e => { e.stopPropagation(); setDesign(setEngines(design, i, (p.n || 1) + 1), true); };
+        const n = document.createElement('u'); n.textContent = `×${p.n || 1}`; m.append(minus, n, plus); row.appendChild(m);
+      }
+      for (const [txt, title, fn] of [['▲', 'Move up', () => { setDesign(movePart(design, i, i - 1), true); selected = Math.max(0, i - 1); refreshBuild(); }], ['▼', 'Move down', () => { setDesign(movePart(design, i, i + 1), true); selected = Math.min(design.parts.length - 1, i + 1); refreshBuild(); }], ['✕', 'Remove', () => setDesign(removePart(design, i))]]) {
+        const b = document.createElement('button'); b.textContent = txt; b.title = title; b.className = 'mini'; b.onclick = e => { e.stopPropagation(); fn(); }; row.appendChild(b);
+      }
+      row.onclick = () => { selected = selected === i ? -1 : i; refreshBuild(); };
+      row.ondragstart = e => { e.dataTransfer.setData('text/plain', 'move:' + i); e.dataTransfer.effectAllowed = 'move'; };
+      row.ondragover = e => { e.preventDefault(); row.classList.add('over'); }; row.ondragleave = () => row.classList.remove('over');
+      row.ondrop = e => { e.preventDefault(); dropAt(e.dataTransfer.getData('text/plain'), i); };
+      el.appendChild(row);
+    }
+  }
+  const end = document.createElement('div'); end.className = 'dropEnd'; end.textContent = selected >= 0 ? 'Click a part on the left to add it above the highlighted part · click it again to deselect' : 'Drop parts here, or click a part on the left to add it at the bottom';
+  end.ondragover = e => { e.preventDefault(); end.classList.add('over'); }; end.ondragleave = () => end.classList.remove('over');
+  end.ondrop = e => { e.preventDefault(); dropAt(e.dataTransfer.getData('text/plain'), design.parts.length); };
+  el.appendChild(end);
+}
 let planTimer = 0;
 function refreshBuild() {
-  document.querySelectorAll('.opts[data-k]').forEach(el => el.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === cfg[el.dataset.k])));
-  document.querySelectorAll('#presets button').forEach(b => { const c = PRESETS[+b.dataset.p].cfg; b.classList.toggle('on', Object.keys(c).every(k => c[k] === cfg[k])); });
-  const s = P.rocketStats(cfg);
-  const twrC = s.twr < 1 ? 'bad' : s.twr < 1.2 ? 'warn' : 'good', dvC = s.total < 3600 ? 'bad' : s.total < 4200 ? 'warn' : 'good';
-  $('stats').innerHTML = `Liftoff mass ${s.mass.toFixed(1)} t<br>Liftoff TWR <span class="${twrC}">${s.twr.toFixed(2)}</span>${s.twr < 1 ? ' — too heavy to lift off!' : ''}<br>Δv  S1 ${s.dv[0].toFixed(0)} + S2 ${s.dv[1].toFixed(0)} = <span class="${dvC}">${s.total.toFixed(0)} m/s</span><br><span style="opacity:.7">Orbit needs ~3,600 m/s. Extra Δv = fuel to land the booster.</span><div id="landPlan">Booster landing: checking…</div>`;
-  clearTimeout(planTimer); const key = JSON.stringify(cfg);
-  planTimer = setTimeout(() => { // flies the build on AUTO headlessly to see if the booster can be landed
-    if (JSON.stringify(cfg) !== key || !$('landPlan')) return;
-    const p = planBuild(cfg), el = $('landPlan');
-    if (p.reason === 'twr') el.innerHTML = '';
-    else if (p.minReserve === null) el.innerHTML = '<span class="bad">⚠ Booster landing: this booster can\'t keep enough fuel to land. Add booster fuel or use fewer engines.</span>';
-    else if (!p.orbit) el.innerHTML = `<span class="warn">⚠ Booster landing needs ~${p.minReserve.toFixed(1)} t left at staging, but then the upper stage can't reach orbit. Add fuel, or let the booster go.</span>`;
-    else el.innerHTML = `<span class="good">✔ Booster can land: stage with ≥ ${p.minReserve.toFixed(1)} t left (of ${cfg.s1fuel} t). AUTO alone stages it dry.</span>`;
-  }, 120);
+  const stats = designStats(design), val = validate(design);
+  document.querySelectorAll('#presets button[data-p]').forEach(b => b.classList.toggle('on', JSON.stringify(TEMPLATES[+b.dataset.p].parts) === JSON.stringify(design.parts)));
+  renderStack(stats);
+  const rows = stats.stages.map((st, i) => { const a = stats.analysis.stages[i];
+    return `<tr><td>${i + 1}</td><td>${a.engines.join(', ') || '<span class="bad">none</span>'}</td><td>${st.m0.toFixed(1)}→${st.m1.toFixed(1)} t</td><td>${st.dv.toFixed(0)}</td><td class="${st.twr < (i ? 0.45 : 1) ? 'bad' : st.twr < (i ? 0.7 : 1.2) ? 'warn' : ''}">${st.twr.toFixed(2)}${i ? '' : ' SL'}</td><td>${st.burn.toFixed(0)} s</td></tr>`; }).join('');
+  const pct = Math.min(100, stats.total / (ORBIT_DV * 2) * 100), need = ORBIT_DV / (ORBIT_DV * 2) * 100;
+  const dvC = stats.total < ORBIT_DV ? 'bad' : stats.total < ORBIT_DV + 600 ? 'warn' : 'good';
+  $('readout').innerHTML = `<table><tr><th>Stg</th><th>Engines</th><th>Mass wet→dry</th><th>Δv m/s</th><th>TWR</th><th>Burn</th></tr>${rows}</table>
+    <div class="dvline">Total Δv <b class="${dvC}">${stats.total.toFixed(0)} m/s</b> · orbit needs ~${ORBIT_DV.toLocaleString()} · liftoff mass ${stats.mass.toFixed(1)} t · score ×${stats.analysis.mult}</div>
+    <div class="dvbar"><i class="${dvC}" style="width:${pct}%"></i><s style="left:${need}%"></s><em style="left:${need}%">orbit</em></div>
+    ${val.errors.map(e => `<div class="msg bad">✘ ${e}</div>`).join('')}${val.warnings.map(e => `<div class="msg warn">⚠ ${e}</div>`).join('')}
+    <div id="verdict" class="msg">${val.ok ? 'AUTO test flight: simulating…' : ''}</div><div id="landPlan" class="msg"></div>
+    <div class="small">Stage 1 TWR is at sea level, upper stages in vacuum. Δv uses mean Isp for stage 1.</div>`;
+  $('launchBtn').disabled = !val.ok; $('launchBtn').textContent = val.ok ? 'ROLL TO PAD ▶' : 'Fix the design to launch';
+  clearTimeout(planTimer); const key = JSON.stringify(design.parts);
+  if (val.ok) planTimer = setTimeout(() => { // fly the design on AUTO headlessly: verdict + booster-landing advice
+    if (JSON.stringify(design.parts) !== key || !$('verdict')) return;
+    const a = assessDesign(design); $('verdict').innerHTML = `<span class="${a.level}">${a.text}</span>`;
+    const p = planBuild(design), el = $('landPlan'); const s1 = design && stats.analysis.stages[0];
+    if (p.reason === 'single') el.innerHTML = '<span class="small">Single-stage rocket: no booster to land.</span>';
+    else if (p.reason) el.innerHTML = '';
+    else if (p.minReserve === null) el.innerHTML = '<span class="warn">⚠ Booster landing: this booster can\'t keep enough fuel to land. Add stage-1 fuel or use fewer engines.</span>';
+    else if (!p.orbit) el.innerHTML = `<span class="warn">⚠ Booster landing needs ~${p.minReserve.toFixed(1)} t left at staging, but then the upper stages can't reach orbit.</span>`;
+    else el.innerHTML = `<span class="good">✔ Booster can land: stage with ≥ ${p.minReserve.toFixed(1)} t left (of ${s1.fuel} t). AUTO alone stages it dry.</span>`;
+  }, 250);
+  renderSaved();
   if (state === 'build') showPreview();
 }
+// templates + saved designs (localStorage)
+TEMPLATES.forEach((t, i) => {
+  const b = document.createElement('button'); b.innerHTML = i === 0 ? '<span class="rec">★ RECOMMENDED</span>' : t.name; b.title = t.note; b.dataset.p = i;
+  b.onclick = () => setDesign(cloneDesign(TEMPLATES[i])); $('presets').appendChild(b);
+});
+const loadSaved = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; } };
+function renderSaved() {
+  const sel = $('savedSel'), list = loadSaved(), cur = sel.value; sel.innerHTML = '<option value="">Saved designs…</option>' + list.map((d, i) => `<option value="${i}">${d.name.replace(/</g, '&lt;')}</option>`).join('');
+  if (cur && +cur < list.length) sel.value = cur;
+}
+$('saveBtn').onclick = () => { const name = (prompt('Name this design:', design.name && !TEMPLATES.some(t => t.name === design.name) ? design.name : 'My rocket') || '').trim(); if (!name) return; const list = loadSaved().filter(d => d.name !== name); list.push({ name, parts: design.parts }); try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch (e) { } design.name = name; renderSaved(); toast('Saved “' + name + '”', '#9cc3ff'); };
+$('savedSel').onchange = () => { const i = $('savedSel').value; if (i === '') return; const d = loadSaved()[+i]; if (d) setDesign(cloneDesign(d)); };
+$('delBtn').onclick = () => { const i = $('savedSel').value; if (i === '') return; const list = loadSaved(); list.splice(+i, 1); try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch (e) { } $('savedSel').value = ''; renderSaved(); };
+$('clearBtn').onclick = () => setDesign({ name: 'Custom', parts: [{ id: 'probe' }] });
+buildPalette();
 
 // ---------- game state ----------
-let state = 'build', F, v, booster, rocketG, s1G, upG, camMode, gen = 0;
+let state = 'build', F, v, booster, rocketG, SG = [], camMode, gen = 0;
+const debris = [];
 const dyn = []; // world entries created during a flight (droneship, ocean) — removed on reset
 const keys = {};
 function later(fn, ms) { const g = gen; setTimeout(() => { if (g === gen) fn(); }, ms); }
@@ -274,14 +372,11 @@ let shipVis = null;
 const hooks = {
   toast: (m, c) => toast(m, c),
   sound: (k, f) => { if (k === 'ignite') burst(0.6, 1.2, 500); else if (k === 'beep') beep(f); else if (k === 'orbit') { beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); } },
-  stage: b => {
-    b.mesh = s1G; rocketG.remove(s1G); scene.add(s1G); s1G.userData.plume.visible = false; upG.position.y = 0; burst(0.5, 0.6, 1500); beep(660);
-    for (let i = 0; i < 25; i++) smoke.spawn(v.x, v.y, 0, v.vx + (Math.random() - 0.5) * 20, v.vy + (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, 1.5, 2, 8, 0xdddddd, null, 0.5);
-    booster = b;
-  },
+  stage: b => { b.mesh = detachStage(0); booster = b; },
+  drop: d => { d.mesh = detachStage(d.stageIndex); d.t = 0; debris.push(d); },
   ship: s => { shipVis = makeShip(s.ang); },
   shipMoved: s => shipVis && shipVis.setAngle(s.ang),
-  jettison: () => { upG.userData.fair.visible = false; beep(990); },
+  jettison: () => { const f = SG[SG.length - 1].userData.fair; if (f) f.visible = false; beep(990); },
   // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
   boosterControl: manual => { for (const k in keys) keys[k] = false; if (manual) { camMode = 'booster'; camDist = 140; } else camMode = 'chase'; $('tProg').classList.toggle('on', F.autoOn); },
   boosterLost: (b, moving) => { explode(b.x, b.y, moving ? b.vx : 0, moving ? b.vy : 0); b.mesh.visible = false; b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
@@ -289,14 +384,24 @@ const hooks = {
   fail: () => { explode(v.x, v.y, v.vx, v.vy, true); rocketG.visible = false; },
   end: (ms, cond) => later(() => { if (cond()) showEnd(); }, ms),
 };
+// Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
+function detachStage(i) {
+  const g = SG[i]; rocketG.remove(g); scene.add(g); g.userData.plume.visible = false; burst(0.5, 0.6, 1500); beep(660);
+  let y = 0; for (let j = i + 1; j < SG.length; j++) { SG[j].position.y = y; y += SG[j].userData.h; }
+  for (let k = 0; k < 25; k++) smoke.spawn(v.x, v.y, 0, v.vx + (Math.random() - 0.5) * 20, v.vy + (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, 1.5, 2, 8, 0xdddddd, null, 0.5);
+  return g;
+}
+const stackH = () => { let h = 0; for (let j = (v ? v.cur : 0); j < SG.length; j++) h += SG[j].userData.h; return h; };
 function showPreview() {
   if (rocketG) scene.remove(rocketG);
-  rocketG = new THREE.Group(); s1G = makeStage1(cfg); upG = makeUpper(cfg); upG.position.y = s1G.userData.h; rocketG.add(s1G, upG); scene.add(rocketG);
-  F = new Flight(cfg, hooks, PAD_Z); v = F.v;
+  rocketG = new THREE.Group(); SG = validate(design).ok || design.parts.length ? makeRocketGroups(design) : [];
+  let y = 0; for (const g of SG) { g.position.y = y; y += g.userData.h; rocketG.add(g); } scene.add(rocketG);
+  F = new Flight(validate(design).ok ? design : TEMPLATES[0], hooks, PAD_Z); v = F.v;
 }
 function reset() {
   gen++;
   if (booster && booster.mesh) scene.remove(booster.mesh);
+  for (const d of debris) scene.remove(d.mesh); debris.length = 0;
   for (const w of dyn) { scene.remove(w.obj); const i = world.indexOf(w); if (i >= 0) world.splice(i, 1); }
   dyn.length = 0; shipVis = null; booster = null; camMode = 'chase';
   camDist = 70; camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8;
@@ -400,7 +505,7 @@ function showEnd() {
   if (flags.orbit) lines.push(`<span class="good">✔ Orbit — Ap ${isFinite(o.ap) ? (o.ap / 1000).toFixed(0) + ' km' : 'escape'} / Pe ${(o.pe / 1000).toFixed(0)} km</span>`);
   if (flags.booster) lines.push(flags.boosterBonus ? `<span class="good">✔ Booster ${flags.booster} (+${flags.boosterBonus})</span>` : `<span class="warn">✘ Booster ${flags.booster}</span>`);
   else if (booster && booster.state === 'flying') lines.push('Booster still descending…');
-  lines.push(`Payload: ${P.OPTS.payload[cfg.payload].name} (×${P.OPTS.payload[cfg.payload].mult})`, `<b style="font-size:20px">SCORE ${score.toLocaleString()}</b>`);
+  lines.push(`Rocket: ${design.name || 'Custom'} — ${v.stages.length} stages, ${F.stats.total.toFixed(0)} m/s · payload ×${v.mult}`, `<b style="font-size:20px">SCORE ${score.toLocaleString()}</b>`);
   $('endBody').innerHTML = lines.join('<br>');
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
   $('shareBtn').textContent = 'Share score';
@@ -477,7 +582,7 @@ function hud() {
   const clock = !F.ignited ? 'T- HOLD (on pad)' : !flags.liftoff ? 'T- 0:00 IGNITION' : `T+ ${fmtT(F.met)}`;
   const autoTag = v.auto ? ` [AUTOPILOT ${v.guid || ''}]` : F.autoOn ? ` [AUTO ${v.guid || ''}]` : '';
   const fair = flags.fairing ? 'fairing jettisoned' : `fairing on (drops at ${P.FAIRING_ALT / 1000} km)`;
-  let t = `${clock}\nALT   ${fmtD(h)}\nSPD   ${sp.toFixed(0)} m/s\nV/S   ${vr.toFixed(0)} m/s\nAp    ${apS}${F.autoOn && !onPad && v.guid !== 'done' && isFinite(o.ap) && vr > 0 ? `  in ${fmtT(P.timeToAp(v) / SIM_SPEED)}` : ''}\nPe    <span class="${o.pe > ATM ? 'good' : ''}">${peS}</span>\nPITCH ${pitch.toFixed(1)}° from vertical${autoTag}\nQ     <span class="${qc}">${v.q.toFixed(1)} kPa</span>  max ${F.maxQ.toFixed(1)}\nSTAGE ${v.cur + 1}/2  ${fair}`;
+  let t = `${clock}\nALT   ${fmtD(h)}\nSPD   ${sp.toFixed(0)} m/s\nV/S   ${vr.toFixed(0)} m/s\nAp    ${apS}${F.autoOn && !onPad && v.guid !== 'done' && isFinite(o.ap) && vr > 0 ? `  in ${fmtT(P.timeToAp(v) / SIM_SPEED)}` : ''}\nPe    <span class="${o.pe > ATM ? 'good' : ''}">${peS}</span>\nPITCH ${pitch.toFixed(1)}° from vertical${autoTag}\nQ     <span class="${qc}">${v.q.toFixed(1)} kPa</span>  max ${F.maxQ.toFixed(1)}\nSTAGE ${v.cur + 1}/${v.stages.length}  ${fair}`;
   const b = booster;
   let bd = 0;
   if (b && b.state === 'flying') {
@@ -490,11 +595,17 @@ function hud() {
     t = b.manual ? bt + `\n\nUPPER ${fmtD(h)} Ap ${apS} Pe ${peS}${v.auto ? ' [AUTOPILOT ' + (v.guid || '') + ']' : ''}` : t + '\n' + bt.split('\n').slice(0, 2).join('  ');
   } else if (b) t += `\nBOOSTER ${b.state}`;
   $('tele').innerHTML = t;
-  const ctlV = flyingBooster() ? b : v;
-  const thr = ctlV.throttle || 0, f1 = flyingBooster() ? b.stages[0].fuel / b.stages[0].fuelMax : v.cur === 0 ? v.stages[0].fuel / v.stages[0].fuelMax : 0, f2 = v.stages[1].fuel / v.stages[1].fuelMax;
+  const ctlV = flyingBooster() ? b : v, thr = ctlV.throttle || 0;
+  if ($('bars').children.length !== v.stages.length + 1) {
+    $('bars').innerHTML = '<div class="bar"><span>THR</span><i id="thrBar"></i><b id="thrPct">0%</b></div>' + v.stages.map((_, i) => `<div class="bar fuel"><span>S${i + 1}</span><i id="fBar${i}"></i><b id="fPct${i}">100%</b></div>`).join('');
+  }
   $('thrBar').style.height = thr * 100 + '%'; $('thrPct').textContent = Math.round(thr * 100) + '%';
-  $('f1Bar').style.height = f1 * 100 + '%'; $('f1Pct').textContent = v.cur === 0 || flyingBooster() ? Math.round(f1 * 100) + '%' : '—';
-  $('f2Bar').style.height = f2 * 100 + '%'; $('f2Pct').textContent = Math.round(f2 * 100) + '%';
+  v.stages.forEach((st, i) => {
+    const src = i === 0 && flyingBooster() ? b.stages[0] : st, live = i >= v.cur || (i === 0 && flyingBooster());
+    const f = live ? src.fuel / src.fuelMax : 0;
+    $('fBar' + i).style.height = f * 100 + '%'; $('fPct' + i).textContent = live ? Math.round(f * 100) + '%' : '—';
+    $('fBar' + i).parentElement.classList.toggle('active', i === v.cur && !flyingBooster());
+  });
   $('score').textContent = 'SCORE ' + F.score().toLocaleString();
   $('warpBtn').textContent = F.autoWarp ? `⏩ TO Ap ×${W}${W < WARPS[F.warpI] ? ' (' + wWhy + ')' : ''}` : `WARP ×${W}${W < WARPS[F.warpI] ? ` (max ×${wMax}: ${wWhy})` : ''}`;
   $('apBtn').classList.toggle('hidden', !F.canWarpToAp() || F.autoWarp);
@@ -541,8 +652,13 @@ renderer.setAnimationLoop(() => {
   const ox = focus.x, oy = focus.y;
   for (const w of world) w.obj.position.set(w.x - ox, w.y - oy, 0);
   rocketG.position.set(v.x - ox, v.y - oy, 0); rocketG.rotation.z = v.ang - Math.PI / 2;
-  if (state === 'flight' && !F.flags.dead) emit(v, v.cur === 0 ? s1G : upG, pdt);
-  else { s1G.userData.plume.visible = false; upG.userData.plume.visible = false; }
+  if (state === 'flight' && !F.flags.dead && SG[v.cur]) emit(v, SG[v.cur], pdt);
+  else for (let j = v.cur; j < SG.length; j++) SG[j].userData.plume.visible = false;
+  for (let k = debris.length - 1; k >= 0; k--) { // spent upper stages tumble away and are removed after a while
+    const d = debris[k]; d.throttle = 0; let left = pdt; while (left > 0 && !d.gone) { const dt = Math.min(0.25, left); left -= dt; if (P.stepVehicle(d, dt)) d.gone = true; }
+    d.ang += pdt * 0.3; d.t += pdt; d.mesh.position.set(d.x - ox, d.y - oy, 0); d.mesh.rotation.z = d.ang - Math.PI / 2;
+    if (d.gone || d.t > 120) { scene.remove(d.mesh); debris.splice(k, 1); }
+  }
   if (booster && booster.mesh.visible) {
     booster.mesh.position.set(booster.x - ox, booster.y - oy, 0); booster.mesh.rotation.z = booster.ang - Math.PI / 2;
     if (booster.state === 'flying') emit(booster, booster.mesh, pdt); else booster.mesh.userData.plume.visible = false;
@@ -553,7 +669,7 @@ renderer.setAnimationLoop(() => {
   const isMap = camMode === 'map';
   if (isMap) { camera.position.set(-ox, -oy, R * mapZoom); camera.up.set(0, 1, 0); camera.lookAt(-ox, -oy, 0); }
   else {
-    tgtV.set(Math.cos(focus.ang), Math.sin(focus.ang), 0).multiplyScalar(focus === v ? 18 : 15);
+    tgtV.set(Math.cos(focus.ang), Math.sin(focus.ang), 0).multiplyScalar(focus === v ? Math.max(12, stackH() * 0.45) : 15);
     offV.copy(Zv).multiplyScalar(Math.cos(camYaw) * Math.cos(camPitch)).addScaledVector(E, Math.sin(camYaw) * Math.cos(camPitch)).addScaledVector(U, Math.sin(camPitch));
     camera.position.copy(tgtV).addScaledVector(offV, camDist); camera.up.copy(U); camera.lookAt(tgtV);
   }
@@ -574,7 +690,8 @@ renderer.setAnimationLoop(() => {
     rumbleF.frequency.setTargetAtTime(150 + 500 * p, ac.currentTime, 0.2);
   }
   if (state === 'flight' && (hudT += rdt) > 0.1) { hudT = 0; hud(); }
-  if (state === 'build') camYaw += rdt * 0.15;
+  if (state === 'build') { camYaw += rdt * 0.15; camDist = Math.max(70, stackH() * 1.9); camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.36, 0, innerWidth, innerHeight); }
+  else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   renderer.render(scene, camera);
 });
-window.__game = { BUILD, get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild };
+window.__game = { BUILD, get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; } };

@@ -1,11 +1,14 @@
 // Headless tests for the real game rules in flight.js (the same code main.js runs in the browser).
 // Run: node tests/flight.mjs   (exits non-zero on failure)
-import * as P from '../physics.js?v=fp2';
-import { Flight, PRESETS, simulateAuto, planBuild, WARPS } from '../flight.js?v=fp2';
+import * as P from '../physics.js?v=pb1';
+import { Flight, PRESETS, simulateAuto, planBuild, WARPS } from '../flight.js?v=pb1';
+const D = (...ids) => ({ name: 'test', parts: ids.map(x => { const [id, n] = x.split('*'); return n ? { id, n: +n } : { id }; }) });
+// short of Δv: crew pod on a small rocket (stands in for the old 3x/15t/3t/crew build)
+const LOWDV = D('crew', 'tank-s', 'mule', 'dec', 'tank-m', 'tank-s', 'thumper*2');
 let pass = 0, fail = 0;
 const ok = (cond, name, extra = '') => { if (cond) { pass++; console.log('  ✔', name, extra); } else { fail++; console.log('  ✘', name, extra); } };
 const km = m => (m / 1000).toFixed(1) + ' km';
-const DEF = PRESETS[0].cfg;
+const DEF = PRESETS[0];
 // After orbit insertion, coast one full revolution: stable means it never dips into the atmosphere.
 function stableOrbit(F) {
   const c = { ...F.v, stages: F.v.stages.map(s => ({ ...s })), throttle: 0 }; let minH = Infinity;
@@ -32,13 +35,16 @@ for (const [reserve, handBack, label] of [[8, 60, 'playtest case: staged ~8 t ea
 
 console.log('2. AUTO (F) gets to a stable orbit by itself (coast + circularization), warp-to-Ap is clean');
 for (const pr of PRESETS) {
-  const r = simulateAuto(pr.cfg);
+  const r = simulateAuto(pr);
   const minH = r.orbit ? stableOrbit(r.F) : 0;
   ok(r.orbit && r.pe > 70000 && minH > 70000, `${pr.name} build on AUTO only`, `Ap ${km(r.ap)} Pe ${km(r.pe)} lowest point over 1 orbit ${km(minH)}`);
 }
-for (const b of [[3, 35, 6, 1], [3, 25, 9, 1], [5, 35, 6, 1], [3, 35, 9, 0]]) {
-  const cfg = { engines: b[0], s1fuel: b[1], s2fuel: b[2], payload: b[3] }, r = simulateAuto(cfg);
-  ok(r.orbit && r.pe > 70000, `AUTO orbit, build ${b.join('/')}`, `Pe ${km(r.pe)}`);
+for (const [label, d] of [['heavy, low TWR (3 Thumpers, 37 t)', D('fairing', 'sat', 'probe', 'tank-m', 'lark', 'dec', 'tank-xl', 'tank-l', 'thumper*3', 'fins')],
+  ['big upper stage', D('fairing', 'sat', 'probe', 'tank-m', 'tank-s', 'lark', 'dec', 'tank-xl', 'thumper*3')],
+  ['Mule upper stage', D('fairing', 'probe', 'tank-m', 'mule', 'dec', 'tank-xl', 'thumper*4', 'fins')],
+  ['crew on 4 Thumpers', D('crew', 'tank-m', 'lark', 'dec', 'tank-xl', 'tank-m', 'thumper*4', 'fins')]]) {
+  const r = simulateAuto(d);
+  ok(r.orbit && r.pe > 70000, `AUTO orbit, ${label}`, `Pe ${km(r.pe)}`);
 }
 { // real-time loop: AUTO + press G during the coast; warp should go high, not stay "x4 (limited)"
   const F = new Flight(DEF); F.stagePress(); F.setAuto(true);
@@ -85,13 +91,13 @@ console.log('3. Fairing jettison and mission clock are consistent');
 
 console.log('4. Feedback matches what happened');
 { // score freeze
-  const F = new Flight({ engines: 3, s1fuel: 15, s2fuel: 3, payload: 2 }); F.stagePress(); F.setAuto(true);
+  const F = new Flight(LOWDV); F.stagePress(); F.setAuto(true);
   let ended = false, endScore = 0, later = 0;
   for (let i = 0; i < 120 * 1500; i++) { F.realT += 1 / 120; F.step(1 / 120); if (F.flags.stranded && !ended) { ended = true; endScore = F.finish(); } if (ended && ++later > 120 * 60) break; }
   ok(ended && F.score() === endScore, 'corner score equals end-dialog score after the end screen', `${endScore} vs ${F.score()} (rocket kept coasting 60 s)`);
   ok(F.flags.cause === 'dv' && /Δv/.test(F.advice()), 'low-Δv build gets Δv advice', F.advice());
 }
-function manual(pitchAt, label, cfg = DEF) { // fly with a fixed pitch schedule, full throttle, stage when empty
+function manual(pitchAt, label, cfg = DEF) { // cfg = design // fly with a fixed pitch schedule, full throttle, stage when empty
   const F = new Flight(cfg); F.stagePress(); let hq = false;
   for (let i = 0; i < 120 * 1500 && !F.flags.dead && !F.flags.stranded && !F.flags.orbit; i++) {
     F.realT += 1 / 120; const v = F.v, up = Math.atan2(v.y, v.x);
@@ -108,7 +114,7 @@ function manual(pitchAt, label, cfg = DEF) { // fly with a fixed pitch schedule,
   ok(!hqDef.hq || hqDef.F.maxQ > 25, 'no HIGH Q prompt when Q stays low', `max Q ${hqDef.F.maxQ.toFixed(0)} kPa`);
   const steep = manual(h => h < 40000 ? 0.1 : 0.3, 'steep');
   ok(steep.F.flags.stranded && steep.F.flags.cause === 'steep' && /too steep/.test(steep.F.advice()), 'too-steep climb gets "too steep" advice', steep.F.flags.dead || steep.F.advice());
-  const hq = manual(h => Math.min(1.2, Math.sqrt(h / 50000) * 1.4), 'hq', PRESETS[1].cfg);
+  const hq = manual(h => Math.min(1.2, Math.sqrt(h / 50000) * 1.4), 'hq', PRESETS[1]);
   ok(hq.hq && hq.F.flags.highQ, 'HIGH Q prompt appears on a full-throttle manual ascent (Light & fast build)', `max Q ${hq.F.maxQ.toFixed(0)} kPa`);
 }
 
@@ -122,7 +128,7 @@ console.log('5. Clarity: staging guard, presets, landing warning');
   F.realT += 0.5; ok(F.stagePress() === 'stage' && F.v.cur === 1, 'second SPACE within 2 s stages');
   ok(PRESETS[0].name === 'Recommended', 'first hangar preset is Recommended');
   const p = planBuild(DEF); ok(p.minReserve > 0 && p.orbit, 'hangar plan: Recommended build can land the booster and still orbit', `stage with ≥ ${p.minReserve} t`);
-  const bad = planBuild({ engines: 3, s1fuel: 15, s2fuel: 3, payload: 2 }); ok(!bad.orbit, 'hangar plan flags a build that cannot land + orbit');
+  const bad = planBuild(LOWDV); ok(!bad.orbit, 'hangar plan flags a build that cannot land + orbit');
   const msg = [];
   simulateAuto(DEF, { reserve: 0.6, hooks: { toast: m => msg.push(m) } });
   ok(msg.some(m => /not enough for auto-landing/.test(m)), 'staging with too little fuel warns that the booster won\'t land', msg.find(m => /STAGE SEP/.test(m)));

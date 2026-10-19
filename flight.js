@@ -1,16 +1,13 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules.
 // main.js passes hooks for sounds, toasts and visuals; every hook is optional.
-import * as P from './physics.js?v=fp2';
+import * as P from './physics.js?v=pb1';
+import { TEMPLATES, buildVehicle, designStats, validate, aoaLimit, cloneDesign, ORBIT_DV } from './parts.js?v=pb1';
 const { R, MU, ATM } = P;
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
 export const WARPS = [1, 2, 4, 10, 25, 50];
 export const STAGE_CONFIRM_S = 2;           // second SPACE within this many real seconds confirms staging
-export const PRESETS = [
-  { name: 'Recommended', cfg: { engines: 3, s1fuel: 25, s2fuel: 6, payload: 1 }, note: 'AUTO reaches orbit, and the booster can land if you stage with a few tonnes left' },
-  { name: 'Light & fast', cfg: { engines: 5, s1fuel: 25, s2fuel: 6, payload: 0 }, note: 'lots of spare Δv for booster landings' },
-  { name: 'Heavy lift', cfg: { engines: 5, s1fuel: 35, s2fuel: 9, payload: 2 }, note: 'crew capsule, ×2 score' },
-];
+export const PRESETS = TEMPLATES; // hangar templates, built from parts (Recommended first)
 const wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
 const DECK = 3;
 
@@ -34,9 +31,11 @@ export function landsWith(v, fuel) {
 }
 // Hangar planning: fly the build on AUTO headlessly, find the smallest booster reserve (t) that still auto-lands,
 // and whether the upper stage still reaches orbit when staged with that reserve.
-export function planBuild(cfg) {
-  const s = P.rocketStats(cfg); if (s.twr < 1) return { minReserve: null, orbit: false, reason: 'twr' };
-  const F = new Flight(cfg); F.stagePress(); F.setAuto(true, true);
+export function planBuild(design) {
+  if (!validate(design).ok) return { minReserve: null, orbit: false, reason: 'invalid' };
+  const s = designStats(design); if (s.twr < 1) return { minReserve: null, orbit: false, reason: 'twr' };
+  if (s.stages.length < 2) return { minReserve: null, orbit: false, reason: 'single' };
+  const F = new Flight(design); F.stagePress(); F.setAuto(true, true);
   const snaps = [], fuelMax = F.v.stages[0].fuelMax;
   let nextLvl = Math.floor(fuelMax * 0.6 * 2) / 2;
   for (let i = 0; i < 30 * 400 && F.v.cur === 0 && !F.flags.dead; i++) {
@@ -49,13 +48,13 @@ export function planBuild(cfg) {
     if (landingCheck(b).lands) { minReserve = snaps[i].lvl; break; }
   }
   if (minReserve === null) return { minReserve: null, orbit: false, reason: 'noland' };
-  const r = simulateAuto(cfg, { reserve: minReserve + 0.5, dt: 1 / 30 });
+  const r = simulateAuto(design, { reserve: minReserve + 0.5, dt: 1 / 30 });
   return { minReserve: minReserve + 0.5, orbit: r.orbit, landed: r.boosterLanded };
 }
 // Headless AUTO flight (used by the hangar planner and the tests). opts.reserve: stage with this much
 // booster fuel left; opts.flyBooster: hand the booster to a scripted "player" right after staging (L).
-export function simulateAuto(cfg, opts = {}) {
-  const dt = opts.dt || 1 / 120, F = new Flight(cfg, opts.hooks || {});
+export function simulateAuto(design, opts = {}) {
+  const dt = opts.dt || 1 / 120, F = new Flight(design, opts.hooks || {});
   F.stagePress(); F.setAuto(true, true);
   for (let t = 0; t < (opts.tMax || 1500); t += dt) {
     F.realT += dt;
@@ -72,13 +71,36 @@ export function simulateAuto(cfg, opts = {}) {
   }
   const o = P.orbitOf(F.v);
   return { F, orbit: !!F.flags.orbit && !F.flags.dead, ap: o.ap, pe: o.pe, dead: F.flags.dead, stranded: !!F.flags.stranded,
-    boosterLanded: !!(F.booster && F.booster.state === 'landed'), s2left: F.v.stages[1].fuel };
+    boosterLanded: !!(F.booster && F.booster.state === 'landed'), s2left: F.v.stages[F.v.stages.length - 1].fuel, cause: F.flags.cause };
 }
+// Hangar verdict: fly the design on AUTO headlessly and explain the outcome in plain words.
+export function assessDesign(design) {
+  const val = validate(design);
+  if (!val.ok) return { orbit: false, text: val.errors[0], level: 'bad' };
+  const st = designStats(design);
+  if (st.twr < 1) return { orbit: false, text: `AUTO can't fly this: liftoff TWR ${st.twr.toFixed(2)} < 1, so it never leaves the pad. Add Thumpers or remove weight.`, level: 'bad' };
+  const r = simulateAuto(design, { dt: 1 / 30 });
+  if (r.orbit) {
+    const left = r.s2left, top = r.F.v.stages[r.F.v.stages.length - 1];
+    return { orbit: true, level: 'good', text: `✔ AUTO reaches orbit (Ap ${(r.ap / 1000).toFixed(0)} km / Pe ${(r.pe / 1000).toFixed(0)} km) with ${left.toFixed(1)} t of ${top.fuelMax.toFixed(0)} t left in the top stage.` };
+  }
+  const F = r.F, cause = F.flags.cause;
+  const why = {
+    aoa: 'it broke up turning in thick air. Add Tail Fins to the bottom stage, or use less thrust low down.',
+    overq: 'it went too fast too low (over-pressure). Use fewer/smaller first-stage engines or more fuel weight.',
+    ground: 'it fell back to the ground: a stage was too weak to hold altitude. Give upper stages more thrust.',
+    twr: "it can't lift off the pad.",
+  }[cause];
+  if (why) return { orbit: false, level: 'bad', text: `✘ AUTO fails: ${why}` };
+  if (F.flags.stranded) return { orbit: false, level: 'bad', text: '✘ AUTO runs out of fuel: ' + F.advice().replace(/^Ran out of fuel before orbit \(Pe [^)]*\)\. /, '') };
+  return { orbit: false, level: 'warn', text: '✘ AUTO did not reach orbit in time. Try more thrust on the upper stages.' };
+}
+export { cloneDesign };
 
 export class Flight {
-  constructor(cfg, hooks = {}, padZ = 0.4) {
-    this.cfg = { ...cfg }; this.h = hooks;
-    const v = P.buildRocket(cfg); v.y = R + padZ; v.ut = 0; v.auto = false; this.v = v;
+  constructor(design, hooks = {}, padZ = 0.4) {
+    this.design = cloneDesign(design); this.h = hooks; this.stats = designStats(design);
+    const v = buildVehicle(design); v.y = R + padZ; v.ut = 0; v.auto = false; this.v = v;
     this.booster = null; this.ship = null;
     this.met = 0;               // mission clock: starts at liftoff, not on the pad
     this.ignited = false; this.maxQ = 0; this.autoOn = false; this.warpI = 0; this.autoWarp = false;
@@ -89,14 +111,15 @@ export class Flight {
   call(name, ...a) { const f = this.h[name]; return f ? f(...a) : undefined; }
   toast(msg, color) { this.call('toast', msg, color); }
   get alt() { return P.altOf(this.v); }
-  canStage() { return this.ignited && !this.v.clamped && this.met > 3 && this.alt > 150; }
+  get last() { return this.v.stages.length - 1; }
+  canStage() { return this.ignited && this.v.cur < this.last && !this.v.clamped && this.met > 3 && this.alt > 150; }
   // SPACE / STAGE: ignite on the pad; afterwards staging needs a second press within STAGE_CONFIRM_S.
   stagePress() {
     const v = this.v, f = this.flags;
     if (f.dead) return 'dead';
     if (this.v.auto) this.takeOverUpper();
     if (!this.ignited) { this.ignited = true; v.ut = 1; this.call('sound', 'ignite'); this.toast('IGNITION', '#ffb35c'); return 'ignite'; }
-    const next = v.cur === 0 ? 'stage' : v.fairing > 0 && this.alt > 30000 ? 'fairing' : null;
+    const next = v.cur < this.last ? 'stage' : v.fairing > 0 && this.alt > 30000 ? 'fairing' : null;
     if (!next) return 'none';
     if (next === 'stage' && !this.canStage()) { this.toast('Clear the tower first!', '#ffb35c'); return 'blocked'; }
     if (this.stageArm < 0 || this.realT - this.stageArm > STAGE_CONFIRM_S) {
@@ -122,6 +145,11 @@ export class Flight {
   }
   stage() {
     const v = this.v, bh = this.alt;
+    if (v.cur >= this.last) return;
+    if (v.cur > 0) { // later stages just fall away as debris (only the first stage is recoverable)
+      const d = P.makeBooster(v); d.cur = 0; d.stageIndex = v.cur; v.cur++;
+      this.call('drop', d); this.toast(`STAGE ${v.cur} SEP — stage ${v.cur + 1} ignition`, '#fff'); return;
+    }
     const b = P.makeBooster(v); b.ut = 0; b.manual = false; b.maxH = bh; b.stagedAlt = bh; this.booster = b;
     v.cur = 1; this.flags.stagedFuel = b.stages[0].fuel; this.flags.stagedAlt = bh;
     this.call('stage', b);
@@ -209,7 +237,7 @@ export class Flight {
         if (gd.phase === 'done' && v.ut > 0) { v.ut = 0; if (!f.cutoff) { f.cutoff = 1; this.toast('AUTO cutoff — orbit reached', '#7dffa6'); } }
         v.throttle = v.auto ? gd.throttle : Math.min(v.ut, gd.throttle);
         // AUTO stages a dry booster by itself (stage earlier yourself to keep landing fuel)
-        if (v.cur === 0 && v.stages[0].fuel <= 0 && this.canStage()) { this.toast('AUTO: booster empty, staging', '#9cc3ff'); this.stage(); }
+        if (v.cur < this.last && v.stages[v.cur].fuel <= 0 && this.canStage()) { this.toast(v.cur === 0 ? 'AUTO: booster empty, staging' : `AUTO: stage ${v.cur + 1} empty, staging`, '#9cc3ff'); this.stage(); }
       } else v.throttle = this.autoOn ? Math.min(v.ut, P.qCap(v)) : v.ut;
       const st = v.stages[v.cur];
       const e = P.stepVehicle(v, dt), h = this.alt;
@@ -219,7 +247,7 @@ export class Flight {
       if (e === 'ground') this.fail(this.met < 8 ? 'never cleared the tower' : 'hit the ground', 'ground');
       else {
         if (v.q > 80) this.fail('over-pressure (Max-Q too high)', 'overq');
-        else if (v.q > 15 && v.aoa > 0.26) this.fail('aerodynamic breakup — turned too hard', 'aoa');
+        else if (v.q > 15 && v.aoa > aoaLimit(v)) this.fail('aerodynamic breakup — turned too hard', 'aoa');
         if (v.clamped && this.ignited && v.throttle > 0.95) { f.padTime += dt; if (f.padTime > 6 || (st && st.fuel <= 0)) this.fail('too heavy to lift off (TWR < 1)', 'twr'); }
         f.maxAlt = Math.max(f.maxAlt, h);
         if (!f.highQ && v.q > 25 && v.thrust > 0) { f.highQ = 1; this.toast(this.autoOn ? 'HIGH Q — AUTO is throttling down' : 'HIGH Q — throttle down (S)!', '#ffb35c'); }
@@ -234,7 +262,7 @@ export class Flight {
         }
         const o = P.orbitOf(v);
         if (h > ATM && !f.orbit && o.pe > ATM) { f.orbit = 1; this.toast('🛰️ ORBIT ACHIEVED! +3000', '#7dffa6'); this.call('sound', 'orbit'); }
-        if (!f.orbit && !f.stranded && v.cur === 1 && v.stages[1].fuel <= 0) {
+        if (!f.orbit && !f.stranded && v.cur === this.last && v.stages[v.cur].fuel <= 0) {
           f.stranded = 1; f.apAtOut = o.ap; f.peAtOut = o.pe; f.cause = this.diagnose();
           this.toast('Out of fuel — suborbital', '#ffb35c'); this.call('end', 2500, () => !f.orbit);
         }
@@ -287,8 +315,8 @@ export class Flight {
   }
   // What went wrong when the upper stage ran dry short of orbit.
   diagnose() {
-    const f = this.flags, s = P.rocketStats(this.cfg), o = P.orbitOf(this.v);
-    if (s.total < 3700) return 'dv';
+    const f = this.flags, s = this.stats, o = P.orbitOf(this.v);
+    if (s.total < ORBIT_DV + 100) return 'dv';
     if (f.stagedFuel !== null && f.stagedFuel > 0.35 * this.v.stages[0].fuelMax) return 'staged-early';
     if (f.flatLow > 25 && f.flatLow >= f.steep) return 'flat';
     if (f.steep > 40) return 'steep';
@@ -298,7 +326,7 @@ export class Flight {
   advice() {
     const f = this.flags, pe = isFinite(f.peAtOut) ? (f.peAtOut / 1000).toFixed(0) : '?';
     const ADV = {
-      dv: `This rocket only has ${P.rocketStats(this.cfg).total.toFixed(0)} m/s of Δv; orbit needs ~3,700. Add fuel or pick a lighter payload.`,
+      dv: `This rocket only has ${this.stats.total.toFixed(0)} m/s of Δv; orbit needs ~${ORBIT_DV.toLocaleString()}. Add fuel, use a Lark on the upper stage, or a lighter payload.`,
       'staged-early': `You staged with ${(f.stagedFuel || 0).toFixed(1)} t still in the booster — that fuel was needed to reach orbit. Stage later (~4 t left) or add booster fuel.`,
       flat: `The climb was too flat: you spent ${f.flatLow.toFixed(0)} s burning nearly sideways below 40 km, fighting drag. Turn more gently (or use AUTO, F).`,
       steep: `The climb was too steep: ${f.steep.toFixed(0)} s burning nearly straight up above 12 km wastes fuel on gravity. Lean east sooner (or use AUTO, F).`,
@@ -309,10 +337,10 @@ export class Flight {
   }
   score() {
     if (this.finalScore !== null) return this.finalScore;
-    const f = this.flags, v = this.v; let s = 0; const o = P.orbitOf(v), mult = P.OPTS.payload[this.cfg.payload].mult;
+    const f = this.flags, v = this.v; let s = 0; const o = P.orbitOf(v), mult = v.mult || 1, top = v.stages[v.stages.length - 1];
     s += Math.min(f.maxAlt || 0, ATM) / 100;
     if (f.space) s += 1000;
-    if (f.orbit) { s += 3000; if (isFinite(o.ap)) s += Math.max(0, 1500 - Math.abs(o.ap - o.pe) / 40); s += (v.stages[1].fuel / v.stages[1].fuelMax) * 800; }
+    if (f.orbit) { s += 3000; if (isFinite(o.ap)) s += Math.max(0, 1500 - Math.abs(o.ap - o.pe) / 40); s += (top.fuel / top.fuelMax) * 800; }
     s *= mult; s += f.boosterBonus; if (f.dead) s *= 0.5;
     return Math.round(s);
   }
@@ -322,7 +350,7 @@ export class Flight {
   // HUD hint text (pure, so tests can check it).
   hint() {
     const v = this.v, f = this.flags, b = this.booster, h = this.alt, r = h + R, sp = Math.hypot(v.vx, v.vy), vr = (v.x * v.vx + v.y * v.vy) / r;
-    const o = P.orbitOf(v), engineOn = v.thrust > 0, s1 = v.stages[0], s2 = v.stages[1], fuelLeft = v.cur === 0 ? s1.fuel + s2.fuel : s2.fuel;
+    const o = P.orbitOf(v), engineOn = v.thrust > 0, s1 = v.stages[0], cs = v.stages[v.cur], fuelLeft = v.stages.slice(v.cur).reduce((t, x) => t + x.fuel, 0);
     if (f.dead) return 'Press R to go back to the hangar';
     if (this.flyingBooster()) {
       const bh = P.altOf(b), bsp = Math.hypot(b.vx, b.vy), bd = b.miss ?? 0;
@@ -335,8 +363,8 @@ export class Flight {
     if (v.clamped) return 'Not enough thrust… lighten the rocket';
     if (v.q > 25 && engineOn) return this.autoOn ? 'HIGH Q — AUTO is throttling down' : 'HIGH Q — throttle down (S)';
     if (!this.autoOn && h < 8000 && sp < 400) return 'Press F for AUTO (flies all the way to orbit), or steer east yourself with D';
-    if (v.cur === 0 && s1.fuel <= 0) return 'Booster empty — SPACE twice to stage!';
-    if (v.cur === 0 && h > 15000) {
+    if (v.cur < this.last && cs.fuel <= 0) return v.cur === 0 ? 'Booster empty — SPACE twice to stage!' : `Stage ${v.cur + 1} empty — SPACE twice to stage!`;
+    if (v.cur === 0 && this.last > 0 && h > 15000) {
       return this.boosterCanLand() ? `SPACE twice to stage — booster has ${s1.fuel.toFixed(1)} t, enough to land` : `⚠ Booster ${s1.fuel.toFixed(1)} t: no longer enough to land it — stage soon (SPACE twice)`;
     }
     if (fuelLeft <= 0 && !f.orbit) return 'Out of fuel — suborbital';

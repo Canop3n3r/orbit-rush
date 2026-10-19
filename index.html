@@ -4,32 +4,34 @@
 <title>Orbit Rush — WebGPU rocket launch game</title>
 <meta name="description" content="Build a rocket, fly a gravity turn, reach orbit and land the booster. Free in your browser, powered by WebGPU.">
 <meta property="og:title" content="Orbit Rush 🚀"><meta property="og:description" content="Build a rocket. Reach orbit. Land the booster. WebGPU in your browser.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=fp2"><meta name="orbit-rush-build" content="2026-10-19-fp2">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=pb1"><meta name="orbit-rush-build" content="2026-10-19-pb1">
 <script type="importmap">{"imports":{"three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js"}}</script>
 </head><body>
 <div id="badge">…</div>
 <div id="loading">Loading Orbit Rush…</div>
 <div id="ignite" class="hidden">Press <b>SPACE</b> (or tap <b>STAGE</b>) to ignite</div>
-<div id="build" class="panel">
-  <h1>ORBIT RUSH</h1><p class="sub">Build it. Launch it. Orbit it. Land it.</p>
-  <div class="row"><label>Presets</label><div id="presets" class="opts"></div></div>
-  <div class="row"><label>First-stage engines</label><div class="opts" data-k="engines"></div></div>
-  <div class="row"><label>First-stage fuel</label><div class="opts" data-k="s1fuel"></div></div>
-  <div class="row"><label>Upper-stage fuel</label><div class="opts" data-k="s2fuel"></div></div>
-  <div class="row"><label>Payload</label><div class="opts" data-k="payload"></div></div>
-  <div id="stats"></div>
-  <button id="launchBtn" class="big">ROLL TO PAD ▶</button>
-  <details><summary>How to fly</summary><ul>
-    <li><b>Space</b> ignite; <b>Space twice</b> to stage &nbsp; <b>W/S</b> throttle &nbsp; <b>Z/X</b> full/cut</li>
-    <li><b>A/D</b> pitch &nbsp; <b>F</b> AUTO (flies all the way to orbit: gravity turn, Max-Q, coast, circularize) &nbsp; <b>M</b> map &nbsp; <b>B</b> booster cam &nbsp; <b>T</b> / <b>,</b> warp up/down &nbsp; <b>G</b> warp to apoapsis &nbsp; <b>L</b> fly the booster &nbsp; <b>R</b> back to hangar</li>
-    <li>Ignite, then press <b>F</b> for AUTO — it climbs, coasts to apoapsis and circularizes by itself (press <b>G</b> to warp the coast). Or fly it yourself with A/D and throttle back (S) when it says HIGH Q.</li>
-    <li>Manual: cut engines when apoapsis (Ap) &gt; 75 km, coast up, then burn prograde near Ap until periapsis (Pe) &gt; 70 km = ORBIT.</li>
-    <li>Stage (Space twice) above 2 km with fuel left in the booster (the hangar tells you how much it needs): it auto-lands for +1000, or press <b>L</b> to fly the landing yourself (W/S throttle, A/D tilt, F hold retrograde) for +2500 plus accuracy and softness bonus. The upper stage flies itself meanwhile.</li>
-  </ul></details>
+<div id="build" class="panel builder">
+  <div class="bhead"><h1>ORBIT RUSH</h1><p class="sub">Hangar — build it from parts. Launch it. Orbit it. Land it.</p></div>
+  <div class="trow"><label>Templates</label><div id="presets" class="opts"></div>
+    <span class="saved"><select id="savedSel"></select><button id="saveBtn">Save</button><button id="delBtn" title="Delete the selected saved design">Delete</button><button id="clearBtn" title="Start from just a probe core">New</button></span></div>
+  <div class="bcols">
+    <div><div class="colH">Parts <small>click to add · drag into the stack</small></div><div id="palette"></div></div>
+    <div><div class="colH">Your rocket <small>top → bottom · separators split stages</small></div><div id="stack"></div></div>
+    <div><div class="colH">Stages <small>fire from Stage 1 upward</small></div><div id="readout"></div>
+      <button id="launchBtn" class="big">ROLL TO PAD ▶</button>
+      <details><summary>How to fly</summary><ul>
+        <li><b>Space</b> ignite; <b>Space twice</b> to stage &nbsp; <b>W/S</b> throttle &nbsp; <b>Z/X</b> full/cut &nbsp; <b>A/D</b> pitch</li>
+        <li><b>F</b> AUTO flies to orbit: gravity turn, Max-Q, staging when a stage is empty, coast, circularize. Steer or press F to take over.</li>
+        <li><b>T</b> / <b>,</b> warp · <b>G</b> warp to apoapsis · <b>M</b> map · <b>B</b> booster cam · <b>L</b> fly the booster · <b>R</b> back to hangar</li>
+        <li>Manual: cut engines when apoapsis (Ap) &gt; 75 km, coast up, then burn prograde near Ap until periapsis (Pe) &gt; 70 km = ORBIT.</li>
+        <li>Stage 1 above 2 km with fuel left and it can land on the droneship (+1000 auto, +2500 by hand with L).</li>
+      </ul></details>
+    </div>
+  </div>
 </div>
 <div id="hud" class="hidden">
   <div id="tele"></div>
-  <div id="bars"><div class="bar"><span>THR</span><i id="thrBar"></i><b id="thrPct">0%</b></div><div class="bar"><span>S1</span><i id="f1Bar"></i><b id="f1Pct">100%</b></div><div class="bar"><span>S2</span><i id="f2Bar"></i><b id="f2Pct">100%</b></div></div>
+  <div id="bars"></div>
   <div id="hint"></div><div id="toasts"></div>
   <div id="score"></div>
   <div id="ctl"><button id="warpBtn">WARP ×1</button><button id="apBtn" class="hidden">⏩ Warp to Ap (G)</button><button id="flyBtn" class="hidden">FLY BOOSTER (L)</button></div>
@@ -42,5 +44,5 @@
 <div id="end" class="panel hidden"><h2 id="endTitle"></h2><div id="endBody"></div>
   <div class="endMain"><button id="relaunchBtn" class="big">↻ Relaunch same rocket</button><button id="againBtn">Back to hangar</button><button id="contBtn">Keep flying</button></div>
   <div class="endShare"><button id="shareBtn">Share score</button><button id="xBtn">Post on X</button></div></div>
-<script type="module" src="main.js?v=fp2"></script>
+<script type="module" src="main.js?v=pb1"></script>
 </body></html>
