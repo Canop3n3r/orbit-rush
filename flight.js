@@ -1,10 +1,11 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=gx1h2';
-import * as C from './physics/patched.js?v=gx1h2';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=gx1h2';
+import * as P from './physics.js?v=f1';
+import * as C from './physics/patched.js?v=f1';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f1';
 const { R, ATM, V } = P;
+export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
 export const WARPS = [1, 2, 4, 10, 25, 50, 100, 1000, 1e4, 1e5, 1e6, 1e7];
 export const STAGE_CONFIRM_S = 2;           // second SPACE within this many real seconds confirms staging
@@ -54,7 +55,7 @@ export function landingCheck(b0) {
   if (b.stages[0].fuel <= 0.3 || P.V.len(b.r) - R <= 2000) return { lands: false, fuelLeft: 0, speed: Infinity };
   for (let t = 0; t < 1500;) {
     const h = V.len(b.r) - R, dt = h > 15000 ? 1 / 10 : 1 / 50;
-    P.boosterAutopilot(b); const e = P.stepPoint(b, dt); t += dt;
+    P.boosterAutopilot(b, dt); const e = P.stepPoint(b, dt); t += dt;
     const va = P.airVel(b, b.r, b.v), sp = V.len(va);
     if (burnedUp(b, h, sp)) return { lands: false, fuelLeft: b.stages[0].fuel, speed: sp, burned: true };
     if (e) return { lands: sp < 10, fuelLeft: b.stages[0].fuel, speed: sp, r: b.r, clock: b.clock };
@@ -88,8 +89,12 @@ export function planBuild(design, opts = {}) {
 export function simulateAuto(design, opts = {}) {
   const dt = opts.dt || PHYS_DT, F = new Flight(design, opts.hooks || {}, { earthRot: opts.earthRot });
   F.stagePress(); F.setAuto(true, true);
+  // f1 ghost trajectory: downrange/altitude samples (km) + events, drawn by the hangar's "Will it fly?" panel
+  const track = [], r0 = F.v.r.slice(), R0 = Math.hypot(...r0); let tNext = 0, lastCur = F.v.cur;
+  const sample = (t, ev) => { const r = F.v.r, c = (r[0] * r0[0] + r[1] * r0[1] + r[2] * r0[2]) / (Math.hypot(...r) * R0); track.push([+(Math.acos(Math.max(-1, Math.min(1, c))) * R0 / 1000).toFixed(2), +(F.alt / 1000).toFixed(2), +t.toFixed(1), ev || 0]); };
   for (let t = 0; t < (opts.tMax || 2400); t += dt) {
     F.realT += dt;
+    if (t >= tNext || F.v.cur !== lastCur) { sample(t, F.v.cur !== lastCur ? 'stage' : 0); lastCur = F.v.cur; tNext = t + (F.alt < 20000 ? 2 : 6); }
     if (opts.reserve !== undefined && F.v.cur === 0 && F.v.stages[0].fuel <= opts.reserve && F.canStage() && F.alt > 2000) {
       F.stage(); if (opts.flyBooster) F.toggleBooster();
       if (opts.handBack !== undefined) F._handBackAt = t + opts.handBack;
@@ -101,8 +106,9 @@ export function simulateAuto(design, opts = {}) {
     if (F.flags.dead || F.flags.stranded) break;
     if (F.flags.orbit && F.v.guid === 'done' && bDone) break;
   }
+  sample(Math.min(opts.tMax || 2400, F.met || 0), F.flags.dead ? 'boom' : F.flags.orbit ? 'orbit' : 'end');
   const o = P.orbitOf(F.v);
-  return { F, orbit: !!F.flags.orbit && !F.flags.dead, ap: o.ap, pe: o.pe, dead: F.flags.dead, stranded: !!F.flags.stranded,
+  return { F, track, orbit: !!F.flags.orbit && !F.flags.dead, ap: o.ap, pe: o.pe, dead: F.flags.dead, stranded: !!F.flags.stranded,
     boosterLanded: !!(F.booster && F.booster.state === 'landed'), s2left: F.v.stages[F.lastPow].fuel, cause: F.flags.cause, dvUsed: F.dvUsed };
 }
 // Full round trip on AUTO: fly to orbit, coast `coast` seconds, deorbit (O) and ride the capsule home.
@@ -121,7 +127,10 @@ export function assessDesign(design, opts = {}) {
   if (!val.ok) return { orbit: false, text: val.errors[0], level: 'bad' };
   const st = designStats(design);
   if (st.twr < 1) return { orbit: false, text: `AUTO can't fly this: liftoff TWR ${st.twr.toFixed(2)} < 1, so it never leaves the pad. Add Thumpers or remove weight.`, level: 'bad' };
-  const r = simulateAuto(design, { dt: 1 / 20, earthRot: opts.earthRot });
+  const r = simulateAuto(design, { dt: 1 / 20, earthRot: opts.earthRot }), track = r.track;
+  const res = assessOutcome(r); res.track = track; res.cause = r.cause || null; return res;
+}
+function assessOutcome(r) {
   if (r.orbit) {
     const top = r.F.v.stages[r.F.lastPow];
     return { orbit: true, level: 'good', text: `✔ AUTO reaches orbit (Ap ${(r.ap / 1000).toFixed(0)} km / Pe ${(r.pe / 1000).toFixed(0)} km) using ${(r.dvUsed / 1000).toFixed(2)} km/s, with ${r.s2left.toFixed(1)} t of ${top.fuelMax.toFixed(0)} t left in the top stage.` };
@@ -570,7 +579,9 @@ export class Flight {
     if (inp.pitch || inp.yaw || inp.roll || (v.trans || []).some(Boolean)) return false;
     return true;
   }
-  warpLimit() {
+  // f1: while the booster is still flying (split-screen staging) warp stays low so both craft keep full physics
+  warpLimit() { const w = this._warpLimit(); return this.booster && this.booster.state === 'flying' && w[0] > BOOSTER_WARP ? [BOOSTER_WARP, 'booster in flight'] : w; }
+  _warpLimit() {
     const v = this.v, h = this.alt;
     if (!this.ignited || this.flags.dead) return [1, ''];
     if (this.flyingBooster()) return [1, 'flying booster'];
@@ -676,7 +687,7 @@ export class Flight {
           if (v.cur > 0 && V.dot(v.v, V.norm(v.r)) < 0) this.fail('upper stage fell back into the atmosphere and broke up', 'fellback');
           else this.fail(tel.aoa > 1.2 ? 'tumbled and broke up (aerodynamically unstable)' : 'aerodynamic breakup — too much angle of attack at high Q', tel.aoa > 1.2 ? 'tumble' : 'breakup');
         }
-        if (v.clamped && this.ignited && v.throttle > 0.95) { f.padTime += dt; if (f.padTime > 6 || (st && st.fuel <= 0)) this.fail('too heavy to lift off (TWR < 1)', 'twr'); }
+        if (v.clamped && !v.holdDown && this.ignited && v.throttle > 0.95) { f.padTime += dt; if (f.padTime > 6 || (st && st.fuel <= 0)) this.fail('too heavy to lift off (TWR < 1)', 'twr'); }
         if (!f.mach1 && tel.mach > 1 && h < 30000) { f.mach1 = 1; this.toast('Mach 1 — supersonic', '#9cc3ff'); }
         if (!f.highQ && tel.q > 30000 && v.thrust > 0) { f.highQ = 1; /* one hint system: the persistent HIGH Q hint (hint()) says it; no duplicate toast */ }
         if (!f.maxq && this.maxQ > 8000 && tel.q < this.maxQ * 0.8) { f.maxq = 1; if (!this.ret) this.toast(`Max-Q passed (${(this.maxQ / 1000).toFixed(1)} kPa)`, '#9cc3ff'); }
@@ -725,9 +736,10 @@ export class Flight {
       const inp = b.input || {}, up = V.norm(b.r), east = P.eastOf(b.r), north = V.cross(up, east);
       if (inp.pitch) b.dir = V.norm(V.qrot(V.qAxisAngle(north, -inp.pitch * 0.7 * dt), b.dir));
       if (inp.yaw) b.dir = V.norm(V.qrot(V.qAxisAngle(up, -inp.yaw * 0.7 * dt), b.dir));
-      b.throttle = b.stages[0].fuel > 0 ? b.ut : 0; b.n = bh0 > 12000 ? Math.min(3, b.nMax) : 1;
+      b.throttle = b.stages[0].fuel > 0 ? b.ut : 0; b.n = b.nSel ? Math.min(b.nSel, b.nMax) : bh0 > 12000 ? Math.min(3, b.nMax) : 1;
       b.phase = b.throttle > 0 ? 'burning' : 'falling';
-    } else P.boosterAutopilot(b);
+    } else P.boosterAutopilot(b, dt);
+    b.deck = this.ship && surfDist(b.r, shipPos(this.ship, b.clock, b.earthRot !== false)) < 40 ? DECK : 0; // aim at the deck only when over it (same test as the contact check)
     const e = P.stepPoint(b, dt);
     const bh = V.len(b.r) - R, sp = V.len(P.airVel(b, b.r, b.v)); b.maxH = Math.max(b.maxH, bh);
     if (burnedUp(b, bh, sp)) { b.state = 'lost'; this.flags.booster = 'burned up on reentry (do an entry burn)'; this.call('boosterLost', b, true); this.toast('Booster burned up', '#ff6262'); return; }
@@ -743,7 +755,7 @@ export class Flight {
   landBooster(b, sp) {
     const f = this.flags, ship = this.ship, up = V.norm(b.r), tilt = Math.acos(Math.max(-1, Math.min(1, V.dot(b.dir, up))));
     const dist = ship ? surfDist(b.r, shipPos(ship, b.clock, b.earthRot !== false)) : 1e9;
-    b.throttle = 0; b.thrust = 0;
+    b.throttle = 0; b.thrust = 0; b.touchV = sp;
     let ok = false;
     if (b.maxH < 2000) { b.state = 'lost'; f.booster = 'lost (staged too low)'; }
     else if (b.manual) {
@@ -822,6 +834,7 @@ export class Flight {
       return 'LANDING BURN: Shift/Ctrl throttle to ~5 m/s at touchdown. Keep it upright (F)';
     }
     if (!this.ignited) return '';
+    if (v.clamped && v.holdDown) return 'TEST STAND — static fire, held down by the clamps';
     if (v.clamped) return 'Not enough thrust… lighten the rocket';
     if (tel.q > 30000 && engineOn) return this.autoOn ? 'HIGH Q — AUTO is throttling down' : 'HIGH Q — throttle down (Ctrl)';
     if (!this.autoOn && h < 8000 && sp < 900) return 'Press F for AUTO (flies all the way to orbit), or pitch east yourself with W (SAS holds your heading)';

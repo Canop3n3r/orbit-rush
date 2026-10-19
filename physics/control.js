@@ -2,13 +2,13 @@
 // and the tests. Output is a body-frame torque command (N·m) that dynamics.js splits between reaction
 // wheels, engine gimbal and RCS. Body axes: +Y nose, +Z heading/"belly" (east on the pad), +X = Y x Z.
 // Pitch = about X (W tips the nose toward +Z), roll = about Y, yaw = about Z.
-import { R_E } from './constants.js?v=gx1h2';
-import { sub, scale, dot, cross, len, norm, qrot, qinv, clamp } from './vec.js?v=gx1h2';
-import { authority, airVel, engineOut, radOf, atmAt } from './dynamics.js?v=gx1h2';
-import { stackGeom, massProps } from './vehicle.js?v=gx1h2';
-import { atmosphere } from './atmosphere.js?v=gx1h2';
+import { R_E } from './constants.js?v=f1';
+import { sub, scale, dot, cross, len, norm, qrot, qinv, clamp } from './vec.js?v=f1';
+import { authority, airVel, engineOut, radOf, atmAt } from './dynamics.js?v=f1';
+import { stackGeom, massProps } from './vehicle.js?v=f1';
+import { atmosphere } from './atmosphere.js?v=f1';
 export const SAS_MODES = ['off', 'stab', 'prograde', 'retrograde', 'radial', 'antiradial', 'normal', 'antinormal', 'node'];
-export const SAS_LABEL = { off: 'OFF', stab: 'STABILITY', prograde: 'PROGRADE', retrograde: 'RETROGRADE', radial: 'RADIAL OUT', antiradial: 'RADIAL IN', normal: 'NORMAL', antinormal: 'ANTI-NORMAL', node: 'MANEUVER' };
+export const SAS_LABEL = { off: 'OFF', stab: 'STABILITY', prograde: 'PROGRADE', retrograde: 'RETROGRADE', radial: 'RADIAL OUT', antiradial: 'RADIAL IN', normal: 'NORMAL', antinormal: 'ANTI-NORMAL', node: 'MANEUVER', target: 'TARGET', antitarget: 'ANTI-TARGET' };
 // Prograde reference: air-relative below 40 km (what the airflow sees), inertial (orbital) above.
 export function progradeOf(v) { const h = len(v.r) - radOf(v), vel = h < 40000 ? airVel(v) : v.v; return len(vel) > 1 ? norm(vel) : norm(v.r); }
 export function sasDir(v, mode) {
@@ -20,6 +20,8 @@ export function sasDir(v, mode) {
     case 'normal': return nrm; case 'antinormal': return scale(nrm, -1);
     case 'stab': return v.sasHold || qrot(v.q, [0, 1, 0]);
     case 'node': return v.nodeDir || v.sasHold || qrot(v.q, [0, 1, 0]);
+    case 'target': return v.targetDir || v.sasHold || qrot(v.q, [0, 1, 0]);
+    case 'antitarget': return v.targetDir ? scale(v.targetDir, -1) : v.sasHold || qrot(v.q, [0, 1, 0]);
   }
   return null;
 }

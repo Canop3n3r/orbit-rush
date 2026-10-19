@@ -2,11 +2,14 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=gx1h2';
-import { add, scale, dot, cross, len, norm, clamp } from './vec.js?v=gx1h2';
-import { elements, timeToAp } from './kepler.js?v=gx1h2';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=gx1h2';
-import { massOf } from './vehicle.js?v=gx1h2';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f1';
+import { add, scale, dot, cross, len, norm, clamp } from './vec.js?v=f1';
+import { elements, timeToAp } from './kepler.js?v=f1';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f1';
+import { massOf } from './vehicle.js?v=f1';
+import { atmosphere } from './atmosphere.js?v=f1';
+import { cd0 } from './aero.js?v=f1';
+import { hoverslamSolve } from './hoverslam.js?v=f1';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -110,21 +113,57 @@ export function autoGuide(v) {
   pitch = clamp(pitch, 0, Math.PI * 0.75);
   return { dir: dirOfPitch(pitch, f), throttle: thr, phase: ph, pitch };
 }
-// ---------- booster (3-DOF) autopilot: entry burn, then a throttled landing burn ----------
-export function boosterAutopilot(b) {
+// ---------- booster (3-DOF) autopilot: live-state entry burn → aero coast → hoverslam ----------
+// Entry burn: every 0.5 s a cheap drag-only coast prediction from the live state gives the peak dynamic pressure and
+// peak (Sutton–Graves) heating still ahead; the 3-engine burn runs only while either would exceed its safe limit
+// (with a 10% margin), so a nominal path may skip it and a steep / fast / off-target one gets just enough.
+export const ENTRY_Q_MAX = 35;        // kPa peak dynamic pressure down to ENTRY_FLOOR (below it the drag-limited fall is the same either way)
+export const ENTRY_FLOOR = 20000;     // m: the entry corridor the burn protects
+export const ENTRY_QDOT_MAX = 1.0e5;  // W/m² peak stagnation heating (≈ the 1.7 km/s @ 30 km burn-up line, with margin)
+export const sgHeat = (rho, V) => 1.74e-4 * Math.sqrt(Math.max(rho, 0)) * V * V * V;
+export function predictEntryPeaks(b, dtMax = 1) {
+  const c = { ...b, r: [...b.r], v: [...b.v], stages: b.stages.map(s => ({ ...s })), throttle: 0 };
+  let q = 0, qdot = 0;
+  for (let i = 0; i < 1500; i++) {
+    const h = len(c.r) - R_E; if (h < ENTRY_FLOOR) break;
+    const va = airVel(c, c.r, c.v); c.dir = scale(va, -1 / Math.max(len(va), 1));
+    if (stepPoint(c, h > 40000 ? dtMax : 0.25)) break;
+    const hh = len(c.r) - R_E, rho = atmosphere(Math.max(hh, 0)).rho, V = len(airVel(c, c.r, c.v));
+    q = Math.max(q, 0.5 * rho * V * V / 1000); qdot = Math.max(qdot, sgHeat(rho, V));
+  }
+  return { q, qdot };
+}
+export function boosterAutopilot(b, dtHint = 0.02) {
   const up = norm(b.r), h = len(b.r) - R_E, va = airVel(b, b.r, b.v), sp = len(va), vr = dot(va, up);
-  const s = b.stages[0], g = muOf(b) / dot(b.r, b.r);
+  const s = b.stages[0], g = muOf(b) / dot(b.r, b.r), deck = b.deck ?? 0;
   if (!b.manual) b.dir = sp > 2 ? scale(va, -1 / sp) : up;
   if (vr > 0 || s.fuel <= 0) { b.throttle = 0; b.phase = s.fuel <= 0 ? 'no fuel' : 'coast'; return; }
-  if (h < 70000 && h > 30000 && sp > 1100 && !b.landing && !b.entryDone) { b.n = Math.min(3, b.nMax); b.throttle = 1; b.phase = 'entry burn'; return; }
-  if (sp <= 1000 || h <= 30000) b.entryDone = true;
-  const m = (s.dry + s.fuel) * 1000, a1 = s.eng.tv * 1000 * s.eng.ispSl / s.eng.ispVac / m;
-  const vdes = Math.sqrt(2 * 0.6 * Math.max(a1 - g, 0.5) * Math.max(h - 4, 0)) + 1.5; // zero at deck height (3 m) + 1 m
-  if (h < 40000 && sp > vdes) {
-    b.landing = true; b.phase = 'landing burn';
-    b.n = sp > vdes + 120 && h > 1200 ? Math.min(3, b.nMax) : 1;
-    b.throttle = clamp((g + 0.6 * Math.max(a1 - g, 0.5) + (sp - vdes) * 2) / (a1 * b.n), 0, 1);
-  } else { b.n = 1; b.throttle = 0; b.phase = 'falling'; }
+  // (1) entry burn, decided from the live predicted peaks
+  if (!b.entryDone && h < 90000 && h > 25000 && vr < -150) {
+    b._eT = (b._eT ?? 0) - dtHint;
+    if (b._eT <= 0) { b._eT = 0.5; const pk = predictEntryPeaks(b); b.entryPeak = pk;
+      b._eNeed = pk.q > ENTRY_Q_MAX * 0.9 || pk.qdot > ENTRY_QDOT_MAX * 0.9; }
+    const sE = b.stages[0], mE = (sE.dry + sE.fuel) * 1000, aE = sE.eng.tv * 1000 / mE, gE = muOf(b) / dot(b.r, b.r);
+    const keep = sE.dry * (Math.exp(Math.max(0, 1.6 * Math.sqrt(2 * gE * 0) + 600) / (sE.eng.ispSl * 9.80665)) - 1); // ~600 m/s landing-burn budget
+    if (b._eNeed && sE.fuel > keep * 1.1) { b.n = Math.min(3, b.nMax); b.throttle = 1; b.phase = 'entry burn'; b.entryBurned = (b.entryBurned || 0) + dtHint; return; }
+    if (b.entryBurned) b.entryDone = true;
+  }
+  if (h <= 25000) b.entryDone = true;
+  // (3) hoverslam, recomputed every frame
+  const atm = atmosphere(Math.max(h, 0)), pr = Math.min(1, atm.p / 101325), m = (s.dry + s.fuel) * 1000 + (b.extra || 0) * 1000;
+  const isp = s.eng.ispVac - (s.eng.ispVac - s.eng.ispSl) * pr, T1 = s.eng.tv * 1000 * isp / s.eng.ispVac;
+  const qd = 0.5 * atm.rho * sp * sp, aDrag = qd * (b.cdA || 0) * cd0(sp / atm.a) / m * 0.5; // count half the current drag: it fades as the burn slows the booster
+  const vDown = vr < 0 ? sp : 0, hp = h - deck; // retro thrust kills the whole air-relative velocity
+  const pick = n => hoverslamSolve({ h: hp, vDown, m, Tmax: T1 * n, thrMin: 0.4, g, aDrag, burning: !!b._hs, lit: b.ignAlt != null });
+  let n = b._hs ? b.n : 1, sol = pick(n);
+  if (!b._hs && (sol.lowTWR || sol.dStop > 0.8 * hp) && b.nMax > 1) { const s3 = pick(Math.min(3, b.nMax)); if (s3.ignite || sol.lowTWR) { n = Math.min(3, b.nMax); sol = s3; } }
+  // late in a 3-engine burn drop to the centre engine once one engine can finish it at ≤ THR_AIM
+  if (b._hs && n > 1) { const s1 = hoverslamSolve({ h: hp, vDown, m, Tmax: T1, thrMin: 0.4, g, aDrag, burning: true, lit: true }); if (s1.aReq < s1.aMax * 0.85) { n = 1; sol = s1; } }
+  b.hs = sol; b.burnIn = sol.ignite ? 0 : sol.tIgn; b.lowTWR = sol.lowTWR; if (sol.legs) b.legs = true;
+  if (sol.ignite && sol.throttle > 0 && (b.entryDone || h < 25000)) {
+    if (!b._hs) { b._hs = true; if (b.ignAlt == null) { b.ignAlt = hp; b.ignV = vDown; } }
+    b.landing = true; b.n = n; b.throttle = sol.throttle; b.phase = sol.lowTWR ? 'controlled descent (low TWR)' : 'landing burn';
+  } else { b._hs = false; b.n = 1; b.throttle = 0; b.phase = b.ignAlt != null && hp < 5 ? 'touchdown' : (h > 25000 ? 'coast' : 'grid-fin glide'); }
 }
 // Ballistic impact (drag, no thrust). Returns { r (ECI), t (clock at impact) } or null.
 export function predictImpact(b) {

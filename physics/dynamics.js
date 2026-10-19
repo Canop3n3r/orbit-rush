@@ -4,14 +4,14 @@
 // drag 0.5 rho V^2 Cd(M) A, body+fin normal force at the centre of pressure, RCS. Torques: aero (CoP vs CoM)
 // plus aerodynamic damping, engine gimbal, reaction wheels, RCS. Integrated with fixed-step RK4.
 // Each step leaves v.tel (telemetry) for the HUD, the lessons and the effects system.
-import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=gx1h2';
-import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=gx1h2';
-import { atmosphere } from './atmosphere.js?v=gx1h2';
-import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=gx1h2';
-import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=gx1h2';
-import { stackGeom, massProps } from './vehicle.js?v=gx1h2';
-import { propagate } from './kepler.js?v=gx1h2';
-import { BODIES, bodyAtm } from './solar.js?v=gx1h2';
+import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=f1';
+import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=f1';
+import { atmosphere } from './atmosphere.js?v=f1';
+import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=f1';
+import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=f1';
+import { stackGeom, massProps } from './vehicle.js?v=f1';
+import { propagate } from './kepler.js?v=f1';
+import { BODIES, bodyAtm } from './solar.js?v=f1';
 // The craft's SOI body (patched conics): v.body is a body id (default Earth). Gravity, radius, spin and
 // atmosphere all come from it; for Earth these are exactly the constants used before the solar system.
 export const bodyOf = v => BODIES[(v && v.body) || 'earth'];
@@ -109,7 +109,7 @@ export function stepVehicle(v, dt) {
   const I = [mp.Ixx, mp.Iyy, mp.Ixx];
   if (v.clamped) {
     const up = norm(v.r), fUp = dot(qrot(v.q, fT), up), wgt = m * mu / dot(v.r, v.r);
-    if (fUp <= wgt) { const s = siteAt(v, t + dt); v.r = s.r; v.v = s.v; v.q = s.q; v.w = [0, 0, 0]; v.clock = t + dt; burn(v, eo, rcsUse, dt, g); tele(v, g, mp, aeroAt(v, g, mp, v.r, v.v, v.q, v.w), T, eo, [0, 0, 0]); return null; }
+    if (fUp <= wgt || v.holdDown) { const s = siteAt(v, t + dt); v.r = s.r; v.v = s.v; v.q = s.q; v.w = [0, 0, 0]; v.clock = t + dt; burn(v, eo, rcsUse, dt, g); tele(v, g, mp, aeroAt(v, g, mp, v.r, v.v, v.q, v.w), T, eo, [0, 0, 0]); return null; }
     v.clamped = false;
   }
   let a0 = null;
@@ -169,6 +169,7 @@ export function railsStep(v, dt) {
   for (let i = v.cur; i < v.stages.length; i++) for (const p of v.stages[i].parts) if (p.Ts !== undefined) { p.Ts = 300 + (p.Ts - 300) * k; p.Ti = 300 + (p.Ti - 300) * k; }
 }
 // ---------- 3-DOF point mass (spent boosters and debris): drag with Cd(M), ideal attitude ----------
+export const FIN_L = 0.25; // grid-fin lift / drag (cdA units) at full deflection
 export function stepPoint(b, dt) {
   const rm = len(b.r), alt = rm - radOf(b), atm = atmAt(b, alt), va = airVel(b, b.r, b.v), V = len(va);
   const s = b.stages[0]; let T = 0;
@@ -182,6 +183,7 @@ export function stepPoint(b, dt) {
   let acc = scale(b.r, -muOf(b) / (rm * rm * rm));
   if (T > 0) acc = add(acc, scale(b.dir, T / m));
   if (V > 0.5 && atm.rho > 0) acc = add(acc, scale(va, -qd * b.cdA * cd0(M) / 0.5 / m / V * 0.5));
+  if (b.fin && V > 0.5 && atm.rho > 0) { const fl = len(b.fin); if (fl > 1e-6) acc = add(acc, scale(b.fin, Math.min(fl, 1) / fl * qd * b.cdA * FIN_L / m)); } // grid-fin lift, ⊥ steering
   b.v = add(b.v, scale(acc, dt)); b.r = add(b.r, scale(b.v, dt)); b.clock = (b.clock || 0) + dt;
   return len(b.r) < radOf(b) ? 'ground' : null;
 }

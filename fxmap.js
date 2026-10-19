@@ -9,7 +9,7 @@ export const humidity = alt => 0.85 * Math.exp(-Math.max(alt, 0) / 9000) * (1 - 
 // Needs humid air and dynamic pressure; strongest just under Mach 1, gone by ~Mach 1.3.
 // Monotonic: non-decreasing in q and in humidity; rises with Mach up to 0.97, falls past 1.05.
 export function vaporCone(M, q, alt) {
-  const band = smooth(0.82, 0.97, M) * (1 - smooth(1.05, 1.32, M));
+  const band = smooth(0.86, 0.97, M) * (1 - smooth(1.08, 1.25, M)); // f1: only in the transonic band (~Mach 0.9-1.2)
   return clamp01(band * (q / (q + 12000)) * humidity(alt) * 3);
 }
 // Mach angle (rad): half-angle of the shock cone, asin(1/M). Subsonic: no shock (pi/2).
@@ -50,7 +50,18 @@ export function plumeShape(pa, throttle = 1, pe = 70000) {
   return { width, length, diamonds, ratio };
 }
 // Airflow streak particles: visible in dense, fast air. Non-decreasing in q.
-export const flowStreaks = (q, M) => smooth(300, 9000, q) * (0.55 + 0.45 * smooth(0.3, 1.2, M));
+// f1: nothing visible in plain subsonic flight (the Mach 0.5 "specks"); streaks start with compressibility (~Mach 0.85).
+export const flowStreaks = (q, M) => smooth(300, 9000, q) * smooth(0.8, 1.0, M);
+// f1 layered plume look vs ambient pressure pa (Pa) and throttle: lengths/widths in units of the nozzle radius.
+// Sea level: a tight, long, bright column with shock diamonds. As the air thins it opens into a wide bell
+// ("jellyfish") that is huge and faint in vacuum. vac is 0 at sea level, 1 in vacuum (non-increasing in pa).
+export function plumeLook(pa, throttle = 1) {
+  const sh = plumeShape(pa, throttle), vac = 1 - smooth(600, 40000, pa), t = clamp01(throttle);
+  const len = (10 + 14 * t) * (1 + 0.9 * vac);               // column length (× nozzle radius)
+  const coreW = 0.9 + 0.5 * vac, glowW = 1.6 + 2.4 * vac;    // inner core / outer glow widths
+  const bellW = 1 + (Math.min(9, sh.width) - 1) * 0.85 * smooth(0.05, 0.6, vac); // expanded bell rim
+  return { len, coreW, glowW, bellW, bell: smooth(0.05, 0.5, vac) * (0.35 + 0.65 * t), vac, diamonds: sh.diamonds, bright: 0.55 + 0.45 * t, smoke: clamp01(pa / 101325) };
+}
 // Effects quality presets (fx.js): particle counts and which layers draw.
 export const QUALITY = {
   low:  { flowCPU: 350,  flowGPU: 2500,  vapor: true, shock: true, plasmaShell: false, wake: true, diamonds: false, ablate: 2 },

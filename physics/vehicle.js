@@ -4,7 +4,7 @@
 // A vehicle carries stages[i].parts (bottom → top) built by parts.js; each part: { id, kind, h, d, m (dry, t),
 // fuelCap (t), rw (kN·m), F/isp (RCS), cna/chord (fins), gimbal (rad), nose: { cd, rn, cpFrac } }.
 // Layout notes for the lessons: CoM = mass-weighted station; CoP = normal-force-weighted station (aero.js).
-import { thermalOf } from './thermal.js?v=gx1h2';
+import { thermalOf } from './thermal.js?v=f1';
 const PI = Math.PI;
 export function stackGeom(v) {
   const key = v.cur + '|' + (v.fairing > 0 ? 1 : 0);

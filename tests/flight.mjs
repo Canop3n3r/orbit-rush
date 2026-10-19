@@ -1,7 +1,7 @@
 // Headless tests for the real game rules in flight.js (the same code main.js runs in the browser).
 // Run: node tests/flight.mjs   (exits non-zero on failure)
-import * as P from '../physics.js?v=gx1h2';
-import { Flight, PRESETS, simulateAuto, planBuild, assessDesign, WARPS, shipPos } from '../flight.js?v=gx1h2';
+import * as P from '../physics.js?v=f1';
+import { Flight, PRESETS, simulateAuto, planBuild, assessDesign, WARPS, shipPos } from '../flight.js?v=f1';
 const D = (...ids) => ({ name: 'test', parts: ids.map(x => { const [id, n] = x.split('*'); return n ? { id, n: +n } : { id }; }) });
 // short of Δv: crew pod on a small rocket (stands in for the old 3x/15t/3t/crew build)
 const LOWDV = D('crew', 'tank-s', 'mule', 'dec', 'tank-m', 'tank-s', 'thumper*2');
@@ -30,19 +30,15 @@ for (const [reserve, handBack, label] of [[20, 60, 'staged with 20 t, hand back 
   ok(r.orbit && r.pe > P.ORBIT_PE && r.boosterLanded, 'same rocket without Y: orbit, and the booster auto-lands on the droneship', `Pe ${km(r.pe)}, ${r.F.flags.booster}`);
 }
 
-{ // landing by hand (Y) is possible at full scale: a scripted pilot does an entry burn, leans toward the ship, and flies a landing burn
+{ // landing by hand (Y) is possible at full scale: a scripted pilot reads the HUD cues (entry-burn advice, 'burn in T-x s',
+  // the hoverslam throttle) and flies them through the manual controls: throttle + retro hold
   const r = simulateAuto(DEF, { reserve: 20, flyBooster: true, each: F => {
     const b = F.booster; if (!F.flyingBooster()) return;
-    const h = V.len(b.r) - P.R, va = P.airVel(b, b.r, b.v), sp = V.len(va), s = b.stages[0], g = P.gravityAt(h); b.retro = true;
-    if (h > 30000 && h < 70000 && sp > 1100 && V.dot(b.v, V.norm(b.r)) < 0) { b.ut = 1; return; }
-    if (F.ship && h < 25000 && h > 800 && sp > 20) {
-      const up = V.norm(b.r), d = V.sub(shipPos(F.ship, b.clock, true), b.r), hor = V.sub(d, V.scale(up, V.dot(d, up)));
-      const vh = V.sub(va, V.scale(up, V.dot(va, up))), tgo = h / Math.max(-V.dot(va, up), 20), err = V.sub(vh, V.scale(hor, 1 / tgo));
-      b.retro = false; b.dir = V.norm(V.add(V.norm(V.scale(va, -1)), V.scale(err, -0.05 / Math.max(1, sp / 100))));
-    }
-    const n = h > 12000 ? Math.min(3, b.nMax) : 1, a = s.eng.tv * 1000 * n * s.eng.ispSl / s.eng.ispVac / ((s.dry + s.fuel) * 1000);
-    const vdes = Math.sqrt(2 * 0.6 * Math.max(a - g, 0.5) * Math.max(h - 4, 0)) + 1.5;
-    b.ut = h < 40000 && sp > vdes ? Math.min(1, (g + 0.6 * (a - g) + (sp - vdes) * 2) / a) : 0;
+    b.retro = true; b.deck = F.ship && V.len(V.sub(shipPos(F.ship, b.clock, true), b.r)) < 2000 ? 3 : 0; b.manual = false; P.boosterAutopilot(b, P.PHYS_DT || 0.02); b.manual = true; // the cue the HUD shows
+    b.ut = b.throttle; b.nSel = b.n;
+    if (F.ship && (globalThis.__pk = ((globalThis.__pk || 0) + 1) % 10) === 0) { // grid fins toward the ship (the predicted-miss marker)
+      const imp = P.predictImpact({ ...b, throttle: 0, fin: null }); if (imp) { const tgt = shipPos(F.ship, imp.t, true), up = V.norm(imp.r), miss = V.sub(tgt, imp.r), hm = V.sub(miss, V.scale(up, V.dot(miss, up)));
+        b.fin = b.throttle > 0 ? null : V.scale(hm, Math.min(1, V.len(hm) / 1000) / Math.max(V.len(hm), 1)); } }
   } });
   ok(r.orbit && r.F.flags.boosterBonus > 2500, 'a scripted pilot can land the booster by hand on the droneship', `${r.F.flags.booster} (+${r.F.flags.boosterBonus})`);
 }
