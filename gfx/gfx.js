@@ -3,9 +3,9 @@
 // PBR environment, quality presets (low keeps phones and software GPUs working). No physics here.
 import * as THREE from 'three/webgpu';
 import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, uv, vertexColor, mx_noise_float, positionLocal, pass } from 'three/tsl';
-export { GFX, GFX_ORDER } from './presets.js?v=gx1h';
-import { GFX } from './presets.js?v=gx1h';
-import { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth } from './earthmap.js?v=gx1h';
+export { GFX, GFX_ORDER } from './presets.js?v=gx1h2';
+import { GFX } from './presets.js?v=gx1h2';
+import { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth } from './earthmap.js?v=gx1h2';
 export { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth };
 export function softwareGPU() {
   try { const c = document.createElement('canvas'), gl = c.getContext('webgl2') || c.getContext('webgl'); if (!gl) return true;
@@ -123,11 +123,16 @@ export function tileMaterial() {
   return m;
 }
 // post: HDR → bloom → tone map (high preset only; otherwise renderer.render + tone mapping)
+// gx1h2: three r172 PostProcessing shares ONE module-level quad + material across all instances, and only rebinds
+// its output node when needsUpdate is set. With a flight post and a map post, whichever was built/used last kept
+// owning the quad, so after leaving the map the High (bloom) preset kept showing the map pass. Track the owner and
+// rebind whenever a different post renders. renderState() reports what the last frame actually drew.
+let postOwner = null; export const renderState = { scene: null, camera: null, via: null };
 export function makePost(renderer, scene, camera) {
   let post = null, bloomNode = null;
   return {
     async enable(on) {
-      if (!on) { post = null; return; }
+      if (!on) { if (postOwner === post) postOwner = null; post = null; return; }
       if (post) return;
       try { const { bloom } = await import('three/addons/tsl/display/BloomNode.js');
         const p = new THREE.PostProcessing(renderer), sp = pass(scene, camera), c = sp.getTextureNode('output');
@@ -135,6 +140,8 @@ export function makePost(renderer, scene, camera) {
     },
     get on() { return !!post; },
     set strength(s) { if (bloomNode) bloomNode.strength.value = s; },
-    render() { if (post) post.render(); else renderer.render(scene, camera); },
+    render() { renderState.scene = scene; renderState.camera = camera;
+      if (post) { if (postOwner !== post) { post.needsUpdate = true; postOwner = post; } renderState.via = 'post'; post.render(); }
+      else { renderState.via = 'direct'; renderer.render(scene, camera); } },
   };
 }

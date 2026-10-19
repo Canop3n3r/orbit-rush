@@ -1,7 +1,7 @@
 // gx1h regression: map exit can't be trapped by a focused input; Esc leaves the map; warp arrows respect limits.
 import { readFileSync } from 'node:fs';
-import { Flight, WARPS } from '../flight.js?v=gx1h';
-import { TEMPLATES, cloneDesign } from '../parts.js?v=gx1h';
+import { Flight, WARPS } from '../flight.js?v=gx1h2';
+import { TEMPLATES, cloneDesign } from '../parts.js?v=gx1h2';
 let n = 0, bad = 0; const ok = (c, m) => { n++; if (!c) { bad++; console.log('FAIL', m); } };
 const src = readFileSync(new URL('../main.js', import.meta.url), 'utf8'), html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 ok(/e\.code === 'Escape' \|\| e\.code === 'Enter' \|\| e\.code === 'KeyM'/.test(src) && /e\.target\.blur\(\)/.test(src), 'focused number input releases M/Esc');
