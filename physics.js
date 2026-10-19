@@ -39,9 +39,35 @@ export function rocketStats(cfg) {
 export const pressure = h => (h < ATM ? Math.exp(-h / SCALE_H) : 0);
 export const altOf = v => Math.hypot(v.x, v.y) - R;
 
-// Advance one vehicle by dt. Returns null or an event string ('ground').
+// ---------- the moon: Lumen ----------
+// Circular, coplanar orbit around the home planet, clockwise like a prograde launch (angle falls with time).
+// Patched conics: inside Lumen's sphere of influence (SOI) a craft feels only Lumen's gravity (relative to Lumen,
+// which itself follows its orbit); outside it, only the planet's. Positions stay planet-centred everywhere.
+export const MOON = (() => {
+  const Rm = 200000, MUm = 6.5e10, A = 12e6;
+  return { name: 'Lumen', R: Rm, MU: MUm, A, SOI: A * Math.pow(MUm / MU, 0.4), W: -Math.sqrt(MU / (A * A * A)), TH0: 2.2, V: Math.sqrt(MU / A), G: MUm / (Rm * Rm) };
+})();
+export function moonState(t) {
+  const th = MOON.TH0 + MOON.W * t, c = Math.cos(th), s = Math.sin(th);
+  return { x: MOON.A * c, y: MOON.A * s, vx: -MOON.A * MOON.W * s, vy: MOON.A * MOON.W * c, th };
+}
+// Gravity body a craft is in: { mu, R, x, y, vx, vy } (planet sits still at the origin).
+export function bodyAt(soi, t) {
+  if (soi === 'moon') { const m = moonState(t); return { name: MOON.name, mu: MOON.MU, R: MOON.R, x: m.x, y: m.y, vx: m.vx, vy: m.vy }; }
+  return { name: 'Home', mu: MU, R, x: 0, y: 0, vx: 0, vy: 0 };
+}
+export const bodyOf = v => bodyAt(v.soi, v.clock || 0);
+// Re-evaluate which SOI the craft is in. Returns true when it changed. Position/velocity are untouched.
+export function updateSOI(v) {
+  const m = moonState(v.clock || 0), d = Math.hypot(v.x - m.x, v.y - m.y), was = v.soi || 'planet';
+  v.soi = d < MOON.SOI ? 'moon' : 'planet'; return v.soi !== was;
+}
+// Altitude above the body the craft is in (planet or Lumen).
+export const altRel = v => { const b = bodyOf(v); return Math.hypot(v.x - b.x, v.y - b.y) - b.R; };
+
+// Advance one vehicle by dt. Returns null or an event string ('ground' = home planet, 'moon' = Lumen's surface).
 export function stepVehicle(v, dt) {
-  const r = Math.hypot(v.x, v.y), h = r - R, ux = v.x / r, uy = v.y / r;
+  const t = v.clock || 0, r = Math.hypot(v.x, v.y), h = r - R, ux = v.x / r, uy = v.y / r;
   const st = v.stages[v.cur];
   let m = massOf(v), thrust = 0;
   if (st && v.throttle > 0 && st.fuel > 0) {
@@ -53,22 +79,36 @@ export function stepVehicle(v, dt) {
   }
   v.thrust = thrust;
   const nx = Math.cos(v.ang), ny = Math.sin(v.ang);
-  const g = MU / (r * r);
-  let ax = thrust / m * nx - g * ux, ay = thrust / m * ny - g * uy;
+  let gx, gy;
+  const mo = v.soi === 'moon' ? moonState(t) : null;
+  if (mo) { // Lumen's pull on the craft relative to Lumen, plus Lumen's own acceleration around the planet
+    const rx = v.x - mo.x, ry = v.y - mo.y, rm = Math.hypot(rx, ry), gm = MOON.MU / (rm * rm * rm), w2 = MOON.W * MOON.W;
+    gx = -gm * rx - w2 * mo.x; gy = -gm * ry - w2 * mo.y;
+  } else { const g = MU / (r * r); gx = -g * ux; gy = -g * uy; }
+  let ax = thrust / m * nx + gx, ay = thrust / m * ny + gy;
   const sp = Math.hypot(v.vx, v.vy);
   const rho = h < ATM ? RHO0 * Math.exp(-h / SCALE_H) : 0;
   v.q = 0.5 * rho * sp * sp / 1000; // kPa
-  if (sp > 0.01) {
+  if (sp > 0.01 && rho > 0) {
     const fd = v.q * v.cdA; // kN
     ax -= fd / m * v.vx / sp; ay -= fd / m * v.vy / sp;
     v.aoa = sp > 30 ? Math.abs(Math.atan2(Math.sin(v.ang - Math.atan2(v.vy, v.vx)), Math.cos(v.ang - Math.atan2(v.vy, v.vx)))) : 0;
+  } else v.aoa = 0;
+  if (v.landed) { // resting on Lumen: ride along with it until the engines out-push its gravity
+    const m2 = mo || moonState(t), lx = v.landed.x, ly = v.landed.y, l = Math.hypot(lx, ly);
+    if ((thrust / m) * (nx * lx + ny * ly) / l <= MOON.G) {
+      const m3 = moonState(t + dt); v.x = m3.x + lx; v.y = m3.y + ly; v.vx = m3.vx; v.vy = m3.vy; v.clock = t + dt; void m2; return null;
+    }
+    v.landed = null;
   }
   if (v.clamped) {
-    if (ax * ux + ay * uy <= 0) { v.vx = v.vy = 0; return null; }
+    if (ax * ux + ay * uy <= 0) { v.vx = v.vy = 0; v.clock = t + dt; return null; }
     v.clamped = false;
   }
-  v.vx += ax * dt; v.vy += ay * dt; v.x += v.vx * dt; v.y += v.vy * dt;
+  v.vx += ax * dt; v.vy += ay * dt; v.x += v.vx * dt; v.y += v.vy * dt; v.clock = t + dt;
+  updateSOI(v);
   if (Math.hypot(v.x, v.y) < R) return 'ground';
+  if (v.soi === 'moon') { const m4 = moonState(v.clock); if (Math.hypot(v.x - m4.x, v.y - m4.y) < MOON.R) return 'moon'; }
   return null;
 }
 
@@ -103,7 +143,7 @@ export function boosterAutopilot(b) {
 }
 export function makeBooster(v) {
   const s = v.stages[0];
-  return { x: v.x, y: v.y, vx: v.vx, vy: v.vy, ang: v.ang, throttle: 0, clamped: false,
+  return { x: v.x, y: v.y, vx: v.vx, vy: v.vy, ang: v.ang, throttle: 0, clamped: false, clock: v.clock || 0, soi: v.soi || 'planet',
     stages: [{ ...s }], cur: 0, payload: 0, fairing: 0, cdA: 14, q: 0, nMax: s.n, n: 1, phase: 'coast', state: 'flying' };
 }
 

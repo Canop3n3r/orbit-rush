@@ -1,6 +1,6 @@
 // Orbit Rush parts: the catalog, rocket designs (a vertical stack of parts, top to bottom), staging, and the
 // per-stage mass / delta-v / TWR math. No DOM, so the hangar UI, the flight and the tests all share it.
-import { G0, R } from './physics.js?v=pb1';
+import { G0, R } from './physics.js?v=mm1';
 
 export const ORBIT_DV = 3600; // m/s, roughly what reaching low orbit costs here (incl. gravity + drag losses)
 export const AOA_BASE = 0.26, AOA_FINS = 0.42; // rad of angle of attack (at Q > 15 kPa) before the rocket breaks up

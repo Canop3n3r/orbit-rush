@@ -1,8 +1,8 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules.
 // main.js passes hooks for sounds, toasts and visuals; every hook is optional.
-import * as P from './physics.js?v=pb1';
-import { TEMPLATES, buildVehicle, designStats, validate, aoaLimit, cloneDesign, ORBIT_DV } from './parts.js?v=pb1';
+import * as P from './physics.js?v=mm1';
+import { TEMPLATES, buildVehicle, designStats, validate, aoaLimit, cloneDesign, ORBIT_DV } from './parts.js?v=mm1';
 const { R, MU, ATM } = P;
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
 export const WARPS = [1, 2, 4, 10, 25, 50];

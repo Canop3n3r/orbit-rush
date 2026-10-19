@@ -1,11 +1,11 @@
 import * as THREE from 'three/webgpu';
-import * as P from './physics.js?v=pb1';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS } from './flight.js?v=pb1';
-import { PARTS, TEMPLATES, ORBIT_DV, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass } from './parts.js?v=pb1';
+import * as P from './physics.js?v=mm1';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS } from './flight.js?v=mm1';
+import { PARTS, TEMPLATES, ORBIT_DV, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass } from './parts.js?v=mm1';
 const { R, MU, ATM } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-export const BUILD = '2026-10-19-pb1';
+export const BUILD = '2026-10-19-mm1';
 const wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
