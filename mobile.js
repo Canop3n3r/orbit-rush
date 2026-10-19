@@ -10,7 +10,7 @@ const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const SAS = [['stab', 'STAB'], ['prograde', 'PRO'], ['retrograde', 'RETRO'], ['radial', 'RAD+'], ['antiradial', 'RAD−'], ['normal', 'NRM'], ['antinormal', 'ANRM'], ['off', 'OFF']];
 export function createMobile(api) {
   const on = isTouch(), input = { pitch: 0, yaw: 0, roll: 0 };
-  const M = { on, input, render() {}, update() {}, vibrate() {}, closeMenu() {}, sheet: false };
+  const M = { on, input, render() {}, update() {}, vibrate() {}, closeMenu() {}, show() {}, thrDragging: () => false, wakeLock: () => false, sheet: false }; // desktop: inert stubs
   if (!on) return M;
   document.body.classList.add('touch');
   const root = el('div', { id: 'mob', className: 'hidden' });
