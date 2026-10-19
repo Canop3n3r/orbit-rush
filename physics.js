@@ -79,9 +79,10 @@ export function orbitOf(v) {
   const ex = ((v2 - MU / r) * v.x - rv * v.vx) / MU, ey = ((v2 - MU / r) * v.y - rv * v.vy) / MU;
   const e = Math.hypot(ex, ey);
   const p = hmom * hmom / MU;
-  const pe = p / (1 + e) - R;
-  const ap = e < 1 ? p / (1 - e) - R : Infinity;
-  return { e, ex, ey, p, ap, pe, E, a: -MU / (2 * E) };
+  // Use specific orbital energy for the semi-major axis (robust for near-radial, e≈1 trajectories).
+  if (E >= 0) return { e, ex, ey, p, ap: Infinity, pe: p / (1 + e) - R, E, a: Infinity };
+  const a = -MU / (2 * E);
+  return { e, ex, ey, p, ap: a * (1 + e) - R, pe: a * (1 - e) - R, E, a };
 }
 
 // Simple autonomous booster: entry burn, then a throttled suicide burn onto the droneship.
@@ -106,14 +107,47 @@ export function makeBooster(v) {
     stages: [{ ...s }], cur: 0, payload: 0, fairing: 0, cdA: 14, q: 0, nMax: s.n, n: 1, phase: 'coast', state: 'flying' };
 }
 
-// Assisted steering (F): pitch program in the lower atmosphere, prograde above. Returns target nose angle.
+export const TARGET_PE = ATM + 5000;
+const wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
+// Assisted steering (F): pitch program in the lower atmosphere, then prograde, never below the horizon
+// while periapsis is still short of orbit (pitches up a little if falling). Returns target nose angle.
 export function assistAngle(v) {
   const r = Math.hypot(v.x, v.y), h = r - R, up = Math.atan2(v.y, v.x), sp = Math.hypot(v.vx, v.vy);
   const pg = sp > 5 ? Math.atan2(v.vy, v.vx) : up;
-  if (h > 45000 || sp > 1800) return pg;
-  const pitch = Math.min(1.45, Math.sqrt(Math.max(h - 400, 0) / 60000) * Math.PI / 2);
-  const tgt = up - pitch;
-  let d = Math.atan2(Math.sin(tgt - pg), Math.cos(tgt - pg));
-  d = Math.max(-0.12, Math.min(0.12, d));
-  return sp > 40 ? pg + d : tgt;
+  const vr = (v.x * v.vx + v.y * v.vy) / r;
+  if (sp < 40) return up - Math.min(0.05, Math.max(0, h - 300) / 4000);
+  let pitch;
+  if (h < 45000 && sp < 1800) {
+    const prog = Math.min(1.45, Math.sqrt(Math.max(h - 400, 0) / 60000) * Math.PI / 2);
+    const d = Math.max(-0.12, Math.min(0.12, wrap(prog - wrap(up - pg))));
+    pitch = wrap(up - pg) + d;
+  } else pitch = wrap(up - pg);
+  const o = orbitOf(v);
+  if (o.pe < TARGET_PE) {
+    const lift = vr < 0 ? Math.min(0.35, -vr * 0.004) : 0;
+    pitch = Math.min(pitch, Math.PI / 2 - lift);
+  }
+  pitch = Math.max(0, Math.min(Math.PI * 0.75, pitch));
+  return up - pitch;
+}
+// Throttle cap used by auto mode to stay under Max-Q.
+export const qCap = v => Math.max(0.3, Math.min(1, 1 - (v.q - 22) / 8));
+// Upper-stage autopilot (used while the player flies the booster): ascend to Ap 85 km, coast, circularize.
+export function upperAutopilot(v) { v.ang = assistAngle(v); v.throttle = autoThrottle(v); }
+export function autoThrottle(v) {
+  const o = orbitOf(v), h = altOf(v), r = h + R, vr = (v.x * v.vx + v.y * v.vy) / r;
+  if (o.pe > TARGET_PE) return 0;
+  if (o.ap < 85000) return qCap(v);
+  {
+    const st = v.stages[v.cur], a = st ? st.eng.tv * st.n / massOf(v) : 1;
+    const g = MU / (r * r), rap = o.ap + R, vh = Math.abs(v.x * v.vy - v.y * v.vx) / r * r / rap;
+    const tb = Math.max(0, Math.sqrt(MU / rap) - vh) / a;
+    return (h > 30000 && vr / g < tb * 0.55 + 5) || vr < 0 || o.pe > 0 ? 1 : 0;
+  }
+}
+// Ballistic impact prediction (no thrust, with drag). Returns surface angle or null.
+export function predictImpact(b) {
+  const c = { ...b, stages: b.stages.map(s => ({ ...s })), throttle: 0, clamped: false };
+  for (let i = 0; i < 4000; i++) if (stepVehicle(c, 0.25)) return Math.atan2(c.y, c.x);
+  return null;
 }

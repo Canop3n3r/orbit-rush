@@ -8,6 +8,8 @@
 <script type="importmap">{"imports":{"three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js"}}</script>
 </head><body>
 <div id="badge">…</div>
+<div id="loading">Loading Orbit Rush…</div>
+<div id="ignite" class="hidden">Press <b>SPACE</b> (or tap <b>STAGE</b>) to ignite</div>
 <div id="build" class="panel">
   <h1>ORBIT RUSH</h1><p class="sub">Build it. Launch it. Orbit it. Land it.</p>
   <div class="row"><label>First-stage engines</label><div class="opts" data-k="engines"></div></div>
@@ -18,10 +20,10 @@
   <button id="launchBtn" class="big">ROLL TO PAD ▶</button>
   <details><summary>How to fly</summary><ul>
     <li><b>Space</b> ignite / stage &nbsp; <b>W/S</b> throttle &nbsp; <b>Z/X</b> full/cut</li>
-    <li><b>A/D</b> pitch &nbsp; <b>F</b> auto-turn &nbsp; <b>M</b> map &nbsp; <b>B</b> booster cam &nbsp; <b>T</b> time warp &nbsp; <b>R</b> restart</li>
+    <li><b>A/D</b> pitch &nbsp; <b>F</b> AUTO (gravity turn + Max-Q throttle + cutoff) &nbsp; <b>M</b> map &nbsp; <b>B</b> booster cam &nbsp; <b>T</b> / <b>,</b> warp up/down &nbsp; <b>G</b> warp to apoapsis &nbsp; <b>L</b> fly the booster &nbsp; <b>R</b> back to hangar</li>
     <li>Ignite, then press <b>F</b> for AUTO-TURN (or fly the gravity turn yourself with A/D). Throttle back (S) when it says HIGH Q.</li>
     <li>Cut engines when apoapsis (Ap) &gt; 75 km, coast up, then burn prograde near Ap until periapsis (Pe) &gt; 70 km = ORBIT.</li>
-    <li>Stage with fuel left in the booster and it will try to land itself on the droneship for bonus points.</li>
+    <li>Stage above 2 km with fuel left in the booster: it auto-lands for +1000, or press <b>L</b> to fly the landing yourself (W/S throttle, A/D tilt, F hold retrograde) for +2500 plus accuracy and softness bonus. The upper stage flies itself meanwhile.</li>
   </ul></details>
 </div>
 <div id="hud" class="hidden">
@@ -29,6 +31,7 @@
   <div id="bars"><div class="bar"><span>THR</span><i id="thrBar"></i></div><div class="bar"><span>S1</span><i id="f1Bar"></i></div><div class="bar"><span>S2</span><i id="f2Bar"></i></div></div>
   <div id="hint"></div><div id="toasts"></div>
   <div id="score"></div>
+  <div id="ctl"><button id="warpBtn">WARP ×1</button><button id="apBtn" class="hidden">⏩ Warp to Ap (G)</button><button id="flyBtn" class="hidden">FLY BOOSTER (L)</button></div>
 </div>
 <div id="touch" class="hidden">
   <div class="tl"><button data-k="KeyA">◀</button><button data-k="KeyD">▶</button><button data-t="KeyF" id="tProg">AUTO</button></div>
@@ -36,6 +39,6 @@
   <button data-t="KeyM">MAP</button><button data-t="KeyB">BOOST</button><button data-t="KeyT">WARP</button></div>
 </div>
 <div id="end" class="panel hidden"><h2 id="endTitle"></h2><div id="endBody"></div>
-  <button id="shareBtn" class="big">Share score</button><button id="xBtn">Post on X</button><button id="againBtn">Fly again</button><button id="contBtn">Keep flying</button></div>
+  <button id="shareBtn" class="big">Share score</button><button id="xBtn">Post on X</button><button id="relaunchBtn">Relaunch same rocket</button><button id="againBtn">Back to hangar</button><button id="contBtn">Keep flying</button></div>
 <script type="module" src="main.js"></script>
 </body></html>
