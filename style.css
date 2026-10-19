@@ -36,3 +36,12 @@ details{margin-top:12px;font-size:13px;opacity:.9}details li{margin:4px 0}
 #flyBtn{background:#a8740e!important;border-color:#ffd23a!important}
 #apBtn{background:#1d4f8a!important}
 @media (pointer:coarse){#ctl{top:auto;bottom:140px}}
+
+/* fix pass 2 */
+.bar{width:34px}.bar b{position:absolute;bottom:3px;width:100%;text-align:center;font:700 9px monospace;z-index:2;text-shadow:0 1px 2px #000}
+#presets button{font-size:13px}.rec{display:inline-block;padding:1px 5px;border-radius:6px;background:#f29a1f;color:#111;font:800 9px system-ui;vertical-align:middle}
+#landPlan{margin-top:4px}
+.endMain{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.endMain .big{flex:1 1 100%;margin:0}
+.endShare{display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #fff2;opacity:.85}.endShare button{font-size:12px;padding:6px 10px}
+#end button{margin:0}
+#presets small{display:block;font:500 10px system-ui;opacity:.7;margin-top:3px}

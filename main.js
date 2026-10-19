@@ -1,10 +1,10 @@
 import * as THREE from 'three/webgpu';
-import * as P from './physics.js';
+import * as P from './physics.js?v=fp2';
+import { Flight, PRESETS, planBuild, SIM_SPEED, WARPS } from './flight.js?v=fp2';
 const { R, MU, ATM } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-const SIM_SPEED = 2; // game time runs 2x real time; warp multiplies on top
-const WARPS = [1, 2, 4, 10, 25, 50];
+export const BUILD = '2026-10-19-fp2';
 const wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
@@ -232,42 +232,75 @@ function burst(vol, dur, freq) {
 function beep(f = 880) { if (!ac) return; const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.08, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.25); o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.3); }
 
 // ---------- build screen ----------
-const cfg = { engines: 3, s1fuel: 25, s2fuel: 6, payload: 1 };
+const cfg = { ...PRESETS[0].cfg };
 const labels = { engines: v => v + '×', s1fuel: v => v + ' t', s2fuel: v => v + ' t', payload: (v, i) => P.OPTS.payload[i].name };
-document.querySelectorAll('.opts').forEach(el => {
+PRESETS.forEach((pr, i) => {
+  const c = pr.cfg, sum = `${c.engines}× · ${c.s1fuel} t · ${c.s2fuel} t · ${P.OPTS.payload[c.payload].name}`;
+  const b = document.createElement('button'); b.innerHTML = (i === 0 ? '<span class="rec">★ RECOMMENDED</span>' : pr.name) + `<small>${sum}</small>`; b.title = pr.note;
+  b.onclick = () => { Object.assign(cfg, pr.cfg); refreshBuild(); }; b.dataset.p = i; $('presets').appendChild(b);
+});
+document.querySelectorAll('.opts[data-k]').forEach(el => {
   const k = el.dataset.k;
   P.OPTS[k].forEach((v, i) => {
     const b = document.createElement('button'); b.textContent = labels[k](v, i);
     const val = k === 'payload' ? i : v; b.onclick = () => { cfg[k] = val; refreshBuild(); }; b.dataset.v = val; el.appendChild(b);
   });
 });
+let planTimer = 0;
 function refreshBuild() {
-  document.querySelectorAll('.opts').forEach(el => el.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === cfg[el.dataset.k])));
+  document.querySelectorAll('.opts[data-k]').forEach(el => el.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === cfg[el.dataset.k])));
+  document.querySelectorAll('#presets button').forEach(b => { const c = PRESETS[+b.dataset.p].cfg; b.classList.toggle('on', Object.keys(c).every(k => c[k] === cfg[k])); });
   const s = P.rocketStats(cfg);
   const twrC = s.twr < 1 ? 'bad' : s.twr < 1.2 ? 'warn' : 'good', dvC = s.total < 3600 ? 'bad' : s.total < 4200 ? 'warn' : 'good';
-  $('stats').innerHTML = `Liftoff mass ${s.mass.toFixed(1)} t<br>Liftoff TWR <span class="${twrC}">${s.twr.toFixed(2)}</span>${s.twr < 1 ? ' — too heavy to lift off!' : ''}<br>Δv  S1 ${s.dv[0].toFixed(0)} + S2 ${s.dv[1].toFixed(0)} = <span class="${dvC}">${s.total.toFixed(0)} m/s</span><br><span style="opacity:.7">Orbit needs ~3,600 m/s. Extra Δv = fuel to land the booster.</span>`;
+  $('stats').innerHTML = `Liftoff mass ${s.mass.toFixed(1)} t<br>Liftoff TWR <span class="${twrC}">${s.twr.toFixed(2)}</span>${s.twr < 1 ? ' — too heavy to lift off!' : ''}<br>Δv  S1 ${s.dv[0].toFixed(0)} + S2 ${s.dv[1].toFixed(0)} = <span class="${dvC}">${s.total.toFixed(0)} m/s</span><br><span style="opacity:.7">Orbit needs ~3,600 m/s. Extra Δv = fuel to land the booster.</span><div id="landPlan">Booster landing: checking…</div>`;
+  clearTimeout(planTimer); const key = JSON.stringify(cfg);
+  planTimer = setTimeout(() => { // flies the build on AUTO headlessly to see if the booster can be landed
+    if (JSON.stringify(cfg) !== key || !$('landPlan')) return;
+    const p = planBuild(cfg), el = $('landPlan');
+    if (p.reason === 'twr') el.innerHTML = '';
+    else if (p.minReserve === null) el.innerHTML = '<span class="bad">⚠ Booster landing: this booster can\'t keep enough fuel to land. Add booster fuel or use fewer engines.</span>';
+    else if (!p.orbit) el.innerHTML = `<span class="warn">⚠ Booster landing needs ~${p.minReserve.toFixed(1)} t left at staging, but then the upper stage can't reach orbit. Add fuel, or let the booster go.</span>`;
+    else el.innerHTML = `<span class="good">✔ Booster can land: stage with ≥ ${p.minReserve.toFixed(1)} t left (of ${cfg.s1fuel} t). AUTO alone stages it dry.</span>`;
+  }, 120);
   if (state === 'build') showPreview();
 }
 
 // ---------- game state ----------
-let state = 'build', v, booster, rocketG, s1G, upG, warpI, met, maxQ, progHold, camMode, flags, score, ship, endShown, pendingEnd, autoWarp, gen = 0, ignited, liftoffT, upperTakeover;
+let state = 'build', F, v, booster, rocketG, s1G, upG, camMode, gen = 0;
 const dyn = []; // world entries created during a flight (droneship, ocean) — removed on reset
 const keys = {};
 function later(fn, ms) { const g = gen; setTimeout(() => { if (g === gen) fn(); }, ms); }
+let shipVis = null;
+const hooks = {
+  toast: (m, c) => toast(m, c),
+  sound: (k, f) => { if (k === 'ignite') burst(0.6, 1.2, 500); else if (k === 'beep') beep(f); else if (k === 'orbit') { beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); } },
+  stage: b => {
+    b.mesh = s1G; rocketG.remove(s1G); scene.add(s1G); s1G.userData.plume.visible = false; upG.position.y = 0; burst(0.5, 0.6, 1500); beep(660);
+    for (let i = 0; i < 25; i++) smoke.spawn(v.x, v.y, 0, v.vx + (Math.random() - 0.5) * 20, v.vy + (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, 1.5, 2, 8, 0xdddddd, null, 0.5);
+    booster = b;
+  },
+  ship: s => { shipVis = makeShip(s.ang); },
+  shipMoved: s => shipVis && shipVis.setAngle(s.ang),
+  jettison: () => { upG.userData.fair.visible = false; beep(990); },
+  // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
+  boosterControl: manual => { for (const k in keys) keys[k] = false; if (manual) { camMode = 'booster'; camDist = 140; } else camMode = 'chase'; $('tProg').classList.toggle('on', F.autoOn); },
+  boosterLost: (b, moving) => { explode(b.x, b.y, moving ? b.vx : 0, moving ? b.vy : 0); b.mesh.visible = false; b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
+  boosterLanded: b => { b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
+  fail: () => { explode(v.x, v.y, v.vx, v.vy, true); rocketG.visible = false; },
+  end: (ms, cond) => later(() => { if (cond()) showEnd(); }, ms),
+};
 function showPreview() {
   if (rocketG) scene.remove(rocketG);
   rocketG = new THREE.Group(); s1G = makeStage1(cfg); upG = makeUpper(cfg); upG.position.y = s1G.userData.h; rocketG.add(s1G, upG); scene.add(rocketG);
-  v = P.buildRocket(cfg); v.y = R + PAD_Z; v.ut = 0;
+  F = new Flight(cfg, hooks, PAD_Z); v = F.v;
 }
 function reset() {
   gen++;
   if (booster && booster.mesh) scene.remove(booster.mesh);
   for (const w of dyn) { scene.remove(w.obj); const i = world.indexOf(w); if (i >= 0) world.splice(i, 1); }
-  dyn.length = 0; ship = null; booster = null;
-  met = 0; maxQ = 0; progHold = false; warpI = 0; camMode = 'chase'; endShown = false; pendingEnd = false; autoWarp = false; ignited = false; liftoffT = 0; upperTakeover = false;
+  dyn.length = 0; shipVis = null; booster = null; camMode = 'chase';
   camDist = 70; camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8;
-  flags = { liftoff: 0, maxq: 0, space: 0, orbit: 0, booster: '', boosterBonus: 0, dead: '', fairing: 0, maxAlt: 0, stranded: 0, cutoff: 0 };
-  score = 0; fire.clear(); smoke.clear(); for (const k in keys) keys[k] = false;
+  fire.clear(); smoke.clear(); for (const k in keys) keys[k] = false;
   if (swingArm) swingArm.rotation.y = 0;
   $('end').classList.add('hidden'); $('toasts').innerHTML = '';
   showPreview();
@@ -288,41 +321,38 @@ reset(); refreshBuild();
 $('launchBtn').onclick = e => { e.currentTarget.blur(); launch(); };
 $('againBtn').onclick = () => goBuild();
 $('relaunchBtn').onclick = () => launch();
-$('contBtn').onclick = () => $('end').classList.add('hidden');
-function shareText() { return `🚀 I scored ${score.toLocaleString()} in Orbit Rush${flags.orbit ? ' — reached orbit' : ''}${flags.boosterBonus ? ' and landed the booster' : ''}! Can you beat it?`; }
+$('contBtn').onclick = () => { $('end').classList.add('hidden'); F.unfinish(); F.endQueued = true; };
+function shareText() { const sc = F.score(); return `🚀 I scored ${sc.toLocaleString()} in Orbit Rush${F.flags.orbit ? ' — reached orbit' : ''}${F.flags.boosterBonus ? ' and landed the booster' : ''}! Can you beat it?`; }
 $('shareBtn').onclick = async () => { const t = shareText(), url = location.href.split('?')[0]; try { if (navigator.share) await navigator.share({ text: t, url }); else { await navigator.clipboard.writeText(t + ' ' + url); $('shareBtn').textContent = 'Copied!'; } } catch (e) { } };
 $('xBtn').onclick = () => open('https://x.com/intent/post?text=' + encodeURIComponent(shareText()) + '&url=' + encodeURIComponent(location.href.split('?')[0]), '_blank');
 function toast(msg, color = '#7dffa6') { const d = document.createElement('div'); d.textContent = msg; d.style.color = color; $('toasts').appendChild(d); setTimeout(() => d.remove(), 3000); while ($('toasts').children.length > 3) $('toasts').firstChild.remove(); }
 
 // ---------- input ----------
-const flyingBooster = () => booster && booster.state === 'flying' && booster.manual;
-function canStage() { return ignited && !v.clamped && met - liftoffT > 3 && P.altOf(v) > 150; }
-function setWarp(i, quiet) { warpI = Math.max(0, Math.min(WARPS.length - 1, i)); if (!quiet) toast('Time warp ×' + WARPS[warpI], '#9cc3ff'); }
+const flyingBooster = () => F.flyingBooster();
 function press(code) {
   if (state !== 'flight') return;
   initAudio();
   if (code === 'KeyR') { goBuild(); return; }
   if (code === 'KeyM') { camMode = camMode === 'map' ? (flyingBooster() ? 'booster' : 'chase') : 'map'; return; }
-  if (code === 'KeyT') { autoWarp = false; setWarp(warpI + 1 >= WARPS.length ? 0 : warpI + 1); return; }
-  if (code === 'Comma') { autoWarp = false; setWarp(warpI - 1); return; }
-  if (code === 'KeyG') { startAutoWarp(); return; }
-  if (code === 'KeyL') { toggleBoosterControl(); return; }
+  if (code === 'KeyT') { F.autoWarp = false; F.setWarp(F.warpI + 1 >= WARPS.length ? 0 : F.warpI + 1); return; }
+  if (code === 'Comma') { F.autoWarp = false; F.setWarp(F.warpI - 1); return; }
+  if (code === 'KeyG') { F.startAutoWarp(); return; }
+  if (code === 'KeyL') { F.toggleBooster(); return; }
   if (code === 'KeyB') { if (booster && booster.state === 'flying') camMode = camMode === 'booster' ? 'chase' : 'booster'; else toast('No booster in flight', '#ffb35c'); return; }
-  if (flags.dead) return;
+  if (F.flags.dead) return;
   if (flyingBooster()) { // controls go to the booster
     const b = booster;
     if (code === 'KeyZ') b.ut = 1; if (code === 'KeyX') b.ut = 0;
     if (code === 'KeyF') { b.retro = !b.retro; toast(b.retro ? 'Holding retrograde' : 'Manual tilt', '#9cc3ff'); }
     return;
   }
-  if (v.auto && ['KeyZ', 'KeyX', 'KeyF', 'Space'].includes(code)) takeOverUpper();
-  if (code === 'Space') doStage();
+  if (v.auto && ['KeyZ', 'KeyX', 'KeyF'].includes(code)) { F.takeOverUpper(); if (code === 'KeyF') return; }
+  if (code === 'Space') { const r = F.stagePress(); if (r === 'ignite') $('ignite').classList.add('hidden'); }
   if (code === 'KeyZ') v.ut = 1;
-  if (code === 'KeyX') v.ut = 0;
-  if (code === 'KeyF') { progHold = !progHold; toast(progHold ? 'AUTO on: gravity turn, Max-Q throttle, auto cutoff' : 'Manual steering', '#9cc3ff'); }
-  $('tProg').classList.toggle('on', progHold);
+  if (code === 'KeyX') { v.ut = 0; F.autoWarp = false; }
+  if (code === 'KeyF') F.setAuto(!F.autoOn);
+  $('tProg').classList.toggle('on', F.autoOn);
 }
-function takeOverUpper() { if (v.auto) { v.auto = false; v.ut = v.throttle; toast('You have the upper stage', '#9cc3ff'); } }
 addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
   if (e.target && e.target.tagName === 'BUTTON') e.target.blur();
@@ -349,32 +379,7 @@ addEventListener('pointermove', e => {
   pts.set(e.pointerId, [e.clientX, e.clientY]);
 });
 
-// ---------- flight logic ----------
-function doStage() {
-  if (!ignited) { ignited = true; v.ut = 1; burst(0.6, 1.2, 500); toast('IGNITION', '#ffb35c'); $('ignite').classList.add('hidden'); return; }
-  if (v.cur === 0) {
-    if (!canStage()) { toast('Clear the tower first!', '#ffb35c'); return; }
-    const bh = P.altOf(v);
-    booster = P.makeBooster(v); booster.mesh = s1G; booster.ut = 0; booster.manual = false; booster.maxH = bh; booster.stagedAlt = bh;
-    rocketG.remove(s1G); scene.add(s1G); s1G.userData.plume.visible = false;
-    v.cur = 1; upG.position.y = 0; burst(0.5, 0.6, 1500); beep(660);
-    const fuel = booster.stages[0].fuel;
-    if (fuel > 0.3 && bh > 2000) {
-      const a = P.predictImpact(booster); if (a !== null) ship = makeShip(a);
-      toast(`STAGE SEP — booster has ${fuel.toFixed(1)} t. Press L to fly it!`, '#fff');
-    } else toast(bh <= 2000 ? 'STAGE SEP — too low for booster recovery' : 'STAGE SEP — booster is dry', '#fff');
-    for (let i = 0; i < 25; i++) smoke.spawn(v.x, v.y, 0, v.vx + (Math.random() - 0.5) * 20, v.vy + (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, 1.5, 2, 8, 0xdddddd, null, 0.5);
-  } else if (v.fairing > 0 && P.altOf(v) > 30000) jettison();
-}
-function toggleBoosterControl() {
-  const b = booster;
-  if (!b || b.state !== 'flying') { toast('No booster in flight', '#ffb35c'); return; }
-  if (!ship || b.stages[0].fuel <= 0) { toast('This booster can\'t be recovered', '#ffb35c'); return; }
-  b.manual = !b.manual;
-  if (b.manual) { b.ut = 0; b.retro = true; v.auto = !flags.dead; autoWarp = false; camMode = 'booster'; camDist = 140; toast('YOU HAVE THE BOOSTER — upper stage on autopilot', '#ffd23a'); }
-  else { camMode = 'chase'; toast('Booster on auto-land (smaller bonus)', '#9cc3ff'); }
-}
-function jettison() { v.fairing = 0; upG.userData.fair.visible = false; flags.fairing = 1; toast('Fairing separation', '#9cc3ff'); beep(990); }
+// ---------- visuals ----------
 function explode(x, y, vx, vy, big) {
   burst(big ? 1.2 : 0.7, 2.5, 700);
   for (let i = 0; i < (big ? 220 : 120); i++) {
@@ -383,111 +388,23 @@ function explode(x, y, vx, vy, big) {
     if (i % 2) smoke.spawn(x, y, 0, vx * 0.3 + Math.cos(a) * s * 0.5, vy * 0.3 + Math.sin(a) * s * 0.5, (Math.random() - 0.5) * s, 4 + Math.random() * 4, 6, 26, 0x2b2b2b, null, 0.8);
   }
 }
-function fail(reason) {
-  if (flags.dead) return; flags.dead = reason; explode(v.x, v.y, v.vx, v.vy, true); rocketG.visible = false; v.throttle = v.ut = 0; autoWarp = false; warpI = 0;
-  toast('RUD — ' + reason, '#ff6262'); later(() => showEnd(), 2800);
-}
-function addScore() {
-  let s = 0; const o = P.orbitOf(v), mult = P.OPTS.payload[cfg.payload].mult;
-  s += Math.min(flags.maxAlt || 0, ATM) / 100;
-  if (flags.space) s += 1000;
-  if (flags.orbit) { s += 3000; if (isFinite(o.ap)) s += Math.max(0, 1500 - Math.abs(o.ap - o.pe) / 40); s += (v.stages[1].fuel / v.stages[1].fuelMax) * 800; }
-  s *= mult;
-  s += flags.boosterBonus;
-  if (flags.dead) s *= 0.5;
-  score = Math.round(s); return score;
-}
 function showEnd() {
-  if (endShown) return; endShown = true; addScore(); warpI = 0; autoWarp = false;
-  const o = P.orbitOf(v), ok = flags.orbit && !flags.dead;
+  if (F.ended) return; const score = F.finish();
+  const flags = F.flags, o = P.orbitOf(v), ok = flags.orbit && !flags.dead;
   $('endTitle').innerHTML = flags.dead ? '💥 Rapid Unscheduled Disassembly' : ok ? '🛰️ Orbit achieved!' : flags.stranded ? '🪂 Out of fuel — suborbital' : '🪂 Mission over';
   const lines = [];
   if (flags.dead) lines.push(`<span class="bad">Cause: ${flags.dead}</span>`);
-  if (flags.stranded && !flags.dead) lines.push(`<span class="warn">Ran out of fuel before orbit (Pe ${(o.pe / 1000).toFixed(0)} km). Needs more Δv or a flatter climb.</span>`);
-  lines.push(`Max altitude: ${((flags.maxAlt || 0) / 1000).toFixed(1)} km`, `Max-Q: ${maxQ.toFixed(1)} kPa`);
+  if (flags.stranded && !flags.dead) lines.push(`<span class="warn">${F.advice()}</span>`);
+  lines.push(`Max altitude: ${((flags.maxAlt || 0) / 1000).toFixed(1)} km`, `Max-Q: ${F.maxQ.toFixed(1)} kPa`);
   if (flags.space) lines.push('<span class="good">✔ Reached space (70 km)</span>');
   if (flags.orbit) lines.push(`<span class="good">✔ Orbit — Ap ${isFinite(o.ap) ? (o.ap / 1000).toFixed(0) + ' km' : 'escape'} / Pe ${(o.pe / 1000).toFixed(0)} km</span>`);
   if (flags.booster) lines.push(flags.boosterBonus ? `<span class="good">✔ Booster ${flags.booster} (+${flags.boosterBonus})</span>` : `<span class="warn">✘ Booster ${flags.booster}</span>`);
+  else if (booster && booster.state === 'flying') lines.push('Booster still descending…');
   lines.push(`Payload: ${P.OPTS.payload[cfg.payload].name} (×${P.OPTS.payload[cfg.payload].mult})`, `<b style="font-size:20px">SCORE ${score.toLocaleString()}</b>`);
   $('endBody').innerHTML = lines.join('<br>');
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
+  $('shareBtn').textContent = 'Share score';
   $('end').classList.remove('hidden');
-}
-function startAutoWarp() {
-  const h = P.altOf(v), vr = (v.x * v.vx + v.y * v.vy) / (h + R);
-  if (flyingBooster()) { toast('Land the booster first!', '#ffb35c'); return; }
-  if (v.thrust > 0 || vr <= 20 || h < 15000) { toast('Warp to Ap: coast upward first (engines off, above 15 km)', '#ffb35c'); return; }
-  autoWarp = true; toast('Warping to apoapsis…', '#9cc3ff');
-}
-function steerToward(veh, tgt, rate, dt) { const d = wrap(tgt - veh.ang); veh.ang += Math.max(-rate * dt, Math.min(rate * dt, d)); }
-
-function landBooster(b, sp) {
-  const r = Math.hypot(b.x, b.y), up = Math.atan2(b.y, b.x), tilt = Math.abs(wrap(b.ang - up));
-  const dist = ship ? R * Math.abs(wrap(up - ship.ang)) : 1e9;
-  b.vx = b.vy = 0; b.throttle = 0; b.mesh.userData.plume.visible = false;
-  if (b.maxH < 2000) { b.state = 'lost'; flags.booster = 'lost (staged too low)'; explode(b.x, b.y, 0, 0); b.mesh.visible = false; return; }
-  if (b.manual) {
-    if (sp < 8 && tilt < 0.25 && dist < 35) {
-      b.state = 'landed'; flags.boosterBonus = 2500 + Math.round((35 - dist) * 25) + Math.round((8 - sp) * 80);
-      flags.booster = `landed by hand — ${dist.toFixed(1)} m off center at ${sp.toFixed(1)} m/s`; toast(`🎯 YOU LANDED IT! +${flags.boosterBonus}`, '#7dffa6'); beep(1500); setTimeout(() => beep(1900), 180);
-    } else { b.state = 'lost'; flags.booster = sp < 8 && dist >= 35 ? `missed the droneship by ${(dist - 35).toFixed(0)} m` : sp < 8 ? 'tipped over (too tilted)' : `crashed at ${sp.toFixed(0)} m/s`; explode(b.x, b.y, 0, 0); b.mesh.visible = false; toast('Booster lost — ' + flags.booster, '#ff6262'); }
-  } else if (sp < 10) { b.state = 'landed'; flags.boosterBonus = 1000; flags.booster = 'auto-landed on the droneship'; toast('🎯 BOOSTER AUTO-LANDED +1000', '#7dffa6'); beep(1500); }
-  else { b.state = 'lost'; flags.booster = `crashed at ${sp.toFixed(0)} m/s (needed more fuel)`; explode(b.x, b.y, 0, 0); b.mesh.visible = false; toast('Booster lost', '#ff6262'); }
-  if (b.state === 'landed') { const k = (R + (dist < 40 ? DECK : 0)) / r; b.x *= k; b.y *= k; b.ang = up; }
-  if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000);
-}
-
-function simStep(dt) {
-  if (!flags.dead) {
-    const h0 = P.altOf(v);
-    // steering & throttle for the rocket
-    if (v.auto) P.upperAutopilot(v);
-    else if (ignited) {
-      if (progHold && !v.clamped) {
-        steerToward(v, P.assistAngle(v), 0.8, dt);
-        const o = P.orbitOf(v);
-        if (o.pe > P.TARGET_PE && h0 > ATM && v.ut > 0) { v.ut = 0; if (!flags.cutoff) { flags.cutoff = 1; toast('AUTO cutoff — orbit reached', '#7dffa6'); } }
-        v.throttle = Math.min(v.ut, P.autoThrottle(v));
-      } else v.throttle = v.ut;
-    } else v.throttle = 0;
-    const st = v.stages[v.cur];
-    const e = P.stepVehicle(v, dt);
-    const h = P.altOf(v);
-    if (v.q > maxQ) maxQ = v.q;
-    if (e === 'ground') { fail(met - liftoffT < 8 ? 'never cleared the tower' : 'hit the ground'); }
-    else {
-      if (v.q > 80) fail('over-pressure (Max-Q too high)');
-      else if (v.q > 15 && v.aoa > 0.26) fail('aerodynamic breakup — turned too hard');
-      if (!v.clamped && !flags.liftoff) { flags.liftoff = 1; liftoffT = met; toast('LIFTOFF!', '#fff'); }
-      if (v.clamped && ignited && v.throttle > 0.95) { flags.padTime = (flags.padTime || 0) + dt; if (flags.padTime > 6 || (st && st.fuel <= 0)) fail('too heavy to lift off (TWR < 1)'); }
-      flags.maxAlt = Math.max(flags.maxAlt, h);
-      if (!flags.maxq && maxQ > 8 && v.q < maxQ * 0.8) { flags.maxq = 1; toast('Max-Q passed', '#9cc3ff'); }
-      if (!flags.space && h > ATM) { flags.space = 1; toast('🌌 SPACE! +1000', '#b98cff'); beep(1200); }
-      if (!flags.fairing && v.cur === 1 && h > 45000) jettison();
-      const o = P.orbitOf(v);
-      if (h > ATM && !flags.orbit && o.pe > ATM) { flags.orbit = 1; toast('🛰️ ORBIT ACHIEVED! +3000', '#7dffa6'); beep(1320); setTimeout(() => beep(1760), 200); }
-      // stranded: out of fuel in the last stage without orbit -> fast-forward to the outcome
-      if (!flags.orbit && !flags.stranded && v.cur === 1 && v.stages[1].fuel <= 0) { flags.stranded = 1; toast('Out of fuel — suborbital', '#ffb35c'); later(() => { if (!flags.orbit) showEnd(); }, 2500); }
-    }
-  }
-  if (booster && booster.state === 'flying') {
-    const b = booster, bh0 = P.altOf(b);
-    if (b.manual) {
-      if (b.retro && Math.hypot(b.vx, b.vy) > 3) steerToward(b, Math.atan2(-b.vy, -b.vx), 1.2, dt);
-      b.throttle = b.stages[0].fuel > 0 ? b.ut : 0; b.n = bh0 > 12000 ? Math.min(3, b.nMax) : 1;
-      b.phase = b.throttle > 0 ? 'burning' : 'falling';
-    } else P.boosterAutopilot(b);
-    const e = P.stepVehicle(b, dt);
-    const bh = P.altOf(b), sp = Math.hypot(b.vx, b.vy); b.maxH = Math.max(b.maxH, bh);
-    if (bh < 25000 && sp > 1400 && b.x * b.vx + b.y * b.vy < 0) { b.state = 'lost'; flags.booster = 'burned up on reentry (do an entry burn)'; explode(b.x, b.y, b.vx, b.vy); b.mesh.visible = false; toast('Booster burned up', '#ff6262'); }
-    if (ship && !b.manual && bh < 9000 && !ship.moved) { ship.setAngle(Math.atan2(b.y, b.x) - 0.0005); ship.moved = true; }
-    if (bh < 3000) b.mesh.userData.legs.visible = true;
-    if (b.state === 'flying') {
-      const nearShip = ship && R * Math.abs(wrap(Math.atan2(b.y, b.x) - ship.ang)) < 40;
-      if (e === 'ground' || (nearShip && bh < DECK)) landBooster(b, sp);
-    }
-  }
-  met += dt;
 }
 function makeShip(a) {
   patch(a, 0x184a80, 6000, 2); const ocean = world[world.length - 1]; dyn.push(ocean);
@@ -528,6 +445,7 @@ function emit(vehicle, group, dt) {
   }
 }
 
+
 // ---------- orbit line for map ----------
 const lineGeo = new THREE.BufferGeometry(); const LN = 256; lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(LN * 3), 3));
 const mapLine = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0x7dffa6, depthTest: false, transparent: true })); mapLine.renderOrder = 10; mapLine.frustumCulled = false; scene.add(mapLine);
@@ -547,72 +465,44 @@ function updateOrbitLine(ox, oy) {
 // ---------- HUD ----------
 const fmtD = m => Math.abs(m) >= 1e5 ? (m / 1000).toFixed(0) + ' km' : Math.abs(m) >= 1000 ? (m / 1000).toFixed(1) + ' km' : m.toFixed(0) + ' m';
 const fmtT = s => { const m = Math.floor(s / 60), ss = Math.floor(s % 60); return `${m}:${String(ss).padStart(2, '0')}`; };
-function effWarp() {
-  let w = WARPS[warpI]; const h = P.altOf(v);
-  if (h < ATM && v.thrust > 0) w = Math.min(w, 4);
-  if (booster && booster.state === 'flying' && P.altOf(booster) < 40000) w = Math.min(w, booster.manual ? 1 : 4);
-  if (!ignited || flags.dead) w = 1;
-  return w;
-}
 let hudT = 0, predT = 0;
 function hud() {
-  const h = P.altOf(v), r = h + R, sp = Math.hypot(v.vx, v.vy), vr = (v.x * v.vx + v.y * v.vy) / r;
+  const flags = F.flags, h = P.altOf(v), r = h + R, sp = Math.hypot(v.vx, v.vy), vr = (v.x * v.vx + v.y * v.vy) / r;
   const o = P.orbitOf(v), up = Math.atan2(v.y, v.x);
   const pitch = wrap(up - v.ang) * 180 / Math.PI;
   const onPad = v.clamped || (h < 300 && sp < 60);
   const apS = onPad ? '—' : !isFinite(o.ap) ? 'escape' : fmtD(o.ap), peS = onPad ? '—' : o.pe < -R * 0.5 ? '(in planet)' : fmtD(o.pe);
   const qc = v.q > 45 ? 'bad' : v.q > 25 ? 'warn' : '';
-  const W = effWarp();
-  let t = `T+ ${fmtT(met)}\nALT   ${fmtD(h)}\nSPD   ${sp.toFixed(0)} m/s\nV/S   ${vr.toFixed(0)} m/s\nAp    ${apS}\nPe    <span class="${o.pe > ATM ? 'good' : ''}">${peS}</span>\nPITCH ${pitch.toFixed(1)}° from vertical${v.auto ? ' [AUTOPILOT]' : progHold ? ' [AUTO]' : ''}\nQ     <span class="${qc}">${v.q.toFixed(1)} kPa</span>  max ${maxQ.toFixed(1)}\nSTAGE ${v.cur + 1}/2  ${flags.fairing ? '' : 'fairing on'}`;
+  const W = F.effWarp(), [wMax, wWhy] = F.warpLimit();
+  const clock = !F.ignited ? 'T- HOLD (on pad)' : !flags.liftoff ? 'T- 0:00 IGNITION' : `T+ ${fmtT(F.met)}`;
+  const autoTag = v.auto ? ` [AUTOPILOT ${v.guid || ''}]` : F.autoOn ? ` [AUTO ${v.guid || ''}]` : '';
+  const fair = flags.fairing ? 'fairing jettisoned' : `fairing on (drops at ${P.FAIRING_ALT / 1000} km)`;
+  let t = `${clock}\nALT   ${fmtD(h)}\nSPD   ${sp.toFixed(0)} m/s\nV/S   ${vr.toFixed(0)} m/s\nAp    ${apS}${F.autoOn && !onPad && v.guid !== 'done' && isFinite(o.ap) && vr > 0 ? `  in ${fmtT(P.timeToAp(v) / SIM_SPEED)}` : ''}\nPe    <span class="${o.pe > ATM ? 'good' : ''}">${peS}</span>\nPITCH ${pitch.toFixed(1)}° from vertical${autoTag}\nQ     <span class="${qc}">${v.q.toFixed(1)} kPa</span>  max ${F.maxQ.toFixed(1)}\nSTAGE ${v.cur + 1}/2  ${fair}`;
   const b = booster;
   let bd = 0;
   if (b && b.state === 'flying') {
     const bu = Math.atan2(b.y, b.x), bvr = (b.x * b.vx + b.y * b.vy) / Math.hypot(b.x, b.y), bvh = (b.x * b.vy - b.y * b.vx) / Math.hypot(b.x, b.y);
-    const direct = ship ? R * wrap(ship.ang - bu) : 0;
+    const ship = F.ship, direct = ship ? R * wrap(ship.ang - bu) : 0;
     if (ship && (P.altOf(b) < 3000 || (predT += 0.1) > 0.5)) { predT = 0; const ia = P.altOf(b) < 3000 ? null : P.predictImpact(b); b.miss = ia === null ? direct : R * wrap(ship.ang - ia); }
     bd = ship ? (b.miss ?? direct) : 0; const tilt = wrap(bu - b.ang) * 180 / Math.PI;
     const dirS = !ship ? '' : Math.abs(bd) < 15 ? 'ON TARGET ✔' : `miss ${fmtD(Math.abs(bd))} — ship is ${bd < 0 ? 'EAST →' : '← WEST'}`;
     const bt = `BOOSTER ${b.manual ? '(YOU)' : '(auto)'}\nALT   ${fmtD(P.altOf(b))}\nV/S   ${bvr.toFixed(0)} m/s   H ${(-bvh).toFixed(0)} m/s\nSHIP  ${dirS}\nTILT  ${tilt.toFixed(0)}°  THR ${(b.throttle * 100).toFixed(0)}%\nFUEL  ${b.stages[0].fuel.toFixed(2)} t  ${b.phase}`;
-    t = b.manual ? bt + `\n\nUPPER ${fmtD(h)} Ap ${apS} Pe ${peS}` : t + '\n' + bt.split('\n').slice(0, 2).join('  ');
+    t = b.manual ? bt + `\n\nUPPER ${fmtD(h)} Ap ${apS} Pe ${peS}${v.auto ? ' [AUTOPILOT ' + (v.guid || '') + ']' : ''}` : t + '\n' + bt.split('\n').slice(0, 2).join('  ');
   } else if (b) t += `\nBOOSTER ${b.state}`;
   $('tele').innerHTML = t;
   const ctlV = flyingBooster() ? b : v;
-  $('thrBar').style.height = (ctlV.throttle || 0) * 100 + '%';
-  $('f1Bar').style.height = (flyingBooster() ? b.stages[0].fuel / b.stages[0].fuelMax : v.cur === 0 ? v.stages[0].fuel / v.stages[0].fuelMax : 0) * 100 + '%';
-  $('f2Bar').style.height = v.stages[1].fuel / v.stages[1].fuelMax * 100 + '%';
-  $('score').textContent = 'SCORE ' + addScore().toLocaleString();
-  $('warpBtn').textContent = `WARP ×${W * SIM_SPEED / 2 >= 1 ? W : W}${autoWarp ? ' (auto)' : ''}${W < WARPS[warpI] ? ' (limited)' : ''}`;
-  const canAp = !flags.dead && !flyingBooster() && v.thrust <= 0 && vr > 20 && h > 15000 && !flags.orbit;
-  $('apBtn').classList.toggle('hidden', !canAp || autoWarp);
-  $('flyBtn').classList.toggle('hidden', !(b && b.state === 'flying' && ship && b.stages[0].fuel > 0));
+  const thr = ctlV.throttle || 0, f1 = flyingBooster() ? b.stages[0].fuel / b.stages[0].fuelMax : v.cur === 0 ? v.stages[0].fuel / v.stages[0].fuelMax : 0, f2 = v.stages[1].fuel / v.stages[1].fuelMax;
+  $('thrBar').style.height = thr * 100 + '%'; $('thrPct').textContent = Math.round(thr * 100) + '%';
+  $('f1Bar').style.height = f1 * 100 + '%'; $('f1Pct').textContent = v.cur === 0 || flyingBooster() ? Math.round(f1 * 100) + '%' : '—';
+  $('f2Bar').style.height = f2 * 100 + '%'; $('f2Pct').textContent = Math.round(f2 * 100) + '%';
+  $('score').textContent = 'SCORE ' + F.score().toLocaleString();
+  $('warpBtn').textContent = F.autoWarp ? `⏩ TO Ap ×${W}${W < WARPS[F.warpI] ? ' (' + wWhy + ')' : ''}` : `WARP ×${W}${W < WARPS[F.warpI] ? ` (max ×${wMax}: ${wWhy})` : ''}`;
+  $('apBtn').classList.toggle('hidden', !F.canWarpToAp() || F.autoWarp);
+  $('flyBtn').classList.toggle('hidden', !(b && b.state === 'flying' && F.ship && b.stages[0].fuel > 0));
   $('flyBtn').textContent = b && b.manual ? 'AUTO-LAND BOOSTER (L)' : 'FLY BOOSTER (L)';
-  // hints
-  const engineOn = v.thrust > 0, s1 = v.stages[0], s2 = v.stages[1], fuelLeft = v.cur === 0 ? s1.fuel + s2.fuel : s2.fuel;
-  let hint = '';
-  if (flags.dead) hint = 'Press R to go back to the hangar';
-  else if (flyingBooster()) {
-    const bh = P.altOf(b), bsp = Math.hypot(b.vx, b.vy);
-    if (b.stages[0].fuel <= 0) hint = 'Out of fuel… brace!';
-    else if (bh > 25000 && bsp > 1150) hint = 'ENTRY BURN: F = hold retrograde, Z = full throttle until under 1,100 m/s';
-    else if (bh > 4000) hint = Math.abs(bd) > 150 ? `Predicted miss ${fmtD(Math.abs(bd))}: tilt ${bd < 0 ? 'D (east)' : 'A (west)'} + small throttle` : 'On target! Coast (X), hold retrograde (F), landing burn at ~3 km';
-    else hint = 'LANDING BURN: W/S throttle to ~5 m/s at touchdown. Keep it upright (F)';
-  }
-  else if (!ignited) hint = '';
-  else if (v.clamped) hint = 'Not enough thrust… lighten the rocket';
-  else if (v.auto) hint = 'Upper stage on autopilot — press Z/X/F/Space to take over';
-  else if (!progHold && h < 8000 && sp < 400) hint = 'Press F for AUTO (gravity turn), or steer east yourself with D';
-  else if (qc && engineOn && !progHold) hint = 'HIGH Q — throttle down (S)';
-  else if (v.cur === 0 && s1.fuel <= 0) hint = 'Booster empty — SPACE to stage!';
-  else if (v.cur === 0 && h > 15000) hint = 'SPACE to stage — leave a few tonnes in the booster to land it';
-  else if (fuelLeft <= 0 && !flags.orbit) hint = 'Out of fuel — suborbital';
-  else if (flags.orbit) hint = engineOn ? 'In orbit! Cut throttle (X)' : b && b.state === 'flying' ? 'Orbit! Watch the booster: B · fly it: L' : 'Orbit achieved 🛰️';
-  else if (engineOn && isFinite(o.ap) && o.ap > 80000 && h < ATM - 5000 && !progHold) hint = 'Ap is high enough — cut throttle (X) and coast';
-  else if (!engineOn && h < ATM && vr > 0) hint = h > 15000 ? 'Coasting — press "Warp to Ap" (G)' : 'Coasting…';
-  else if (h > ATM - 3000 || (!engineOn && vr <= 20)) hint = vr > 60 && !engineOn ? 'Warp to Ap (G), then burn prograde' : engineOn ? 'Burn until Pe > 70 km' : 'Burn now! F then Z (full throttle)';
-  else if (engineOn && progHold) hint = 'AUTO flying the gravity turn — stage when the booster is low';
-  else if (progHold && v.ut > 0 && !engineOn && fuelLeft > 0) hint = vr > 20 && h > 15000 ? 'AUTO coasting to apoapsis — press G to warp there' : 'AUTO will burn at apoapsis';
+  const hint = F.hint();
   $('hint').textContent = hint; $('hint').style.display = hint ? '' : 'none';
-  $('ignite').classList.toggle('hidden', ignited || state !== 'flight');
+  $('ignite').classList.toggle('hidden', F.ignited || state !== 'flight');
 }
 
 // ---------- main loop ----------
@@ -633,35 +523,25 @@ renderer.setAnimationLoop(() => {
       if (keys.KeyS || keys.ArrowDown || keys.ControlLeft) b.ut = Math.max(0, b.ut - rdt * 1.2);
       if (keys.KeyA || keys.ArrowLeft) { b.ang += rate * 1.5; b.retro = false; }
       if (keys.KeyD || keys.ArrowRight) { b.ang -= rate * 1.5; b.retro = false; }
-    } else if (!flags.dead) {
+    } else if (!F.flags.dead) {
       const anyKey = keys.KeyW || keys.KeyS || keys.KeyA || keys.KeyD || keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight;
-      if (anyKey && v.auto) takeOverUpper();
+      if (anyKey && v.auto) F.takeOverUpper();
       if (keys.KeyW || keys.ShiftLeft || keys.ArrowUp) v.ut = Math.min(1, v.ut + rdt * 0.8);
       if (keys.KeyS || keys.ControlLeft || keys.ArrowDown) v.ut = Math.max(0, v.ut - rdt * 0.8);
       if (!v.clamped) {
-        if (keys.KeyA || keys.ArrowLeft) { v.ang += rate; if (progHold) { progHold = false; $('tProg').classList.remove('on'); } }
-        if (keys.KeyD || keys.ArrowRight) { v.ang -= rate; if (progHold) { progHold = false; $('tProg').classList.remove('on'); } }
+        const steer = (keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0);
+        if (steer) { v.ang += rate * steer; if (F.autoOn) { F.setAuto(false); $('tProg').classList.remove('on'); } }
       }
     }
-    if (autoWarp) {
-      const h = P.altOf(v), r = h + R, vr = (v.x * v.vx + v.y * v.vy) / r, g = MU / (r * r), tAp = vr / g;
-      if (v.thrust > 0 || flags.dead || flyingBooster()) autoWarp = false;
-      else if (tAp < 8) { autoWarp = false; setWarp(0, true); toast('At apoapsis — BURN! (F + Z)', '#ffd23a'); beep(1000); }
-      else setWarp(tAp > 120 ? 5 : tAp > 50 ? 4 : tAp > 20 ? 3 : 2, true);
-    }
-    const W = effWarp(), simDt = rdt * SIM_SPEED * W;
-    const step = W > 4 ? 1 / 30 : 1 / 120, N = Math.ceil(simDt / step);
-    for (let i = 0; i < N; i++) simStep(simDt / N);
-    pdt = simDt;
-    if (!endShown && !pendingEnd && !flags.dead && flags.orbit && (!booster || booster.state !== 'flying') && v.thrust <= 0) { pendingEnd = true; later(() => { if (!endShown && !flags.dead) showEnd(); }, 2500); }
-    if (swingArm && ignited && swingArm.rotation.y < 1.4) swingArm.rotation.y += rdt * 0.8;
+    pdt = F.advance(rdt);
+    if (swingArm && F.ignited && swingArm.rotation.y < 1.4) swingArm.rotation.y += rdt * 0.8;
   }
   // focus / floating origin
   const focus = (camMode === 'booster' && booster && (booster.state === 'flying' || booster.state === 'landed')) ? booster : v;
   const ox = focus.x, oy = focus.y;
   for (const w of world) w.obj.position.set(w.x - ox, w.y - oy, 0);
   rocketG.position.set(v.x - ox, v.y - oy, 0); rocketG.rotation.z = v.ang - Math.PI / 2;
-  if (state === 'flight' && !flags.dead) emit(v, v.cur === 0 ? s1G : upG, pdt);
+  if (state === 'flight' && !F.flags.dead) emit(v, v.cur === 0 ? s1G : upG, pdt);
   else { s1G.userData.plume.visible = false; upG.userData.plume.visible = false; }
   if (booster && booster.mesh.visible) {
     booster.mesh.position.set(booster.x - ox, booster.y - oy, 0); booster.mesh.rotation.z = booster.ang - Math.PI / 2;
@@ -688,7 +568,7 @@ renderer.setAnimationLoop(() => {
   fire.update(pdt, ox, oy, camera.quaternion); smoke.update(pdt, ox, oy, camera.quaternion);
   if (rumble) {
     const watchB = booster && booster.state === 'flying' && camMode === 'booster';
-    const th = state === 'flight' ? (watchB ? booster.thrust : flags.dead ? 0 : v.thrust) : 0;
+    const th = state === 'flight' ? (watchB ? booster.thrust : F.flags.dead ? 0 : v.thrust) : 0;
     const p = P.pressure(h);
     rumble.gain.setTargetAtTime(Math.min(0.9, th / 300 * (0.25 + 0.75 * p)), ac.currentTime, 0.08);
     rumbleF.frequency.setTargetAtTime(150 + 500 * p, ac.currentTime, 0.2);
@@ -697,4 +577,4 @@ renderer.setAnimationLoop(() => {
   if (state === 'build') camYaw += rdt * 0.15;
   renderer.render(scene, camera);
 });
-window.__game = { get v() { return v; }, get flags() { return flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return ship; }, press, get ignited() { return ignited; }, get warp() { return effWarp(); } };
+window.__game = { BUILD, get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild };

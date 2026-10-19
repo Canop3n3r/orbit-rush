@@ -107,43 +107,89 @@ export function makeBooster(v) {
     stages: [{ ...s }], cur: 0, payload: 0, fairing: 0, cdA: 14, q: 0, nMax: s.n, n: 1, phase: 'coast', state: 'flying' };
 }
 
-export const TARGET_PE = ATM + 5000;
+export const TARGET_PE = ATM + 5000;   // AUTO circularizes until Pe is above this
+export const TARGET_AP = 85000;        // AUTO ascent cuts off once Ap reaches this
+export const FAIRING_ALT = 40000;      // fairing jettisons automatically above this (any stage)
 const wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
-// Assisted steering (F): pitch program in the lower atmosphere, then prograde, never below the horizon
-// while periapsis is still short of orbit (pitches up a little if falling). Returns target nose angle.
-export function assistAngle(v) {
-  const r = Math.hypot(v.x, v.y), h = r - R, up = Math.atan2(v.y, v.x), sp = Math.hypot(v.vx, v.vy);
-  const pg = sp > 5 ? Math.atan2(v.vy, v.vx) : up;
-  const vr = (v.x * v.vx + v.y * v.vy) / r;
-  if (sp < 40) return up - Math.min(0.05, Math.max(0, h - 300) / 4000);
-  let pitch;
-  if (h < 45000 && sp < 1800) {
-    const prog = Math.min(1.45, Math.sqrt(Math.max(h - 400, 0) / 60000) * Math.PI / 2);
-    const d = Math.max(-0.12, Math.min(0.12, wrap(prog - wrap(up - pg))));
-    pitch = wrap(up - pg) + d;
-  } else pitch = wrap(up - pg);
-  const o = orbitOf(v);
-  if (o.pe < TARGET_PE) {
-    const lift = vr < 0 ? Math.min(0.35, -vr * 0.004) : 0;
-    pitch = Math.min(pitch, Math.PI / 2 - lift);
-  }
-  pitch = Math.max(0, Math.min(Math.PI * 0.75, pitch));
-  return up - pitch;
+const thrustAccel = v => { const st = v.stages[v.cur]; return st && st.fuel > 0 ? st.eng.tv * st.n / massOf(v) : 0; };
+
+// Time until the next apoapsis along the current (drag-free) orbit, in seconds. Infinity if not bound.
+export function timeToAp(v) {
+  const o = orbitOf(v); if (!isFinite(o.a) || o.e < 1e-6) return Infinity;
+  const nu = Math.atan2(o.ex * v.y - o.ey * v.x, v.x * o.ex + v.y * o.ey) * Math.sign(v.x * v.vy - v.y * v.vx || 1);
+  const E = 2 * Math.atan(Math.sqrt((1 - o.e) / (1 + o.e)) * Math.tan(nu / 2));
+  const Mn = E - o.e * Math.sin(E), n = Math.sqrt(MU / (o.a ** 3));
+  let t = (Math.PI - Mn) / n; const T = 2 * Math.PI / n;
+  return ((t % T) + T) % T;
 }
+// Circularization burn estimate at apoapsis: delta-v (m/s) and burn time (s) for the current stage.
+export function circBurn(v) {
+  const o = orbitOf(v); if (!isFinite(o.ap)) return { dv: 0, tb: 0 };
+  const rap = o.ap + R, hmom = Math.abs(v.x * v.vy - v.y * v.vx), vAp = hmom / rap;
+  const dv = Math.max(0, Math.sqrt(MU / rap) - vAp), a = thrustAccel(v);
+  return { dv, tb: a > 0 ? dv / a : Infinity };
+}
+// Nose angle (from vertical) that gives the vertical acceleration needed to bring vertical speed to vrDes.
+function holdPitch(v, vrDes, k) {
+  const r = Math.hypot(v.x, v.y), vr = (v.x * v.vx + v.y * v.vy) / r, vh = Math.abs(v.x * v.vy - v.y * v.vx) / r;
+  const aT = thrustAccel(v) * Math.max(v.throttle || 1, 0.3), g = MU / (r * r);
+  if (aT <= 0) return Math.PI / 2;
+  const need = g - vh * vh / r + (vrDes - vr) * k;
+  return Math.acos(Math.max(0, Math.min(0.999, need / aT)));
+}
+
+// AUTO guidance shared by the AUTO mode (F) and the upper-stage autopilot (while the player flies the booster).
+// Phases: ascent (pitch program + Max-Q throttle, burn until Ap >= TARGET_AP) -> coast (engines off, prograde,
+// tops up Ap if drag eats it) -> circ (burn near Ap, holding altitude, until Pe >= TARGET_PE) -> done.
+// Stores its phase on v.guid. Returns { ang, throttle, phase }.
+export function autoGuide(v) {
+  const r = Math.hypot(v.x, v.y), h = r - R, up = Math.atan2(v.y, v.x), sp = Math.hypot(v.vx, v.vy);
+  const vr = (v.x * v.vx + v.y * v.vy) / r, o = orbitOf(v);
+  const pgPitch = sp > 5 ? wrap(up - Math.atan2(v.vy, v.vx)) : 0;
+  let ph = v.guid || 'ascent';
+  // phase transitions
+  if (o.pe >= TARGET_PE && h > ATM) ph = 'done';
+  else if (ph === 'done') ph = o.ap >= TARGET_AP - 2000 ? 'coast' : 'ascent';
+  if (ph === 'ascent' && h > 3000 && o.ap >= TARGET_AP + (h < ATM ? 1000 : 0)) ph = 'coast';
+  if (ph === 'coast') {
+    const { tb } = circBurn(v), tAp = timeToAp(v);
+    if (h < ATM - 2000 && o.ap < TARGET_AP - 2000) ph = 'ascent';       // drag ate the apoapsis: top up
+    else if (vr < 0 || tAp <= tb * 0.5 + 3) ph = 'circ';
+  }
+  v.guid = ph;
+  let pitch, thr;
+  if (ph === 'ascent') {
+    if (sp < 40) pitch = Math.min(0.05, Math.max(0, h - 300) / 4000);
+    else {
+      // gravity-turn pitch program, kept within a small angle of prograde in the thick air
+      const prog = Math.min(1.45, Math.sqrt(Math.max(h - 400, 0) / 60000) * Math.PI / 2);
+      pitch = h < 45000 && sp < 1800 ? pgPitch + Math.max(-0.12, Math.min(0.12, wrap(prog - pgPitch))) : pgPitch;
+      // never let the climb flatten out early (low-TWR upper stages): hold a minimum time-to-apoapsis
+      const g = MU / (r * r), tFloor = Math.max(0, Math.min(45, 12 + h / 500, (TARGET_AP - h) / 1200));
+      if (h > 1000) pitch = Math.min(pitch, holdPitch(v, g * tFloor, 0.08));
+    }
+    // Max-Q throttle-down, but never below what keeps a heavy rocket climbing (~1.3 g of thrust)
+    const st = v.stages[v.cur], tMax = st ? st.eng.tv * st.n : 0, g = MU / (r * r);
+    thr = Math.max(qCap(v), tMax > 0 ? Math.min(1, 1.3 * g * massOf(v) / tMax) : 1);
+  } else if (ph === 'coast' || ph === 'done') { pitch = pgPitch; thr = 0; }
+  else { // circularize: thrust horizontally, pitching up/down to hold the altitude near Ap
+    pitch = holdPitch(v, 0, 0.05); thr = 1;
+  }
+  // stay close to prograde while the air is thick (aerodynamic breakup otherwise)
+  const lim = v.q > 12 ? 0.2 : v.q > 2 ? 0.45 : 1.4;
+  pitch = Math.max(pgPitch - lim, Math.min(pgPitch + lim, pitch));
+  pitch = Math.max(0, Math.min(Math.PI * 0.75, pitch));
+  return { ang: up - pitch, throttle: thr, phase: ph };
+}
+// Legacy helpers (kept for older tests): nose angle and throttle from the AUTO guidance.
+export function assistAngle(v) { return autoGuide(v).ang; }
+export function autoThrottle(v) { return autoGuide(v).throttle; }
 // Throttle cap used by auto mode to stay under Max-Q.
 export const qCap = v => Math.max(0.3, Math.min(1, 1 - (v.q - 22) / 8));
-// Upper-stage autopilot (used while the player flies the booster): ascend to Ap 85 km, coast, circularize.
-export function upperAutopilot(v) { v.ang = assistAngle(v); v.throttle = autoThrottle(v); }
-export function autoThrottle(v) {
-  const o = orbitOf(v), h = altOf(v), r = h + R, vr = (v.x * v.vx + v.y * v.vy) / r;
-  if (o.pe > TARGET_PE) return 0;
-  if (o.ap < 85000) return qCap(v);
-  {
-    const st = v.stages[v.cur], a = st ? st.eng.tv * st.n / massOf(v) : 1;
-    const g = MU / (r * r), rap = o.ap + R, vh = Math.abs(v.x * v.vy - v.y * v.vx) / r * r / rap;
-    const tb = Math.max(0, Math.sqrt(MU / rap) - vh) / a;
-    return (h > 30000 && vr / g < tb * 0.55 + 5) || vr < 0 || o.pe > 0 ? 1 : 0;
-  }
+// Upper-stage autopilot (used while the player flies the booster): same guidance as AUTO, rate-limited steering.
+export function upperAutopilot(v, dt = 1 / 60) {
+  const gd = autoGuide(v), d = wrap(gd.ang - v.ang), rate = 0.8 * dt;
+  v.ang += Math.max(-rate, Math.min(rate, d)); v.throttle = gd.throttle; return gd;
 }
 // Ballistic impact prediction (no thrust, with drag). Returns surface angle or null.
 export function predictImpact(b) {
