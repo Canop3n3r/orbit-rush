@@ -30,3 +30,15 @@ export function qFromTo(a, b) {
 // Rotation about the z axis (Earth's spin axis) by angle a.
 export const rotZ = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return [c * v[0] - s * v[1], s * v[0] + c * v[1], v[2]]; };
 export const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+// Quaternion of the rotation whose columns are the body axes bx, by, bz expressed in world coordinates.
+// The axes must be a right-handed orthonormal set (bx × by = bz); a left-handed set is a reflection and has
+// no rotation quaternion (that mistake once laid the launch pad on its side).
+export function qFromBasis(bx, by, bz) {
+  const m00 = bx[0], m10 = bx[1], m20 = bx[2], m01 = by[0], m11 = by[1], m21 = by[2], m02 = bz[0], m12 = bz[1], m22 = bz[2], tr = m00 + m11 + m22;
+  let q;
+  if (tr > 0) { const s = 0.5 / Math.sqrt(tr + 1); q = [0.25 / s, (m21 - m12) * s, (m02 - m20) * s, (m10 - m01) * s]; }
+  else if (m00 > m11 && m00 > m22) { const s = 2 * Math.sqrt(1 + m00 - m11 - m22); q = [(m21 - m12) / s, 0.25 * s, (m01 + m10) / s, (m02 + m20) / s]; }
+  else if (m11 > m22) { const s = 2 * Math.sqrt(1 + m11 - m00 - m22); q = [(m02 - m20) / s, (m01 + m10) / s, 0.25 * s, (m12 + m21) / s]; }
+  else { const s = 2 * Math.sqrt(1 + m22 - m00 - m11); q = [(m10 - m01) / s, (m02 + m20) / s, (m12 + m21) / s, 0.25 * s]; }
+  return qnorm(q);
+}

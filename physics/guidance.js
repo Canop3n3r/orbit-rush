@@ -2,11 +2,11 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=ac1';
-import { add, scale, dot, cross, len, norm, clamp } from './vec.js?v=ac1';
-import { elements, timeToAp } from './kepler.js?v=ac1';
-import { airVel, stepPoint } from './dynamics.js?v=ac1';
-import { massOf } from './vehicle.js?v=ac1';
+import { R_E, MU_E, KARMAN } from './constants.js?v=hf1';
+import { add, scale, dot, cross, len, norm, clamp } from './vec.js?v=hf1';
+import { elements, timeToAp } from './kepler.js?v=hf1';
+import { airVel, stepPoint } from './dynamics.js?v=hf1';
+import { massOf } from './vehicle.js?v=hf1';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit

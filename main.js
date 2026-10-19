@@ -1,10 +1,10 @@
 import * as THREE from 'three/webgpu';
-import * as P from './physics.js?v=ac1';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN } from './flight.js?v=ac1';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass, buildVehicle, aeroBalance } from './parts.js?v=ac1';
-import { FX } from './fx.js?v=ac1';
-import { createAcademy } from './academy-ui.js?v=ac1';
-import { QUALITY, QUALITY_ORDER, plumeShape, skinGlow } from './fxmap.js?v=ac1';
+import * as P from './physics.js?v=hf1';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN } from './flight.js?v=hf1';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass, buildVehicle, aeroBalance } from './parts.js?v=hf1';
+import { FX } from './fx.js?v=hf1';
+import { createAcademy } from './academy-ui.js?v=hf1';
+import { QUALITY, QUALITY_ORDER, plumeShape, skinGlow } from './fxmap.js?v=hf1';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -12,7 +12,7 @@ import { QUALITY, QUALITY_ORDER, plumeShape, skinGlow } from './fxmap.js?v=ac1';
 const { R, ATM, V } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-export const BUILD = '2026-10-19-ac1';
+export const BUILD = '2026-10-19-hf1';
 const DEG = 180 / Math.PI;
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
@@ -151,9 +151,9 @@ scene.add(stars);
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 // Put a local (y-up) object on the surface at Earth-fixed direction ef, `lift` metres up. Its local +Z points east.
 function onSurface(obj, ef, lift = 0) {
-  const up = new THREE.Vector3(...V.norm(ef)), east = new THREE.Vector3(...P.eastOf(ef)), north = new THREE.Vector3().crossVectors(east, up);
-  obj.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(north, up, east));
-  obj.position.copy(up).multiplyScalar(R + lift); if (!obj.parent) earth.add(obj); return obj;
+  const f = P.surfaceFrame(ef), q = f.q; // right-handed local frame (the old basis was mirrored: pad on its side)
+  obj.quaternion.set(q[1], q[2], q[3], q[0]);
+  obj.position.set(f.up[0], f.up[1], f.up[2]).multiplyScalar(R + lift); if (!obj.parent) earth.add(obj); return obj;
 }
 // High-res ground tile: a spherical cap of true radius R around the craft, built in float64 relative to its
 // own centre (so its float32 vertices are small) and re-centred as the craft moves.
@@ -439,7 +439,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=ac1', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=hf1', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
