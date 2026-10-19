@@ -2,7 +2,7 @@
 // (patched-conic Hohmann numbers, the same model the planner uses). No DOM.
 // Rows: surface → low orbit, ejection from low Earth orbit (LEO) to the target, capture into a low orbit there,
 // and low orbit → surface. Values are ideal impulsive burns (plus ascent-loss factors for launches).
-import { BODIES, atmTop } from './solar.js?v=q1';
+import { BODIES, atmTop } from './solar.js?v=gx1';
 const LEO = 200000, ORBIT_DV = 9400;
 export const lowOrbitAlt = id => id === 'earth' ? LEO : Math.max(atmTop(id) * 1.1, Math.min(100000, BODIES[id].R * 0.03), 10000);
 const vc = (mu, r) => Math.sqrt(mu / r);

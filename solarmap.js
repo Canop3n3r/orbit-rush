@@ -5,10 +5,12 @@
 // focus with smooth transitions. Lines are drawn twice: depth-tested (bright) and through bodies (faint).
 // Markers and node handles are HTML (crisp, finger-sized). Mouse and touch.
 import * as THREE from 'three/webgpu';
-import * as P from './physics.js?v=q1';
-import * as C from './physics/patched.js?v=q1';
-import { fmtDur } from './flight.js?v=q1';
-import { layoutHandles } from './maplayout.js?v=q1';
+import { uniform } from 'three/tsl';
+import * as GX from './gfx/gfx.js?v=gx1';
+import * as P from './physics.js?v=gx1';
+import * as C from './physics/patched.js?v=gx1';
+import { fmtDur } from './flight.js?v=gx1';
+import { layoutHandles } from './maplayout.js?v=gx1';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
 const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : a >= 1e7 ? (m / 1e3).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' km' : a >= 1e4 ? (m / 1e3).toFixed(1) + ' km' : m.toFixed(0) + ' m'; };
@@ -17,26 +19,36 @@ const mv = (F, x) => [F[0] * x[0] + F[1] * x[1] + F[2] * x[2], F[3] * x[0] + F[4
 const PATCH_COL = [0x7dffa6, 0xffb35c, 0xc89cff, 0x6ad8ff, 0xff7ab0];
 
 export function createSolarMap(opts) {
-  const { renderer, getF, toast, touch, earthMap, onChange, dvTable, settings } = opts;
+  const { renderer, getF, toast, touch, earthMap, onChange, dvTable, settings, gfxQ = 'med' } = opts;
+  const sunPosU = uniform(new THREE.Vector3());
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x01020a);
   const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 1, 1e15);
   const sunLight = new THREE.PointLight(0xffffff, 3, 0, 0); scene.add(sunLight); scene.add(new THREE.AmbientLight(0x404858, 0.35));
   // ---------- stars (fixed directions, follow the camera) ----------
   { const n = 2400, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const z = Math.random() * 2 - 1, a = Math.random() * 6.283, s = Math.sqrt(1 - z * z); pos.set([s * Math.cos(a), s * Math.sin(a), z], i * 3); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    var mw = new THREE.Mesh(new THREE.SphereGeometry(1e14, 48, 24), new THREE.MeshBasicMaterial({ map: GX.tex('milkyway', gfxQ), color: new THREE.Color(1.1, 1.1, 1.2), side: THREE.BackSide, depthWrite: false })); mw.rotation.set(1.1, 0.4, 0.2); mw.frustumCulled = false; scene.add(mw);
     var stars = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xaab4d0, size: 1, sizeAttenuation: false, depthWrite: false })); stars.frustumCulled = false; scene.add(stars); }
   // ---------- bodies ----------
-  const sphere = new THREE.SphereGeometry(1, 64, 32); sphere.rotateX(Math.PI / 2); // poles on ±z (body frames have z = pole)
+  const sphere = new THREE.SphereGeometry(1, 64, 32); sphere.rotateX(Math.PI / 2);
+  const earthSphere = new THREE.SphereGeometry(1, 96, 48); earthSphere.rotateX(Math.PI / 2); earthSphere.rotateZ(GX.EARTH_TEX_ROT); let earthAtmo = null; // poles on ±z (body frames have z = pole)
   const dotGeo = new THREE.SphereGeometry(1, 12, 8);
   const bodies = {};
   for (const id of IDS) {
-    const b = B[id], mat = id === 'sun' ? new THREE.MeshBasicMaterial({ color: 0xfff1c0 }) : new THREE.MeshStandardMaterial({ color: id === 'earth' && earthMap ? 0xffffff : b.color, map: id === 'earth' ? earthMap || null : null, roughness: 0.95 });
-    const m = new THREE.Mesh(sphere, mat); m.frustumCulled = false; scene.add(m);
+    const b = B[id], tn = GX.BODY_TEX[id];
+    const mat = id === 'sun' ? new THREE.MeshBasicMaterial({ map: GX.tex('sun', gfxQ), color: new THREE.Color(4, 3.4, 2.6) })
+      : id === 'earth' ? GX.earthMaterial(gfxQ, sunPosU)
+      : new THREE.MeshStandardMaterial({ map: tn ? GX.tex(tn, gfxQ) : GX.bodyTexture(b.color, id.length * 7 + id.charCodeAt(0)), roughness: 0.95, metalness: 0 });
+    const m = new THREE.Mesh(id === 'earth' ? earthSphere : sphere, mat);
+    if (id === 'earth') { const cl = new THREE.Mesh(earthSphere, GX.cloudMaterial(gfxQ, sunPosU)); cl.scale.setScalar(1.002); m.add(cl);
+      const am = GX.atmoMaterial({ R: 1, Ra: 1.02 }); const at = new THREE.Mesh(sphere, am); at.frustumCulled = false; scene.add(at); earthAtmo = { m: at, u: am.userData }; }
+    if (id === 'sun') { const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: GX.glowTexture(), color: new THREE.Color(3, 2.6, 2), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); gl.scale.setScalar(5); m.add(gl); } m.frustumCulled = false; scene.add(m);
     const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: b.color })); dot.frustumCulled = false; scene.add(dot);
     const lab = document.createElement('div'); lab.className = 'mlab ' + b.kind; lab.textContent = b.name; lab.dataset.id = id;
     bodies[id] = { m, dot, lab, abs: [0, 0, 0], line: null };
     if (id !== 'sun') bodies[id].line = makeLine(b.kind === 'moon' ? 0x5a6a88 : 0x4a5c7c, 257);
-    if (id === 'saturn') { const rg = new THREE.RingGeometry(1.24, 2.27, 96); const rm = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: 0xcdbb94, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })); m.add(rm); }
+    if (id === 'saturn') { const rg = new THREE.RingGeometry(1.24, 2.27, 128, 2); { const pa = rg.attributes.position, uvA = rg.attributes.uv; for (let i = 0; i < pa.count; i++) { const r = Math.hypot(pa.getX(i), pa.getY(i)); uvA.setXY(i, (r - 1.24) / (2.27 - 1.24), 0.5); } }
+      const rt = GX.tex('saturn_ring', gfxQ); const rm = new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ map: rt, alphaMap: null, transparent: true, side: THREE.DoubleSide, depthWrite: false, roughness: 1, metalness: 0 })); m.add(rm); }
   }
   const craftDot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xff9a3c, depthTest: false })); craftDot.renderOrder = 20; craftDot.frustumCulled = false; scene.add(craftDot);
   // a line drawn twice: bright and depth-tested, faint where hidden behind a body
@@ -294,11 +306,13 @@ export function createSolarMap(opts) {
     camera.updateProjectionMatrix(); camera.updateMatrixWorld();
     camRel = [back.x, back.y, back.z]; stars.position.copy(camera.position); stars.scale.setScalar(camera.far * 0.5);
     const pxK = 2 * Math.tan(25 * Math.PI / 180) / S.H;
-    const sunRel = V.sub([0, 0, 0], origin); sunLight.position.set(...sunRel);
+    const sunRel = V.sub([0, 0, 0], origin); sunLight.position.set(...sunRel); sunPosU.value.set(...sunRel);
+    if (mw) mw.position.copy(camera.position);
     for (const id of IDS) { const o = bodies[id]; o.abs = bodyAbs(id, t); o.rel = V.sub(o.abs, origin); }
     for (const id of IDS) {
       const o = bodies[id], b = B[id], abs = o.abs, rel = o.rel;
       o.m.position.set(...rel); o.m.scale.setScalar(b.R);
+      if (id === 'earth' && earthAtmo) { earthAtmo.m.position.set(...rel); earthAtmo.m.scale.setScalar(b.R * 1.02); const u = earthAtmo.u; u.center.value.set(...rel); u.Rp.value = b.R; u.Ra.value = b.R * 1.02; const sd = V.norm(V.sub(sunRel, rel)); u.sunDir.value.set(...sd); }
       const Fm = P.frameOf(id), spin = id === 'earth' ? P.omegaOf(v) * (v.clock || 0) : P.spinAngle(id, t);
       const m4 = new THREE.Matrix4().set(Fm[0], Fm[1], Fm[2], 0, Fm[3], Fm[4], Fm[5], 0, Fm[6], Fm[7], Fm[8], 0, 0, 0, 0, 1).multiply(new THREE.Matrix4().makeRotationZ(spin));
       o.m.quaternion.setFromRotationMatrix(m4);

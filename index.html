@@ -5,10 +5,16 @@
 <title>Orbit Rush — WebGPU rocket launch game</title>
 <meta name="description" content="Learn real rocket science by flying it: build a rocket from parts and fly it to a full-scale Earth orbit: real gravity, the 1976 standard atmosphere, Mach-dependent aerodynamics, reentry heating and 6-DOF flight. Land the booster, bring the capsule home. Free in your browser, powered by WebGPU.">
 <meta property="og:title" content="Orbit Rush 🚀"><meta property="og:description" content="Build a rocket. Reach orbit. Land the booster. WebGPU in your browser.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=q1"><meta name="orbit-rush-build" content="2026-10-19-q1">
-<script type="importmap">{"imports":{"three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js"}}</script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=gx1"><meta name="orbit-rush-build" content="2026-10-19-gx1">
+<script type="importmap">{"imports":{"three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/tsl":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.tsl.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"}}</script>
 </head><body>
 <div id="badge">…</div>
+<div id="credits" class="modal hidden"><div class="mbox wide"><h2>Credits</h2>
+<p><b>Planet, Moon, Sun, Saturn ring and Milky Way textures:</b> <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a>, licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (via Wikimedia Commons). Resized and re-encoded; Earth maps used for day, night lights, clouds and ocean specular.</p>
+<p><b>Rendering:</b> <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> (MIT), WebGPU with a WebGL2 fallback.</p>
+<p><b>Everything else</b> (rocket parts, launch complex, concrete, panel and glow textures, smaller moons, effects, sounds, physics, lessons): original procedural work for Orbit Rush.</p>
+<p class="sm">Full list: CREDITS.md in the repository.</p>
+<div class="row"><button id="creditsClose" class="big">Close</button></div></div></div>
 <div id="loading">Loading Orbit Rush…</div>
 <div id="ignite" class="hidden">Press <b>SPACE</b> (or tap <b>STAGE</b>) to ignite</div>
 <div id="build" class="panel builder">
@@ -17,6 +23,7 @@
     <label class="chk" title="The launch site is on the equator: Earth's rotation gives you ~465 m/s eastward for free"><input type="checkbox" id="earthRot"> Earth rotation</label>
     <label class="chk" title="Target orbit inclination to the equator. 0° = due east (cheapest). AUTO flies the matching launch azimuth; the map's transfer planner suggests the best value for a Moon or planet transfer.">Launch incl. <input type="number" id="inclIn" min="0" max="180" step="0.5" value="0">° <span id="azOut" class="sm"></span></label>
     <label class="chk" title="Airflow particles, vapor cones, shock and plasma effects. Lowered automatically if the frame rate drops. (U in flight)">Effects <select id="fxSel"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label>
+    <label class="chk" title="Graphics quality: Low for phones and software GPUs, High adds bloom and 2K planet textures">Graphics <select id="gfxSel"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label> <button id="creditsBtn" class="ghost" title="Texture and library credits">Credits</button>
     <span class="saved"><select id="savedSel"></select><button id="saveBtn">Save</button><button id="delBtn" title="Delete the selected saved design">Delete</button><button id="clearBtn" title="Start from just a probe core">New</button></span></div>
   <div class="bcols">
     <div><div class="colH">Parts <small>click to add · drag into the stack</small></div><div id="palette"></div></div>
@@ -54,6 +61,6 @@
 <div id="end" class="panel hidden"><h2 id="endTitle"></h2><div id="endBody"></div>
   <div class="endMain"><button id="relaunchBtn" class="big">↻ Relaunch same rocket</button><button id="againBtn">Back to hangar</button><button id="contBtn">Keep flying</button></div>
   <div class="endShare"><button id="shareBtn">Share score</button><button id="xBtn">Post on X</button></div></div>
-<script type="module" src="main.js?v=q1"></script>
+<script type="module" src="main.js?v=gx1"></script>
 <script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});</script>
 </body></html>
