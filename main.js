@@ -1,10 +1,13 @@
 import * as THREE from 'three/webgpu';
-import * as P from './physics.js?v=hf1';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN } from './flight.js?v=hf1';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass, buildVehicle, aeroBalance } from './parts.js?v=hf1';
-import { FX } from './fx.js?v=hf1';
-import { createAcademy } from './academy-ui.js?v=hf1';
-import { QUALITY, QUALITY_ORDER, plumeShape, skinGlow } from './fxmap.js?v=hf1';
+import * as P from './physics.js?v=mb1';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN } from './flight.js?v=mb1';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass, buildVehicle, aeroBalance } from './parts.js?v=mb1';
+import { FX } from './fx.js?v=mb1';
+import { createAcademy } from './academy-ui.js?v=mb1';
+import { createMobile, isTouch } from './mobile.js?v=mb1';
+import { localize } from './wording.js?v=mb1';
+const TOUCH = isTouch();
+import { QUALITY, QUALITY_ORDER, plumeShape, skinGlow } from './fxmap.js?v=mb1';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -12,7 +15,7 @@ import { QUALITY, QUALITY_ORDER, plumeShape, skinGlow } from './fxmap.js?v=hf1';
 const { R, ATM, V } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-export const BUILD = '2026-10-19-hf1';
+export const BUILD = '2026-10-19-mb1';
 const DEG = 180 / Math.PI;
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
@@ -24,7 +27,7 @@ else {
   catch (e) { gpuReason = 'requestAdapter failed: ' + e.message; }
 }
 const renderer = new THREE.WebGPURenderer({ antialias: true, logarithmicDepthBuffer: true, forceWebGL: !!gpuReason, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.25 : 1.5));
 renderer.setSize(innerWidth, innerHeight);
 document.body.prepend(renderer.domElement);
 await renderer.init();
@@ -36,7 +39,7 @@ $('badge').onclick = () => toast(isGPU ? 'Rendering with WebGPU' : 'WebGL2 fallb
 if (renderer.backend.device) renderer.backend.device.lost.then(i => console.warn('[Orbit Rush] WebGPU device lost:', i.message));
 // ---------- effects (fx.js): GPU compute particles on WebGPU, CPU-integrated particles on WebGL2 ----------
 const FXQ_KEY = 'orbitrush.fxq';
-let fxQuality = (() => { const q = params.get('fx') || localStorage.getItem(FXQ_KEY); return QUALITY[q] ? q : 'high'; })(), fxAuto = 0;
+let fxQuality = (() => { const q = params.get('fx') || localStorage.getItem(FXQ_KEY); return QUALITY[q] ? q : TOUCH ? 'med' : 'high'; })(), fxAuto = 0;
 const fxLocked = QUALITY[params.get('fx')] !== undefined; // ?fx=high|med|low pins the quality (no auto-lowering)
 const fxGPU = params.has('fxgpu') || (isGPU && !params.has('fxcpu'));
 const fx = new FX({ gpu: fxGPU, quality: fxQuality });
@@ -318,7 +321,7 @@ const rnd = s => (Math.random() - 0.5) * s, jit = (a, s) => [a[0] + rnd(s), a[1]
 let ac, rumble, rumbleF;
 function noiseBuf(sec) { const b = ac.createBuffer(1, ac.sampleRate * sec, ac.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < d.length; i++) { l = (l + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; } return b; }
 function initAudio() {
-  if (ac) return; ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (ac) { if (ac.state === 'suspended') ac.resume(); return; } ac = new (window.AudioContext || window.webkitAudioContext)();
   const src = ac.createBufferSource(); src.buffer = noiseBuf(3); src.loop = true;
   rumbleF = ac.createBiquadFilter(); rumbleF.type = 'lowpass'; rumbleF.frequency.value = 300;
   rumble = ac.createGain(); rumble.gain.value = 0; src.connect(rumbleF).connect(rumble).connect(ac.destination); src.start();
@@ -347,11 +350,41 @@ function buildPalette() {
     for (const [id, d] of Object.entries(PARTS)) if (d.type === type) {
       const t = document.createElement('div'); t.className = 'tile'; t.draggable = true; t.title = d.desc + ' (click to add above the selected part, or drag into the stack)';
       t.innerHTML = `<i style="background:${TYPE_COL[type]}"></i><b>${d.name}</b><small>${partStat(id)}</small>`;
-      t.onclick = () => addPart(id); t.ondragstart = e => { e.dataTransfer.setData('text/plain', 'new:' + id); e.dataTransfer.effectAllowed = 'copy'; };
+      t.onclick = () => { if (!dragEaten()) addPart(id); }; touchDrag(t, 'new:' + id); t.ondragstart = e => { e.dataTransfer.setData('text/plain', 'new:' + id); e.dataTransfer.effectAllowed = 'copy'; };
       t.dataset.id = id; el.appendChild(t);
     }
   }
 }
+// Touch drag in the hangar: long-press (~0.3 s) a part or a stack row, then drag it onto the stack.
+// A quick swipe still scrolls the drawer/list; a plain tap still adds/selects.
+let dragState = null, eatClick = 0;
+const dragEaten = () => performance.now() < eatClick;
+function touchDrag(elm, data) {
+  if (!TOUCH) return;
+  elm.addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return;
+    const st = { data, x: e.clientX, y: e.clientY, id: e.pointerId, on: false, ghost: null, over: null };
+    st.timer = setTimeout(() => { st.on = true; dragState = st; mobile.vibrate(15); const g = elm.cloneNode(true); g.className += ' dragGhost'; g.style.width = elm.offsetWidth + 'px'; g.style.left = st.x + 'px'; g.style.top = st.y + 'px'; document.body.appendChild(g); st.ghost = g; }, 300);
+    dragState = st;
+  });
+}
+addEventListener('touchmove', e => { if (dragState && dragState.on) e.preventDefault(); }, { passive: false });
+addEventListener('pointermove', e => {
+  const st = dragState; if (!st || e.pointerId !== st.id) return;
+  if (!st.on) { if (Math.hypot(e.clientX - st.x, e.clientY - st.y) > 10) { clearTimeout(st.timer); dragState = null; } return; }
+  st.ghost.style.left = e.clientX + 'px'; st.ghost.style.top = e.clientY + 'px';
+  const bl = $('build'), edge = 48; if (e.clientY > innerHeight - edge) bl.scrollTop += 14; else if (e.clientY < edge) bl.scrollTop -= 14; // auto-scroll while dragging
+  const t = document.elementFromPoint(e.clientX, e.clientY), tg = t && t.closest('#stack .prow, #stack .dropEnd');
+  if (st.over !== tg) { if (st.over) st.over.classList.remove('over'); if (tg) tg.classList.add('over'); st.over = tg; }
+}, { passive: true });
+const endDrag = e => {
+  const st = dragState; if (!st || e.pointerId !== st.id) return; clearTimeout(st.timer); dragState = null;
+  if (!st.on) return;
+  st.ghost.remove(); eatClick = performance.now() + 400;
+  const tg = st.over; if (!tg) return; tg.classList.remove('over');
+  dropAt(st.data, tg.classList.contains('dropEnd') ? design.parts.length : +tg.dataset.i);
+};
+addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
 function setDesign(d, keepSel) { design = d; if (!keepSel) selected = -1; selected = Math.min(selected, design.parts.length - 1); refreshBuild(); }
 // click: append at the bottom, or insert above the highlighted part (which stays highlighted)
 function addPart(id) { if (selected < 0) setDesign(insertPart(design, id, design.parts.length), true); else { const at = selected; selected = -1; design = insertPart(design, id, at); selected = at + 1; refreshBuild(); } }
@@ -382,7 +415,7 @@ function renderStack(stats) {
       for (const [txt, title, fn] of [['▲', 'Move up', () => { setDesign(movePart(design, i, i - 1), true); selected = Math.max(0, i - 1); refreshBuild(); }], ['▼', 'Move down', () => { setDesign(movePart(design, i, i + 1), true); selected = Math.min(design.parts.length - 1, i + 1); refreshBuild(); }], ['✕', 'Remove', () => setDesign(removePart(design, i))]]) {
         const b = document.createElement('button'); b.textContent = txt; b.title = title; b.className = 'mini'; b.onclick = e => { e.stopPropagation(); fn(); }; row.appendChild(b);
       }
-      row.onclick = () => { selected = selected === i ? -1 : i; refreshBuild(); };
+      row.onclick = () => { if (dragEaten()) return; selected = selected === i ? -1 : i; refreshBuild(); }; row.dataset.i = i; touchDrag(row, 'move:' + i);
       row.ondragstart = e => { e.dataTransfer.setData('text/plain', 'move:' + i); e.dataTransfer.effectAllowed = 'move'; };
       row.ondragover = e => { e.preventDefault(); row.classList.add('over'); }; row.ondragleave = () => row.classList.remove('over');
       row.ondrop = e => { e.preventDefault(); dropAt(e.dataTransfer.getData('text/plain'), i); };
@@ -439,7 +472,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=hf1', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=mb1', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -532,7 +565,7 @@ function reset() {
   showPreview();
 }
 function launch() {
-  initAudio(); reset(); state = 'flight';
+  initAudio(); reset(); state = 'flight'; mobile.buzzed = false;
   const sc = params.get('scenario');
   if (sc === 'orbit' || sc === 'reentry') { // dev/test start: the capsule stack parked in orbit (optionally already deorbiting)
     F.placeInOrbit(+(params.get('alt') || 170000)); syncStages(); camDist = 60;
@@ -543,16 +576,25 @@ function launch() {
   }
   document.activeElement && document.activeElement.blur();
   $('build').classList.add('hidden'); $('hud').classList.remove('hidden');
-  if (matchMedia('(pointer:coarse)').matches) $('touch').classList.remove('hidden');
+  mobile.show(true); if (TOUCH) $('ignite').innerHTML = 'Tap <b>STAGE</b> to ignite';
 }
 function goBuild() {
   reset(); state = 'build';
-  $('hud').classList.add('hidden'); $('touch').classList.add('hidden'); $('ignite').classList.add('hidden'); $('build').classList.remove('hidden');
+  $('hud').classList.add('hidden'); mobile.show(false); $('ignite').classList.add('hidden'); $('build').classList.remove('hidden');
   refreshBuild();
 }
 let camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
 $('earthRot').checked = earthRot;
 $('earthRot').onchange = e => { earthRot = e.target.checked; try { localStorage.setItem(ER_KEY, earthRot ? '1' : '0'); } catch (x) { } reset(); refreshBuild(); };
+function setThrottleTouch(u) { // the touch slider takes over from AUTO like Z/X do
+  if (state !== 'flight' || F.flags.dead) return;
+  if (flyingBooster()) { booster.ut = u; return; }
+  if (F.ret && F.ret.auto) F.setAuto(false);
+  if (v.auto) F.takeOverUpper();
+  if (F.autoOn && !v.clamped) { F.setAuto(false, true); $('tProg').classList.remove('on'); }
+  v.ut = u; if (u === 0) F.autoWarp = false;
+}
+const mobile = createMobile({ press, setSAS: m => { if (state === 'flight') { if (v.auto) F.takeOverUpper(); F.setSAS(m); } }, setThrottle: setThrottleTouch, toast: (m, c) => toast(m, c), unlockAudio: initAudio });
 const academy = createAcademy({ setDesign: d => setDesign(cloneDesign(d)), launch, goBuild, toast: (m, c) => toast(m, c),
   ctx: () => ({ state, F: state === 'flight' ? F : null, design, ui: { camMode } }) });
 reset(); refreshBuild();
@@ -563,7 +605,7 @@ $('contBtn').onclick = () => { $('end').classList.add('hidden'); F.unfinish(); F
 function shareText() { const sc = F.score(); return `🚀 I scored ${sc.toLocaleString()} in Orbit Rush${F.flags.orbit ? ' — reached a full-scale orbit' : ''}${F.flags.boosterBonus ? ' and landed the booster' : ''}${F.flags.recovered ? ' and brought the capsule home' : ''}! Can you beat it?`; }
 $('shareBtn').onclick = async () => { const t = shareText(), url = location.href.split('?')[0]; try { if (navigator.share) await navigator.share({ text: t, url }); else { await navigator.clipboard.writeText(t + ' ' + url); $('shareBtn').textContent = 'Copied!'; } } catch (e) { } };
 $('xBtn').onclick = () => open('https://x.com/intent/post?text=' + encodeURIComponent(shareText()) + '&url=' + encodeURIComponent(location.href.split('?')[0]), '_blank');
-function toast(msg, color = '#7dffa6') { const d = document.createElement('div'); d.textContent = msg; d.style.color = color; $('toasts').appendChild(d); setTimeout(() => d.remove(), 3000); while ($('toasts').children.length > 3) $('toasts').firstChild.remove(); }
+function toast(msg, color = '#7dffa6') { msg = localize(msg, TOUCH); if (msg === $('hint').textContent || [...$('toasts').children].some(c => c.textContent === msg)) return;  const d = document.createElement('div'); d.textContent = msg; d.style.color = color; $('toasts').appendChild(d); setTimeout(() => d.remove(), 3000); while ($('toasts').children.length > 3) $('toasts').firstChild.remove(); }
 
 // ---------- input ----------
 // Throttle Shift/Ctrl (or ↑/↓), Z/X full/cut · W/S pitch, A/D yaw, Q/E roll · C RCS · I/K J/L H/N RCS translate
@@ -593,7 +635,8 @@ function press(code) {
   if (code === 'KeyP') { F.deployChute(); return; }
   if (F.ret && F.ret.auto && ['KeyZ', 'KeyX'].includes(code)) F.setAuto(false);
   if (v.auto && ['KeyZ', 'KeyX', 'KeyF'].includes(code)) { F.takeOverUpper(); if (code === 'KeyF') return; }
-  if (code === 'Space') { const r = F.stagePress(); if (r === 'ignite') $('ignite').classList.add('hidden'); }
+  let res;
+  if (code === 'Space') { const r = res = F.stagePress(); if (r === 'ignite') $('ignite').classList.add('hidden'); }
   if (code === 'KeyZ') v.ut = 1;
   if (code === 'KeyX') { v.ut = 0; F.autoWarp = false; }
   if (code === 'KeyF') F.setAuto(!F.autoOn);
@@ -601,6 +644,7 @@ function press(code) {
   if (code === 'KeyV') F.setSAS(v.sas === 'off' ? 'stab' : 'off');
   if (SAS_KEYS[code]) F.setSAS(SAS_KEYS[code]);
   $('tProg').classList.toggle('on', F.autoOn);
+  return res;
 }
 addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
@@ -642,12 +686,13 @@ function readControls(rdt) {
     const b = booster;
     if (keys.ShiftLeft || keys.ShiftRight || keys.ArrowUp) b.ut = Math.min(1, b.ut + rdt * 1.2);
     if (keys.ControlLeft || keys.ControlRight || keys.ArrowDown) b.ut = Math.max(0, b.ut - rdt * 1.2);
-    b.input = { pitch: k1('KeyS', 'KeyW'), yaw: k1('KeyA', 'KeyD') };
+    b.input = { pitch: k1('KeyS', 'KeyW') - mobile.input.pitch, yaw: k1('KeyA', 'KeyD') + mobile.input.yaw };
     if (b.input.pitch || b.input.yaw) b.retro = false;
     return;
   }
   if (F.flags.dead) return;
-  const inp = { pitch: k1('KeyW', 'KeyS'), yaw: k1('KeyA', 'KeyD'), roll: k1('KeyE', 'KeyQ') };
+  const mi = mobile.input, cl = x => Math.max(-1, Math.min(1, x));
+  const inp = { pitch: cl(k1('KeyW', 'KeyS') + mi.pitch), yaw: cl(k1('KeyA', 'KeyD') + mi.yaw), roll: cl(k1('KeyE', 'KeyQ') + mi.roll) };
   const tr = [k1('KeyL', 'KeyJ'), k1('KeyH', 'KeyN'), k1('KeyI', 'KeyK')];
   const any = inp.pitch || inp.yaw || inp.roll || tr.some(Boolean);
   if (any && v.auto) F.takeOverUpper();
@@ -740,6 +785,8 @@ const fmtD = m => Math.abs(m) >= 1e5 ? (m / 1000).toFixed(0) + ' km' : Math.abs(
 const fmtT = s => { const m = Math.floor(s / 60), ss = Math.floor(s % 60); return `${m}:${String(ss).padStart(2, '0')}`; };
 const fmtN = (x, d = 0) => x.toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
 let hudT = 0, predT = 0;
+function apS0() { const o = P.orbitOf(v), h = P.altOf(v), onPad = v.clamped || (h < 300 && v.tel.vAir < 60); return onPad ? '—' : !isFinite(o.ap) ? 'escape' : fmtD(o.ap); }
+function peS0() { const o = P.orbitOf(v), h = P.altOf(v), onPad = v.clamped || (h < 300 && v.tel.vAir < 60); return onPad ? '—' : o.pe < -R * 0.5 ? 'in planet' : fmtD(o.pe); }
 function hud() {
   const flags = F.flags, tel = v.tel, h = P.altOf(v), sp = V.len(v.v), up = V.norm(v.r), vr = V.dot(v.v, up), east = P.eastOf(v.r), north = V.cross(up, east);
   const o = P.orbitOf(v), nose = P.noseOf(v);
@@ -794,6 +841,17 @@ HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span class="${tel.hea
     $('fBar' + i).parentElement.classList.toggle('active', i === v.cur && !flyingBooster());
   });
   $('score').textContent = 'SCORE ' + F.score().toLocaleString();
+  if (mobile.on) {
+    const cs = v.stages[v.cur], fu = cs && cs.fuelMax > 0 ? Math.round(cs.fuel / cs.fuelMax * 100) + '%' : '—', dense = tel.q > 300;
+    const hot = !dense && tel.heat > 2e4, hasChute = v.stages.slice(v.cur).some(s2 => s2.parts.some(p2 => p2.kind === 'chute'));
+    const cv = flyingBooster() ? booster : v;
+    mobile.render({ alt: fmtD(P.altOf(v)), spd: fmtN(V.len(v.v)) + ' m/s', ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
+      mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : `${V.dot(v.v, V.norm(v.r)).toFixed(0)} m/s`,
+      mqC: tel.q > 30000 || tel.heat > 3e5 ? 'warn' : '', fuel: fu, score: F.score().toLocaleString(), thr: mobile.thrDragging() ? (cv.ut ?? cv.throttle ?? 0) : (cv.throttle || cv.ut || 0),
+      auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME',
+      rcs: v.rcsOn, fx: fx.q.toUpperCase(), warp: `${isGPU ? 'WebGPU' : 'WebGL2'} · warp ×${F.effWarp()}`, sas: v.sas, stageReady: false });
+    if (F.flags.dead && !mobile.buzzed) { mobile.buzzed = true; mobile.vibrate([120, 60, 220]); }
+  }
   $('warpBtn').textContent = F.autoWarp ? `⏩ TO Ap ×${W}${W < WARPS[F.warpI] ? ' (' + wWhy + ')' : ''}` : `WARP ×${W}${W < WARPS[F.warpI] ? ` (max ×${wMax}: ${wWhy})` : ''}`;
   $('apBtn').classList.toggle('hidden', !F.canWarpToAp() || F.autoWarp);
   $('flyBtn').classList.toggle('hidden', !(b && b.state === 'flying' && F.ship && b.stages[0].fuel > 0));
@@ -805,7 +863,7 @@ HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span class="${tel.hea
   $('chuteBtn').textContent = cst === 'drogue' ? 'MAIN CHUTES (P)' : 'DROGUES (P)';
   $('sasBtn').textContent = 'SAS ' + P.SAS_LABEL[v.sas]; $('rcsBtn').textContent = 'RCS ' + (v.rcsOn ? 'ON' : 'OFF');
   const hint = F.hint();
-  $('hint').textContent = hint; $('hint').style.display = hint ? '' : 'none';
+  const hintL = localize(hint, TOUCH); $('hint').textContent = hintL; $('hint').style.display = hint ? '' : 'none';
   $('ignite').classList.toggle('hidden', F.ignited || state !== 'flight');
 }
 
@@ -891,7 +949,7 @@ function heatPanel() {
 }
 
 // ---------- main loop ----------
-let last = performance.now(), slowT = 0, pixR = Math.min(devicePixelRatio, 1.5);
+let last = performance.now(), slowT = 0, pixR = Math.min(devicePixelRatio, TOUCH ? 1.25 : 1.5);
 const U = new THREE.Vector3(), E = new THREE.Vector3(), N = new THREE.Vector3(), tgtV = new THREE.Vector3(), offV = new THREE.Vector3(), tq = new THREE.Quaternion(), dv3 = new THREE.Vector3();
 const setRel = (obj, p, O) => obj.position.set(p[0] - O[0], p[1] - O[1], p[2] - O[2]);
 const dirQ = (obj, d) => obj.quaternion.setFromUnitVectors(Y_AXIS, dv3.set(d[0], d[1], d[2]));

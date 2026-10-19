@@ -115,3 +115,69 @@ body.learning #hud [data-l]{text-decoration:underline dotted #7dd3ff}
 #learn{position:fixed;left:10px;top:270px;width:min(420px,46vw);max-height:calc(100vh - 400px);overflow:auto;background:#0b1424ee;border:1px solid #7dd3ff55;border-radius:10px;padding:8px 10px;font:12px/1.4 system-ui;z-index:25}
 #learn h4{margin:0 0 4px;font:700 12px monospace;color:#7dd3ff}#learn div{margin:3px 0}#learn b{color:#ffd23a;font:700 11px monospace;margin-right:4px}
 #learnTip{position:fixed;max-width:320px;background:#000d;border:1px solid #7dd3ff;border-radius:8px;padding:6px 9px;font:12px/1.4 system-ui;z-index:60;pointer-events:none}
+/* ---------- mobile / touch (mobile.js; body.touch when pointer is coarse) ---------- */
+:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px)}
+html,body{height:100dvh}
+body.touch .panel{max-height:calc(100dvh - 16px - var(--sat) - var(--sab))}
+body.touch #tele,body.touch #bars,body.touch #ctl,body.touch #touch,body.touch #score,body.touch #heat{display:none!important}
+body.touch #badge{display:none}
+body.touch.sheet #tele{display:block!important;position:fixed;left:calc(6px + var(--sal));top:calc(88px + var(--sat));z-index:22;font:11px/1.4 monospace;max-width:min(430px,calc(100vw - 12px - var(--sal) - var(--sar)));max-height:calc(100dvh - 250px - var(--sat) - var(--sab));min-height:120px;overflow:auto;background:#000c;backdrop-filter:blur(4px);touch-action:pan-y;white-space:pre}
+body.touch.sheet #heat{display:block!important;position:fixed;left:calc(440px + var(--sal));top:calc(88px + var(--sat));bottom:auto;right:auto;width:220px;font-size:10.5px;z-index:22}
+#mob{position:fixed;inset:0;pointer-events:none;z-index:15}
+#mob>*{pointer-events:auto;position:fixed}
+#mhud{left:calc(6px + var(--sal));top:calc(6px + var(--sat));display:grid;grid-template-columns:repeat(3,72px);gap:2px 6px;background:#000a;border:1px solid #ffffff22;border-radius:10px;padding:5px 8px 12px;font:12px/1.2 monospace;cursor:pointer}
+#mhud div{display:flex;flex-direction:column;min-width:0}#mhud b{font:700 9px system-ui;color:#9cc3ff;letter-spacing:.5px}#mhud span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mhud em{position:absolute;right:8px;bottom:1px;font:9px system-ui;opacity:.55}#mhud .warn{color:#ffb35c}
+#mtop{right:calc(6px + var(--sar));top:calc(6px + var(--sat));display:flex;gap:6px;align-items:center}
+#mtop span{font:700 14px monospace;background:#000a;padding:10px 8px;border-radius:10px;min-width:58px;text-align:center}
+#mtop span::before{content:'★ ';color:#ffd23a}
+#mtop button,#mright button{min-width:48px;min-height:44px;font:700 14px system-ui;background:#1b2a44dd}
+#mleft{left:calc(12px + var(--sal));bottom:calc(12px + var(--sab));display:flex;flex-direction:column;gap:8px;align-items:center}
+#mStick{width:124px;height:124px;border-radius:50%;background:radial-gradient(#ffffff10,#ffffff22);border:2px solid #ffffff44;position:relative;touch-action:none}
+#mStick::before{content:'PITCH / YAW';position:absolute;top:-1px;width:100%;text-align:center;font:700 8px system-ui;opacity:.5;top:6px}
+#mStick i{position:absolute;left:37px;top:37px;width:46px;height:46px;border-radius:50%;background:#9cc3ffcc;box-shadow:0 2px 8px #000a}
+#mRoll{width:124px;height:30px;border-radius:15px;background:#ffffff18;border:1px solid #ffffff44;position:relative;touch-action:none}
+#mRoll i{position:absolute;left:50%;top:3px;width:24px;height:22px;margin-left:-12px;border-radius:11px;background:#9cc3ffcc}
+#mRoll span{position:absolute;inset:0;text-align:center;font:700 9px/30px system-ui;opacity:.55;pointer-events:none}
+#mright{right:calc(12px + var(--sar));bottom:calc(12px + var(--sab));display:grid;grid-template-columns:auto 58px;grid-template-rows:auto auto 1fr;gap:8px;align-items:end;justify-items:center}
+#mStage{grid-column:1;grid-row:3;width:88px;height:88px;border-radius:50%;background:#c0501add!important;font:800 16px system-ui!important;border:2px solid #ffb35c}
+#mAuto{grid-column:1;grid-row:2}#mChute{grid-column:1;grid-row:1;background:#2c6b3add!important}#mAuto.on{background:#2d63c8!important}
+#mThr{grid-column:2;grid-row:1/4;width:58px;height:160px;border-radius:12px;background:#0009;border:1px solid #ffffff44;position:relative;overflow:hidden;touch-action:none}
+#mThr i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#ffb347,#ff6a00)}#mThr b{position:absolute;top:4px;width:100%;text-align:center;font:700 10px system-ui}
+#mThr u{position:absolute;bottom:4px;width:100%;text-align:center;font:700 12px monospace;text-decoration:none;text-shadow:0 1px 2px #000}
+#mMenu{right:calc(6px + var(--sar));top:calc(60px + var(--sat));width:min(330px,calc(100vw - 12px - var(--sal) - var(--sar)));max-height:calc(100dvh - 72px - var(--sat) - var(--sab));overflow:auto;background:#0b1424f2;border:1px solid #4a7ad077;border-radius:14px;padding:8px;z-index:30;touch-action:pan-y}
+#mMenu .mg{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px}#mMenu h5{grid-column:1/-1;margin:2px 0 0;font:700 10px system-ui;color:#9cc3ff;letter-spacing:1px}
+#mMenu button{min-height:42px;padding:4px 2px;font:700 11px system-ui}#mMenu .small{margin:0;text-align:center}
+body.touch #hint{top:calc(6px + var(--sat));font-size:12px;padding:5px 10px;max-width:calc(100vw - 2 * 276px - var(--sal) - var(--sar));bottom:auto}
+body.touch #toasts{top:calc(60px + var(--sat));max-width:calc(100vw - 2 * 262px);pointer-events:none}body.touch #toasts div{font-size:15px}
+body.touch #ignite{top:auto;bottom:calc(14px + var(--sab));transform:translateX(-50%);font-size:16px;padding:8px 14px;max-width:calc(100vw - 2 * 170px)}
+body.touch #lesson{left:calc(6px + var(--sal));right:auto;top:calc(88px + var(--sat));bottom:auto;transform:none;width:232px;max-height:calc(100dvh - 274px - var(--sat) - var(--sab));min-height:0;overflow:auto;font-size:12px;padding:7px 9px;touch-action:pan-y}
+body.touch #lesson .stp{font-size:12.5px}body.touch #lesson .lb button{padding:6px 8px;font-size:11px}body.touch #lesson .goal{margin:1px 0 3px}
+body.touch.sheet #lesson{display:none}
+body.touch #learn{left:calc(6px + var(--sal));top:calc(88px + var(--sat));width:min(420px,calc(100vw - 12px));max-height:calc(100dvh - 250px)}
+body.touch #lesson.build{left:auto;right:calc(6px + var(--sar));top:auto;bottom:calc(6px + var(--sab));width:min(300px,calc(100vw - 12px));max-height:40dvh}
+@media (orientation:portrait){
+  /* right column: score, MAP, ☰ stacked so the 6 readouts keep the full top-left */
+  #mtop{flex-direction:column;align-items:flex-end;gap:5px}#mtop span{padding:6px;min-width:56px;font-size:12px}
+  body.touch #hint{top:calc(88px + var(--sat));max-width:calc(100vw - 2 * 72px - var(--sal) - var(--sar))}
+  body.touch #toasts{top:calc(200px + var(--sat));max-width:94vw}
+  /* lesson card sits in the band between the centre and the thumb controls */
+  body.touch #lesson{top:auto;bottom:calc(184px + var(--sab));width:auto;right:calc(6px + var(--sar));max-height:min(110px,calc(35dvh - 190px))}
+  body.touch:has(#lesson:not(.hidden)) #ignite{display:none}
+  body.touch.sheet #tele{top:calc(88px + var(--sat));max-height:45dvh;max-width:calc(100vw - 80px)}
+  body.touch #ignite{bottom:calc(184px + var(--sab));max-width:90vw}
+}
+/* hangar at phone sizes: one scrolling column, parts as a horizontal drawer, long-press to drag */
+@media (max-width:900px),(max-height:520px){
+  .panel.builder{left:0;top:0;width:100vw;height:100dvh;max-height:100dvh;border-radius:0;padding:calc(6px + var(--sat)) calc(8px + var(--sar)) calc(6px + var(--sab)) calc(8px + var(--sal));overflow:auto;touch-action:pan-y}
+  .builder .bhead{flex-wrap:wrap;gap:6px}.builder h1{font-size:20px}.builder .sub{display:none}
+  .bcols{display:flex;flex-direction:column;gap:8px;flex:none}
+  #palette{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-height:none;gap:6px;padding-bottom:6px;touch-action:pan-x;-webkit-overflow-scrolling:touch}
+  #palette .palH{writing-mode:vertical-rl;transform:rotate(180deg);margin:0;flex:none}
+  #palette .tile{flex:none;width:150px;min-height:48px;margin:0}
+  #stack{max-height:none;overflow:visible}.prow{min-height:44px}.prow .mini,.prow .cnt button,.stageH button{min-width:32px;min-height:32px}
+  .trow{gap:4px}.trow #presets{flex-wrap:wrap}.saved{margin-left:0}
+}
+.dragGhost{position:fixed;z-index:100;pointer-events:none;opacity:.85;transform:translate(-50%,-120%);box-shadow:0 6px 20px #000c}
+#mMenu .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}#mMenu .mh span{font:700 11px monospace;opacity:.8}#mMenu .mh button{min-height:36px;min-width:44px}
+@media (orientation:landscape){#mMenu{width:min(470px,calc(100vw - 12px))}#mMenu .mg{grid-template-columns:repeat(6,1fr)}#mMenu button{min-height:38px}}

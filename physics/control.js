@@ -2,11 +2,11 @@
 // and the tests. Output is a body-frame torque command (N·m) that dynamics.js splits between reaction
 // wheels, engine gimbal and RCS. Body axes: +Y nose, +Z heading/"belly" (east on the pad), +X = Y x Z.
 // Pitch = about X (W tips the nose toward +Z), roll = about Y, yaw = about Z.
-import { R_E } from './constants.js?v=hf1';
-import { sub, scale, dot, cross, len, norm, qrot, qinv, clamp } from './vec.js?v=hf1';
-import { authority, airVel, engineOut } from './dynamics.js?v=hf1';
-import { stackGeom, massProps } from './vehicle.js?v=hf1';
-import { atmosphere } from './atmosphere.js?v=hf1';
+import { R_E } from './constants.js?v=mb1';
+import { sub, scale, dot, cross, len, norm, qrot, qinv, clamp } from './vec.js?v=mb1';
+import { authority, airVel, engineOut } from './dynamics.js?v=mb1';
+import { stackGeom, massProps } from './vehicle.js?v=mb1';
+import { atmosphere } from './atmosphere.js?v=mb1';
 export const SAS_MODES = ['off', 'stab', 'prograde', 'retrograde', 'radial', 'antiradial', 'normal', 'antinormal'];
 export const SAS_LABEL = { off: 'OFF', stab: 'STABILITY', prograde: 'PROGRADE', retrograde: 'RETROGRADE', radial: 'RADIAL OUT', antiradial: 'RADIAL IN', normal: 'NORMAL', antinormal: 'ANTI-NORMAL' };
 // Prograde reference: air-relative below 40 km (what the airflow sees), inertial (orbital) above.

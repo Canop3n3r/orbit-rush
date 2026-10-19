@@ -1,10 +1,13 @@
 // Academy UI: menu, first-run prompt, lesson panel with live step guidance and HUD highlights, concept cards
 // with small interactive plots, and the in-flight Learn overlay. Logic lives in academy.js (tested headlessly).
-import * as P from './physics.js?v=hf1';
-import { ORBIT_DV, designStats } from './parts.js?v=hf1';
-import { LESSONS, Tutor, GLOSSARY, loadProgress, saveProgress, isUnlocked, isDone, markPassed, markSkipped, nextLesson, fmt } from './academy.js?v=hf1';
+import * as P from './physics.js?v=mb1';
+import { ORBIT_DV, designStats } from './parts.js?v=mb1';
+import { isTouch } from './mobile.js?v=mb1';
+import { localize, keyLabel } from './wording.js?v=mb1';
+import { LESSONS, Tutor, GLOSSARY, loadProgress, saveProgress, isUnlocked, isDone, markPassed, markSkipped, nextLesson, fmt } from './academy.js?v=mb1';
 
 const KEYCAP = { Space: 'SPACE', Shift: 'Shift', Ctrl: 'Ctrl' };
+const TOUCH = isTouch();
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 export function createAcademy(api) {
@@ -52,8 +55,8 @@ export function createAcademy(api) {
   }
   function renderPanel(c, r) {
     const L = lesson(), T = tutor; panel.classList.toggle('build', c.state === 'build');
-    const step = T.step, txt = r.passed ? 'Lesson complete!' : esc(T.text(c) || '');
-    const keys = !r.passed && step.keys ? step.keys.map(k => `<kbd>${KEYCAP[k] || k}</kbd>`).join(' ') : '';
+    const step = T.step, txt = r.passed ? 'Lesson complete!' : esc(localize(T.text(c) || '', TOUCH));
+    const keys = !r.passed && step.keys ? step.keys.map(k => `<kbd>${TOUCH ? keyLabel(k, true) : KEYCAP[k] || k}</kbd>`).join(' ') : '';
     const dots = L.steps.map((_, k) => `<i class="${k < T.i ? 'd' : k === T.i && !r.passed ? 'c' : ''}"></i>`).join('');
     const html = `<div class="lh"><b>${cur + 1}. ${esc(L.title)}</b><span class="dots">${dots}</span></div>
       <div class="goal">🎯 ${esc(L.goal)}</div>
