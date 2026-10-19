@@ -1,33 +1,49 @@
 # Orbit Rush 🚀
 
-Build a rocket from parts (pods, tanks, engines, separators, fins, fairing), fly a gravity turn, reach orbit, and land the booster on a droneship. Runs free in the browser on **WebGPU** (Three.js `WebGPURenderer`) with automatic WebGL2 fallback. Add `?webgl` to the URL to force WebGL2.
+Build a rocket from parts (pods, tanks, engines, separators, fins, fairing, RCS), fly it to a **full-scale Earth orbit**, and land the booster on a droneship. Runs free in the browser on **WebGPU** (Three.js `WebGPURenderer`) with automatic WebGL2 fallback. Add `?webgl` to the URL to force WebGL2.
 
 **Play:** https://canop3n3r.github.io/orbit-rush/
 
 ## Hangar
-Assemble the rocket top to bottom: click a part to add it (at the bottom, or above the highlighted part), drag parts to reorder, ▲▼✕ to move/remove, −/+ for engine clusters, ⇧⇩ to reorder whole stages. Stage Separators split stages; Stage 1 is the bottom and fires first. The readout shows mass, Δv, TWR and burn time per stage, total Δv against the ~3,600 m/s orbit needs, and an AUTO test flight verdict. Templates: ★ Recommended (default), Light & fast, Heavy lift, Three-stager. Save designs to the browser with Save.
+Assemble the rocket top to bottom: click a part to add it (at the bottom, or above the highlighted part), drag parts to reorder, ▲▼✕ to move/remove, −/+ for engine clusters, ⇧⇩ to reorder whole stages. Stage Separators split stages; Stage 1 is the bottom and fires first. The readout shows mass, Δv, TWR and burn time per stage, total Δv against the ~9,400 m/s that orbit really costs, the **aero balance** (centre of mass ● yellow vs centre of pressure ● cyan, also drawn on the 3D preview; the CoP must sit behind the CoM or the rocket flips), an AUTO test-flight verdict and the booster-landing plan. Templates: ★ Recommended (default), Light & fast, Heavy lift, Three-stager. Toggle Earth rotation (+465 m/s at the equatorial pad). Save designs to the browser with Save.
 
 ## Controls
 | Key | Action |
 |---|---|
 | Space | Ignite. After liftoff, press Space **twice** (within 2 s) to stage |
-| W / S (↑/↓) | Throttle up / down |
+| Shift / Ctrl (↑/↓) | Throttle up / down |
 | Z / X | Full / cut throttle |
-| A / D (←/→) | Pitch |
-| F | AUTO: flies all the way to orbit (gravity turn, Max-Q throttle, coast, circularization burn, cutoff). Steer or press F to take over |
-| T / , | Time warp up / down (shown on HUD) |
-| G | Warp to apoapsis (high warp while coasting, drops to ×1 for the burn) |
-| L | Fly the booster landing yourself (or hand back to auto-land) |
-| M | Map view with orbit line |
+| W / S · A / D · Q / E | Pitch · yaw · roll (engine gimbal, reaction wheels, RCS) |
+| 1–7, V | SAS: 1 stability, 2 prograde, 3 retrograde, 4/5 radial out/in, 6/7 normal/anti-normal · V toggles SAS |
+| C · I/K J/L H/N | RCS on/off · RCS translation (needs a Puffer RCS Ring) |
+| F | AUTO: flies all the way to orbit (gravity turn, Max-Q throttling, staging, coast, circularization, cutoff). Steer or press F to take over |
+| T / , | Time warp up / down. Coasting above 140 km uses exact Kepler "rails" up to ×1000 |
+| G | Warp to apoapsis (drops to ×1 for the burn) |
+| Y | Fly the booster landing yourself (or hand back to auto-land) |
+| M | Map view with the orbit line |
 | B | Watch the booster land |
 | R | Back to hangar |
 
 On phones, on-screen buttons are shown. Drag to orbit the camera; scroll or pinch to zoom.
 
+## Physics (v2)
+Everything lives in `physics/` and is pure JS with no DOM, shared by the game, the tests and (later) the lessons:
+
+| Module | What it does |
+|---|---|
+| `constants.js` | WGS84 radius 6,378,137 m, μ = 3.986004418e14, Earth rotation 7.292e-5 rad/s, Kármán line 100 km |
+| `atmosphere.js` | U.S. Standard Atmosphere 1976: T, p, ρ, speed of sound per layer to 86 km, then the 1976 thermosphere table (log-interpolated) to 1,000 km |
+| `aero.js` | Cd(Mach) with transonic rise and supersonic falloff, normal-force model (nose + body crossflow + fins), centre of pressure, stagnation temperature, Sutton–Graves heat flux |
+| `vehicle.js` | Stack geometry, mass, centre of mass and moments of inertia from the parts |
+| `dynamics.js` | 6-DOF rigid body (quaternion attitude, body rates), RK4 at a fixed 0.02 s step, engine thrust/Isp vs ambient pressure, gimbal + reaction wheels + RCS, aero force and torque about the CoM, Kepler rails, 3-DOF boosters |
+| `control.js` | SAS modes and the attitude controller |
+| `guidance.js` | AUTO ascent (gravity turn, Max-Q and g-limit throttling, coast, circularization) and the booster autopilot (entry + landing burn) |
+| `kepler.js` | Orbital elements, time to apoapsis, universal-variable propagation, orbit lines |
+
+Each frame `v.tel` exposes Mach, dynamic pressure, AoA, g-load, density, temperature, stagnation temperature, stagnation heat flux, the airflow direction in the body frame and the CoM/CoP stations, for the effects and lessons phases. Rendering is camera-relative (floating origin): the focused craft sits at the scene origin, the Earth turns underneath, and a high-resolution ground tile is rebuilt in float64 around it, so full-scale coordinates never jitter in float32.
+
 ## Code
-`parts.js` (part catalog, designs, staging, Δv/TWR math, validation), `physics.js` (flight model + AUTO guidance), `flight.js` (one flight's rules: staging, fairing, clock, warp, booster, scoring, hints; no DOM), `main.js` (rendering, input, HUD).
+`parts.js` (part catalog, designs, staging, Δv/TWR math, aero balance, validation), `physics.js` (re-exports `physics/*`), `flight.js` (one flight's rules: staging, fairing, clock, warp/rails, booster, scoring, hints; no DOM), `main.js` (rendering, input, HUD).
 
-## Physics
-2D planar flight around a 1:10 scale Earth (600 km radius, 70 km atmosphere): inverse-square gravity, exponential atmosphere with drag and Max-Q, Isp that changes with air pressure, fuel mass burn, staging, Keplerian apoapsis and periapsis. The booster lands itself with an entry burn and a throttled landing burn, but only if you staged with fuel left over.
-
-`node tests/builder.mjs` checks the part builder (Δv/TWR math, staging, validation, templates on AUTO, a hand-built 3-stage rocket). `node tests/flight.mjs` is the main flight suite: it runs the real game rules in `flight.js` headlessly (booster-fly handoff still reaches orbit, AUTO reaches a stable orbit on every preset, warp-to-Ap, fairing at 40 km, clock starts at liftoff, score freeze, end-screen advice, staging guard, landing warnings). Also `node tests/beginner.mjs` (AUTO-only flights reach orbit), `node tests/manual_land.mjs` (scripted manual booster landing), `node tests/simtest.mjs` and `node tests/kick.mjs` run headless physics checks.
+## Tests
+`node tests/physics.mjs`: gravity, the 400 km period, energy and angular momentum over many orbits, RK4 vs Kepler rails, USSA76 spot values, Cd(Mach), drag and terminal velocity, weathervane stability vs tumbling, rigid-body spin, reaction wheels, SAS modes, RCS, Earth rotation, Isp vs pressure, and every template reaching orbit on AUTO at full scale (with and without Earth rotation). `node tests/builder.mjs`: the part builder (Δv/TWR math, staging, validation, aero balance, templates, a hand-built 3-stage rocket). `node tests/flight.mjs`: the game rules headlessly (booster hand-off, warp/rails, fairing, clock, advice, staging guard, booster landing by AUTO and by a scripted pilot, telemetry).

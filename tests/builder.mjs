@@ -1,39 +1,54 @@
 // Part-builder tests: per-stage Δv/TWR math, staging from decouplers, validation, templates on AUTO,
 // and a hand-built three-stage rocket that stages correctly in the real flight rules.
 // Run: node tests/builder.mjs   (exits non-zero on failure)
-import * as P from '../physics.js?v=pb1';
-import { PARTS, TEMPLATES, analyze, designStats, validate, splitStages, swapStages, insertPart, movePart, removePart, setEngines, buildVehicle } from '../parts.js?v=pb1';
-import { Flight, simulateAuto, assessDesign } from '../flight.js?v=pb1';
+import * as P from '../physics.js?v=pv2';
+import { PARTS, TEMPLATES, TANK_DRY, analyze, designStats, validate, splitStages, swapStages, insertPart, movePart, removePart, setEngines, buildVehicle, aeroBalance } from '../parts.js?v=pv2';
+import { Flight, simulateAuto, assessDesign } from '../flight.js?v=pv2';
 let pass = 0, fail = 0;
 const ok = (c, name, extra = '') => { if (c) { pass++; console.log('  ✔', name, extra); } else { fail++; console.log('  ✘', name, extra); } };
 const near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(b));
 const D = (...ids) => ({ name: 'test', parts: ids.map(x => { const [id, n] = x.split('*'); return n ? { id, n: +n } : { id }; }) });
+const { V } = P;
 const g = P.G0, km = m => (m / 1000).toFixed(1) + ' km';
 
 console.log('1. Mass, Δv and TWR per stage');
 {
-  const d = D('probe', 'tank-m', 'lark', 'dec', 'tank-xl', 'thumper*3'), s = designStats(d);
-  // by hand: payload 0.5; S2 dry 0.6 tank + 0.6 Lark = 1.2, fuel 6; S1 dry 0.3 sep + 2.5 tank + 3×1.5 = 7.3, fuel 25
-  const m0a = 0.5 + 1.2 + 6 + 7.3 + 25, m1a = m0a - 25, m0b = 0.5 + 1.2 + 6, m1b = m0b - 6;
+  const d = D('probe', 'tank-m', 'lark', 'dec', 'tank-xl', 'thumper*3'), s = designStats(d), Pt = PARTS;
+  // by hand from the catalog: payload = probe; S2 = FT-20 + Lark; S1 = separator + FT-100 + 3 Thumpers
+  const pay = Pt.probe.m, s2dry = Pt['tank-m'].fuel * TANK_DRY + Pt.lark.m, s2f = Pt['tank-m'].fuel, s1dry = Pt.dec.m + Pt['tank-xl'].fuel * TANK_DRY + 3 * Pt.thumper.m, s1f = Pt['tank-xl'].fuel;
+  const m0a = pay + s2dry + s2f + s1dry + s1f, m1a = m0a - s1f, m0b = pay + s2dry + s2f, m1b = m0b - s2f;
   ok(s.stages.length === 2, 'two stages from one separator');
   ok(near(s.stages[0].m0, m0a) && near(s.stages[0].m1, m1a), 'stage 1 wet/dry mass', `${s.stages[0].m0.toFixed(2)} → ${s.stages[0].m1.toFixed(2)} t`);
   ok(near(s.stages[1].m0, m0b) && near(s.stages[1].m1, m1b), 'stage 2 wet/dry mass', `${s.stages[1].m0.toFixed(2)} → ${s.stages[1].m1.toFixed(2)} t`);
-  const dv1 = (280 + 310) / 2 * g * Math.log(m0a / m1a), dv2 = 345 * g * Math.log(m0b / m1b);
+  const th = Pt.thumper, lk = Pt.lark, dv1 = (th.ispSl + th.ispVac) / 2 * g * Math.log(m0a / m1a), dv2 = lk.ispVac * g * Math.log(m0b / m1b);
   ok(near(s.stages[0].dv, dv1) && near(s.stages[1].dv, dv2), 'Δv per stage = Isp·g0·ln(m0/m1)', `${s.stages[0].dv.toFixed(0)} + ${s.stages[1].dv.toFixed(0)} m/s`);
   ok(near(s.total, dv1 + dv2), 'total Δv is the sum');
-  const twr1 = 3 * 215 * 280 / 310 / (m0a * g), twr2 = 90 / (m0b * g);
+  const twr1 = 3 * th.tv * th.ispSl / th.ispVac / (m0a * g), twr2 = lk.tv / (m0b * g);
   ok(near(s.stages[0].twr, twr1) && near(s.stages[1].twr, twr2), 'TWR: stage 1 at sea level, stage 2 in vacuum', `${s.stages[0].twr.toFixed(3)} / ${s.stages[1].twr.toFixed(3)}`);
-  ok(near(s.stages[0].burn, 25 / (645 / (310 * g))), 'burn time = fuel / mass flow', `${s.stages[0].burn.toFixed(1)} s`);
+  ok(near(s.stages[0].burn, s1f / (3 * th.tv / (th.ispVac * g))), 'burn time = fuel / mass flow', `${s.stages[0].burn.toFixed(1)} s`);
   // mixed engines in one stage: thrust adds, Isp is the thrust-weighted harmonic mean
-  const m = analyze(D('probe', 'tank-l', 'thumper', 'lark')).stages[0], tv = 215 + 90, isp = tv / (215 / 310 + 90 / 345);
+  const m = analyze(D('probe', 'tank-l', 'thumper', 'lark')).stages[0], tv = th.tv + lk.tv, isp = tv / (th.tv / th.ispVac + lk.tv / lk.ispVac);
   ok(near(m.eng.tv * m.n, tv) && near(m.eng.ispVac, isp) && m.n === 2, 'mixed engines combine (thrust sum, harmonic Isp)', `${(m.eng.tv * m.n).toFixed(0)} kN, Isp ${m.eng.ispVac.toFixed(1)} s`);
   // the flight vehicle uses exactly these numbers
   const v = buildVehicle(d);
-  ok(near(P.massOf(v), m0a) && v.stages[0].n === 3 && near(v.stages[0].eng.tv, 215) && near(v.stages[1].fuel, 6), 'flight vehicle has the built mass, engines and fuel');
-  const F = new Flight(d); F.stagePress(); for (let i = 0; i < 600 && F.v.clamped; i++) F.step(1 / 120);
-  const v0 = Math.hypot(F.v.vx, F.v.vy); F.step(0.5); const acc = (Math.hypot(F.v.vx, F.v.vy) - v0) / 0.5;
-  const expect = 645 * 280 / 310 / P.massOf(F.v) - g;
+  ok(near(P.massOf(v), m0a) && v.stages[0].n === 3 && near(v.stages[0].eng.tv, th.tv) && near(v.stages[1].fuel, s2f), 'flight vehicle has the built mass, engines and fuel', `${P.massOf(v).toFixed(2)} t`);
+  const F = new Flight(d, {}, { earthRot: false }); F.stagePress(); for (let i = 0; i < 600 && F.v.clamped; i++) F.step(1 / 120);
+  const up = V.norm(F.v.r), v0 = V.dot(F.v.v, up); F.step(0.5); const acc = (V.dot(F.v.v, up) - v0) / 0.5;
+  const expect = 3 * th.tv * 1000 * th.ispSl / th.ispVac / (P.massOf(F.v) * 1000) - P.gravityAt(F.alt);
   ok(Math.abs(acc - expect) < 0.3, 'liftoff acceleration matches built thrust/mass', `${acc.toFixed(2)} vs ${expect.toFixed(2)} m/s²`);
+  // geometry: tank length follows its propellant volume, stack length is the sum of the parts
+  const g2 = P.stackGeom(v); ok(Math.abs(g2.L - v.stages.flatMap(s => s.parts).filter(p => p.kind !== 'fins' && p.kind !== 'fairing').reduce((t, p) => t + p.h, 0)) < 1e-9, 'stack length = sum of part heights', `${g2.L.toFixed(1)} m, ⌀ ${g2.d} m`);
+}
+
+console.log('1b. Aero balance (CoM vs CoP) shown in the hangar');
+{
+  const base = D('fairing', 'sat', 'probe', 'tank-m', 'lark', 'dec', 'tank-l', 'tank-xl', 'thumper*3'), withFins = { ...base, parts: [...base.parts, { id: 'fins' }] };
+  const a = aeroBalance(base), b = aeroBalance(withFins);
+  ok(b.ycp < a.ycp && b.margin > a.margin + 1, 'tail fins pull the CoP aft and add static margin', `${a.margin.toFixed(2)} → ${b.margin.toFixed(2)} cal`);
+  ok(b.stable && !a.stable, 'with fins stable, without fins unstable');
+  ok(validate(base).warnings.some(w => /unstable/i.test(w)) && !validate(withFins).warnings.some(w => /unstable/i.test(w)), 'validation warns about an unstable rocket');
+  ok(b.marginEmpty > b.margin, 'margin grows as the booster drains (CoM moves up)', `${b.margin.toFixed(2)} → ${b.marginEmpty.toFixed(2)} cal`);
+  ok(TEMPLATES.every(t => aeroBalance(t).stable), 'every template is aerodynamically stable');
 }
 
 console.log('2. Stages, validation and editing');
@@ -60,12 +75,12 @@ console.log('3. Every template reaches orbit on AUTO');
 ok(TEMPLATES[0].name === 'Recommended', 'Recommended is the first (default) template');
 for (const t of TEMPLATES) {
   const r = simulateAuto(t), s = designStats(t);
-  ok(validate(t).ok && r.orbit && r.pe > 70000, `${t.name} (${s.stages.length} stages, ${s.total.toFixed(0)} m/s)`, `Ap ${km(r.ap)} Pe ${km(r.pe)}`);
+  ok(validate(t).ok && r.orbit && r.pe > P.ORBIT_PE, `${t.name} (${s.stages.length} stages, ${s.total.toFixed(0)} m/s)`, `Ap ${km(r.ap)} Pe ${km(r.pe)}`);
 }
 
 console.log('4. Hand-built three-stage rocket stages correctly');
 {
-  const d = D('fairing', 'sat', 'probe', 'tank-m', 'lark', 'dec', 'tank-m', 'mule', 'dec', 'tank-l', 'tank-s', 'thumper*3', 'fins');
+  const d = D('fairing', 'probe', 'tank-m', 'lark', 'dec', 'tank-l', 'mule*2', 'dec', 'tank-xl', 'tank-l', 'thumper*4', 'fins');
   const st = designStats(d); ok(st.stages.length === 3 && validate(d).ok, '3 stages, valid', st.stages.map(x => `${x.dv.toFixed(0)} m/s/TWR ${x.twr.toFixed(2)}`).join(' · '));
   // AUTO flight: staging order, mass drop at each separation, only the active stage burns fuel
   const seq = [0], drops = [], burnLeak = []; let prev = null;
@@ -78,7 +93,7 @@ console.log('4. Hand-built three-stage rocket stages correctly');
   ok(seq.join('') === '012', 'stages fire in order 1 → 2 → 3', seq.map(x => x + 1).join(' → '));
   ok(drops.length === 2 && drops.every(x => Math.abs(x.got - x.want) < 0.05), 'each separation drops exactly that stage (dry + leftover fuel)', drops.map(x => x.got.toFixed(2) + ' t').join(', '));
   ok(burnLeak.length === 0, 'only the active stage burns fuel');
-  ok(r.orbit && r.pe > 70000, '3-stage rocket reaches orbit on AUTO', `Pe ${km(r.pe)}, top stage ${r.s2left.toFixed(2)} t left`);
+  ok(r.orbit && r.pe > P.ORBIT_PE, '3-stage rocket reaches orbit on AUTO', `Pe ${km(r.pe)}, top stage ${r.s2left.toFixed(2)} t left`);
   ok(r.F.flags.fairing === 1, 'fairing jettisoned');
   // manual staging needs the double press each time
   const F = new Flight(d); F.stagePress(); F.setAuto(true, true); let presses = 0;
