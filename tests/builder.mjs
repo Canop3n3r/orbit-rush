@@ -1,9 +1,9 @@
 // Part-builder tests: per-stage Δv/TWR math, staging from decouplers, validation, templates on AUTO,
 // and a hand-built three-stage rocket that stages correctly in the real flight rules.
 // Run: node tests/builder.mjs   (exits non-zero on failure)
-import * as P from '../physics.js?v=ss1';
-import { PARTS, TEMPLATES, TANK_DRY, analyze, designStats, validate, splitStages, swapStages, insertPart, movePart, removePart, setEngines, buildVehicle, aeroBalance } from '../parts.js?v=ss1';
-import { Flight, simulateAuto, assessDesign } from '../flight.js?v=ss1';
+import * as P from '../physics.js?v=q1';
+import { PARTS, TEMPLATES, TANK_DRY, analyze, designStats, validate, splitStages, swapStages, insertPart, movePart, removePart, setEngines, buildVehicle, aeroBalance } from '../parts.js?v=q1';
+import { Flight, simulateAuto, assessDesign } from '../flight.js?v=q1';
 let pass = 0, fail = 0;
 const ok = (c, name, extra = '') => { if (c) { pass++; console.log('  ✔', name, extra); } else { fail++; console.log('  ✘', name, extra); } };
 const near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(b));

@@ -1,9 +1,9 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=ss1';
-import * as C from './physics/patched.js?v=ss1';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=ss1';
+import * as P from './physics.js?v=q1';
+import * as C from './physics/patched.js?v=q1';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=q1';
 const { R, ATM, V } = P;
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
 export const WARPS = [1, 2, 4, 10, 25, 50, 100, 1000, 1e4, 1e5, 1e6, 1e7];
@@ -69,6 +69,7 @@ export function planBuild(design, opts = {}) {
   if (!validate(design).ok) return { minReserve: null, orbit: false, reason: 'invalid' };
   const s = designStats(design); if (s.twr < 1) return { minReserve: null, orbit: false, reason: 'twr' };
   if (s.stages.length < 2) return { minReserve: null, orbit: false, reason: 'single' };
+  if (s.analysis.stages[0].radial) return { minReserve: null, orbit: false, reason: 'radial' };
   const F = new Flight(design, {}, { earthRot: opts.earthRot }); F.stagePress(); F.setAuto(true, true);
   const snaps = [], fuelMax = F.v.stages[0].fuelMax, step = Math.max(1, Math.round(fuelMax / 40));
   let nextLvl = Math.floor(fuelMax * 0.5 / step) * step;
@@ -187,8 +188,9 @@ export class Flight {
     const down = P.BODIES[from].parent === to;
     this.toast(down ? `Leaving ${P.BODIES[from].name}'s sphere of influence — now orbiting ${P.BODIES[to].name}` : `Entering ${P.BODIES[to].name}'s sphere of influence`, '#9cc3ff');
     if (!down) this.goal(to, 'flyby');
-    if (this.warpTarget && this.warpTarget.kind === 'soi') this.warpTarget = null;
-    this.setWarp(Math.min(this.warpI, 0), true); this.call('soi', from, to);
+    // warping to a later node / alarm / time keeps going through the SOI change; plain warp stops here
+    if (!this.warpTarget || this.warpTarget.kind === 'soi') { this.warpTarget = null; this.setWarp(Math.min(this.warpI, 0), true); }
+    this._soiC = null; this.call('soi', from, to);
     P.stepVehicle(v, 0); return true;
   }
   checkSOI() { const nb = P.soiOf(this.body, this.v.r, this.tAbs); if (nb !== this.body) { this.switchBody(nb); return true; } return false; }
@@ -201,8 +203,20 @@ export class Flight {
   // Δv still to do on the next node (vector, current body frame). Before the burn it is the planned vector at the
   // predicted node state; during the burn the remaining prograde / normal / radial parts are re-expressed in the
   // current local frame (the burn follows the turning prograde direction, like the planner's impulsive model).
+  // A node can sit on a later patch (after an SOI change, e.g. a capture burn at the Moon): until the craft is
+  // in that patch its Δv direction is not defined in the current frame (null).
+  nodeOnLaterPatch(n) {
+    const v = this.v, c = this._soiC;
+    if (!c || c.body !== this.body || Math.abs(c.t - this.tAbs) > 30 || c.nt !== n.t) {
+      let ev = null; try { ev = C.nextEvent(this.body, v.r, v.v, this.tAbs, Math.max(1, n.t - this.tAbs + 1), { stopAlt: 0 }); } catch (e) { ev = null; }
+      this._soiC = { body: this.body, t: this.tAbs, nt: n.t, soiT: ev && (ev.type === 'soi-exit' || ev.type === 'soi-enter') ? this.tAbs + ev.dt : Infinity };
+    }
+    return n.t > this._soiC.soiT + 1;
+  }
   nodeRemaining(n = this.nodes[0]) {
     if (!n) return null; const v = this.v;
+    if (!n.started && this.nodeOnLaterPatch(n)) { n.later = true; return null; }
+    n.later = false;
     if (!n.started) { const s = P.propagate(v.r, v.v, n.t - this.tAbs, P.muOf(v)); n.dvVec = C.nodeVector(s.r, s.v, n); return n.dvVec; }
     const d = n.done || { pro: 0, nrm: 0, rad: 0 };
     return C.nodeVector(v.r, v.v, { pro: n.pro - d.pro, nrm: n.nrm - d.nrm, rad: n.rad - d.rad });
@@ -217,7 +231,7 @@ export class Flight {
       const f = C.nodeFrame(v.r, v.v), a = V.scale(P.noseOf(v), v.thrust / m0 * dt);
       n.done.pro += V.dot(a, f.pro); n.done.nrm += V.dot(a, f.nrm); n.done.rad += V.dot(a, f.rad);
     }
-    const rem = this.nodeRemaining(n); v.nodeDir = V.len(rem) > 1e-6 ? V.norm(rem) : null;
+    const rem = this.nodeRemaining(n); v.nodeDir = rem && V.len(rem) > 1e-6 ? V.norm(rem) : null; if (!rem) return;
     const L = this.nodeLeft(n), left = Math.hypot(L.pro, L.nrm, L.rad), along = L.pro * n.pro + L.nrm * n.nrm + L.rad * n.rad;
     if (n.started && (left < 0.3 || along <= 0)) {
       this.toast(`Maneuver complete (${left.toFixed(1)} m/s left)`, '#7dffa6'); if (this.exec) { v.ut = 0; v.throttle = 0; }
@@ -273,7 +287,35 @@ export class Flight {
   }
   // Apply node n impulsively (coast to it, add its Δv) — for scenario starts, not for normal flight.
   applyNodeNow(n) { this.coastTo(n.t); const v = this.v; v.v = V.add(v.v, C.nodeVector(v.r, v.v, n)); this.dvUsed += C.nodeDv(n); this.removeNode(n); P.stepVehicle(v, 0); return this; }
-  addAlarm(t, label) { this.alarms.push({ t, label }); this.alarms.sort((a, b) => a.t - b.t); }
+  addAlarm(t, label) { const a = { t, label }; this.alarms.push(a); this.alarms.sort((a, b) => a.t - b.t); return a; }
+  removeAlarm(a) { const i = this.alarms.indexOf(a); if (i >= 0) this.alarms.splice(i, 1); }
+  fireAlarms() { for (const a of [...this.alarms]) if (a.t <= this.tAbs + 0.5) { this.removeAlarm(a); this.toast('⏰ Alarm: ' + a.label, '#ffd23a'); this.call('sound', 'beep', 880); if (this.warpI > 0) this.setWarp(0, true); this.warpTarget = null; } }
+  // ---------- quicksave / quickload: the whole flight state as plain JSON (a flying booster is not kept) ----------
+  snapshot() {
+    const strip = (k, x) => (k === '_g' || k === '_rel' || k === '_scr' ? undefined : x);
+    const keep = ['met', 'ignited', 'maxQ', 'maxQEntry', 'maxG', 'autoThrottle', 'ascent', 'dvUsed', 'flags', 'lastPow', 'orbitSnap', 'maxHeat', 'maxTskin', 'maxGret', 'parked', 't0', 'nodes', 'alarms', 'target', 'goals', 'deep', 'ship'];
+    const f = {}; for (const k of keep) f[k] = this[k];
+    return JSON.parse(JSON.stringify({ v: 1, design: this.design, at: Date.now(), body: this.body, tAbs: this.tAbs, veh: this.v, f }, strip));
+  }
+  loadSnapshot(s) {
+    const v = JSON.parse(JSON.stringify(s.veh)); v._g = null; v.auto = false;
+    this.v = v; Object.assign(this, JSON.parse(JSON.stringify(s.f)));
+    this.booster = null; this.ret = null; this.autoOn = false; this.exec = false; this.warpTarget = null; this.warpI = 0; this.autoWarp = false; this.rails = false; this.ended = false; this.finalScore = null; this._soiC = null;
+    for (const n of this.nodes) { n.started = false; delete n.done; }
+    epochPhase(this.t0); P.stepVehicle(v, 0); return this;
+  }
+  // Ballistic impact prediction with drag (no thrust): { t (game time), r (body frame), speed, lat, lon } or null.
+  // Coasts on rails to the top of the atmosphere, then integrates a point mass with this craft's drag.
+  predictImpact() {
+    const v = this.v, b = P.BODIES[this.body], o = P.orbitOf(v), top = P.atmTop(this.body), mu = P.muOf(v);
+    if (!(o.rp < b.R + top) || v.clamped || this.parked) return null;
+    let r = [...v.r], vel = [...v.v], t = 0;
+    if (V.len(r) > b.R + top) { const dt = C.timeToRadius(r, vel, mu, b.R + top, -1); if (!isFinite(dt) || dt > 30 * 86400) return null; const st = P.propagate(r, vel, dt, mu); r = st.r; vel = st.v; t = dt; }
+    const m = P.massOf(v), c = { body: this.body, r, v: vel, clock: (v.clock || 0) + t, earthRot: v.earthRot, stages: [{ dry: m, fuel: 0, eng: null }], throttle: 0, cdA: (v.cdA || 3) + (v.chuteCdA || 0), dir: P.noseOf(v), n: 0 };
+    for (let i = 0; i < 40000; i++) { const h = V.len(c.r) - b.R, dt = h > 60000 ? 2 : h > 20000 ? 0.5 : 0.25; if (P.stepPoint(c, dt)) break; if (i === 39999) return null; }
+    const tImp = c.clock - (v.clock || 0), w = this.body === 'earth' ? P.omegaOf(v) * c.clock : 0, ef = V.norm(V.rotZ(c.r, -w));
+    return { t: this.tAbs + tImp, dt: tImp, r: c.r, speed: V.len(c.v), lat: Math.asin(Math.max(-1, Math.min(1, ef[2]))) * 180 / Math.PI, lon: Math.atan2(ef[1], ef[0]) * 180 / Math.PI };
+  }
   call(name, ...a) { const f = this.h[name]; return f ? f(...a) : undefined; }
   toast(msg, color) { this.call('toast', msg, color); }
   get alt() { return P.altOf(this.v); }
@@ -298,7 +340,7 @@ export class Flight {
     return next;
   }
   stageWarning() {
-    const v = this.v; if (v.cur !== 0) return '';
+    const v = this.v; if (v.cur !== 0 || v.stages[0].radial) return '';
     if (this.alt <= 2000) return ' (too low to recover the booster)';
     return this.boosterCanLand() ? '' : ` — booster has only ${v.stages[0].fuel.toFixed(1)} t: not enough to land`;
   }
@@ -311,9 +353,10 @@ export class Flight {
   stage() {
     const v = this.v, bh = this.alt;
     if (v.cur >= this.last) return;
-    if (v.cur > 0) {
-      const d = P.makeBooster(v); d.stageIndex = v.cur; this.shiftCom(() => { v.cur++; });
+    if (v.cur > 0 || v.stages[0].radial) {
+      const d = P.makeBooster(v); d.stageIndex = v.cur; d.radial = v.stages[v.cur].radial || 0; this.shiftCom(() => { v.cur++; });
       this.call('drop', d);
+      if (d.radial) { this.flags.stagedFuel = d.stages[0].fuel; this.flags.stagedAlt = bh; this.toast(`BOOSTER SEP — ${d.radial} radial boosters away, core ignition`, '#fff'); return; }
       if (v.cur > this.lastPow) { v.throttle = v.ut = 0; this.toast('CAPSULE SEPARATION — heat shield first: SAS retrograde (3)', '#fff'); if (this.ret) this.ret.sepAt = this.met; }
       else this.toast(`STAGE ${v.cur} SEP — stage ${v.cur + 1} ignition`, '#fff');
       return;
@@ -565,7 +608,7 @@ export class Flight {
     const W2 = Math.min(W, 50), simDt2 = this.warpTarget ? Math.min(rdt * SIM_SPEED * W2, simDt || rdt * SIM_SPEED) : rdt * SIM_SPEED * W2;
     const step = W2 > 4 ? PHYS_DT * 2 : PHYS_DT, N = Math.max(1, Math.ceil(simDt2 / step - 1e-9));
     for (let i = 0; i < N; i++) this.step(simDt2 / N);
-    this.checkSOI();
+    this.checkSOI(); if (this.alarms.length) this.fireAlarms();
     return simDt2;
   }
   // Event-bounded rails: one Kepler jump per frame, cut at the first SOI change, node lead, alarm or the
@@ -792,7 +835,7 @@ export class Flight {
       const tAp = P.timeToApV(v);
       if (v.guid === 'circ') return 'AUTO circularizing at apoapsis — burning until Pe > 150 km';
       if (v.guid === 'coast') return `AUTO coasting to apoapsis (${Math.round(tAp / SIM_SPEED)} s) — press G to warp there`;
-      return 'AUTO flying the gravity turn' + (v.cur === 0 ? ' — stage (SPACE twice) while the booster still has landing fuel (see hangar)' : '');
+      return 'AUTO flying the gravity turn' + (v.cur === 0 && !v.stages[0].radial ? ' — stage (SPACE twice) while the booster still has landing fuel (see hangar)' : '');
     }
     if (engineOn && isFinite(o.ap) && o.ap > 170000 && h < ATM - 10000) return 'Ap is high enough — cut throttle (X) and coast';
     if (!engineOn && h < ATM && vr > 0) return h > 20000 ? 'Coasting — press "Warp to Ap" (G)' : 'Coasting…';

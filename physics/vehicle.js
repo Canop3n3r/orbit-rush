@@ -4,14 +4,18 @@
 // A vehicle carries stages[i].parts (bottom → top) built by parts.js; each part: { id, kind, h, d, m (dry, t),
 // fuelCap (t), rw (kN·m), F/isp (RCS), cna/chord (fins), gimbal (rad), nose: { cd, rn, cpFrac } }.
 // Layout notes for the lessons: CoM = mass-weighted station; CoP = normal-force-weighted station (aero.js).
-import { thermalOf } from './thermal.js?v=ss1';
+import { thermalOf } from './thermal.js?v=q1';
 const PI = Math.PI;
 export function stackGeom(v) {
   const key = v.cur + '|' + (v.fairing > 0 ? 1 : 0);
   if (v._g && v._g.key === key) return v._g;
-  const list = [], fins = []; let y = 0, rw = 0, rcs = null, dmax = 0, payloadY = null;
+  const list = [], fins = [], radials = []; let y = 0, rw = 0, rcs = null, dmax = 0, payloadY = null;
   for (let i = v.cur; i < v.stages.length; i++) {
     const s = v.stages[i], bottom = y; let engH = 0;
+    if (s.radial) { // radial boosters ride beside the core from the bottom up: mass, drag and lift, no stack length
+      let yr = 0; for (const p of s.parts) { radials.push({ y: yr, h: p.h, d: 2 * (1.25 + (p.dr || 1.8) / 2) + (p.dr || 1.8), m: p.m, fuelCap: p.fuelCap || 0, stage: i, kind: p.kind, id: p.id, p, dr: p.dr || 1.8, sym: s.radial }); yr += p.h; }
+      continue;
+    }
     for (const p of s.parts) {
       if (p.kind === 'fins') { fins.push({ p, stage: i, bottom }); continue; }
       if (p.kind === 'fairing') continue;
@@ -36,10 +40,14 @@ export function stackGeom(v) {
     nose = { cd: n.cd, rn: n.rn, y: L - n.cpFrac * t.h, kind: t.id };
   }
   const d = Math.max(dmax, 0.5), A = PI * d * d / 4;
-  const cnaFins = fins.reduce((s, f) => s + f.p.cna, 0), yFins = cnaFins ? fins.reduce((s, f) => s + f.p.cna * f.y, 0) / cnaFins : 0;
-  const finCd = fins.reduce((s, f) => s + (f.p.cd || 0.06), 0);
+  // radial boosters: each nose cone + body adds normal force like a small rocket (CNα ≈ 2 per its own area) near its top,
+  // and its frontal area adds drag (per the core's reference area)
+  const rLen = radials.reduce((s, e) => Math.max(s, e.y + e.h), 0), rSym = radials.length ? radials[0].sym : 0, rD = radials.length ? Math.max(...radials.map(e => e.dr)) : 0;
+  const lift = rSym ? [{ p: { cna: 2 * rSym * (rD / d) ** 2 * 0.5, cd: 0 }, y: rLen * 0.75 }] : [];
+  const cnaFins = fins.reduce((s, f) => s + f.p.cna, 0) + lift.reduce((s, f) => s + f.p.cna, 0), yFins = cnaFins ? (fins.reduce((s, f) => s + f.p.cna * f.y, 0) + lift.reduce((s, f) => s + f.p.cna * f.y, 0)) / cnaFins : 0;
+  const finCd = fins.reduce((s, f) => s + (f.p.cd || 0.06), 0) + (rSym ? 0.5 * rSym * (rD / d) ** 2 : 0);
   // mass elements: the stack parts plus the fins (which add mass and inertia but no length)
-  const massList = list.concat(fins.map(f => ({ y: f.y - f.p.chord / 2, h: f.p.chord, d: d + 3.4, m: f.p.m, fuelCap: 0, stage: f.stage, kind: 'fins', id: f.p.id })));
+  const massList = list.concat(radials).concat(fins.map(f => ({ y: f.y - f.p.chord / 2, h: f.p.chord, d: d + 3.4, m: f.p.m, fuelCap: 0, stage: f.stage, kind: 'fins', id: f.p.id })));
   // base (tail-first) shape: a heat shield is a big blunt face, engines about a metre, anything else ~ its radius
   const bot = list[0] || { kind: 'pod', d }, shieldBase = bot.kind === 'shield';
   const rnTail = shieldBase ? (bot.p && bot.p.rnBase) || 1.2 * bot.d : bot.kind === 'engine' ? 1.0 : bot.d / 2;
@@ -52,7 +60,7 @@ export function stackGeom(v) {
   // parachute canister (if any) at the top of the stack still attached
   const chuteE = list.filter(e => e.kind === 'chute').pop();
   const chute = chuteE ? { p: chuteE.p, y: chuteE.y + chuteE.h } : null;
-  v._g = { key, list, massList, L, d, A, cnaNose: 2.0, yNose: nose.y, nose, cnaFins, yFins, finCd, crossK: 1.2 * L * d / A, yBody: L / 2, cdShape: nose.cd, rn: nose.rn, rw, rcs, fins,
+  v._g = { key, list, massList, radials, rLen, L, d, A, cnaNose: 2.0, yNose: nose.y, nose, cnaFins, yFins, finCd, crossK: 1.2 * L * d / A, yBody: L / 2, cdShape: nose.cd, rn: nose.rn, rw, rcs, fins,
     rnTail, tailCd, shieldBase, thermalList, chute };
   return v._g;
 }

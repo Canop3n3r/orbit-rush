@@ -2,26 +2,26 @@
 // Full-scale Earth (WGS84 radius, real GM, optional rotation), U.S. Standard Atmosphere 1976, Mach-dependent
 // aerodynamics with centre of pressure vs centre of mass, 6-DOF rigid-body dynamics (RK4), Kepler rails.
 // Modules (physics/): constants, vec, atmosphere, aero, kepler, vehicle, dynamics, control, guidance, thermal.
-export * from './physics/constants.js?v=ss1';
-export * from './physics/atmosphere.js?v=ss1';
-export * from './physics/aero.js?v=ss1';
-export * from './physics/kepler.js?v=ss1';
-export * from './physics/vehicle.js?v=ss1';
-export * from './physics/dynamics.js?v=ss1';
-export * from './physics/control.js?v=ss1';
-export * from './physics/guidance.js?v=ss1';
-export * from './physics/thermal.js?v=ss1';
-export * as V from './physics/vec.js?v=ss1';
-import { R_E, MU_E, KARMAN } from './physics/constants.js?v=ss1';
-import { elements, timeToAp as tta } from './physics/kepler.js?v=ss1';
-import { qrot, qFromTo, qmul, qAxisAngle, norm, cross, dot, sub, scale, qFromBasis } from './physics/vec.js?v=ss1';
-import { eastOf as eastOf_ } from './physics/guidance.js?v=ss1';
+export * from './physics/constants.js?v=q1';
+export * from './physics/atmosphere.js?v=q1';
+export * from './physics/aero.js?v=q1';
+export * from './physics/kepler.js?v=q1';
+export * from './physics/vehicle.js?v=q1';
+export * from './physics/dynamics.js?v=q1';
+export * from './physics/control.js?v=q1';
+export * from './physics/guidance.js?v=q1';
+export * from './physics/thermal.js?v=q1';
+export * as V from './physics/vec.js?v=q1';
+import { R_E, MU_E, KARMAN } from './physics/constants.js?v=q1';
+import { elements, timeToAp as tta } from './physics/kepler.js?v=q1';
+import { qrot, qFromTo, qmul, qAxisAngle, norm, cross, dot, sub, scale, qFromBasis } from './physics/vec.js?v=q1';
+import { eastOf as eastOf_ } from './physics/guidance.js?v=q1';
 // Local surface frame at Earth-fixed direction ef: right-handed (north = up × east), so a y-up model placed
 // with this rotation stands along the local vertical with +Z east. Returns { north, up, east, q }.
 export function surfaceFrame(ef) { const up = norm(ef), east = eastOf_(up), north = cross(up, east); return { north, up, east, q: qFromBasis(north, up, east) }; }
-import { massProps } from './physics/vehicle.js?v=ss1';
-import { muOf, radOf } from './physics/dynamics.js?v=ss1';
-export * from './physics/solar.js?v=ss1';
+import { massProps } from './physics/vehicle.js?v=q1';
+import { muOf, radOf } from './physics/dynamics.js?v=q1';
+export * from './physics/solar.js?v=q1';
 export const R = R_E, MU = MU_E, ATM = KARMAN;
 export const orbitOf = v => elements(v.r, v.v, muOf(v), radOf(v));
 export const timeToApV = v => tta(v.r, v.v, muOf(v));

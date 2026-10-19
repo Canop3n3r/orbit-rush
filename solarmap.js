@@ -5,9 +5,10 @@
 // focus with smooth transitions. Lines are drawn twice: depth-tested (bright) and through bodies (faint).
 // Markers and node handles are HTML (crisp, finger-sized). Mouse and touch.
 import * as THREE from 'three/webgpu';
-import * as P from './physics.js?v=ss1';
-import * as C from './physics/patched.js?v=ss1';
-import { fmtDur } from './flight.js?v=ss1';
+import * as P from './physics.js?v=q1';
+import * as C from './physics/patched.js?v=q1';
+import { fmtDur } from './flight.js?v=q1';
+import { layoutHandles } from './maplayout.js?v=q1';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
 const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : a >= 1e7 ? (m / 1e3).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' km' : a >= 1e4 ? (m / 1e3).toFixed(1) + ' km' : m.toFixed(0) + ' m'; };
@@ -16,7 +17,7 @@ const mv = (F, x) => [F[0] * x[0] + F[1] * x[1] + F[2] * x[2], F[3] * x[0] + F[4
 const PATCH_COL = [0x7dffa6, 0xffb35c, 0xc89cff, 0x6ad8ff, 0xff7ab0];
 
 export function createSolarMap(opts) {
-  const { renderer, getF, toast, touch, earthMap, onChange } = opts;
+  const { renderer, getF, toast, touch, earthMap, onChange, dvTable, settings } = opts;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x01020a);
   const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 1, 1e15);
   const sunLight = new THREE.PointLight(0xffffff, 3, 0, 0); scene.add(sunLight); scene.add(new THREE.AmbientLight(0x404858, 0.35));
@@ -55,7 +56,7 @@ export function createSolarMap(opts) {
     <button data-a="craft" title="Focus the craft">Craft</button><button data-a="pole" title="Look down on the orbit plane">Top</button><button data-a="edge" title="Edge-on view">Edge</button>
     <button data-a="zin" title="Zoom in (+)">＋</button><button data-a="zout" title="Zoom out (−)">－</button>
     <button data-a="node" title="Add a maneuver node 10 minutes ahead (or click / tap the trajectory)">◆ Node</button>
-    <button data-a="plan" title="Transfer planner">Planner</button><button data-a="warp" title="Warp to the next event">⏩ Next</button>
+    <button data-a="plan" title="Transfer planner">Planner</button><button data-a="alarms" title="Alarms: stop the warp at a time">⏰</button><button data-a="dv" title="Δv map: what it costs to get everywhere">Δv</button><button data-a="conic" title="Patched conics drawing: each patch relative to its own body, or a moon's patches as seen from its planet">⊙ ${(settings && settings.conic) === 'parent' ? 'Parent' : 'Body'}</button><button data-a="warp" title="Warp to the next event">⏩ Next</button>
     <button data-a="close" title="Back to flight (M)">✕ Map</button>
   </div>
   <div id="mapPanel" class="hidden"></div>
@@ -68,7 +69,7 @@ export function createSolarMap(opts) {
   function marker(text, cls) { let d = markerPool[markerN]; if (!d) { d = document.createElement('div'); labels.appendChild(d); markerPool.push(d); } markerN++; d.className = 'mmark ' + (cls || ''); if (d.textContent !== text) d.textContent = text; d.style.display = ''; return d; }
   const handles = ['pro', 'ret', 'nrm', 'anti', 'rad', 'radin'].map(k => { const d = document.createElement('div'); d.className = 'mhandle h-' + k; d.dataset.h = k; d.textContent = { pro: '⊕', ret: '⊗', nrm: '▲', anti: '▼', rad: '◉', radin: '◎' }[k]; labels.appendChild(d); return d; });
   // ---------- state ----------
-  const S = { on: false, focus: 'craft', dist: 3e7, distT: 3e7, q: new THREE.Quaternion(), pan: [0, 0, 0], trans: null, sel: null, panelMode: null, plan: null, planTarget: null, pred: null, predT: 0, predKey: '', W: innerWidth, H: innerHeight, lastClick: 0 };
+  const S = { conic: (settings && settings.conic) || 'body', on: false, focus: 'craft', dist: 3e7, distT: 3e7, q: new THREE.Quaternion(), pan: [0, 0, 0], trans: null, sel: null, panelMode: null, plan: null, planTarget: null, pred: null, predT: 0, predKey: '', W: innerWidth, H: innerHeight, lastClick: 0 };
   S.q.setFromEuler(new THREE.Euler(1.0, 0, 0.6, 'ZXY'));
   const tNow = () => getF().tAbs;
   function craftAbs(t = tNow()) { const F = getF(), v = F.v, b = F.body, s = P.absState(b, t); return V.add(s.r, mv(P.frameOf(b), v.r)); }
@@ -150,11 +151,19 @@ export function createSolarMap(opts) {
   function curPatchEnd() { const pr = S.pred; return pr && pr.patches[0] ? pr.patches[0].t1 : Infinity; }
   function addNodeAt(t) {
     const F = getF();
-    if (t > curPatchEnd() + 1) { toast('Nodes go on the current orbit (before the next SOI change) — warp to the SOI change first', '#ffb35c'); return; }
-    const n = F.addNode({ t: Math.max(t, F.tAbs + 60) }); selectNode(n); S.predKey = ''; toast('Maneuver node added — drag the handles or type Δv', '#9cc3ff');
+    const n = F.addNode({ t: Math.max(t, F.tAbs + 60) }); selectNode(n); S.predKey = '';
+    const pa = patchAt(n.t); toast(pa && pa.body !== F.body ? `Maneuver node added in ${B[pa.body].name}'s SOI — drag the handles or type Δv` : 'Maneuver node added — drag the handles or type Δv', '#9cc3ff');
   }
   function selectNode(n) { S.sel = n; S.panelMode = n ? 'node' : null; renderPanel(); }
-  function nodeState(n) { const F = getF(), v = F.v, s = P.propagate(v.r, v.v, n.t - F.tAbs, P.muOf(v)); return s; }
+  // the predicted patch the craft is on at time t (a node's patch is the one ending at it: the state before its burn)
+  function patchAt(t, n) { const pr = S.pred; if (!pr) return null; if (n) { const e = pr.patches.find(p => p.end.node === n); if (e) return e; } return pr.patches.find(p => p.t0 <= t + 1e-6 && t <= p.t1 + 1e-6) || null; }
+  function nodeState(n) { const F = getF(), v = F.v, pa = patchAt(n.t, n);
+    if (!pa) { const s = P.propagate(v.r, v.v, n.t - F.tAbs, P.muOf(v)); return { ...s, body: F.body, pa: null }; }
+    const s = P.propagate(pa.r0, pa.v0, n.t - pa.t0, B[pa.body].mu); return { ...s, body: pa.body, pa }; }
+  // where a body-frame position r of patch pa (at game time tm) is drawn, in the current conic mode
+  function patchPos(pa, r, tm) { const Fb = P.frameOf(pa.body), b = B[pa.body];
+    if (S.conic === 'parent' && b.kind === 'moon' && b.parent && b.parent !== 'sun') { const Fp = P.frameOf(b.parent); return V.add(V.add(bodies[b.parent].rel, mv(Fp, P.relState(pa.body, tm).r)), mv(Fb, r)); }
+    return V.add(bodies[pa.body].rel, mv(Fb, r)); }
   function handleMove(e) {
     const n = S.sel; if (!n || !hdrag) return; const hs = hdrag.scr; if (!hs) return;
     const dx = e.clientX - hdrag.x, dy = e.clientY - hdrag.y; hdrag.x = e.clientX; hdrag.y = e.clientY;
@@ -174,7 +183,7 @@ export function createSolarMap(opts) {
   // ---------- panel ----------
   function showBody(id) { S.panelMode = 'body'; S.bodyId = id; renderPanel(); }
   function renderPanel(soft) {
-    const F = getF(); panel.classList.toggle('hidden', !S.panelMode);
+    const F = getF(); panel.classList.toggle('hidden', !S.panelMode); document.body.classList.toggle('mapPanelOn', !!S.panelMode); panel.dataset.mode = S.panelMode || '';
     if (S.panelMode === 'node' && S.sel && F.nodes.includes(S.sel)) {
       const n = S.sel, dv = C.nodeDv(n), bt = F.nodeBurnTime(n), i = F.nodes.indexOf(n);
       if (soft && panel.querySelector('#nPro')) { for (const k of ['pro', 'nrm', 'rad']) { const inp = panel.querySelector('#n' + k[0].toUpperCase() + k.slice(1)); if (document.activeElement !== inp) inp.value = n[k].toFixed(1); } panel.querySelector('#nSum').innerHTML = nodeSum(n); return; }
@@ -200,6 +209,13 @@ export function createSolarMap(opts) {
       }
       const tgt = F.target; h += `<div class="nrow"><button data-a2="fix" title="Small correction burn to hit ${tgt ? B[tgt].name : 'the target'} (after the main burn)">Fix encounter</button><button data-a2="closep">Close</button></div>`;
       panel.innerHTML = h;
+    } else if (S.panelMode === 'alarms') {
+      const al = F.alarms;
+      panel.innerHTML = `<h4>⏰ Alarms</h4><div class="pl">${al.length ? al.map((a, i) => `<div class="nrow"><span style="flex:1">${a.label} · in <b>${fmtDur(a.t - F.tAbs)}</b></span><button data-al="${i}" class="bad" title="Delete">✕</button></div>`).join('') : '<i>No alarms. Warp stops at an alarm.</i>'}</div>
+        <div class="nrow"><button data-aa="node">Before next node</button><button data-aa="soi">At SOI change</button><button data-aa="ap">At Ap</button><button data-aa="pe">At Pe</button></div>
+        <div class="nrow"><button data-aa="600">+10 min</button><button data-aa="3600">+1 h</button><button data-aa="86400">+1 day</button><button data-aa="w">+1 week</button><button data-a2="closep">Close</button></div>`;
+    } else if (S.panelMode === 'dv') {
+      panel.innerHTML = `<h4>Δv map</h4>${dvTable ? dvTable(F) : ''}<div class="nrow"><button data-a2="closep">Close</button></div>`;
     } else if (S.panelMode === 'body') {
       const id = S.bodyId, b = B[id], F2 = F; const atm = b.atm ? (b.atm === 'ussa76' ? 'air (USSA76)' : `${b.atm.name || 'atmosphere'}, top ${fmtD(P.atmTop(id))}`) : 'none';
       panel.innerHTML = `<h4>${b.name}</h4><div class="pl">Radius ${fmtD(b.R)} · GM ${b.mu.toExponential(3)} m³/s²<br>${b.parent ? `SOI ${fmtD(b.soi)} · orbit ${fmtD(b.a)} · period ${fmtDur(b.period)}<br>` : ''}Day ${fmtDur(Math.abs(2 * Math.PI / b.omega))}${b.omega < 0 ? ' (retrograde)' : ''} · tilt ${b.tilt.toFixed(1)}° · atmosphere ${atm}</div>
@@ -212,6 +228,8 @@ export function createSolarMap(opts) {
     if (t.dataset.d && n) { const [k, d] = t.dataset.d.split(':'); n[k] += +d; n.started = false; S.predKey = ''; renderPanel(true); return; }
     if (t.dataset.t && n) { const o = P.orbitOf(F.v); n.t += t.dataset.t === 'orbit' ? (isFinite(o.T) ? o.T : 3600) : +t.dataset.t; n.t = Math.max(n.t, F.tAbs + 30); F.nodes.sort((a, b) => a.t - b.t); S.predKey = ''; renderPanel(true); return; }
     if (t.dataset.pt) { runPlanner(t.dataset.pt); return; }
+    if (t.dataset.al !== undefined) { F.removeAlarm(F.alarms[+t.dataset.al]); renderPanel(); return; }
+    if (t.dataset.aa) { addAlarmKind(t.dataset.aa); renderPanel(); return; }
     const a = t.dataset.a2; if (!a) return;
     if (a === 'closep') { S.panelMode = null; renderPanel(); }
     if (a === 'del' && n) { F.removeNode(n); S.sel = F.nodes[0] || null; S.panelMode = S.sel ? 'node' : null; S.predKey = ''; renderPanel(); }
@@ -235,8 +253,19 @@ export function createSolarMap(opts) {
     if (a === 'node') addNodeAt(F.tAbs + 600);
     if (a === 'plan') { S.panelMode = S.panelMode === 'plan' ? null : 'plan'; if (S.panelMode === 'plan' && !S.plan) { const ts = plannerTargets(); if (ts.length) runPlanner(F.target && ts.includes(F.target) ? F.target : ts[0]); } renderPanel(); }
     if (a === 'warp') warpNext();
+    if (a === 'alarms' || a === 'dv') { S.panelMode = S.panelMode === a ? null : a; renderPanel(); }
+    if (a === 'conic') { S.conic = S.conic === 'body' ? 'parent' : 'body'; e.target.textContent = S.conic === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; onChange && onChange('conic', S.conic); toast(S.conic === 'body' ? 'Patches drawn relative to their own body' : "A moon's patches drawn as seen from its planet", '#9cc3ff'); }
     if (a === 'close') onChange && onChange('close');
   });
+  function addAlarmKind(k) {
+    const F = getF(), v = F.v, mu = P.muOf(v); let at = null, label = '';
+    if (k === 'node') { const n = F.nodes[0]; if (n) { at = n.t - F.nodeBurnTime(n) / 2 - 300; label = 'maneuver in 5 min'; } }
+    else if (k === 'soi') { const ev = C.nextEvent(F.body, v.r, v.v, F.tAbs, 3e9, { stopAlt: 0 }); if (ev && /soi/.test(ev.type)) { at = F.tAbs + ev.dt - 600; label = (ev.type === 'soi-enter' ? B[ev.to].name + ' encounter' : 'SOI exit') + ' in 10 min'; } }
+    else if (k === 'ap' || k === 'pe') { const dt = k === 'ap' ? P.timeToAp(v.r, v.v, mu) : C.timeToPe(v.r, v.v, mu); if (isFinite(dt)) { at = F.tAbs + dt - 60; label = (k === 'ap' ? 'apoapsis' : 'periapsis') + ' in 1 min'; } }
+    else { const d = k === 'w' ? 7 * 86400 : +k; at = F.tAbs + d; label = fmtDur(d) + ' alarm'; }
+    if (at === null || !(at > F.tAbs)) { toast('Nothing to set an alarm on', '#ffb35c'); return; }
+    F.addAlarm(at, label); toast('⏰ Alarm set: ' + label, '#9cc3ff');
+  }
   function warpNext() { const F = getF(); if (F.nodes.length) return F.warpToNode(); const v = F.v, ev = C.nextEvent(F.body, v.r, v.v, F.tAbs, 3e9, { stopAlt: 0 }); if (ev && (ev.type === 'soi-exit' || ev.type === 'soi-enter') && ev.dt < 4e8) return F.warpToSOI(); return F.warpToApsis(P.orbitOf(v).e < 1 ? 'ap' : 'pe'); }
   // ---------- per-frame ----------
   const tmpV = new THREE.Vector3(); let craftScr = null, trajPick = [];
@@ -258,7 +287,7 @@ export function createSolarMap(opts) {
     camera.position.copy(back); camera.quaternion.copy(S.q); camera.near = Math.max(0.5, S.dist * 1e-4); camera.far = Math.max(1e13, S.dist * 1e3);
     { // keep the focus in the free part of the screen (not under the toolbar or the side panel)
       const pe = document.getElementById('mapPanel'), be = document.getElementById('mapBar'), pr = pe && !pe.classList.contains('hidden') ? pe.getBoundingClientRect() : null, br = be ? be.getBoundingClientRect() : null;
-      const tx = pr && pr.left > S.W * 0.35 ? (S.W - pr.left) / 2 : 0, ty = br && br.height ? Math.min(S.H * 0.2, (S.H - br.top) / 2) : 0;
+      const tx = pr && pr.left > S.W * 0.35 ? (S.W - pr.left) / 2 : 0, ty = pr && pr.left <= S.W * 0.35 && pr.top > S.H * 0.25 ? Math.min(S.H * 0.35, (S.H - pr.top) / 2) : br && br.height ? Math.min(S.H * 0.2, (S.H - br.top) / 2) : 0; // full-width panel (phone portrait): shift up
       S.vo = S.vo || [0, 0]; const k = Math.min(1, rdt * 6); S.vo[0] += (tx - S.vo[0]) * k; S.vo[1] += (ty - S.vo[1]) * k;
       if (Math.abs(S.vo[0]) + Math.abs(S.vo[1]) > 0.5) camera.setViewOffset(S.W, S.H, S.vo[0], S.vo[1], S.W, S.H); else camera.clearViewOffset();
     }
@@ -308,18 +337,23 @@ export function createSolarMap(opts) {
     traj.forEach((L, i) => {
       const pa = pr && pr.patches[i]; L.set(!!pa); if (!pa) return;
       const babs = bodies[pa.body].abs, Fb = P.frameOf(pa.body), arr = L.geo.attributes.position.array, n = Math.min(pa.pts.length, L.n), rel0 = V.sub(babs, origin);
-      // the drawn path is relative to the body's CURRENT position (patched-conics convention)
-      for (let k = 0; k < n; k++) { const q = mv(Fb, pa.pts[k]); arr[k * 3] = q[0]; arr[k * 3 + 1] = q[1]; arr[k * 3 + 2] = q[2]; }
-      L.geo.attributes.position.needsUpdate = true; L.geo.setDrawRange(0, n); L.a.position.set(...rel0); L.b.position.copy(L.a.position);
+      const tD = pa.o.e < 1 ? Math.min(pa.t1 - pa.t0, pa.o.T) : pa.t1 - pa.t0, par = B[pa.body].parent, asParent = S.conic === 'parent' && par && par !== 'sun' && B[pa.body].kind === 'moon';
+      // patched-conics convention: the path is drawn relative to the body's CURRENT position ('body'), or for a
+      // moon's patch as it moves with the moon around its planet ('parent' mode)
+      if (asParent) { if (!pa.ptsP) { const Fp = P.frameOf(par); pa.ptsP = pa.pts.map((q, k) => V.add(mv(Fp, P.relState(pa.body, pa.t0 + tD * k / (pa.pts.length - 1)).r), mv(Fb, q))); }
+        const o2 = bodies[par].rel; for (let k = 0; k < n; k++) { const q = pa.ptsP[k]; arr[k * 3] = q[0]; arr[k * 3 + 1] = q[1]; arr[k * 3 + 2] = q[2]; } L.a.position.set(...o2); }
+      else { for (let k = 0; k < n; k++) { const q = mv(Fb, pa.pts[k]); arr[k * 3] = q[0]; arr[k * 3 + 1] = q[1]; arr[k * 3 + 2] = q[2]; } L.a.position.set(...rel0); }
+      L.geo.attributes.position.needsUpdate = true; L.geo.setDrawRange(0, n); L.b.position.copy(L.a.position);
+      const pp = (r, dtm) => patchPos(pa, r, pa.t0 + dtm);
       L.color(pa.t0 > t + 1 && F.nodes.some(nd => Math.abs(nd.t - pa.t0) < 1) ? 0xffd23a : PATCH_COL[i % PATCH_COL.length]);
       const tDraw = pa.o.e < 1 ? Math.min(pa.t1 - pa.t0, pa.o.T) : pa.t1 - pa.t0;
-      for (let k = 0; k < n; k += 3) { const q = mv(Fb, pa.pts[k]), p = project(V.add(rel0, q)); if (p.z < 1) trajPick.push({ x: p.x, y: p.y, t: pa.t0 + tDraw * k / (n - 1) }); }
+      for (let k = 0; k < n; k += 3) { const p = project(asParent ? V.add(bodies[par].rel, pa.ptsP[k]) : V.add(rel0, mv(Fb, pa.pts[k]))); if (p.z < 1) trajPick.push({ x: p.x, y: p.y, t: pa.t0 + tDraw * k / (n - 1) }); }
       // apsides
       const o = pa.o, mu = B[pa.body].mu, rb = B[pa.body].R;
-      const tp = C.timeToPe(pa.r0, pa.v0, mu); if (isFinite(tp) && tp < pa.t1 - pa.t0) { const s = P.propagate(pa.r0, pa.v0, tp, mu); const d = marker(`Pe ${fmtD(o.rp - rb)}`, 'pe'); place(d, V.add(rel0, mv(Fb, s.r))); }
-      if (o.e < 1) { const ta = P.timeToAp(pa.r0, pa.v0, mu); if (isFinite(ta) && ta < pa.t1 - pa.t0) { const s = P.propagate(pa.r0, pa.v0, ta, mu); const d = marker(`Ap ${fmtD(o.ra - rb)}`, 'ap'); place(d, V.add(rel0, mv(Fb, s.r))); } }
-      if (pa.end.type === 'soi-enter' || pa.end.type === 'soi-exit') { const s = P.propagate(pa.r0, pa.v0, pa.t1 - pa.t0, mu); const d = marker(pa.end.type === 'soi-enter' ? `⊙ ${B[pa.end.to].name} encounter · ${fmtDur(pa.t1 - t)}` : `SOI exit · ${fmtDur(pa.t1 - t)}`, 'enc'); place(d, V.add(rel0, mv(Fb, s.r))); }
-      if (pa.end.type === 'surface' || pa.end.type === 'atmosphere') { const s = P.propagate(pa.r0, pa.v0, pa.t1 - pa.t0, mu); const d = marker(pa.end.type === 'surface' ? '✖ impact' : '≋ atmosphere', 'imp'); place(d, V.add(rel0, mv(Fb, s.r))); }
+      const tp = C.timeToPe(pa.r0, pa.v0, mu); if (isFinite(tp) && tp < pa.t1 - pa.t0) { const s = P.propagate(pa.r0, pa.v0, tp, mu); const d = marker(`Pe ${fmtD(o.rp - rb)}`, 'pe'); place(d, pp(s.r, tp)); }
+      if (o.e < 1) { const ta = P.timeToAp(pa.r0, pa.v0, mu); if (isFinite(ta) && ta < pa.t1 - pa.t0) { const s = P.propagate(pa.r0, pa.v0, ta, mu); const d = marker(`Ap ${fmtD(o.ra - rb)}`, 'ap'); place(d, pp(s.r, ta)); } }
+      if (pa.end.type === 'soi-enter' || pa.end.type === 'soi-exit') { const s = P.propagate(pa.r0, pa.v0, pa.t1 - pa.t0, mu); const d = marker(pa.end.type === 'soi-enter' ? `⊙ ${B[pa.end.to].name} encounter · ${fmtDur(pa.t1 - t)}` : `SOI exit · ${fmtDur(pa.t1 - t)}`, 'enc'); place(d, pp(s.r, pa.t1 - pa.t0)); }
+      if (pa.end.type === 'surface' || pa.end.type === 'atmosphere') { const s = P.propagate(pa.r0, pa.v0, pa.t1 - pa.t0, mu); const d = marker(pa.end.type === 'surface' ? '✖ impact' : '≋ atmosphere', 'imp'); place(d, pp(s.r, pa.t1 - pa.t0)); }
       // AN / DN relative to the target's orbit plane (target orbiting this patch's body or the same parent)
       const tg = F.target; if (tg && B[tg].parent === pa.body && pa.body === F.body && i === 0) {
         const ts = P.relState(tg, t), nT = V.norm(V.cross(ts.r, ts.v));
@@ -332,16 +366,19 @@ export function createSolarMap(opts) {
     if (S.ca && S.ca.t && !S.ca.inside && F.target) { const tg = F.target, pa = pr.patches.find(p => p.t0 <= S.ca.t && p.t1 >= S.ca.t) || pr.patches[0], s = P.propagate(pa.r0, pa.v0, S.ca.t - pa.t0, B[pa.body].mu);
       const cr = V.add(V.sub(bodies[pa.body].abs, origin), mv(P.frameOf(pa.body), s.r)); place(marker(`CA ${fmtD(S.ca.d)} · ${fmtDur(S.ca.t - t)}`, 'ca'), cr);
       const tr = V.sub(P.absState(tg, S.ca.t).r, origin); place(marker(`${B[tg].name} at CA`, 'ca2'), V.add(tr, V.sub(bodies[pa.body].abs, P.absState(pa.body, S.ca.t).r))); }
-    // nodes and handles
-    F.nodes.forEach((n, i) => { if (n.t < t) return; const s = nodeState(n), nr = V.add(V.sub(craftAbs(t), origin), V.sub(mv(P.frameOf(F.body), s.r), mv(P.frameOf(F.body), v.r)));
+    // ballistic impact with drag (from flight; refreshed about once a second)
+    const im = F._imp; if (im && im.body === F.body && im.t > t) place(marker(`✖ impact (drag) ${fmtDur(im.t - t)} · ${fmtV(im.speed)}`, 'imp'), V.add(bodies[F.body].rel, mv(P.frameOf(F.body), im.r)));
+    // nodes and handles (a node can sit on a later patch: drawn in that patch's body frame)
+    F.nodes.forEach((n, i) => { if (n.t < t) return; const s = nodeState(n), nr = s.pa ? patchPos(s.pa, s.r, n.t) : V.add(V.sub(craftAbs(t), origin), V.sub(mv(P.frameOf(F.body), s.r), mv(P.frameOf(F.body), v.r))); n._body = s.body;
       const d = marker(`◆ ${fmtV(C.nodeDv(n))} · ${fmtDur(n.t - t)}`, 'nodem' + (n === S.sel ? ' sel' : '')); d.dataset.node = i; const p = place(d, nr); n._rel = nr; n._scr = p; });
     for (let k = markerN; k < markerPool.length; k++) markerPool[k].style.display = 'none';
     const n = S.sel && F.nodes.includes(S.sel) ? S.sel : null;
     handles.forEach(hd => { hd.style.display = 'none'; });
     if (n && n._scr) {
-      const s = nodeState(n), f = C.nodeFrame(s.r, s.v), Fb = P.frameOf(F.body), L = S.dist * 0.09;
+      const s = nodeState(n), f = C.nodeFrame(s.r, s.v), Fb = P.frameOf(s.body), L = S.dist * 0.09;
       const dirs = { pro: f.pro, ret: V.scale(f.pro, -1), nrm: f.nrm, anti: V.scale(f.nrm, -1), rad: f.rad, radin: V.scale(f.rad, -1) };
-      handles.forEach(hd => { const k = hd.dataset.h, w = V.add(n._rel, V.scale(mv(Fb, dirs[k]), L)), p = place(hd, w, -14, -14); if (p) { let ux = p.x - n._scr.x, uy = p.y - n._scr.y; const l = Math.hypot(ux, uy) || 1; ux /= l; uy /= l; if (l < 20) { /* edge-on: push out on screen */ hd.style.transform = `translate(${(n._scr.x + ux * 40 - 14).toFixed(1)}px,${(n._scr.y + uy * 40 - 14).toFixed(1)}px)`; } if (hdrag && hdrag.h === k) hdrag.scr = { ux, uy }; hd._u = { ux, uy }; } });
+      const lay = layoutHandles(n._scr, k => project(V.add(n._rel, V.scale(mv(Fb, dirs[k]), L))), touch ? 30 : 22, touch ? 58 : 44);
+      handles.forEach(hd => { const k = hd.dataset.h, h = lay[k]; if (!h) { hd.style.display = 'none'; return; } hd.style.display = ''; hd.style.transform = `translate(${(h.x - 14).toFixed(1)}px,${(h.y - 14).toFixed(1)}px)`; hd._u = { ux: h.ux, uy: h.uy }; if (hdrag && hdrag.h === k) hdrag.scr = hd._u; });
       if (hdrag && !hdrag.scr) { const hd = handles.find(h => h.dataset.h === hdrag.h); hdrag.scr = hd._u; }
     }
     // info strip
@@ -363,7 +400,7 @@ export function createSolarMap(opts) {
   }
   function show(on) { S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on); if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist()); if (!S.inited) { S.inited = true; S.dist = S.distT = niceDist('craft'); } $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); } }
   function reset() { S.focus = 'craft'; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.panelMode = null; S.plan = null; S.pred = null; S.inited = false; renderPanel(); }
-  return { scene, camera, update, show, reset, key, setFocus, setView, cycle, zoomBy, runPlanner, selectNode, addNodeAt, warpNext, state: S,
+  return { scene, camera, update, show, reset, key, patchAt, get conic() { return S.conic; }, setConic: c => { S.conic = c; const b = document.querySelector('#mapBar [data-a=conic]'); if (b) b.textContent = c === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; }, setFocus, setView, cycle, zoomBy, runPlanner, selectNode, addNodeAt, warpNext, state: S,
     setCam: (q, dist) => { if (q) S.q.set(q[0], q[1], q[2], q[3]).normalize(); if (dist) { S.dist = S.distT = dist; } },
     openPlanner: tg => { S.panelMode = 'plan'; runPlanner(tg); }, get panelMode() { return S.panelMode; }, get plan() { return S.plan; } };
 }
