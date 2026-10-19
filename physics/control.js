@@ -2,15 +2,15 @@
 // and the tests. Output is a body-frame torque command (N·m) that dynamics.js splits between reaction
 // wheels, engine gimbal and RCS. Body axes: +Y nose, +Z heading/"belly" (east on the pad), +X = Y x Z.
 // Pitch = about X (W tips the nose toward +Z), roll = about Y, yaw = about Z.
-import { R_E } from './constants.js?v=mb1';
-import { sub, scale, dot, cross, len, norm, qrot, qinv, clamp } from './vec.js?v=mb1';
-import { authority, airVel, engineOut } from './dynamics.js?v=mb1';
-import { stackGeom, massProps } from './vehicle.js?v=mb1';
-import { atmosphere } from './atmosphere.js?v=mb1';
+import { R_E } from './constants.js?v=ss1';
+import { sub, scale, dot, cross, len, norm, qrot, qinv, clamp } from './vec.js?v=ss1';
+import { authority, airVel, engineOut, radOf, atmAt } from './dynamics.js?v=ss1';
+import { stackGeom, massProps } from './vehicle.js?v=ss1';
+import { atmosphere } from './atmosphere.js?v=ss1';
 export const SAS_MODES = ['off', 'stab', 'prograde', 'retrograde', 'radial', 'antiradial', 'normal', 'antinormal'];
 export const SAS_LABEL = { off: 'OFF', stab: 'STABILITY', prograde: 'PROGRADE', retrograde: 'RETROGRADE', radial: 'RADIAL OUT', antiradial: 'RADIAL IN', normal: 'NORMAL', antinormal: 'ANTI-NORMAL' };
 // Prograde reference: air-relative below 40 km (what the airflow sees), inertial (orbital) above.
-export function progradeOf(v) { const h = len(v.r) - R_E, vel = h < 40000 ? airVel(v) : v.v; return len(vel) > 1 ? norm(vel) : norm(v.r); }
+export function progradeOf(v) { const h = len(v.r) - radOf(v), vel = h < 40000 ? airVel(v) : v.v; return len(vel) > 1 ? norm(vel) : norm(v.r); }
 export function sasDir(v, mode) {
   const pg = progradeOf(v), up = norm(v.r), nrm = norm(cross(v.r, v.v));
   const rad = norm(sub(up, scale(pg, dot(up, pg))));
@@ -38,7 +38,7 @@ export function steerTorque(v, dir, ctx) {
 }
 // Combine pilot input (v.input: pitch/yaw/roll in -1..1), AUTO steering (v.steerDir) and SAS into v.cmdTorque.
 export function updateControl(v) {
-  const g = stackGeom(v), mp = massProps(v, g), T = engineOut(v, atmosphere(len(v.r) - R_E).p).T, auth = authority(v, g, mp, T), ctx = { g, mp, auth };
+  const g = stackGeom(v), mp = massProps(v, g), T = engineOut(v, atmAt(v, len(v.r) - radOf(v)).p).T, auth = authority(v, g, mp, T), ctx = { g, mp, auth };
   const inp = v.input || { pitch: 0, yaw: 0, roll: 0 }, manual = [inp.pitch, inp.roll, inp.yaw];
   let tau = [0, 0, 0];
   const target = v.steerDir || (v.sas && v.sas !== 'off' ? sasDir(v, v.sas) : null);

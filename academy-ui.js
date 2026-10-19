@@ -1,10 +1,10 @@
 // Academy UI: menu, first-run prompt, lesson panel with live step guidance and HUD highlights, concept cards
 // with small interactive plots, and the in-flight Learn overlay. Logic lives in academy.js (tested headlessly).
-import * as P from './physics.js?v=mb1';
-import { ORBIT_DV, designStats } from './parts.js?v=mb1';
-import { isTouch } from './mobile.js?v=mb1';
-import { localize, keyLabel } from './wording.js?v=mb1';
-import { LESSONS, Tutor, GLOSSARY, loadProgress, saveProgress, isUnlocked, isDone, markPassed, markSkipped, nextLesson, fmt } from './academy.js?v=mb1';
+import * as P from './physics.js?v=ss1';
+import { ORBIT_DV, designStats } from './parts.js?v=ss1';
+import { isTouch } from './mobile.js?v=ss1';
+import { localize, keyLabel } from './wording.js?v=ss1';
+import { LESSONS, Tutor, GLOSSARY, loadProgress, saveProgress, isUnlocked, isDone, markPassed, markSkipped, nextLesson, fmt } from './academy.js?v=ss1';
 
 const KEYCAP = { Space: 'SPACE', Shift: 'Shift', Ctrl: 'Ctrl' };
 const TOUCH = isTouch();

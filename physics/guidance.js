@@ -2,11 +2,11 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=mb1';
-import { add, scale, dot, cross, len, norm, clamp } from './vec.js?v=mb1';
-import { elements, timeToAp } from './kepler.js?v=mb1';
-import { airVel, stepPoint } from './dynamics.js?v=mb1';
-import { massOf } from './vehicle.js?v=mb1';
+import { R_E, MU_E, KARMAN } from './constants.js?v=ss1';
+import { add, scale, dot, cross, len, norm, clamp } from './vec.js?v=ss1';
+import { elements, timeToAp } from './kepler.js?v=ss1';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=ss1';
+import { massOf } from './vehicle.js?v=ss1';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -24,12 +24,12 @@ export const pitchOfVec = (vec, f) => Math.atan2(dot(vec, f.hd), dot(vec, f.up))
 export const dirOfPitch = (p, f) => norm(add(scale(f.up, Math.cos(p)), scale(f.hd, Math.sin(p))));
 export const thrustAccel = v => { const s = v.stages[v.cur]; return s && s.fuel > 0 && s.eng ? s.eng.tv * 1000 * s.n / (massOf(v) * 1000) : 0; };
 export function circBurn(v) {
-  const o = elements(v.r, v.v); if (!isFinite(o.ra)) return { dv: 0, tb: 0 };
-  const dv = Math.max(0, Math.sqrt(MU_E / o.ra) - o.hm / o.ra), a = thrustAccel(v);
+  const o = elements(v.r, v.v, muOf(v), radOf(v)); if (!isFinite(o.ra)) return { dv: 0, tb: 0 };
+  const dv = Math.max(0, Math.sqrt(muOf(v) / o.ra) - o.hm / o.ra), a = thrustAccel(v);
   return { dv, tb: a > 0 ? dv / a : Infinity };
 }
 function holdPitch(v, f, vrDes, k, cosMax = 0.999) {
-  const r = len(v.r), vr = dot(v.v, f.up), vh = len(add(v.v, scale(f.up, -vr))), aT = thrustAccel(v) * Math.max(v.throttle || 1, 0.3), g = MU_E / (r * r);
+  const r = len(v.r), vr = dot(v.v, f.up), vh = len(add(v.v, scale(f.up, -vr))), aT = thrustAccel(v) * Math.max(v.throttle || 1, 0.3), g = muOf(v) / (r * r);
   if (aT <= 0) return Math.PI / 2;
   return Math.acos(clamp((g - vh * vh / r + (vrDes - vr) * k) / aT, -0.3, cosMax));
 }
@@ -66,7 +66,7 @@ export function autoGuide(v) {
   }
   v.guid = ph;
   let pitch, thr;
-  const s = v.stages[v.cur], m = massOf(v) * 1000, g = MU_E / (r * r);
+  const s = v.stages[v.cur], m = massOf(v) * 1000, g = muOf(v) / (r * r);
   if (ph === 'ascent') {
     if (spAir < 70) pitch = clamp((h - 150) / 4000, 0, 0.04);
     else {
@@ -102,7 +102,7 @@ export function autoGuide(v) {
 // ---------- booster (3-DOF) autopilot: entry burn, then a throttled landing burn ----------
 export function boosterAutopilot(b) {
   const up = norm(b.r), h = len(b.r) - R_E, va = airVel(b, b.r, b.v), sp = len(va), vr = dot(va, up);
-  const s = b.stages[0], g = MU_E / dot(b.r, b.r);
+  const s = b.stages[0], g = muOf(b) / dot(b.r, b.r);
   if (!b.manual) b.dir = sp > 2 ? scale(va, -1 / sp) : up;
   if (vr > 0 || s.fuel <= 0) { b.throttle = 0; b.phase = s.fuel <= 0 ? 'no fuel' : 'coast'; return; }
   if (h < 70000 && h > 30000 && sp > 1100 && !b.landing && !b.entryDone) { b.n = Math.min(3, b.nMax); b.throttle = 1; b.phase = 'entry burn'; return; }

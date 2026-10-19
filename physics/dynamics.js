@@ -4,21 +4,29 @@
 // drag 0.5 rho V^2 Cd(M) A, body+fin normal force at the centre of pressure, RCS. Torques: aero (CoP vs CoM)
 // plus aerodynamic damping, engine gimbal, reaction wheels, RCS. Integrated with fixed-step RK4.
 // Each step leaves v.tel (telemetry) for the HUD, the lessons and the effects system.
-import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=mb1';
-import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=mb1';
-import { atmosphere } from './atmosphere.js?v=mb1';
-import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=mb1';
-import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=mb1';
-import { stackGeom, massProps } from './vehicle.js?v=mb1';
-import { propagate } from './kepler.js?v=mb1';
-export const omegaOf = v => (v.earthRot === false ? 0 : OMEGA_E);
-export const altOf = v => len(v.r) - R_E;
+import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=ss1';
+import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=ss1';
+import { atmosphere } from './atmosphere.js?v=ss1';
+import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=ss1';
+import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=ss1';
+import { stackGeom, massProps } from './vehicle.js?v=ss1';
+import { propagate } from './kepler.js?v=ss1';
+import { BODIES, bodyAtm } from './solar.js?v=ss1';
+// The craft's SOI body (patched conics): v.body is a body id (default Earth). Gravity, radius, spin and
+// atmosphere all come from it; for Earth these are exactly the constants used before the solar system.
+export const bodyOf = v => BODIES[(v && v.body) || 'earth'];
+export const muOf = v => (v && v.body && v.body !== 'earth' ? BODIES[v.body].mu : MU_E);
+export const radOf = v => (v && v.body && v.body !== 'earth' ? BODIES[v.body].R : R_E);
+export const omegaOf = v => (v.earthRot === false ? 0 : v.body && v.body !== 'earth' ? BODIES[v.body].omega : OMEGA_E);
+const VAC = Object.freeze({ T: 3, p: 0, rho: 0, a: 300, layer: 'vacuum' });
+export const atmAt = (v, z) => (!v.body || v.body === 'earth' ? atmosphere(z) : bodyAtm(v.body, z) || VAC);
+export const altOf = v => len(v.r) - radOf(v);
 export const upOf = v => norm(v.r);
 export const noseOf = v => qrot(v.q, [0, 1, 0]);
 export const airVel = (v, r = v.r, vel = v.v) => { const w = omegaOf(v); return [vel[0] + w * r[1], vel[1] - w * r[0], vel[2]]; };
 // Launch site / Earth-fixed point at time t: rotates with the Earth.
 export function siteAt(v, t) {
-  const th = omegaOf(v) * t, s = v.site, r = rotZ(scale(s.ef, R_E + s.lift), th), w = omegaOf(v);
+  const th = omegaOf(v) * t, s = v.site, r = rotZ(scale(s.ef, radOf(v) + s.lift), th), w = omegaOf(v);
   return { r, v: [-w * r[1], w * r[0], 0], q: qmul(qAxisAngle([0, 0, 1], th), s.q0) };
 }
 // Engine thrust (N) and mass flow (kg/s) of the current stage at ambient pressure p.
@@ -55,7 +63,7 @@ function allocate(v, g, mp, T, cmd) {
 }
 // Aerodynamic force (world, N) and torque (body, N·m) plus flow data, for a state.
 export function aeroAt(v, g, mp, r, vel, q, w) {
-  const alt = len(r) - R_E, atm = atmosphere(alt), va = airVel(v, r, vel), V = len(va);
+  const alt = len(r) - radOf(v), atm = atmAt(v, alt), va = airVel(v, r, vel), V = len(va);
   const out = { F: [0, 0, 0], tau: [0, 0, 0], atm, V, mach: V / atm.a, qd: 0.5 * atm.rho * V * V, alpha: 0, cd: 0, cn: 0, ycp: g.yNose, flowBody: [0, -1, 0], alt };
   if (atm.rho <= 0 || V < 0.5) return out;
   const u = scale(va, 1 / V), b = qrot(q, [0, 1, 0]), cosA = clamp(dot(b, u), -1, 1), alpha = Math.acos(cosA), sa = Math.sin(alpha), ca = Math.abs(cosA);
@@ -93,21 +101,21 @@ export function aeroAt(v, g, mp, r, vel, q, w) {
 // body, -1..1), v.rcsOn. Returns null or 'ground'.
 export function stepVehicle(v, dt) {
   const t = v.clock || 0, g = stackGeom(v), mp = massProps(v, g), m = mp.m;
-  const atm0 = atmosphere(len(v.r) - R_E), eo = engineOut(v, atm0.p), T = eo.T;
+  const mu = muOf(v), Rb = radOf(v), atm0 = atmAt(v, len(v.r) - Rb), eo = engineOut(v, atm0.p), T = eo.T;
   const al = allocate(v, g, mp, T, v.cmdTorque || [0, 0, 0]);
   const tr = v.trans || [0, 0, 0], rcsF = v.rcsOn && g.rcs && v.rcsFuel > 0 ? g.rcs.F * 1000 * 2 : 0;
   const fT = [al.fLat[0] + tr[0] * rcsF, Math.sqrt(Math.max(0, T * T - al.fLat[0] ** 2 - al.fLat[2] ** 2)) + tr[1] * rcsF, al.fLat[2] + tr[2] * rcsF];
   const rcsUse = al.rcsUse + (Math.abs(tr[0]) + Math.abs(tr[1]) + Math.abs(tr[2])) * rcsF;
   const I = [mp.Ixx, mp.Iyy, mp.Ixx];
   if (v.clamped) {
-    const up = norm(v.r), fUp = dot(qrot(v.q, fT), up), wgt = m * MU_E / dot(v.r, v.r);
+    const up = norm(v.r), fUp = dot(qrot(v.q, fT), up), wgt = m * mu / dot(v.r, v.r);
     if (fUp <= wgt) { const s = siteAt(v, t + dt); v.r = s.r; v.v = s.v; v.q = s.q; v.w = [0, 0, 0]; v.clock = t + dt; burn(v, eo, rcsUse, dt, g); tele(v, g, mp, aeroAt(v, g, mp, v.r, v.v, v.q, v.w), T, eo, [0, 0, 0]); return null; }
     v.clamped = false;
   }
   let a0 = null;
   const deriv = (r, vel, q, w) => {
     const rm = len(r), aero = aeroAt(v, g, mp, r, vel, q, w);
-    const Fw = add(qrot(q, fT), aero.F), acc = add(scale(r, -MU_E / (rm * rm * rm)), scale(Fw, 1 / m));
+    const Fw = add(qrot(q, fT), aero.F), acc = add(scale(r, -mu / (rm * rm * rm)), scale(Fw, 1 / m));
     const tau = add(al.tau, aero.tau), Iw = [I[0] * w[0], I[1] * w[1], I[2] * w[2]], gyro = cross(w, Iw);
     const dw = [(tau[0] - gyro[0]) / I[0], (tau[1] - gyro[1]) / I[1], (tau[2] - gyro[2]) / I[2]];
     const dq = qmul(q, [0, w[0], w[1], w[2]]).map(x => x * 0.5);
@@ -122,7 +130,7 @@ export function stepVehicle(v, dt) {
   burn(v, eo, rcsUse, dt, g);
   tele(v, g, mp, a0.aero, T, eo, a0.ng);
   heat(v, g, dt);
-  if (len(v.r) < R_E) return 'ground';
+  if (len(v.r) < Rb) return 'ground';
   return null;
 }
 function burn(v, eo, rcsUse, dt, g) {
@@ -154,15 +162,15 @@ function heat(v, g, dt) {
 }
 // "On rails": exact Kepler coast (no drag, no thrust), attitude frozen. For high time warp outside the air.
 export function railsStep(v, dt) {
-  const s = propagate(v.r, v.v, dt); v.r = s.r; v.v = s.v; v.w = [0, 0, 0]; v.clock = (v.clock || 0) + dt; v.thrust = 0;
-  if (v.tel) { v.tel.alt = len(v.r) - R_E; v.tel.q = 0; v.tel.mach = 0; v.tel.machShown = null; v.tel.gload = 0; v.tel.heat = 0; v.tel.ablating = 0; }
+  const s = propagate(v.r, v.v, dt, muOf(v)); v.r = s.r; v.v = s.v; v.w = [0, 0, 0]; v.clock = (v.clock || 0) + dt; v.thrust = 0;
+  if (v.tel) { v.tel.alt = len(v.r) - radOf(v); v.tel.q = 0; v.tel.mach = 0; v.tel.machShown = null; v.tel.gload = 0; v.tel.heat = 0; v.tel.ablating = 0; }
   // skins relax radiatively toward the ~300 K equilibrium of a sunlit/shadowed orbit while on rails
   const k = Math.exp(-dt / 300);
   for (let i = v.cur; i < v.stages.length; i++) for (const p of v.stages[i].parts) if (p.Ts !== undefined) { p.Ts = 300 + (p.Ts - 300) * k; p.Ti = 300 + (p.Ti - 300) * k; }
 }
 // ---------- 3-DOF point mass (spent boosters and debris): drag with Cd(M), ideal attitude ----------
 export function stepPoint(b, dt) {
-  const rm = len(b.r), alt = rm - R_E, atm = atmosphere(alt), va = airVel(b, b.r, b.v), V = len(va);
+  const rm = len(b.r), alt = rm - radOf(b), atm = atmAt(b, alt), va = airVel(b, b.r, b.v), V = len(va);
   const s = b.stages[0]; let T = 0;
   if (s && b.throttle > 0 && s.fuel > 0) {
     const pr = Math.min(1, atm.p / P0), Tvac = s.eng.tv * 1000 * b.n * b.throttle, isp = s.eng.ispVac - (s.eng.ispVac - s.eng.ispSl) * pr;
@@ -171,9 +179,9 @@ export function stepPoint(b, dt) {
   b.thrust = T / 1000;
   const m = (s ? s.dry + s.fuel : 1) * 1000 + (b.extra || 0) * 1000;
   const M = V / atm.a, qd = 0.5 * atm.rho * V * V; b.qk = qd / 1000; b.mach = M;
-  let acc = scale(b.r, -MU_E / (rm * rm * rm));
+  let acc = scale(b.r, -muOf(b) / (rm * rm * rm));
   if (T > 0) acc = add(acc, scale(b.dir, T / m));
   if (V > 0.5 && atm.rho > 0) acc = add(acc, scale(va, -qd * b.cdA * cd0(M) / 0.5 / m / V * 0.5));
   b.v = add(b.v, scale(acc, dt)); b.r = add(b.r, scale(b.v, dt)); b.clock = (b.clock || 0) + dt;
-  return len(b.r) < R_E ? 'ground' : null;
+  return len(b.r) < radOf(b) ? 'ground' : null;
 }

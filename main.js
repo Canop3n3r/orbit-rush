@@ -1,13 +1,13 @@
 import * as THREE from 'three/webgpu';
-import * as P from './physics.js?v=mb1';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN } from './flight.js?v=mb1';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass, buildVehicle, aeroBalance } from './parts.js?v=mb1';
-import { FX } from './fx.js?v=mb1';
-import { createAcademy } from './academy-ui.js?v=mb1';
-import { createMobile, isTouch } from './mobile.js?v=mb1';
-import { localize } from './wording.js?v=mb1';
+import * as P from './physics.js?v=ss1';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN } from './flight.js?v=ss1';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass, buildVehicle, aeroBalance } from './parts.js?v=ss1';
+import { FX } from './fx.js?v=ss1';
+import { createAcademy } from './academy-ui.js?v=ss1';
+import { createMobile, isTouch } from './mobile.js?v=ss1';
+import { localize } from './wording.js?v=ss1';
 const TOUCH = isTouch();
-import { QUALITY, QUALITY_ORDER, plumeShape, skinGlow } from './fxmap.js?v=mb1';
+import { QUALITY, QUALITY_ORDER, plumeShape, skinGlow } from './fxmap.js?v=ss1';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -15,7 +15,7 @@ import { QUALITY, QUALITY_ORDER, plumeShape, skinGlow } from './fxmap.js?v=mb1';
 const { R, ATM, V } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-export const BUILD = '2026-10-19-mb1';
+export const BUILD = '2026-10-19-ss1';
 const DEG = 180 / Math.PI;
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
@@ -472,7 +472,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=mb1', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=ss1', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
