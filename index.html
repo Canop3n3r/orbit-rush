@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Orbit Rush — WebGPU rocket launch game</title>
+<meta name="description" content="Build a rocket, fly a gravity turn, reach orbit and land the booster. Free in your browser, powered by WebGPU.">
+<meta property="og:title" content="Orbit Rush 🚀"><meta property="og:description" content="Build a rocket. Reach orbit. Land the booster. WebGPU in your browser.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js"}}</script>
+</head><body>
+<div id="badge">…</div>
+<div id="build" class="panel">
+  <h1>ORBIT RUSH</h1><p class="sub">Build it. Launch it. Orbit it. Land it.</p>
+  <div class="row"><label>First-stage engines</label><div class="opts" data-k="engines"></div></div>
+  <div class="row"><label>First-stage fuel</label><div class="opts" data-k="s1fuel"></div></div>
+  <div class="row"><label>Upper-stage fuel</label><div class="opts" data-k="s2fuel"></div></div>
+  <div class="row"><label>Payload</label><div class="opts" data-k="payload"></div></div>
+  <div id="stats"></div>
+  <button id="launchBtn" class="big">ROLL TO PAD ▶</button>
+  <details><summary>How to fly</summary><ul>
+    <li><b>Space</b> ignite / stage &nbsp; <b>W/S</b> throttle &nbsp; <b>Z/X</b> full/cut</li>
+    <li><b>A/D</b> pitch &nbsp; <b>F</b> auto-turn &nbsp; <b>M</b> map &nbsp; <b>B</b> booster cam &nbsp; <b>T</b> time warp &nbsp; <b>R</b> restart</li>
+    <li>Ignite, then press <b>F</b> for AUTO-TURN (or fly the gravity turn yourself with A/D). Throttle back (S) when it says HIGH Q.</li>
+    <li>Cut engines when apoapsis (Ap) &gt; 75 km, coast up, then burn prograde near Ap until periapsis (Pe) &gt; 70 km = ORBIT.</li>
+    <li>Stage with fuel left in the booster and it will try to land itself on the droneship for bonus points.</li>
+  </ul></details>
+</div>
+<div id="hud" class="hidden">
+  <div id="tele"></div>
+  <div id="bars"><div class="bar"><span>THR</span><i id="thrBar"></i></div><div class="bar"><span>S1</span><i id="f1Bar"></i></div><div class="bar"><span>S2</span><i id="f2Bar"></i></div></div>
+  <div id="hint"></div><div id="toasts"></div>
+  <div id="score"></div>
+</div>
+<div id="touch" class="hidden">
+  <div class="tl"><button data-k="KeyA">◀</button><button data-k="KeyD">▶</button><button data-t="KeyF" id="tProg">AUTO</button></div>
+  <div class="tr"><button data-k="KeyW">THR+</button><button data-k="KeyS">THR−</button><button data-t="Space" class="stage">STAGE</button>
+  <button data-t="KeyM">MAP</button><button data-t="KeyB">BOOST</button><button data-t="KeyT">WARP</button></div>
+</div>
+<div id="end" class="panel hidden"><h2 id="endTitle"></h2><div id="endBody"></div>
+  <button id="shareBtn" class="big">Share score</button><button id="xBtn">Post on X</button><button id="againBtn">Fly again</button><button id="contBtn">Keep flying</button></div>
+<script type="module" src="main.js"></script>
+</body></html>
