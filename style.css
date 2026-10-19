@@ -453,5 +453,8 @@ body.touch #split button{min-width:var(--tap);min-height:var(--tap)}
 #hud.hidden ~ #topStack>#hint,#hud.hidden ~ #topStack>#toasts{display:none!important}
 @media (max-height:430px){#toasts div:not(:last-child){display:none}#topStack>#hint{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}#toasts div{-webkit-line-clamp:1}#topStack>#callout b{font-size:16px}}
 @media (max-height:430px){body.touch #nav{--nb:84px;gap:2px}body.touch .navWrap{height:calc(var(--nb) + 56px)}}
-@media (orientation:portrait){body.touch #topStack{top:calc(170px + var(--sat))}}
+@media (orientation:portrait){body.touch #topStack{top:calc(194px + var(--sat))}}
 @media (max-height:430px){#topStack:has(#callout.show)>#toasts{display:none}#topStack{gap:5px}}
+/* hangar: no layout shift when the AUTO verdict arrives; launch stays reachable on phones */
+#verdict{min-height:4.2em}#landPlan{min-height:2.8em}
+body.touch .builder #launchBtn{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:6}
