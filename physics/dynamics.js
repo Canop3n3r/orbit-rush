@@ -4,13 +4,13 @@
 // drag 0.5 rho V^2 Cd(M) A, body+fin normal force at the centre of pressure, RCS. Torques: aero (CoP vs CoM)
 // plus aerodynamic damping, engine gimbal, reaction wheels, RCS. Integrated with fixed-step RK4.
 // Each step leaves v.tel (telemetry) for the HUD, the lessons and the effects system.
-import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=pv2';
-import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=pv2';
-import { atmosphere } from './atmosphere.js?v=pv2';
-import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=pv2';
-import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=pv2';
-import { stackGeom, massProps } from './vehicle.js?v=pv2';
-import { propagate } from './kepler.js?v=pv2';
+import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=fx1';
+import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=fx1';
+import { atmosphere } from './atmosphere.js?v=fx1';
+import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=fx1';
+import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=fx1';
+import { stackGeom, massProps } from './vehicle.js?v=fx1';
+import { propagate } from './kepler.js?v=fx1';
 export const omegaOf = v => (v.earthRot === false ? 0 : OMEGA_E);
 export const altOf = v => len(v.r) - R_E;
 export const upOf = v => norm(v.r);

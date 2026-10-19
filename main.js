@@ -1,7 +1,9 @@
 import * as THREE from 'three/webgpu';
-import * as P from './physics.js?v=pv2';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos } from './flight.js?v=pv2';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass, buildVehicle, aeroBalance } from './parts.js?v=pv2';
+import * as P from './physics.js?v=fx1';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN } from './flight.js?v=fx1';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass, buildVehicle, aeroBalance } from './parts.js?v=fx1';
+import { FX } from './fx.js?v=fx1';
+import { QUALITY, QUALITY_ORDER, plumeShape, skinGlow } from './fxmap.js?v=fx1';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -9,7 +11,7 @@ import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validat
 const { R, ATM, V } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-export const BUILD = '2026-10-19-pv2';
+export const BUILD = '2026-10-19-fx1';
 const DEG = 180 / Math.PI;
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
@@ -31,6 +33,13 @@ if (isGPU) { $('badge').textContent = '⚡ WebGPU'; $('badge').classList.add('gp
 else { $('badge').textContent = 'WebGL2 ⓘ'; $('badge').title = 'WebGPU unavailable: ' + gpuReason; console.warn('[Orbit Rush] Using WebGL2 fallback — reason:', gpuReason); }
 $('badge').onclick = () => toast(isGPU ? 'Rendering with WebGPU' : 'WebGL2 fallback: ' + gpuReason, '#9cc3ff');
 if (renderer.backend.device) renderer.backend.device.lost.then(i => console.warn('[Orbit Rush] WebGPU device lost:', i.message));
+// ---------- effects (fx.js): GPU compute particles on WebGPU, CPU-integrated particles on WebGL2 ----------
+const FXQ_KEY = 'orbitrush.fxq';
+let fxQuality = (() => { const q = params.get('fx') || localStorage.getItem(FXQ_KEY); return QUALITY[q] ? q : 'high'; })(), fxAuto = 0;
+const fxLocked = QUALITY[params.get('fx')] !== undefined; // ?fx=high|med|low pins the quality (no auto-lowering)
+const fxGPU = params.has('fxgpu') || (isGPU && !params.has('fxcpu'));
+const fx = new FX({ gpu: fxGPU, quality: fxQuality });
+console.info('[Orbit Rush] Effects:', fxGPU ? 'GPU compute particles' : 'CPU particles (WebGL2 path)', '· quality', fxQuality);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x7ab8ff);
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.5, 3e8);
@@ -181,7 +190,13 @@ const M = {
   grey: new THREE.MeshStandardMaterial({ color: 0x8a9099, roughness: 0.5, metalness: 0.5 }),
   plume: new THREE.MeshBasicMaterial({ color: 0xffb066, transparent: true, opacity: 0.85, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }),
   plumeCore: new THREE.MeshBasicMaterial({ color: 0xbfe0ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }),
+  diamond: new THREE.MeshBasicMaterial({ color: 0xfff2d0, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }),
+  canopy: new THREE.MeshStandardMaterial({ color: 0xff7a2a, roughness: 0.8, side: THREE.DoubleSide }),
+  canopyW: new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.8, side: THREE.DoubleSide }),
+  line: new THREE.LineBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.7 }),
 };
+// parts that glow when hot get their own material (emissive driven by the skin temperature, thermal.js)
+const hotMat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.3, emissive: 0x000000, ...o });
 const PART_COL = { sat: 0xc9a34a, probe: 0xb8c4d6, crew: 0xdddddd };
 const cyl = (r0, r1, h, mat, y, g, seg = 32) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, h, seg), mat); m.position.y = y + h / 2; g.add(m); return m; };
 function bells(g, n, y, h, r) {
@@ -197,23 +212,38 @@ function makePlume(w) {
   const g = new THREE.Group();
   const outer = new THREE.Mesh(new THREE.ConeGeometry(w, 1, 24, 1, true), M.plume); outer.rotation.x = Math.PI; outer.position.y = -0.5; g.add(outer);
   const core = new THREE.Mesh(new THREE.ConeGeometry(w * 0.45, 1, 16, 1, true), M.plumeCore); core.rotation.x = Math.PI; core.position.y = -0.5; g.add(core);
+  // shock diamonds (Mach disks) in the core while the jet is near ambient pressure (low altitude)
+  const dia = new THREE.Group(); for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(w * 0.32, 12, 8), M.diamond); m.scale.y = 0.45; dia.add(m); }
+  g.add(dia); g.userData = { dia, w };
   g.visible = false; return g;
+}
+// Parachute canopies (drogues, mains), drawn downstream of the canister along the airflow.
+function makeChutes() {
+  const g = new THREE.Group(), dome = (r, mat) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2.2), mat); return m; };
+  const dro = new THREE.Group(), main = new THREE.Group();
+  for (let i = 0; i < 2; i++) { const m = dome(3.5, M.canopy); m.position.set((i ? 1 : -1) * 3.2, 0, 0); dro.add(m); }
+  for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2, m = dome(12.5, i % 2 ? M.canopy : M.canopyW); m.position.set(Math.cos(a) * 11, 0, Math.sin(a) * 11); main.add(m); }
+  const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6 * 3 * 2), 3));
+  const lines = new THREE.LineSegments(lg, M.line); lines.frustumCulled = false;
+  g.add(dro, main, lines); g.userData = { dro, main, lines }; g.visible = false; return g;
 }
 function makeRocketGroups(design) {
   const vv = buildVehicle(design), out = [];
   vv.stages.forEach((s, si) => {
-    const g = new THREE.Group(); let y = 0, engH = 0, payloadY = null, bellW = 1, nEng = 0, rMax = 1.25;
-    for (const p of s.parts) {
+    const g = new THREE.Group(); let y = 0, engH = 0, payloadY = null, bellW = 1, nEng = 0, rMax = 1.25; const hot = [];
+    for (const [pi, p] of s.parts.entries()) {
       if (p.kind === 'fins' || p.kind === 'fairing') continue;
       const r = p.d / 2; rMax = Math.max(rMax, r);
+      if (p.kind === 'shield') { const m = cyl(r * 1.03, r * 1.03, p.h, hotMat(p.id === 'tile' ? 0x26262a : 0x6b4528, { roughness: 0.9, metalness: 0 }), y, g); hot.push({ pi, mat: m.material }); y += p.h; continue; }
+      if (p.kind === 'chute') { const m = cyl(r * 0.55, r, p.h, hotMat(0x9aa0a8), y, g); hot.push({ pi, mat: m.material }); y += p.h; continue; }
       if (p.kind === 'engine') { if (y === 0) engH = p.h; bellW = bells(g, p.n || 1, y, p.h, r); nEng += p.n || 1; }
       else if (p.kind === 'tank') { cyl(r, r, p.h, M.white, y, g); cyl(r + 0.02, r + 0.02, Math.min(1.2, p.h * 0.12), M.black, y + p.h - Math.min(1.2, p.h * 0.12), g); }
       else if (p.kind === 'decoupler') cyl(r, r, p.h, M.black, y, g);
       else if (p.kind === 'rcs') { cyl(r, r, p.h, M.grey, y, g); for (let i = 0; i < 4; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), M.black); const a = i * Math.PI / 2; b.position.set(Math.cos(a) * (r + 0.15), y + p.h / 2, Math.sin(a) * (r + 0.15)); g.add(b); } }
       else {
         if (payloadY === null) payloadY = y;
-        if (p.id === 'crew') cyl(0.75, r, p.h, new THREE.MeshStandardMaterial({ color: PART_COL.crew, roughness: 0.5, metalness: 0.3 }), y, g);
-        else if (p.id === 'probe') cyl(r * 0.7, r, p.h, new THREE.MeshStandardMaterial({ color: PART_COL.probe, metalness: 0.6, roughness: 0.3 }), y, g, 8);
+        if (p.id === 'crew') hot.push({ pi, mat: cyl(0.75, r, p.h, hotMat(PART_COL.crew, { roughness: 0.5, metalness: 0.3 }), y, g).material });
+        else if (p.id === 'probe') hot.push({ pi, mat: cyl(r * 0.7, r, p.h, hotMat(PART_COL.probe, { metalness: 0.6, roughness: 0.3 }), y, g, 8).material });
         else { const m = new THREE.Mesh(new THREE.BoxGeometry(p.d * 0.75, p.h, p.d * 0.75), new THREE.MeshStandardMaterial({ color: PART_COL[p.id] || PART_COL.sat, metalness: 0.6, roughness: 0.3 })); m.position.y = y + p.h / 2; g.add(m); }
       }
       y += p.h;
@@ -233,7 +263,7 @@ function makeRocketGroups(design) {
       for (let i = 0; i < 4; i++) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.35, 9, 0.35), M.black); const a = i * Math.PI / 2 + 0.78; l.position.set(Math.cos(a) * (rMax + 2), 2.2, Math.sin(a) * (rMax + 2)); l.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); legs.add(l); }
       legs.visible = false; g.add(legs);
     }
-    g.userData = { h: y, plume, legs, fair, fairH: fair ? 1.6 * fp.d : 0 };
+    g.userData = { h: y, plume, legs, fair, fairH: fair ? 1.6 * fp.d : 0, hot, stage: si };
     out.push(g);
   });
   return out;
@@ -300,11 +330,13 @@ function beep(f = 880) { if (!ac) return; const o = ac.createOscillator(), g = a
 // ---------- hangar: part-based builder ----------
 const LS_KEY = 'orbitrush.designs.v1';
 let design = cloneDesign(TEMPLATES[0]), selected = -1;
-const TYPE_ORDER = [['pod', 'Command'], ['payload', 'Payload'], ['fairing', 'Payload'], ['tank', 'Fuel tanks'], ['engine', 'Engines'], ['decoupler', 'Structure'], ['fins', 'Structure']];
-const TYPE_COL = { pod: '#9cc3ff', payload: '#e0b84a', fairing: '#e8e8e8', tank: '#f2f2f2', engine: '#ff9a3c', decoupler: '#888', fins: '#555' };
+const TYPE_ORDER = [['pod', 'Command'], ['payload', 'Payload'], ['fairing', 'Payload'], ['tank', 'Fuel tanks'], ['engine', 'Engines'], ['decoupler', 'Structure'], ['fins', 'Structure'], ['rcs', 'Structure'], ['shield', 'Recovery'], ['chute', 'Recovery']];
+const TYPE_COL = { pod: '#9cc3ff', payload: '#e0b84a', fairing: '#e8e8e8', tank: '#f2f2f2', engine: '#ff9a3c', decoupler: '#888', fins: '#555', rcs: '#8a9099', shield: '#7a4a2a', chute: '#ff7a3c' };
 const partStat = (id, p) => { const d = PARTS[id];
   if (d.type === 'engine') return `${d.tv} kN · Isp ${d.ispSl}/${d.ispVac} s · ${d.m} t`;
   if (d.type === 'tank') return `${d.fuel} t fuel · ${(d.fuel * TANK_DRY).toFixed(1)} t empty`;
+  if (d.type === 'shield') return `${d.m} t · max ${d.heat.Tmax.toLocaleString()} K${d.heat.abl ? ' · ablative' : ' · reusable'}`;
+  if (d.type === 'chute') return `${d.m} t · drogue + 3 mains`;
   return `${(p ? partMass(p) : d.m).toFixed(1)} t${d.mult ? ' · ×' + d.mult + ' score' : ''}`; };
 function buildPalette() {
   const el = $('palette'); el.innerHTML = ''; let lastH = '';
@@ -385,18 +417,38 @@ function refreshBuild() {
     <div class="small">Stage 1 TWR is at sea level, upper stages in vacuum. Δv uses mean Isp for stage 1. Full-scale Earth: orbit is ~7.8 km/s plus ~1.5 km/s of gravity, drag and steering losses.</div>`;
   $('launchBtn').disabled = !val.ok; $('launchBtn').textContent = val.ok ? 'ROLL TO PAD ▶' : 'Fix the design to launch';
   clearTimeout(planTimer); const key = JSON.stringify(design.parts);
-  if (val.ok) planTimer = setTimeout(() => { // fly the design on AUTO headlessly: verdict + booster-landing advice
+  if (val.ok) planTimer = setTimeout(() => { // fly the design on AUTO headlessly (Web Worker): verdict + booster-landing advice
     if (JSON.stringify(design.parts) !== key || !$('verdict')) return;
-    const a = assessDesign(design, { earthRot }); $('verdict').innerHTML = `<span class="${a.level}">${a.text}</span>`;
-    const p = planBuild(design, { earthRot }), el = $('landPlan'); const s1 = design && stats.analysis.stages[0];
+    requestVerdict(design, (a, p) => {
+    if (JSON.stringify(design.parts) !== key || !$('verdict')) return;
+    $('verdict').innerHTML = `<span class="${a.level}">${a.text}</span>`;
+    const el = $('landPlan'); const s1 = design && stats.analysis.stages[0];
     if (p.reason === 'single') el.innerHTML = '<span class="small">Single-stage rocket: no booster to land.</span>';
     else if (p.reason) el.innerHTML = '';
     else if (p.minReserve === null) el.innerHTML = '<span class="warn">⚠ Booster landing: this booster can\'t keep enough fuel to land. Add stage-1 fuel or use fewer engines.</span>';
     else if (!p.orbit) el.innerHTML = `<span class="warn">⚠ Booster landing needs ~${p.minReserve.toFixed(1)} t left at staging, but then the upper stages can't reach orbit.</span>`;
     else el.innerHTML = `<span class="good">✔ Booster can land: stage with ≥ ${p.minReserve.toFixed(1)} t left (of ${s1.fuel} t). AUTO alone stages it dry.</span>`;
+    });
   }, 250);
   renderSaved();
   if (state === 'build') showPreview();
+}
+// Verdict sims run in worker.js so the hangar never stalls; only the newest request's answer is shown.
+let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
+try {
+  if (!params.has('noworker')) {
+    verdictWorker = new Worker(new URL('./worker.js?v=fx1', import.meta.url), { type: 'module' });
+    verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
+      if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
+      if (cb && id === verdictId) cb(a, p); };
+    verdictWorker.onerror = e => { console.warn('[Orbit Rush] verdict worker unavailable, using the main thread', e.message || ''); verdictWorker = null; e.preventDefault && e.preventDefault();
+      const cb = verdictCbs.get(verdictId); verdictCbs.clear(); if (cb) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); };
+  }
+} catch (e) { verdictWorker = null; }
+function requestVerdict(d, cb) {
+  const id = ++verdictId, dd = cloneDesign(d);
+  if (verdictWorker) { cb.design = dd; verdictCbs.clear(); verdictCbs.set(id, cb); verdictWorker.postMessage({ id, design: dd, earthRot }); return; }
+  cb(assessDesign(dd, { earthRot }), planBuild(dd, { earthRot }));
 }
 // templates + saved designs (localStorage)
 TEMPLATES.forEach((t, i) => {
@@ -435,12 +487,15 @@ const hooks = {
   boosterLost: (b, moving) => { explode(b.r, moving ? b.v : siteVel(b), false); b.mesh.visible = false; b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
   boosterLanded: b => { b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
   fail: () => { explode(v.r, v.v, true); rocketG.visible = false; },
+  chute: st => { if (st === 'failed') for (let k = 0; k < 30; k++) smoke.spawn(V.sub(v.r, V.scale(P.noseOf(v), -stackL() * 0.5)), jit(v.v, 12), 2, 1, 4, 0xff7a3c, null, 0.6); },
+  recovered: () => { const up = V.norm(v.r); for (let k = 0; k < 60; k++) smoke.spawn(v.r, V.add(siteVel(v), V.add(V.scale(up, 4 + Math.random() * 10), [rnd(10), rnd(10), rnd(10)])), 2 + Math.random() * 2, 2, 9, 0xeaf4ff, null, 0.9); },
   end: (ms, cond) => later(() => { if (cond()) showEnd(); }, ms),
 };
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
 function detachStage(i) {
   const g = SG[i]; rocketG.remove(g); scene.add(g); g.position.set(0, 0, 0); g.userData.plume.visible = false; burst(0.5, 0.6, 1500); beep(660);
   let y = 0; for (let j = i + 1; j < SG.length; j++) { SG[j].position.y = y; y += SG[j].userData.h; }
+  if (y < 14 && camDist > 45) camDist = 38; // a small capsule: bring the chase camera in
   const sep = V.sub(v.r, V.scale(P.noseOf(v), v.tel.ycom));
   for (let k = 0; k < 25; k++) smoke.spawn(sep, jit(v.v, 20), 1.5, 2, 8, 0xdddddd, null, 0.5);
   return g;
@@ -452,14 +507,23 @@ function showPreview() {
   let y = 0; for (const g of SG) { g.position.y = y; y += g.userData.h; rocketG.add(g); } scene.add(rocketG);
   F = new Flight(validate(design).ok ? design : TEMPLATES[0], hooks, { padZ: PAD_Z, earthRot }); v = F.v;
   rocketG.add(comMark, copMark);
+  fx.attach(rocketG); chuteVis = makeChutes(); rocketG.add(chuteVis);
+  for (const g of SG) for (const hp of g.userData.hot) hp.part = v.stages[g.userData.stage] && v.stages[g.userData.stage].parts[hp.pi];
 }
+// Re-stack the visible stage groups from v.cur (used after F.placeInOrbit in the ?scenario=orbit start)
+function syncStages() {
+  for (let j = 0; j < v.cur && j < SG.length; j++) SG[j].visible = false;
+  let y = 0; for (let j = v.cur; j < SG.length; j++) { SG[j].position.y = y; y += SG[j].userData.h; }
+  const f = SG.length && SG[SG.length - 1].userData.fair; if (f && v.fairing <= 0) f.visible = false;
+}
+let chuteVis = null;
 function reset() {
   gen++;
   if (booster && booster.mesh) scene.remove(booster.mesh);
   for (const d of debris) scene.remove(d.mesh); debris.length = 0;
   if (shipVis) earth.remove(shipVis);
   shipVis = null; booster = null; camMode = 'chase';
-  camDist = 90; camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8;
+  camDist = 90; camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8; camAim = 0.45;
   fire.clear(); smoke.clear(); for (const k in keys) keys[k] = false;
   if (swingArm) swingArm.rotation.y = 0;
   $('end').classList.add('hidden'); $('toasts').innerHTML = '';
@@ -467,6 +531,11 @@ function reset() {
 }
 function launch() {
   initAudio(); reset(); state = 'flight';
+  const sc = params.get('scenario');
+  if (sc === 'orbit' || sc === 'reentry') { // dev/test start: the capsule stack parked in orbit (optionally already deorbiting)
+    F.placeInOrbit(+(params.get('alt') || 170000)); syncStages(); camDist = 60;
+    if (sc === 'reentry') F.deorbit();
+  }
   document.activeElement && document.activeElement.blur();
   $('build').classList.add('hidden'); $('hud').classList.remove('hidden');
   if (matchMedia('(pointer:coarse)').matches) $('touch').classList.remove('hidden');
@@ -476,7 +545,7 @@ function goBuild() {
   $('hud').classList.add('hidden'); $('touch').classList.add('hidden'); $('ignite').classList.add('hidden'); $('build').classList.remove('hidden');
   refreshBuild();
 }
-let camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8;
+let camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
 $('earthRot').checked = earthRot;
 $('earthRot').onchange = e => { earthRot = e.target.checked; try { localStorage.setItem(ER_KEY, earthRot ? '1' : '0'); } catch (x) { } reset(); refreshBuild(); };
 reset(); refreshBuild();
@@ -484,7 +553,7 @@ $('launchBtn').onclick = e => { e.currentTarget.blur(); launch(); };
 $('againBtn').onclick = () => goBuild();
 $('relaunchBtn').onclick = () => launch();
 $('contBtn').onclick = () => { $('end').classList.add('hidden'); F.unfinish(); F.endQueued = true; };
-function shareText() { const sc = F.score(); return `🚀 I scored ${sc.toLocaleString()} in Orbit Rush${F.flags.orbit ? ' — reached a full-scale orbit' : ''}${F.flags.boosterBonus ? ' and landed the booster' : ''}! Can you beat it?`; }
+function shareText() { const sc = F.score(); return `🚀 I scored ${sc.toLocaleString()} in Orbit Rush${F.flags.orbit ? ' — reached a full-scale orbit' : ''}${F.flags.boosterBonus ? ' and landed the booster' : ''}${F.flags.recovered ? ' and brought the capsule home' : ''}! Can you beat it?`; }
 $('shareBtn').onclick = async () => { const t = shareText(), url = location.href.split('?')[0]; try { if (navigator.share) await navigator.share({ text: t, url }); else { await navigator.clipboard.writeText(t + ' ' + url); $('shareBtn').textContent = 'Copied!'; } } catch (e) { } };
 $('xBtn').onclick = () => open('https://x.com/intent/post?text=' + encodeURIComponent(shareText()) + '&url=' + encodeURIComponent(location.href.split('?')[0]), '_blank');
 function toast(msg, color = '#7dffa6') { const d = document.createElement('div'); d.textContent = msg; d.style.color = color; $('toasts').appendChild(d); setTimeout(() => d.remove(), 3000); while ($('toasts').children.length > 3) $('toasts').firstChild.remove(); }
@@ -498,6 +567,7 @@ function press(code) {
   if (state !== 'flight') return;
   initAudio();
   if (code === 'KeyR') { goBuild(); return; }
+  if (code === 'KeyU') { cycleFx(); return; }
   if (code === 'KeyM') { camMode = camMode === 'map' ? (flyingBooster() ? 'booster' : 'chase') : 'map'; return; }
   if (code === 'KeyT') { F.autoWarp = false; F.setWarp(F.warpI + 1 >= WARPS.length ? 0 : F.warpI + 1); return; }
   if (code === 'Comma') { F.autoWarp = false; F.setWarp(F.warpI - 1); return; }
@@ -511,6 +581,9 @@ function press(code) {
     if (code === 'KeyF') { b.retro = !b.retro; toast(b.retro ? 'Holding retrograde' : 'Manual tilt', '#9cc3ff'); }
     return;
   }
+  if (code === 'KeyO') { if (F.ret) F.cancelReturn(); else F.deorbit(); return; }
+  if (code === 'KeyP') { F.deployChute(); return; }
+  if (F.ret && F.ret.auto && ['KeyZ', 'KeyX'].includes(code)) F.setAuto(false);
   if (v.auto && ['KeyZ', 'KeyX', 'KeyF'].includes(code)) { F.takeOverUpper(); if (code === 'KeyF') return; }
   if (code === 'Space') { const r = F.stagePress(); if (r === 'ignite') $('ignite').classList.add('hidden'); }
   if (code === 'KeyZ') v.ut = 1;
@@ -539,6 +612,8 @@ $('apBtn').onclick = e => { e.currentTarget.blur(); press('KeyG'); };
 $('flyBtn').onclick = e => { e.currentTarget.blur(); press('KeyY'); };
 $('sasBtn').onclick = e => { e.currentTarget.blur(); const i = P.SAS_MODES.indexOf(v.sas); F.setSAS(P.SAS_MODES[(i + 1) % P.SAS_MODES.length]); };
 $('rcsBtn').onclick = e => { e.currentTarget.blur(); press('KeyC'); };
+$('deoBtn').onclick = e => { e.currentTarget.blur(); press('KeyO'); };
+$('chuteBtn').onclick = e => { e.currentTarget.blur(); press('KeyP'); };
 const zoomLim = d => Math.min(5000, Math.max(20, d));
 renderer.domElement.addEventListener('wheel', e => { if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * (1 + e.deltaY * 0.001))); else camDist = zoomLim(camDist * (1 + e.deltaY * 0.001)); }, { passive: true });
 const pts = new Map();
@@ -566,6 +641,7 @@ function readControls(rdt) {
   const tr = [k1('KeyL', 'KeyJ'), k1('KeyH', 'KeyN'), k1('KeyI', 'KeyK')];
   const any = inp.pitch || inp.yaw || inp.roll || tr.some(Boolean);
   if (any && v.auto) F.takeOverUpper();
+  if (any && F.ret && F.ret.auto) F.setAuto(false);
   if (any && F.autoOn && !v.clamped) { F.setAuto(false, true); toast('Manual control — SAS ' + P.SAS_LABEL[v.sas], '#9cc3ff'); $('tProg').classList.remove('on'); }
   if (keys.ShiftLeft || keys.ShiftRight || keys.ArrowUp) v.ut = Math.min(1, v.ut + rdt * 0.8);
   if (keys.ControlLeft || keys.ControlRight || keys.ArrowDown) v.ut = Math.max(0, v.ut - rdt * 0.8);
@@ -584,10 +660,11 @@ function explode(pos, vel, big) {
 }
 function showEnd() {
   if (F.ended) return; const score = F.finish();
-  const flags = F.flags, o = P.orbitOf(v), ok = flags.orbit && !flags.dead;
-  $('endTitle').innerHTML = flags.dead ? '💥 Rapid Unscheduled Disassembly' : ok ? '🛰️ Orbit achieved!' : flags.stranded ? '🪂 Out of fuel — suborbital' : '🪂 Mission over';
+  const flags = F.flags, o = F.orbitSnap ? F.orbitSnap.o : P.orbitOf(v), ok = flags.orbit && !flags.dead;
+  $('endTitle').innerHTML = flags.recovered ? '🪂 Orbit and home!' : flags.dead ? (/burned up|overheated/.test(flags.dead) ? '🔥 Burned up' : '💥 Rapid Unscheduled Disassembly') : ok ? '🛰️ Orbit achieved!' : flags.stranded ? '🪂 Out of fuel — suborbital' : '🪂 Mission over';
   const lines = [];
   if (flags.dead) lines.push(`<span class="bad">Cause: ${flags.dead}</span>`);
+  if (flags.recovered) lines.push(`<span class="good">✔ Recovered — touchdown at ${flags.touchdown.toFixed(1)} m/s · peak heating ${(F.maxHeat / 1000).toFixed(0)} kW/m² · peak skin ${F.maxTskin.toFixed(0)} K · ${F.maxGret.toFixed(1)} g on entry</span>`);
   if (flags.stranded && !flags.dead) lines.push(`<span class="warn">${F.advice()}</span>`);
   lines.push(`Max altitude: ${((flags.maxAlt || 0) / 1000).toFixed(1)} km · Max-Q: ${(F.maxQ / 1000).toFixed(1)} kPa · max ${F.maxG.toFixed(1)} g · Δv used ${(F.dvUsed / 1000).toFixed(2)} km/s`);
   if (flags.space) lines.push('<span class="good">✔ Reached space (Kármán line, 100 km)</span>');
@@ -616,8 +693,12 @@ function emit(veh, group, dt, bottom, dir) {
   const plume = group.userData.plume; const on = veh.thrust > 0.01;
   plume.visible = on; if (!on || dt <= 0) return;
   const h = V.len(veh.r) - R, p = P.pressureRatio(h), thr = veh.throttle;
-  const len = (8 + 14 * thr) * (1 + (1 - p) * 1.5), wid = (1 + (1 - p) * 1.2) * (0.6 + 0.4 * thr);
+  // underexpanded jet (fxmap.plumeShape): the plume widens ~sqrt(pe/pa) as the ambient pressure drops
+  const ps = plumeShape(p * 101325, thr), len = (8 + 14 * thr) * ps.length, wid = Math.min(4.5, 1 + (ps.width - 1) * 0.45) * (0.6 + 0.4 * thr);
   plume.scale.set(wid, len, wid); plume.children[0].material.opacity = 0.5 + 0.4 * Math.random();
+  const ud = plume.userData, dia = ud.dia; dia.visible = QUALITY[fx.q].diamonds && ps.diamonds > 0.02;
+  if (dia.visible) { M.diamond.opacity = ps.diamonds * (0.55 + 0.3 * Math.random());
+    dia.children.forEach((m, i) => { m.position.y = -(1.1 + i * 1.35) * ud.w * wid / len; m.scale.set(1 - i * 0.12, 1.4 * wid / len, 1 - i * 0.12); }); }
   const n = Math.min(6, Math.ceil(dt * 120));
   for (let i = 0; i < n; i++) {
     const sp = 60 + Math.random() * 40, spread = 6 + (1 - p) * 30;
@@ -669,12 +750,13 @@ SPD   ${fmtN(sp)} m/s orbital · ${fmtN(tel.vAir)} m/s air
 V/S   ${vr.toFixed(0)} m/s
 Ap    ${apS}${!onPad && v.guid !== 'done' && isFinite(o.ap) && vr > 0 ? `  in ${fmtT(P.timeToApV(v) / SIM_SPEED)}` : ''}
 Pe    <span class="${o.pe > P.ORBIT_PE ? 'good' : ''}">${peS}</span>${!onPad && isFinite(o.T) && o.pe > P.KARMAN ? `  · period ${(o.T / 60).toFixed(1)} min` : ''}
-MACH  ${tel.q > 1 ? tel.mach.toFixed(2) : '—'}   Q <span class="${qc}">${qk.toFixed(1)} kPa</span> (max ${(F.maxQ / 1000).toFixed(1)})
+MACH  ${tel.q > 1 && tel.machShown != null ? tel.machShown.toFixed(2) : tel.rarefied ? '— (rarefied)' : '—'}   Q <span class="${qc}">${qk.toFixed(1)} kPa</span> (max ${(F.maxQ / 1000).toFixed(1)})
 AoA   <span class="${ac}">${tel.q > 1 ? (tel.aoa * DEG).toFixed(1) + '°' : '—'}</span>   G <span class="${gc}">${tel.gload.toFixed(2)}</span> (max ${F.maxG.toFixed(1)})
 PITCH ${pitch.toFixed(1)}° from vertical · HDG ${hdg.toFixed(0)}°
 SAS   ${P.SAS_LABEL[v.sas]} · RCS ${v.rcsOn ? (hasRCS ? `on ${(v.rcsFuel * 1000).toFixed(0)} kg` : 'on (no ring)') : 'off'}
 STAGE ${v.cur + 1}/${v.stages.length}  ${fair}
-AIR   ${tel.rho > 1e-9 ? `${tel.T.toFixed(0)} K · ρ ${tel.rho.toExponential(2)} · T₀ ${fmtN(tel.Tstag)} K · q̇ ${fmtN(tel.heat / 1000, 1)} kW/m²` : 'vacuum'}`;
+AIR   ${tel.rho > 1e-9 ? `${tel.T.toFixed(0)} K · ρ ${tel.rho.toExponential(2)} · ${tel.regime || ''}${tel.Kn > 1e-3 ? ` Kn ${tel.Kn.toExponential(1)}` : ''}` : 'vacuum'}
+HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span class="${tel.heat > 3e5 ? 'warn' : ''}">${fmtN(tel.heat / 1000, 1)} kW/m²</span>` : '—'}${F.maxHeat > 2e4 ? ` (max ${fmtN(F.maxHeat / 1000, 0)})` : ''}`;
   const b = booster;
   if (b && b.state === 'flying') {
     const bh = V.len(b.r) - R, bu = V.norm(b.r), bvr = V.dot(b.v, bu), bva = P.airVel(b, b.r, b.v), bsp = V.len(bva);
@@ -694,8 +776,8 @@ AIR   ${tel.rho > 1e-9 ? `${tel.T.toFixed(0)} K · ρ ${tel.rho.toExponential(2)
   $('thrBar').style.height = thr * 100 + '%'; $('thrPct').textContent = Math.round(thr * 100) + '%';
   v.stages.forEach((st, i) => {
     const src = i === 0 && flyingBooster() ? b.stages[0] : st, live = i >= v.cur || (i === 0 && flyingBooster());
-    const f = live ? src.fuel / src.fuelMax : 0;
-    $('fBar' + i).style.height = f * 100 + '%'; $('fPct' + i).textContent = live ? Math.round(f * 100) + '%' : '—';
+    const f = live && src.fuelMax > 0 ? src.fuel / src.fuelMax : 0;
+    $('fBar' + i).style.height = f * 100 + '%'; $('fPct' + i).textContent = live && src.fuelMax > 0 ? Math.round(f * 100) + '%' : '—';
     $('fBar' + i).parentElement.classList.toggle('active', i === v.cur && !flyingBooster());
   });
   $('score').textContent = 'SCORE ' + F.score().toLocaleString();
@@ -703,10 +785,96 @@ AIR   ${tel.rho > 1e-9 ? `${tel.T.toFixed(0)} K · ρ ${tel.rho.toExponential(2)
   $('apBtn').classList.toggle('hidden', !F.canWarpToAp() || F.autoWarp);
   $('flyBtn').classList.toggle('hidden', !(b && b.state === 'flying' && F.ship && b.stages[0].fuel > 0));
   $('flyBtn').textContent = b && b.manual ? 'AUTO-LAND BOOSTER (Y)' : 'FLY BOOSTER (Y)';
+  heatPanel();
+  $('deoBtn').classList.toggle('hidden', !(F.canDeorbit() && (F.flags.orbit || P.orbitOf(v).pe > 60000)) && !F.ret);
+  $('deoBtn').textContent = F.ret ? (F.ret.auto ? 'RETURN: AUTO (O cancels)' : 'RETURN: MANUAL (F = auto)') : 'DEORBIT & RETURN (O)';
+  const cst = v.chute && v.chute.state; $('chuteBtn').classList.toggle('hidden', !F.hasChute() || !F.ignited || cst === 'main' || cst === 'failed' || F.flags.recovered);
+  $('chuteBtn').textContent = cst === 'drogue' ? 'MAIN CHUTES (P)' : 'DROGUES (P)';
   $('sasBtn').textContent = 'SAS ' + P.SAS_LABEL[v.sas]; $('rcsBtn').textContent = 'RCS ' + (v.rcsOn ? 'ON' : 'OFF');
   const hint = F.hint();
   $('hint').textContent = hint; $('hint').style.display = hint ? '' : 'none';
   $('ignite').classList.toggle('hidden', F.ignited || state !== 'flight');
+}
+
+// effects quality: hangar select, HUD button and U key; remembered in localStorage
+function setFx(q, save = true) {
+  if (!QUALITY[q]) return; fxQuality = q; fx.setQuality(q); $('fxSel').value = q; $('fxBtn').textContent = 'FX ' + ({ high: 'HIGH', med: 'MED', low: 'LOW' })[q];
+  if (save) try { localStorage.setItem(FXQ_KEY, q); } catch (e) { }
+}
+function cycleFx() { const i = QUALITY_ORDER.indexOf(fx.q), q = QUALITY_ORDER[(i + QUALITY_ORDER.length - 1) % QUALITY_ORDER.length]; setFx(q); toast('Effects: ' + q.toUpperCase(), '#9cc3ff'); }
+$('fxSel').onchange = e => setFx(e.target.value);
+$('fxBtn').onclick = e => { e.currentTarget.blur(); cycleFx(); };
+setFx(fxQuality, false);
+// ---------- flow / heating effects (fx.js) + capsule visuals ----------
+const camBody = new THREE.Vector3(), cv1 = new THREE.Vector3(), cv2 = new THREE.Vector3(), cq = new THREE.Quaternion(), heatCol = new THREE.Color();
+let lastFx = null, fxMs = 0;
+const toHex = c => (Math.round(Math.min(1, c[0]) * 255) << 16) | (Math.round(Math.min(1, c[1]) * 255) << 8) | Math.round(Math.min(1, c[2]) * 255);
+function updateFX(rdt, pdt, base, nose, isMap) {
+  const tel = v.tel, g = P.stackGeom(v), on = state === 'flight' && !F.flags.dead && rocketG.visible && !isMap && !F.parked;
+  rocketG.updateMatrixWorld(true); camBody.copy(camera.position); rocketG.worldToLocal(camBody);
+  const list = g.list.filter(e => e.kind !== 'fins'), top = list[list.length - 1];
+  const shoulderY = !top ? g.L : top.kind === 'fairing' ? top.y + top.h - 1.6 * top.d : top.y + top.h * 0.3;
+  const fs = fx.update(rdt, { tel, L: g.L, d: g.d, shoulderY, cam: camBody, on }, renderer); lastFx = fs;
+  // incandescent skins: hot parts glow from ~800 K (Draper point) to white-hot
+  for (let j = v.cur; j < SG.length; j++) for (const hp of SG[j].userData.hot) {
+    const T = hp.part && hp.part.Ts || 300, k = skinGlow(T);
+    hp.mat.emissive.setRGB(k * 1.6, k * k * 0.75, k * k * k * 0.45);
+  }
+  // ablation embers + plasma trail streaming off the windward rim (world coordinates, dragged back by the air)
+  if (fs && pdt > 0 && (fs.ablate > 0.02 || fs.plasma > 0.15)) {
+    const fb = tel.flowBody, d = cv1.set(fb[0], fb[1], fb[2]).applyQuaternion(rocketG.quaternion).normalize();
+    const noseFirst = fb[1] < 0, yW = noseFirst ? g.L : 0, lead = V.addS(base, nose, yW), R0 = g.d / 2;
+    const e1 = cv2.set(nose[0], nose[1], nose[2]).cross(d); if (e1.lengthSq() < 1e-4) e1.set(nose[0], nose[1], nose[2]).cross(Math.abs(nose[2]) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0)); e1.normalize();
+    const e2 = new THREE.Vector3(nose[0], nose[1], nose[2]).cross(e1).normalize(), n = Math.ceil(QUALITY[fx.q].ablate * (fs.ablate + fs.plasma * 0.6));
+    const c0 = toHex(fs.plasmaColor), dd = [d.x, d.y, d.z];
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, rr = R0 * (0.9 + Math.random() * 0.2);
+      const p0 = [lead[0] + (e1.x * Math.cos(a) + e2.x * Math.sin(a)) * rr, lead[1] + (e1.y * Math.cos(a) + e2.y * Math.sin(a)) * rr, lead[2] + (e1.z * Math.cos(a) + e2.z * Math.sin(a)) * rr];
+      const vel = V.add(jit(v.v, 30), V.scale(dd, 60 + Math.random() * 80)); // shed downstream
+      if (Math.random() < 0.6 + 0.4 * fs.ablate) fire.spawn(p0, vel, 0.5 + Math.random() * 1.2, 0.6 + R0 * 0.25, 0.2, Math.random() < 0.5 ? 0xffe0a0 : c0, 0x601800, 2.5 + Math.random() * 2);
+      if (fs.ablate > 0.1 && Math.random() < 0.35 * fs.ablate) smoke.spawn(p0, V.add(jit(v.v, 20), V.scale(dd, 40)), 3 + Math.random() * 3, R0 * 0.6, R0 * 3, 0x3a3028, null, 1.5);
+    }
+  }
+  // condensation puffs shed from the vapor collar at Max-Q
+  if (fs && pdt > 0 && fs.vapor > 0.25 && Math.random() < fs.vapor * 0.5) {
+    const pp = V.addS(base, nose, shoulderY - g.d), dd = V.norm(V.sub(siteVel(v), v.v));
+    smoke.spawn(jit(pp, g.d * 1.6), V.add(v.v, V.scale(dd, 40)), 0.6, g.d * 0.6, g.d * 1.6, 0xffffff, null, 6);
+  }
+  // parachutes: canopies trail downstream of the pack along the airflow; they inflate over the opening time
+  const c = v.chute, spec = F.chuteSpec(), cs = c && c.state;
+  chuteVis.visible = !!spec && (cs === 'drogue' || cs === 'main') && state === 'flight' && !F.flags.dead;
+  if (chuteVis.visible) {
+    const S = spec[cs], x = Math.min(1, c.t / S.open), fb = tel.flowBody, y0 = g.chute ? g.chute.y + 0.5 : g.L, ud = chuteVis.userData;
+    chuteVis.position.set(0, y0, 0); chuteVis.quaternion.setFromUnitVectors(Y_AXIS, cv1.set(fb[0], fb[1], fb[2]).normalize());
+    const main = cs === 'main', grp = main ? ud.main : ud.dro, dist = main ? 34 : 16, inf = main ? 0.15 + 0.85 * x * x : 0.2 + 0.8 * x;
+    ud.dro.visible = !main || x < 0.6; ud.main.visible = main; ud.dro.scale.setScalar(main ? 1 - x : inf); ud.dro.position.y = 16;
+    grp.position.y = dist; grp.scale.set(inf, 0.6 + 0.4 * inf, inf);
+    for (const m of grp.children) m.rotation.set(Math.sin(performance.now() / 700 + m.position.x) * 0.04, 0, Math.cos(performance.now() / 900 + m.position.z) * 0.04);
+    const a = ud.lines.geometry.attributes.position.array; a.fill(0); let k = 0;
+    for (const m of grp.children) { const r = 12.5 * (main ? 1 : 0.28) * inf; for (const sgn of [-1, 1]) { if (k >= 6) break; a[k * 6 + 3] = m.position.x * grp.scale.x + sgn * r * 0.7; a[k * 6 + 4] = dist; a[k * 6 + 5] = m.position.z * grp.scale.z; k++; } }
+    ud.lines.geometry.attributes.position.needsUpdate = true;
+  }
+}
+
+// Heat gauges: the three hottest parts vs their limits, the shield (and ablator left), parachute status.
+const PNAME = id => (PARTS[id] && PARTS[id].name || id).replace(/ (Heat Shield|Parachute Pack|Fuel Tank|Command Pod)$/, '');
+function heatPanel() {
+  const el = $('heat'), parts = [];
+  for (let j = v.cur; j < v.stages.length; j++) for (const p of v.stages[j].parts) if (p.Ts !== undefined) { const th = P.thermalOf(p); parts.push({ p, th, f: p.Ts / th.Tmax }); }
+  const hot = parts.some(e => e.p.Ts > 420) || F.ret || v.tel.heat > 2e4;
+  el.classList.toggle('hidden', !hot || state !== 'flight' || F.flags.dead); if (el.classList.contains('hidden')) return;
+  parts.sort((a, b) => b.f - a.f);
+  const bar = e => { const f = Math.max(0, Math.min(1, (e.p.Ts - 250) / (e.th.Tmax - 250))), c = e.f > 0.9 ? 'bad' : e.f > 0.7 ? 'warn' : ''; return `<div class="hg"><span>${PNAME(e.p.id)}</span><i><b style="width:${(f * 100).toFixed(0)}%"></b></i><em class="${c}">${e.p.Ts.toFixed(0)} K</em></div>`; };
+  let h = `<h4>HEAT</h4>${parts.slice(0, 3).map(bar).join('')}`;
+  const sh = parts.find(e => e.p.kind === 'shield');
+  if (sh) h += `<div class="sm">Shield ${PNAME(sh.p.id)}: ${sh.p.Ts.toFixed(0)} / ${sh.th.Tmax} K${sh.p.abl0 ? ` · ablator ${(100 * sh.p.abl / sh.p.abl0).toFixed(0)}%` : ''}${v.tel.flowBody && v.tel.flowBody[1] > 0.5 ? ' <span class="good">windward ✔</span>' : v.tel.heat > 2e4 ? ' <span class="bad">not facing the flow!</span>' : ''}</div>`;
+  else if (F.ret) h += '<div class="sm bad">No heat shield on this craft</div>';
+  const spec = F.chuteSpec(), c = v.chute;
+  if (spec) {
+    const st = c.state, next = st === 'stowed' ? 'drogue' : st === 'drogue' ? 'main' : null, lim = next ? chuteLimits(spec, v.tel, next) : null;
+    h += `<div class="sm">Chutes: ${st === 'stowed' ? 'stowed' : st === 'drogue' ? 'drogues out' : st === 'main' ? '<span class="good">mains out</span>' : `<span class="bad">${st}</span>`}${lim ? ` · ${next} ${lim.ok ? '<span class="good">safe now</span>' : `<span class="warn">${lim.why}</span>`}` : ''}${st === 'main' ? ` · ${v.tel.vAir.toFixed(1)} m/s (≤ ${SAFE_TOUCHDOWN})` : ''}</div>`;
+  }
+  el.innerHTML = h;
 }
 
 // ---------- main loop ----------
@@ -720,7 +888,9 @@ renderer.setAnimationLoop(() => {
   const now = performance.now(), rdt = Math.min(0.1, (now - last) / 1000); last = now;
   let pdt = 0;
   slowT = rdt > 0.045 ? slowT + rdt : Math.max(0, slowT - rdt * 0.5);
-  if (slowT > 2 && pixR > 0.6) { pixR = Math.max(0.6, pixR - 0.25); renderer.setPixelRatio(pixR); slowT = 0; console.info('[Orbit Rush] lowering render resolution to', pixR); }
+  if (slowT > 2 && state === 'flight' && !fxLocked && QUALITY_ORDER.indexOf(fx.q) > 0 && lastFx) { // effects quality first, then resolution
+    const q = QUALITY_ORDER[QUALITY_ORDER.indexOf(fx.q) - 1]; setFx(q, false); fxAuto++; slowT = 0; toast('Frame rate low — effects set to ' + q.toUpperCase(), '#ffb35c'); console.info('[Orbit Rush] lowering effects quality to', q);
+  } else if (slowT > 2 && pixR > 0.6) { pixR = Math.max(0.6, pixR - 0.25); renderer.setPixelRatio(pixR); slowT = 0; console.info('[Orbit Rush] lowering render resolution to', pixR); }
   if (state === 'flight') {
     readControls(rdt);
     pdt = F.advance(rdt);
@@ -760,11 +930,12 @@ renderer.setAnimationLoop(() => {
     const cu = new THREE.Vector3(U.x, U.y, 0); if (cu.lengthSq() < 1e-6) cu.set(0, 1, 0);
     camera.position.set(-O[0], -O[1], -O[2] + R * mapZoom); camera.up.copy(cu.normalize()); camera.lookAt(-O[0], -O[1], -O[2]);
   } else {
-    if (focus === v) tgtV.set(nose[0], nose[1], nose[2]).multiplyScalar(stackL() * 0.45 - tel.ycom);
+    if (focus === v) tgtV.set(nose[0], nose[1], nose[2]).multiplyScalar(stackL() * camAim - tel.ycom);
     else tgtV.set(booster.dir[0], booster.dir[1], booster.dir[2]).multiplyScalar(15);
     offV.copy(N).multiplyScalar(Math.cos(camYaw) * Math.cos(camPitch)).addScaledVector(E, Math.sin(camYaw) * Math.cos(camPitch)).addScaledVector(U, Math.sin(camPitch));
     camera.position.copy(tgtV).addScaledVector(offV, camDist); camera.up.copy(U); camera.lookAt(tgtV);
   }
+  if (rocketG) { const t0 = performance.now(); updateFX(rdt, pdt, base, nose, isMap); fxMs += (performance.now() - t0 - fxMs) * 0.05; }
   mapLine.visible = isMap && state === 'flight'; marker.visible = bMarker.visible = isMap;
   if (isMap) {
     updateOrbitLine(O); setRel(marker, v.r, O); marker.scale.setScalar(R * mapZoom * 0.006);
@@ -789,4 +960,4 @@ renderer.setAnimationLoop(() => {
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   renderer.render(scene, camera);
 });
-window.__game = { BUILD, P, get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; } };
+window.__game = { BUILD, P, get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages };

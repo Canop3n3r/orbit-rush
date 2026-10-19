@@ -2,9 +2,9 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Orbit Rush — WebGPU rocket launch game</title>
-<meta name="description" content="Build a rocket from parts and fly it to a full-scale Earth orbit: real gravity, the 1976 standard atmosphere, Mach-dependent aerodynamics and 6-DOF flight. Land the booster. Free in your browser, powered by WebGPU.">
+<meta name="description" content="Build a rocket from parts and fly it to a full-scale Earth orbit: real gravity, the 1976 standard atmosphere, Mach-dependent aerodynamics, reentry heating and 6-DOF flight. Land the booster, bring the capsule home. Free in your browser, powered by WebGPU.">
 <meta property="og:title" content="Orbit Rush 🚀"><meta property="og:description" content="Build a rocket. Reach orbit. Land the booster. WebGPU in your browser.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=pv2"><meta name="orbit-rush-build" content="2026-10-19-pv2">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=fx1"><meta name="orbit-rush-build" content="2026-10-19-fx1">
 <script type="importmap">{"imports":{"three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js"}}</script>
 </head><body>
 <div id="badge">…</div>
@@ -14,6 +14,7 @@
   <div class="bhead"><h1>ORBIT RUSH</h1><p class="sub">Hangar — build it from parts. Launch it. Orbit it. Land it.</p></div>
   <div class="trow"><label>Templates</label><div id="presets" class="opts"></div>
     <label class="chk" title="The launch site is on the equator: Earth's rotation gives you ~465 m/s eastward for free"><input type="checkbox" id="earthRot"> Earth rotation</label>
+    <label class="chk" title="Airflow particles, vapor cones, shock and plasma effects. Lowered automatically if the frame rate drops. (U in flight)">Effects <select id="fxSel"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label>
     <span class="saved"><select id="savedSel"></select><button id="saveBtn">Save</button><button id="delBtn" title="Delete the selected saved design">Delete</button><button id="clearBtn" title="Start from just a probe core">New</button></span></div>
   <div class="bcols">
     <div><div class="colH">Parts <small>click to add · drag into the stack</small></div><div id="palette"></div></div>
@@ -27,6 +28,8 @@
         <li><b>F</b> AUTO flies to orbit: gravity turn, Max-Q throttling, staging, coast, circularize. Steer or press F to take over.</li>
         <li><b>T</b> / <b>,</b> warp (above 140 km while coasting = exact Kepler rails) · <b>G</b> warp to apoapsis · <b>M</b> map · <b>B</b> booster cam · <b>Y</b> fly the booster · <b>R</b> hangar</li>
         <li>Full-scale Earth: orbit is ~7.8 km/s and costs ~9.4 km/s of Δv. Pitch over gently east after liftoff, keep the angle of attack small through Max-Q, cut at Ap ~180 km, then burn prograde at Ap until Pe &gt; 130 km.</li>
+        <li><b>Coming home:</b> build a capsule (pod + heat shield under it, parachute pack on top, a separator below; try the <i>Orbit &amp; home</i> template). In orbit press <b>O</b>: AUTO turns retrograde, burns Pe down to ~45 km, drops the service stage and flies the capsule heat-shield first. <b>P</b> deploys parachutes by hand: drogues below Mach 1.2 and 15 kPa, mains under 95 m/s — outside those limits they shred. Watch the HEAT gauges: every part has a temperature limit.</li>
+        <li><b>U</b> cycles effects quality (High/Medium/Low).</li>
         <li>Keep the yellow CoM above the cyan CoP (fins at the bottom) or the rocket flips. Stage with fuel left in the booster and it can land on the droneship (+1000 auto, +2500 by hand with Y).</li>
       </ul></details>
     </div>
@@ -37,15 +40,16 @@
   <div id="bars"></div>
   <div id="hint"></div><div id="toasts"></div>
   <div id="score"></div>
-  <div id="ctl"><button id="warpBtn">WARP ×1</button><button id="apBtn" class="hidden">⏩ Warp to Ap (G)</button><button id="sasBtn">SAS</button><button id="rcsBtn">RCS OFF</button><button id="flyBtn" class="hidden">FLY BOOSTER (Y)</button></div>
+  <div id="ctl"><button id="warpBtn">WARP ×1</button><button id="apBtn" class="hidden">⏩ Warp to Ap (G)</button><button id="sasBtn">SAS</button><button id="rcsBtn">RCS OFF</button><button id="flyBtn" class="hidden">FLY BOOSTER (Y)</button><button id="deoBtn" class="hidden">DEORBIT (O)</button><button id="chuteBtn" class="hidden">CHUTES (P)</button><button id="fxBtn" title="Effects quality (U)">FX HIGH</button></div>
+  <div id="heat" class="hidden"></div>
 </div>
 <div id="touch" class="hidden">
   <div class="tl"><button data-k="KeyS">▲ UP</button><button data-k="KeyW">▼ EAST</button><button data-k="KeyA">◀</button><button data-k="KeyD">▶</button><button data-t="KeyF" id="tProg">AUTO</button><button data-t="Digit2">PRO</button></div>
   <div class="tr"><button data-k="ShiftLeft">THR+</button><button data-k="ControlLeft">THR−</button><button data-t="Space" class="stage">STAGE</button>
-  <button data-t="KeyM">MAP</button><button data-t="KeyB">BOOST</button><button data-t="KeyT">WARP</button></div>
+  <button data-t="KeyM">MAP</button><button data-t="KeyB">BOOST</button><button data-t="KeyT">WARP</button><button data-t="KeyO">HOME</button><button data-t="KeyP">CHUTE</button></div>
 </div>
 <div id="end" class="panel hidden"><h2 id="endTitle"></h2><div id="endBody"></div>
   <div class="endMain"><button id="relaunchBtn" class="big">↻ Relaunch same rocket</button><button id="againBtn">Back to hangar</button><button id="contBtn">Keep flying</button></div>
   <div class="endShare"><button id="shareBtn">Share score</button><button id="xBtn">Post on X</button></div></div>
-<script type="module" src="main.js?v=pv2"></script>
+<script type="module" src="main.js?v=fx1"></script>
 </body></html>

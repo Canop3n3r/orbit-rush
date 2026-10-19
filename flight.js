@@ -1,8 +1,8 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=pv2';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=pv2';
+import * as P from './physics.js?v=fx1';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=fx1';
 const { R, ATM, V } = P;
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
 export const WARPS = [1, 2, 4, 10, 25, 50, 100, 1000];
@@ -143,7 +143,7 @@ export class Flight {
       recovered: 0, touchdown: null, reentry: 0, plasma: 0 };
     // last stage with an engine (a recovery capsule on top has none) and the round-trip capability
     this.lastPow = 0; v.stages.forEach((s, i) => { if (s.eng && s.eng.tv > 0) this.lastPow = i; });
-    this.rec = recoveryInfo(design); this.ret = null; this.maxHeat = 0; this.maxTskin = 0; this.maxGret = 0; this.parked = null;
+    this.rec = recoveryInfo(design); this.ret = null; this.orbitSnap = null; this.maxHeat = 0; this.maxTskin = 0; this.maxGret = 0; this.parked = null;
     v.chute = { state: 'stowed', t: 0 }; v.chuteCdA = 0;
   }
   call(name, ...a) { const f = this.h[name]; return f ? f(...a) : undefined; }
@@ -211,13 +211,13 @@ export class Flight {
   jettison() { const v = this.v; if (v.fairing <= 0) return; v.fairing = 0; this.flags.fairing = 1; this.call('jettison'); this.toast('Fairing separation', '#9cc3ff'); }
   setAuto(on, quiet) {
     if (on && this.ret) { this.ret.auto = true; if (!quiet) this.toast('AUTO is flying the return (deorbit, reentry, parachutes)', '#9cc3ff'); return; }
-    if (!on && this.ret) { this.ret.auto = false; this.v.steerDir = null; }
+    if (!on && this.ret) { if (this.ret.auto && !quiet) this.toast('You have the capsule — parachutes stay armed (F hands it back)', '#9cc3ff'); this.ret.auto = false; this.v.steerDir = null; this.autoOn = false; if (this.v.auto) this.v.auto = false; return; }
     if (this.v.auto && !on) this.v.auto = false;
     this.autoOn = on; if (!on) this.v.steerDir = null;
     if (on) { this.v.guid = null; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; }
     if (!quiet) this.toast(on ? 'AUTO on: gravity turn, Max-Q throttling, coast, circularize' : 'Manual flight (SAS ' + P.SAS_LABEL[this.v.sas] + ')', '#9cc3ff');
   }
-  setSAS(mode) { const v = this.v; v.sas = mode; v.sasHold = null; if (this.autoOn && mode !== 'stab') this.setAuto(false, true); this.toast('SAS: ' + P.SAS_LABEL[mode], '#9cc3ff'); }
+  setSAS(mode) { const v = this.v; v.sas = mode; v.sasHold = null; if (this.autoOn && mode !== 'stab') this.setAuto(false, true); if (this.ret && this.ret.auto) this.setAuto(false); this.toast('SAS: ' + P.SAS_LABEL[mode], '#9cc3ff'); }
   toggleRCS() { const v = this.v; v.rcsOn = !v.rcsOn; const has = v.stages.slice(v.cur).some(s => s.parts.some(p => p.kind === 'rcs')); this.toast(v.rcsOn ? (has ? `RCS on (${(v.rcsFuel * 1000).toFixed(0)} kg monoprop)` : 'RCS on — but this rocket has no RCS ring') : 'RCS off', '#9cc3ff'); }
   takeOverUpper() { const v = this.v; if (v.auto) { v.auto = false; this.autoOn = false; v.steerDir = null; v.ut = v.throttle; this.toast('You have the upper stage', '#9cc3ff'); } }
   flyingBooster() { const b = this.booster; return !!(b && b.state === 'flying' && b.manual); }
@@ -240,7 +240,8 @@ export class Flight {
     if (!this.canDeorbit()) { this.toast(this.ret ? 'Already on the way home' : 'Deorbit: get above 60 km first', '#ffb35c'); return false; }
     const v = this.v; this.autoOn = false; v.auto = false; v.guid = null; this.autoWarp = false; this.setWarp(0, true);
     const o = P.orbitOf(v), needBurn = o.pe > DEORBIT_PE + 5000 && v.cur <= this.lastPow;
-    this.ret = { phase: needBurn ? 'align' : 'sep', auto: true, t: 0, sepAt: null, burnFuel0: v.stages[v.cur].fuel };
+    if (this.flags.orbit && !this.orbitSnap) { const st = v.stages[Math.min(this.lastPow, v.stages.length - 1)]; this.orbitSnap = { o: { ap: o.ap, pe: o.pe, T: o.T }, fuel: st.fuelMax > 0 ? st.fuel / st.fuelMax : 0 }; }
+    this.ret = { phase: needBurn ? 'align' : 'sep', auto: true, armed: true, t: 0, sepAt: null, burnFuel0: v.stages[v.cur].fuel };
     v.sas = 'retrograde'; v.sasHold = null; v.ut = 0;
     this.toast(needBurn ? 'DEORBIT: turning retrograde for the deorbit burn' : 'Coming home: separating for reentry', '#ffd23a');
     return true;
@@ -277,8 +278,8 @@ export class Flight {
         this.setWarp(tLeft > 900 ? 7 : tLeft > 300 ? 6 : tLeft > 60 ? 5 : 3, true);
       }
     } else if (R0.phase === 'entry') {
-      if (R0.auto && f.reentry && v.chute.state === 'stowed' && this.hasChute() && h < CHUTE_AUTO.drogueAlt && chuteLimits(this.chuteSpec(), v.tel, 'drogue').ok) this.deployChute();
-      if (R0.auto && v.chute.state === 'drogue' && h < CHUTE_AUTO.mainAlt && chuteLimits(this.chuteSpec(), v.tel, 'main').ok) this.deployChute();
+      if (R0.armed && f.reentry && v.chute.state === 'stowed' && this.hasChute() && h < CHUTE_AUTO.drogueAlt && chuteLimits(this.chuteSpec(), v.tel, 'drogue').ok) this.deployChute();
+      if (R0.armed && v.chute.state === 'drogue' && h < CHUTE_AUTO.mainAlt && chuteLimits(this.chuteSpec(), v.tel, 'main').ok) this.deployChute();
     }
   }
   hasChute() { const g = P.stackGeom(this.v); return !!g.chute && this.v.chute.state !== 'failed'; }
@@ -309,7 +310,7 @@ export class Flight {
   checkHeat() {
     const v = this.v, th = v.therm, tel = v.tel; if (!th) return;
     if (tel.heat > this.maxHeat) this.maxHeat = tel.heat;
-    if (tel.Tskin > this.maxTskin) this.maxTskin = tel.Tskin;
+    for (let j = v.cur; j < v.stages.length; j++) for (const p of v.stages[j].parts) if (p.Ts > this.maxTskin) this.maxTskin = p.Ts;
     if (!this.flags.plasma && tel.heat > 150000) { this.flags.plasma = 1; this.toast('🔥 Plasma! The shock layer is glowing', '#ffb35c'); }
     if (!th.fail) return;
     const e = th.fail, p = e.p, name = (PARTS[p.id] && PARTS[p.id].name) || p.id;
@@ -328,7 +329,7 @@ export class Flight {
       f.recovered = 1; this.toast(`🌊 TOUCHDOWN at ${sp.toFixed(1)} m/s — ${this.v.stages.some(s => s.parts.some(p => p.id === 'crew')) ? 'crew' : 'capsule'} recovered! +${4000 * (v.mult || 1)}`, '#7dffa6');
       this.call('sound', 'landed'); this.call('recovered');
       this.parked = { ef: V.norm(V.rotZ(v.r, v.earthRot ? -P.OMEGA_E * v.clock : 0)), lift: v.tel.ycom };
-      if (!this.endQueued) { this.endQueued = true; this.call('end', 3000, () => true); }
+      this.endQueued = true; this.call('end', 3000, () => !this.ended);
     } else this.fail(`hit the ground at ${sp.toFixed(0)} m/s${v.chute.state === 'stowed' ? ' (no parachutes deployed)' : v.chute.state === 'failed' ? ' (parachutes failed)' : ''}`, 'impact');
   }
   // Put the vehicle straight into a circular-ish orbit at altitude h (tests and the ?scenario=orbit start).
@@ -449,7 +450,7 @@ export class Flight {
         if (v.clamped && this.ignited && v.throttle > 0.95) { f.padTime += dt; if (f.padTime > 6 || (st && st.fuel <= 0)) this.fail('too heavy to lift off (TWR < 1)', 'twr'); }
         if (!f.mach1 && tel.mach > 1 && h < 30000) { f.mach1 = 1; this.toast('Mach 1 — supersonic', '#9cc3ff'); }
         if (!f.highQ && tel.q > 30000 && v.thrust > 0) { f.highQ = 1; this.toast(this.autoOn ? 'HIGH Q — AUTO is throttling down' : 'HIGH Q — throttle down (S)!', '#ffb35c'); }
-        if (!f.maxq && this.maxQ > 8000 && tel.q < this.maxQ * 0.8) { f.maxq = 1; this.toast(`Max-Q passed (${(this.maxQ / 1000).toFixed(1)} kPa)`, '#9cc3ff'); }
+        if (!f.maxq && this.maxQ > 8000 && tel.q < this.maxQ * 0.8) { f.maxq = 1; if (!this.ret) this.toast(`Max-Q passed (${(this.maxQ / 1000).toFixed(1)} kPa)`, '#9cc3ff'); }
         if (!f.fairing && h > P.FAIRING_ALT && (tel.heat < P.FAIRING_QDOT || h > P.FAIRING_ALT_MAX)) this.jettison();
         if (v.thrust > 0 && !v.clamped) {
           const pitch = Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), V.norm(v.r)))));
@@ -551,10 +552,11 @@ export class Flight {
   }
   score() {
     if (this.finalScore !== null) return this.finalScore;
-    const f = this.flags, v = this.v; let s = 0; const o = P.orbitOf(v), mult = v.mult || 1, top = v.stages[v.stages.length - 1];
+    const f = this.flags, v = this.v; let s = 0, mult = v.mult || 1; const snap = this.orbitSnap, o = snap ? snap.o : P.orbitOf(v), top = v.stages[Math.min(this.lastPow, v.stages.length - 1)];
+    const fuelLeft = snap ? snap.fuel : top.fuelMax > 0 ? top.fuel / top.fuelMax : 0;
     s += Math.min(f.maxAlt || 0, ATM) / 100;
     if (f.space) s += 1000;
-    if (f.orbit) { s += 3000; if (isFinite(o.ap)) s += Math.max(0, 1500 - Math.abs(o.ap - o.pe) / 100); s += (top.fuel / top.fuelMax) * 800; }
+    if (f.orbit) { s += 3000; if (isFinite(o.ap)) s += Math.max(0, 1500 - Math.abs(o.ap - o.pe) / 100); s += fuelLeft * 800; }
     if (f.recovered) s += 4000;
     s *= mult; s += f.boosterBonus; if (f.dead) s *= 0.5;
     return Math.round(s);
@@ -574,8 +576,8 @@ export class Flight {
       if (R0.phase === 'coast') return `Coasting to entry interface (120 km) — ${fmtKm(h)}${R0.auto ? ' · warping' : ''}`;
       if (c.state === 'failed') return 'Parachutes gone — brace for impact';
       if (h > 40000) return tel.heat > 20000 ? `REENTRY: shield first (SAS retrograde) — ${(tel.heat / 1000).toFixed(0)} kW/m², shell ${tel.Tskin.toFixed(0)} K` : 'Entering the atmosphere — keep the heat shield facing the airflow (SAS 3)';
-      if (c.state === 'stowed') return this.hasChute() ? (R0.auto ? `Parachutes armed: drogues below ${CHUTE_AUTO.drogueAlt / 1000} km under Mach ${this.chuteSpec().drogue.machMax} (P to deploy now)` : 'P: deploy drogues (below Mach 1.2 and 15 kPa)') : 'No parachutes on this craft!';
-      if (c.state === 'drogue') return R0.auto ? `Drogues out — mains below ${CHUTE_AUTO.mainAlt / 1000} km under ${this.chuteSpec().main.vMax} m/s` : `Drogues out — P for mains under ${this.chuteSpec().main.vMax} m/s`;
+      if (c.state === 'stowed') return this.hasChute() ? (R0.armed ? `Parachutes armed: drogues below ${CHUTE_AUTO.drogueAlt / 1000} km under Mach ${this.chuteSpec().drogue.machMax} (P to deploy now)` : 'P: deploy drogues (below Mach 1.2 and 15 kPa)') : 'No parachutes on this craft!';
+      if (c.state === 'drogue') return R0.armed ? `Drogues out — mains below ${CHUTE_AUTO.mainAlt / 1000} km under ${this.chuteSpec().main.vMax} m/s` : `Drogues out — P for mains under ${this.chuteSpec().main.vMax} m/s`;
       return `Under main chutes — ${tel.vAir.toFixed(1)} m/s, touchdown ≤ ${SAFE_TOUCHDOWN} m/s is safe`;
     }
     if (this.flyingBooster()) {

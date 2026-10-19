@@ -75,3 +75,14 @@ details{margin-top:12px;font-size:13px;opacity:.9}details li{margin:4px 0}
 .chk{display:inline-flex;align-items:center;gap:4px;margin:0 8px;font-size:13px;color:#cfe3ff;cursor:pointer}
 .kcom{color:#ffd23a}.kcop{color:#38e1ff}
 .msg.aero{font-size:12px;line-height:1.35}
+/* heat gauges (thermal.js): hottest parts vs their limits, shield, parachutes */
+#heat{position:fixed;right:10px;bottom:10px;font:12px/1.35 monospace;background:#0009;padding:8px 10px;border-radius:10px;width:250px;pointer-events:none}
+#heat h4{margin:0 0 4px;font:700 12px monospace;color:#ffb35c;letter-spacing:1px}
+#heat .hg{display:grid;grid-template-columns:92px 1fr 52px;gap:6px;align-items:center;margin:2px 0}
+#heat .hg i{display:block;height:8px;border-radius:4px;background:#ffffff1a;overflow:hidden;position:relative}
+#heat .hg i b{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,#3c8cff,#ffd23a 60%,#ff4b2b)}
+#heat .hg em{font-style:normal;text-align:right}
+#heat .sm{color:#bcd;margin-top:3px}
+#heat .bad{color:#ff6262}#heat .warn{color:#ffb35c}#heat .good{color:#7dffa6}
+@media (max-width:700px){#heat{width:190px;font-size:11px}#heat .hg{grid-template-columns:70px 1fr 44px}}
+@media (pointer:coarse){#heat{bottom:auto;top:84px}}

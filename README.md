@@ -1,11 +1,11 @@
 # Orbit Rush 🚀
 
-Build a rocket from parts (pods, tanks, engines, separators, fins, fairing, RCS), fly it to a **full-scale Earth orbit**, and land the booster on a droneship. Runs free in the browser on **WebGPU** (Three.js `WebGPURenderer`) with automatic WebGL2 fallback. Add `?webgl` to the URL to force WebGL2.
+Build a rocket from parts (pods, tanks, engines, separators, fins, fairing, RCS, heat shields, parachutes), fly it to a **full-scale Earth orbit**, land the booster on a droneship, then deorbit and bring the capsule home through a plasma-hot reentry. Runs free in the browser on **WebGPU** (Three.js `WebGPURenderer`) with automatic WebGL2 fallback. Add `?webgl` to the URL to force WebGL2.
 
 **Play:** https://canop3n3r.github.io/orbit-rush/
 
 ## Hangar
-Assemble the rocket top to bottom: click a part to add it (at the bottom, or above the highlighted part), drag parts to reorder, ▲▼✕ to move/remove, −/+ for engine clusters, ⇧⇩ to reorder whole stages. Stage Separators split stages; Stage 1 is the bottom and fires first. The readout shows mass, Δv, TWR and burn time per stage, total Δv against the ~9,400 m/s that orbit really costs, the **aero balance** (centre of mass ● yellow vs centre of pressure ● cyan, also drawn on the 3D preview; the CoP must sit behind the CoM or the rocket flips), an AUTO test-flight verdict and the booster-landing plan. Templates: ★ Recommended (default), Light & fast, Heavy lift, Three-stager. Toggle Earth rotation (+465 m/s at the equatorial pad). Save designs to the browser with Save.
+Assemble the rocket top to bottom: click a part to add it (at the bottom, or above the highlighted part), drag parts to reorder, ▲▼✕ to move/remove, −/+ for engine clusters, ⇧⇩ to reorder whole stages. Stage Separators split stages; Stage 1 is the bottom and fires first. The readout shows mass, Δv, TWR and burn time per stage, total Δv against the ~9,400 m/s that orbit really costs, the **aero balance** (centre of mass ● yellow vs centre of pressure ● cyan, also drawn on the 3D preview; the CoP must sit behind the CoM or the rocket flips), an AUTO test-flight verdict and the booster-landing plan. Templates: ★ Recommended (default), Light & fast, Heavy lift, Orbit & home (crew capsule with an ablative shield and parachutes), Three-stager. The AUTO verdict runs in a Web Worker (`worker.js`), so editing never stalls the preview. The **Effects** menu sets effects quality (High / Medium / Low; saved in the browser). Toggle Earth rotation (+465 m/s at the equatorial pad). Save designs to the browser with Save.
 
 ## Controls
 | Key | Action |
@@ -22,6 +22,9 @@ Assemble the rocket top to bottom: click a part to add it (at the bottom, or abo
 | Y | Fly the booster landing yourself (or hand back to auto-land) |
 | M | Map view with the orbit line |
 | B | Watch the booster land |
+| O | Deorbit and return: AUTO turns retrograde, burns Pe down to ~45 km, separates the capsule and flies it shield-first; O again cancels |
+| P | Deploy parachutes now (drogues below Mach 1.2 and 15 kPa; mains under 95 m/s and 4.5 kPa — outside those limits they shred) |
+| U | Cycle effects quality |
 | R | Back to hangar |
 
 On phones, on-screen buttons are shown. Drag to orbit the camera; scroll or pinch to zoom.
@@ -33,7 +36,8 @@ Everything lives in `physics/` and is pure JS with no DOM, shared by the game, t
 |---|---|
 | `constants.js` | WGS84 radius 6,378,137 m, μ = 3.986004418e14, Earth rotation 7.292e-5 rad/s, Kármán line 100 km |
 | `atmosphere.js` | U.S. Standard Atmosphere 1976: T, p, ρ, speed of sound per layer to 86 km, then the 1976 thermosphere table (log-interpolated) to 1,000 km |
-| `aero.js` | Cd(Mach) with transonic rise and supersonic falloff, normal-force model (nose + body crossflow + fins), centre of pressure, stagnation temperature, Sutton–Graves heat flux |
+| `aero.js` | Cd(Mach) with transonic rise and supersonic falloff, normal-force model (nose + body crossflow + fins), centre of pressure, stagnation temperature, Sutton–Graves heat flux bridged to free-molecular flow, Knudsen number / flow regime, real-gas T₀ cap |
+| `thermal.js` | Per-part skin/interior temperatures: convection by flow exposure, radiation, soak, ablation, limits |
 | `vehicle.js` | Stack geometry, mass, centre of mass and moments of inertia from the parts |
 | `dynamics.js` | 6-DOF rigid body (quaternion attitude, body rates), RK4 at a fixed 0.02 s step, engine thrust/Isp vs ambient pressure, gimbal + reaction wheels + RCS, aero force and torque about the CoM, Kepler rails, 3-DOF boosters |
 | `control.js` | SAS modes and the attitude controller |
@@ -42,8 +46,18 @@ Everything lives in `physics/` and is pure JS with no DOM, shared by the game, t
 
 Each frame `v.tel` exposes Mach, dynamic pressure, AoA, g-load, density, temperature, stagnation temperature, stagnation heat flux, the airflow direction in the body frame and the CoM/CoP stations, for the effects and lessons phases. Rendering is camera-relative (floating origin): the focused craft sits at the scene origin, the Earth turns underneath, and a high-resolution ground tile is rebuilt in float64 around it, so full-scale coordinates never jitter in float32.
 
+## Heating, reentry and recovery (fx1)
+`physics/thermal.js` gives every part a two-node temperature (skin + interior): hot-wall convective heating from the stagnation heat flux scaled by how much of the part faces the flow (leading face, sides, wake shelter behind a shield), radiation εσT⁴ to space, conduction soaking into the interior, and ablation (the Ember shield loses mass above 1,450 K at 12 MJ/kg). Every part has a temperature limit; fins and the parachute pack burn off, anything else destroys the craft. Heat flux follows Sutton–Graves (q̇ = 1.74e-4·√(ρ/rₙ)·V³) in continuum flow and bridges to the free-molecular limit (½ρV³·0.9) by the Knudsen number; in the thermosphere the HUD shows Mach as "— (rarefied)" and T₀ falls back towards ambient, and T₀ has a real-gas cap (~7–8 kK). Heat shields: **Kiln Tile** (reusable, 1,900 K) and **Ember Ablative** (3,000 K). **Canopy Parachute Pack**: two drogues, then three reefed mains; touchdown ≤ 12 m/s recovers the capsule (+4,000 × payload multiplier). The HEAT panel shows the three hottest parts against their limits, the shield temperature and ablator left, and whether the next parachute stage is safe to deploy.
+
+## Effects
+`fxmap.js` maps telemetry to effect intensities (pure functions, tested for monotonicity) and `fx.js` draws them:
+- **Airflow particles** stream past the rocket along the real body-frame flow direction (a Rankine source/sink body + crossflow doublet, slowed and brightened behind the Mach cone). On WebGPU they are integrated by a TSL compute shader (up to 16,000); on WebGL2 they run on the CPU (up to 2,200). `?fxcpu` forces the CPU path.
+- **Vapor cone** at the shoulder near Mach 1 / Max-Q in humid low air; **shock cone and compressed-air glow** scaling with Mach and q; **plume** that widens as ambient pressure drops (underexpanded, ~√(pe/pa)), with shock diamonds low down.
+- **Reentry plasma**: a bow-shock cap, windward glow and a wake trail coloured from orange to white-violet with T₀ and heat flux, oriented to the airflow, plus ablation embers and smoke; incandescent skins from ~800 K.
+- Quality High / Medium / Low changes particle counts and layers; if frames drop for 2 s, the quality steps down before the render resolution does. `?fx=high|med|low` pins it (no auto-lowering). `?scenario=orbit` / `?scenario=reentry` start the selected design in orbit (dev/testing).
+
 ## Code
-`parts.js` (part catalog, designs, staging, Δv/TWR math, aero balance, validation), `physics.js` (re-exports `physics/*`), `flight.js` (one flight's rules: staging, fairing, clock, warp/rails, booster, scoring, hints; no DOM), `main.js` (rendering, input, HUD).
+`parts.js` (part catalog, designs, staging, Δv/TWR math, aero balance, validation), `physics.js` (re-exports `physics/*`), `flight.js` (one flight's rules: staging, fairing, clock, warp/rails, booster, scoring, hints; no DOM), `main.js` (rendering, input, HUD), `fx.js` / `fxmap.js` (effects), `worker.js` (hangar verdict worker), `physics/thermal.js` (part temperatures).
 
 ## Tests
-`node tests/physics.mjs`: gravity, the 400 km period, energy and angular momentum over many orbits, RK4 vs Kepler rails, USSA76 spot values, Cd(Mach), drag and terminal velocity, weathervane stability vs tumbling, rigid-body spin, reaction wheels, SAS modes, RCS, Earth rotation, Isp vs pressure, and every template reaching orbit on AUTO at full scale (with and without Earth rotation). `node tests/builder.mjs`: the part builder (Δv/TWR math, staging, validation, aero balance, templates, a hand-built 3-stage rocket). `node tests/flight.mjs`: the game rules headlessly (booster hand-off, warp/rails, fairing, clock, advice, staging guard, booster landing by AUTO and by a scripted pilot, telemetry).
+`node tests/physics.mjs`: gravity, the 400 km period, energy and angular momentum over many orbits, RK4 vs Kepler rails, USSA76 spot values, Cd(Mach), drag and terminal velocity, weathervane stability vs tumbling, rigid-body spin, reaction wheels, SAS modes, RCS, Earth rotation, Isp vs pressure, and every template reaching orbit on AUTO at full scale (with and without Earth rotation). `node tests/builder.mjs`: the part builder (Δv/TWR math, staging, validation, aero balance, templates, a hand-built 3-stage rocket). `node tests/flight.mjs`: the game rules headlessly (booster hand-off, warp/rails, fairing, clock, advice, staging guard, booster landing by AUTO and by a scripted pilot, telemetry). `node tests/heat.mjs`: Sutton–Graves and the free-molecular limit against analytic values (including orbital-reentry orders of magnitude), Mach/T₀ clamping in the thermosphere, the thermal model (radiative equilibrium, soak, ablation, failure), parachute deploy limits, scripted deorbits (the capsule survives with either shield and burns up without one; no chutes = impact), an AUTO orbit-and-home round trip, ascent heating margins for every template, and monotonic effect mappings.
