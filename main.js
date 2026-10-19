@@ -459,7 +459,7 @@ function simStep(dt) {
       if (v.q > 80) fail('over-pressure (Max-Q too high)');
       else if (v.q > 15 && v.aoa > 0.26) fail('aerodynamic breakup — turned too hard');
       if (!v.clamped && !flags.liftoff) { flags.liftoff = 1; liftoffT = met; toast('LIFTOFF!', '#fff'); }
-      if (v.clamped && ignited && st && st.fuel <= 0) fail('never lifted off (TWR < 1)');
+      if (v.clamped && ignited && v.throttle > 0.95) { flags.padTime = (flags.padTime || 0) + dt; if (flags.padTime > 6 || (st && st.fuel <= 0)) fail('too heavy to lift off (TWR < 1)'); }
       flags.maxAlt = Math.max(flags.maxAlt, h);
       if (!flags.maxq && maxQ > 8 && v.q < maxQ * 0.8) { flags.maxq = 1; toast('Max-Q passed', '#9cc3ff'); }
       if (!flags.space && h > ATM) { flags.space = 1; toast('🌌 SPACE! +1000', '#b98cff'); beep(1200); }
@@ -616,13 +616,15 @@ function hud() {
 }
 
 // ---------- main loop ----------
-let last = performance.now();
+let last = performance.now(), slowT = 0, pixR = Math.min(devicePixelRatio, 1.5);
 const U = new THREE.Vector3(), E = new THREE.Vector3(), Zv = new THREE.Vector3(0, 0, 1), tgtV = new THREE.Vector3(), offV = new THREE.Vector3();
 await renderer.compileAsync(scene, camera).catch(() => {});
 $('loading') && $('loading').remove();
 renderer.setAnimationLoop(() => {
   const now = performance.now(), rdt = Math.min(0.1, (now - last) / 1000); last = now;
   let pdt = rdt;
+  slowT = rdt > 0.045 ? slowT + rdt : Math.max(0, slowT - rdt * 0.5);
+  if (slowT > 2 && pixR > 0.6) { pixR = Math.max(0.6, pixR - 0.25); renderer.setPixelRatio(pixR); slowT = 0; console.info('[Orbit Rush] lowering render resolution to', pixR); }
   if (state === 'flight') {
     const rate = 0.45 * rdt;
     if (flyingBooster()) {
