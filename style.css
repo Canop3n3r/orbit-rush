@@ -255,3 +255,9 @@ body.touch #mapPanel .nk{width:54px}body.touch #mapPanel input{width:58px}body.t
   body.touch #mapPanel[data-mode=plan] .nrow:first-of-type{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
   body.touch #mapPanel[data-mode=plan] .nrow:first-of-type button{flex:none}
 }
+
+/* hx: warp arrows, flight + map, desktop + touch */
+#warpBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 44px);display:flex;gap:4px;z-index:30;pointer-events:auto}
+#warpBar button{font:700 14px monospace;padding:6px 12px;min-width:44px;min-height:36px;background:#0b1424cc;border:1px solid #2a3c5c;color:#cfe0ff;border-radius:6px}
+#warpBar #wVal{min-width:84px}#warpBar #wVal.on{color:#ffd27a;border-color:#a8843c}
+#warpBar button:disabled{opacity:.35;cursor:not-allowed}

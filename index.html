@@ -5,7 +5,7 @@
 <title>Orbit Rush — WebGPU rocket launch game</title>
 <meta name="description" content="Learn real rocket science by flying it: build a rocket from parts and fly it to a full-scale Earth orbit: real gravity, the 1976 standard atmosphere, Mach-dependent aerodynamics, reentry heating and 6-DOF flight. Land the booster, bring the capsule home. Free in your browser, powered by WebGPU.">
 <meta property="og:title" content="Orbit Rush 🚀"><meta property="og:description" content="Build a rocket. Reach orbit. Land the booster. WebGPU in your browser.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=gx1"><meta name="orbit-rush-build" content="2026-10-19-gx1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=gx1h"><meta name="orbit-rush-build" content="2026-10-19-gx1h">
 <script type="importmap">{"imports":{"three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/tsl":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.tsl.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"}}</script>
 </head><body>
 <div id="badge">…</div>
@@ -50,6 +50,7 @@
   <div id="bars"></div>
   <div id="hint"></div><div id="toasts"></div>
   <div id="score"></div>
+  <div id="warpBar"><button id="wDn" aria-label="Slower time warp">◀◀</button><button id="wVal">×1</button><button id="wUp" aria-label="Faster time warp">▶▶</button></div>
   <div id="ctl"><button id="warpBtn">WARP ×1</button><button id="apBtn" class="hidden">⏩ Warp to Ap (G)</button><button id="sasBtn">SAS</button><button id="rcsBtn">RCS OFF</button><button id="flyBtn" class="hidden">FLY BOOSTER (Y)</button><button id="deoBtn" class="hidden">DEORBIT (O)</button><button id="chuteBtn" class="hidden">CHUTES (P)</button><button id="fxBtn" title="Effects quality (U)">FX HIGH</button><button id="learnBtn" title="Explain the HUD readouts (/)">? LEARN (/)</button></div>
   <div id="heat" class="hidden"></div>
 </div>
@@ -61,6 +62,6 @@
 <div id="end" class="panel hidden"><h2 id="endTitle"></h2><div id="endBody"></div>
   <div class="endMain"><button id="relaunchBtn" class="big">↻ Relaunch same rocket</button><button id="againBtn">Back to hangar</button><button id="contBtn">Keep flying</button></div>
   <div class="endShare"><button id="shareBtn">Share score</button><button id="xBtn">Post on X</button></div></div>
-<script type="module" src="main.js?v=gx1"></script>
+<script type="module" src="main.js?v=gx1h"></script>
 <script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});</script>
 </body></html>
