@@ -2,10 +2,11 @@
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
 import * as P from './physics.js?v=ss1';
+import * as C from './physics/patched.js?v=ss1';
 import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=ss1';
 const { R, ATM, V } = P;
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
-export const WARPS = [1, 2, 4, 10, 25, 50, 100, 1000];
+export const WARPS = [1, 2, 4, 10, 25, 50, 100, 1000, 1e4, 1e5, 1e6, 1e7];
 export const STAGE_CONFIRM_S = 2;           // second SPACE within this many real seconds confirms staging
 export const QALPHA_MAX = 12000;            // Pa·rad: structural limit on dynamic pressure × angle of attack
 export const QMAX = 80000;                  // Pa: over-pressure limit
@@ -14,6 +15,18 @@ export const PRESETS = TEMPLATES;
 export const DEORBIT_PE = 45000;            // m: AUTO deorbit burn lowers periapsis to this (deep enough to be captured)
 export const SAFE_TOUCHDOWN = 12;           // m/s: capsule touchdown speed the crew (and the pod) survive
 export const CHUTE_AUTO = { drogueAlt: 11000, mainAlt: 4000 };
+// Per-body goals (Milestone A): first flyby (entering the SOI), first orbit, first landing — points × tier.
+export const GOAL_TIER = { moon: 1, mars: 2.5, venus: 2.5, mercury: 3, phobos: 3, deimos: 3, jupiter: 4, io: 5, europa: 5, ganymede: 5, callisto: 5, saturn: 5, titan: 6, enceladus: 6, uranus: 7, neptune: 8, triton: 9, pluto: 10, charon: 10, sun: 2 };
+export const GOAL_PTS = { flyby: 1500, orbit: 3000, landed: 6000 };
+export const NODE_LEAD = 90; // s: time warp stops this long before a node's burn starts (half the burn before the node)
+// Game clock epoch: ?epoch=YYYY-MM-DD or now. The Earth frame's x axis is set so the pad (on frame +x at clock 0)
+// sees the Sun 45° east of the zenith: a mid-morning launch.
+export function epochPhase(t0) { P.setEarthPhase(0); const s = P.sunDir('earth', t0); P.setEarthPhase(Math.atan2(s[1], s[0]) - Math.PI / 4); return P.earthPhase(); }
+// Launch azimuth (rad from north, measured in the rotating frame) for a target inclination i (deg) from latitude lat.
+export function launchAzimuth(incDeg, lat = 0, vEq = P.OMEGA_E * P.R, vOrb = 7800) {
+  const i = incDeg * Math.PI / 180, sA = Math.max(-1, Math.min(1, Math.cos(i) / Math.max(1e-6, Math.cos(lat)))), A = Math.asin(sA);
+  return Math.atan2(vOrb * Math.sin(A) - vEq, vOrb * Math.cos(A));
+}
 export const SAFE_LANDING = { speed: 8, tilt: 15 }; // m/s, degrees: a powered vertical landing the legs survive // m: AUTO deploys drogues / mains below these
 // Can a parachute stage be deployed now? Returns { ok, why } against the canopy's real limits (speed, Mach, q).
 export function chuteLimits(spec, tel, stage) {
@@ -127,6 +140,7 @@ export function assessDesign(design, opts = {}) {
   return { orbit: false, level: 'warn', text: '✘ AUTO did not reach orbit in time. Try more thrust on the upper stages.' };
 }
 export { cloneDesign };
+export const fmtDur = s => { s = Math.max(0, s); const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), ss = Math.floor(s % 60); return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m ${String(ss).padStart(2, '0')}s`; };
 
 export class Flight {
   constructor(design, hooks = {}, opts = {}) {
@@ -146,7 +160,120 @@ export class Flight {
     this.lastPow = 0; v.stages.forEach((s, i) => { if (s.eng && s.eng.tv > 0) this.lastPow = i; });
     this.rec = recoveryInfo(design); this.ret = null; this.orbitSnap = null; this.maxHeat = 0; this.maxTskin = 0; this.maxGret = 0; this.parked = null;
     v.chute = { state: 'stowed', t: 0 }; v.chuteCdA = 0;
+    // solar system: game clock epoch, SOI body, nodes, alarms, target, per-body goals
+    this.t0 = opts.t0 ?? P.tFromDate(opts.epoch ?? Date.now()); epochPhase(this.t0); v.body = 'earth';
+    this.nodes = []; this.alarms = []; this.target = opts.target || null; this.goals = {}; this.warpTarget = null; this.exec = false; this.deep = !!(design.goal || opts.deep);
+    if (opts.incl) v.incl = +opts.incl;
   }
+  get tAbs() { return this.t0 + (this.v.clock || 0); }
+  get body() { return this.v.body || 'earth'; }
+  goal(id, kind) {
+    const g = this.goals[id] || (this.goals[id] = {}); if (g[kind]) return false; g[kind] = this.tAbs;
+    const pts = Math.round(GOAL_PTS[kind] * (GOAL_TIER[id] || 1)), nm = P.BODIES[id].name;
+    this.toast(kind === 'flyby' ? `🌑 ${nm.toUpperCase()} FLYBY — entering its sphere of influence +${pts}` : kind === 'orbit' ? `🛰️ ORBIT AROUND ${nm.toUpperCase()} +${pts}` : `🎯 LANDED ON ${nm.toUpperCase()} +${pts}`, '#7dffa6');
+    this.call('sound', kind === 'flyby' ? 'beep' : 'orbit', 1300); return true;
+  }
+  goalScore() { let s = 0; for (const [id, g] of Object.entries(this.goals)) for (const k of Object.keys(g)) s += GOAL_PTS[k] * (GOAL_TIER[id] || 1); return Math.round(s); }
+  // Patched conics: move the craft into body `to`'s frame (position, velocity and attitude), drop the warp.
+  switchBody(to) {
+    const v = this.v, from = this.body; if (to === from) return false;
+    const t = this.tAbs, tr = P.transfer(from, to, v.r, v.v, t), Fa = P.frameOf(from), Fb = P.frameOf(to);
+    const rot = x => { const e = [Fa[0] * x[0] + Fa[1] * x[1] + Fa[2] * x[2], Fa[3] * x[0] + Fa[4] * x[1] + Fa[5] * x[2], Fa[6] * x[0] + Fa[7] * x[1] + Fa[8] * x[2]];
+      return [Fb[0] * e[0] + Fb[3] * e[1] + Fb[6] * e[2], Fb[1] * e[0] + Fb[4] * e[1] + Fb[7] * e[2], Fb[2] * e[0] + Fb[5] * e[1] + Fb[8] * e[2]]; };
+    const ax = [[1, 0, 0], [0, 1, 0], [0, 0, 1]].map(e => rot(V.qrot(v.q, e)));
+    v.q = V.qFromBasis(ax[0], ax[1], ax[2]); if (v.sasHold) v.sasHold = rot(v.sasHold);
+    for (const n of this.nodes) if (n.dvVec) n.dvVec = rot(n.dvVec);
+    v.r = tr.r; v.v = tr.v; v.body = to; v._g = null; this.autoWarp = false;
+    const down = P.BODIES[from].parent === to;
+    this.toast(down ? `Leaving ${P.BODIES[from].name}'s sphere of influence — now orbiting ${P.BODIES[to].name}` : `Entering ${P.BODIES[to].name}'s sphere of influence`, '#9cc3ff');
+    if (!down) this.goal(to, 'flyby');
+    if (this.warpTarget && this.warpTarget.kind === 'soi') this.warpTarget = null;
+    this.setWarp(Math.min(this.warpI, 0), true); this.call('soi', from, to);
+    P.stepVehicle(v, 0); return true;
+  }
+  checkSOI() { const nb = P.soiOf(this.body, this.v.r, this.tAbs); if (nb !== this.body) { this.switchBody(nb); return true; } return false; }
+  // ---------- maneuver nodes: { t (game clock, absolute), pro, nrm, rad (m/s) } ----------
+  addNode(n) { const node = { t: n.t, pro: n.pro || 0, nrm: n.nrm || 0, rad: n.rad || 0 }; this.nodes.push(node); this.nodes.sort((a, b) => a.t - b.t); return node; }
+  removeNode(n) { const i = this.nodes.indexOf(n); if (i >= 0) this.nodes.splice(i, 1); if (!this.nodes.length) { this.exec = false; if (this.v.sas === 'node') this.v.sas = 'stab'; } }
+  nodeBurnTime(n) { return P.burnTimeFor(this.v, C.nodeDv(n)); }
+  // Δv still to do on the next node (vector, current body frame). Before the burn starts it tracks the predicted
+  // state at the node time; once thrust is applied in the burn window it is the planned vector minus what was done.
+  // Δv still to do on the next node (vector, current body frame). Before the burn it is the planned vector at the
+  // predicted node state; during the burn the remaining prograde / normal / radial parts are re-expressed in the
+  // current local frame (the burn follows the turning prograde direction, like the planner's impulsive model).
+  nodeRemaining(n = this.nodes[0]) {
+    if (!n) return null; const v = this.v;
+    if (!n.started) { const s = P.propagate(v.r, v.v, n.t - this.tAbs, P.muOf(v)); n.dvVec = C.nodeVector(s.r, s.v, n); return n.dvVec; }
+    const d = n.done || { pro: 0, nrm: 0, rad: 0 };
+    return C.nodeVector(v.r, v.v, { pro: n.pro - d.pro, nrm: n.nrm - d.nrm, rad: n.rad - d.rad });
+  }
+  nodeLeft(n) { const d = n.done || { pro: 0, nrm: 0, rad: 0 }; return { pro: n.pro - d.pro, nrm: n.nrm - d.nrm, rad: n.rad - d.rad }; }
+  updateNode(dt, m0) {
+    const n = this.nodes[0], v = this.v; if (!n) { v.nodeDir = null; return; }
+    if (n.t < this.tAbs - 3 * 86400 && !n.started) { this.removeNode(n); return; } // stale
+    const bt = this.nodeBurnTime(n), inWin = this.tAbs >= n.t - bt / 2 - 60;
+    if (v.thrust > 0 && !v.clamped && inWin && dt > 0) {
+      if (!n.started) { n.started = true; n.done = { pro: 0, nrm: 0, rad: 0 }; }
+      const f = C.nodeFrame(v.r, v.v), a = V.scale(P.noseOf(v), v.thrust / m0 * dt);
+      n.done.pro += V.dot(a, f.pro); n.done.nrm += V.dot(a, f.nrm); n.done.rad += V.dot(a, f.rad);
+    }
+    const rem = this.nodeRemaining(n); v.nodeDir = V.len(rem) > 1e-6 ? V.norm(rem) : null;
+    const L = this.nodeLeft(n), left = Math.hypot(L.pro, L.nrm, L.rad), along = L.pro * n.pro + L.nrm * n.nrm + L.rad * n.rad;
+    if (n.started && (left < 0.3 || along <= 0)) {
+      this.toast(`Maneuver complete (${left.toFixed(1)} m/s left)`, '#7dffa6'); if (this.exec) { v.ut = 0; v.throttle = 0; }
+      this.exec = false; this.removeNode(n); if (v.sas === 'node') v.sas = 'stab'; v.sasHold = null;
+    }
+  }
+  // AUTO-execute the next node: point (SAS maneuver), warp to the burn start, burn with throttle-down at the end.
+  setExec(on) {
+    if (on && !this.nodes.length) { this.toast('No maneuver node — add one on the map', '#ffb35c'); return false; }
+    this.exec = !!on; if (on) { this.v.sas = 'node'; this.v.sasHold = null; this.autoOn = false; this.v.auto = false; this.warpToNode(true); this.toast('Executing the maneuver: SAS MANEUVER, warp to the burn, burn', '#9cc3ff'); }
+    else this.v.ut = 0; return true;
+  }
+  updateExec() {
+    const n = this.nodes[0], v = this.v; if (!this.exec || !n) return;
+    const L = this.nodeLeft(n), dv = Math.hypot(L.pro, L.nrm, L.rad), bt = 0, a = P.thrustAccel(v);
+    const ang = v.nodeDir ? Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), v.nodeDir)))) : 1;
+    const go = this.tAbs >= n.t - (n.started ? 1e9 : this.nodeBurnTime(n) / 2);
+    if (!go) { v.ut = 0; if (!this.warpTarget && this.tAbs < n.t - this.nodeBurnTime(n) / 2 - NODE_LEAD - 5 && ang < 0.1) this.warpToNode(true); return; }
+    if (this.warpTarget) this.warpTarget = null;
+    v.ut = ang < 0.05 || (n.started && ang < 0.3) ? (a > 0 ? Math.max(0.05, Math.min(1, dv / (a * 2))) : 1) : 0;
+    if (a <= 0 && v.stages[v.cur].fuel <= 0) { if (v.cur < this.lastPow && this.canStage()) this.stage(); else { this.toast('Out of fuel during the burn', '#ff6262'); this.exec = false; v.ut = 0; } }
+    void bt;
+  }
+  // ---------- warp to a time (node, SOI change, Ap, Pe, alarm). The warp stops there; rails bound every jump. ----------
+  warpTo(t, label, kind = 'time', quiet) {
+    if (!(t > this.tAbs + 1)) { if (!quiet) this.toast('Nothing to warp to', '#ffb35c'); return false; }
+    if (!this.railsOK()) { if (!quiet) this.toast('Warp: coast outside the atmosphere with engines off first', '#ffb35c'); return false; }
+    this.warpTarget = { t, label, kind }; this.autoWarp = false; this.setWarp(WARPS.length - 1, true);
+    if (!quiet) this.toast(`Warping to ${label} (${fmtDur(t - this.tAbs)})`, '#9cc3ff'); return true;
+  }
+  warpToNode(quiet) { const n = this.nodes[0]; if (!n) { this.toast('No maneuver node', '#ffb35c'); return false; } return this.warpTo(n.t - this.nodeBurnTime(n) / 2 - NODE_LEAD, 'the maneuver', 'node', quiet); }
+  warpToSOI() {
+    const v = this.v, ev = C.nextEvent(this.body, v.r, v.v, this.tAbs, 3e9, { stopAlt: 0 });
+    if (!ev || (ev.type !== 'soi-exit' && ev.type !== 'soi-enter')) { this.toast('No SOI change ahead on this orbit', '#ffb35c'); return false; }
+    return this.warpTo(this.tAbs + ev.dt + 1, ev.type === 'soi-enter' ? P.BODIES[ev.to].name + ' encounter' : 'the SOI exit', 'soi');
+  }
+  warpToApsis(which) {
+    const v = this.v, mu = P.muOf(v), o = P.orbitOf(v);
+    if (which === 'ap' && !isFinite(o.ap)) { this.toast('Escape trajectory: no apoapsis', '#ffb35c'); return false; }
+    const dt = which === 'ap' ? P.timeToAp(v.r, v.v, mu) : C.timeToPe(v.r, v.v, mu);
+    if (!isFinite(dt)) { this.toast('Orbit is circular', '#ffb35c'); return false; }
+    return this.warpTo(this.tAbs + dt - 20, which === 'ap' ? 'apoapsis' : 'periapsis', which);
+  }
+  // The current stage as a burn model for the planner ({ T N, m0 kg, isp s }) — null without an engine.
+  burnModel() { const v = this.v, s = v.stages[v.cur]; if (!s || !s.eng || !(s.eng.tv > 0) || !(s.fuel > 0)) return null; return { T: s.eng.tv * 1000 * s.n, m0: P.massOf(v) * 1000, isp: s.eng.ispVac }; }
+  // Coast on rails to game time tEnd through every SOI change (scenarios, lessons and tests).
+  coastTo(tEnd) {
+    const v = this.v; for (let k = 0; k < 200 && this.tAbs < tEnd - 1e-6; k++) {
+      const ev = C.nextEvent(this.body, v.r, v.v, this.tAbs, tEnd - this.tAbs, { stopAlt: 0 }), dt = ev ? ev.dt : tEnd - this.tAbs;
+      P.railsStep(v, dt); this.met += dt; if (ev && (ev.type === 'soi-enter' || ev.type === 'soi-exit')) this.switchBody(ev.to); else if (ev) break;
+    }
+    P.stepVehicle(v, 0); this.postStep(); return this;
+  }
+  // Apply node n impulsively (coast to it, add its Δv) — for scenario starts, not for normal flight.
+  applyNodeNow(n) { this.coastTo(n.t); const v = this.v; v.v = V.add(v.v, C.nodeVector(v.r, v.v, n)); this.dvUsed += C.nodeDv(n); this.removeNode(n); P.stepVehicle(v, 0); return this; }
+  addAlarm(t, label) { this.alarms.push({ t, label }); this.alarms.sort((a, b) => a.t - b.t); }
   call(name, ...a) { const f = this.h[name]; return f ? f(...a) : undefined; }
   toast(msg, color) { this.call('toast', msg, color); }
   get alt() { return P.altOf(this.v); }
@@ -236,7 +363,7 @@ export class Flight {
     return true;
   }
   // ---------- coming home: deorbit burn, capsule separation, reentry, parachutes ----------
-  canDeorbit() { const f = this.flags; return this.ignited && !f.dead && !f.recovered && !this.ret && this.alt > 60000 && !this.flyingBooster(); }
+  canDeorbit() { const f = this.flags; return this.body === 'earth' && this.ignited && !f.dead && !f.recovered && !this.ret && this.alt > 60000 && !this.flyingBooster(); }
   deorbit() {
     if (!this.canDeorbit()) { this.toast(this.ret ? 'Already on the way home' : 'Deorbit: get above 60 km first', '#ffb35c'); return false; }
     const v = this.v; this.autoOn = false; v.auto = false; v.guid = null; this.autoWarp = false; this.setWarp(0, true);
@@ -326,10 +453,14 @@ export class Flight {
   touchdown(sp) {
     const v = this.v, f = this.flags; f.touchdown = sp;
     v.throttle = v.ut = 0;
+    if (sp <= SAFE_TOUCHDOWN && this.body !== 'earth') { // under chutes on Mars / Titan / Venus: a landing
+      f.landed = 1; this.goal(this.body, 'landed'); this.parked = { ef: V.norm(V.rotZ(v.r, -P.omegaOf(v) * v.clock)), lift: v.tel.ycom };
+      this.endQueued = true; this.call('end', 3000, () => !this.ended); return;
+    }
     if (sp <= SAFE_TOUCHDOWN) {
       f.recovered = 1; this.toast(`🌊 TOUCHDOWN at ${sp.toFixed(1)} m/s — ${this.v.stages.some(s => s.parts.some(p => p.id === 'crew')) ? 'crew' : 'capsule'} recovered! +${4000 * (v.mult || 1)}`, '#7dffa6');
       this.call('sound', 'landed'); this.call('recovered');
-      this.parked = { ef: V.norm(V.rotZ(v.r, v.earthRot ? -P.OMEGA_E * v.clock : 0)), lift: v.tel.ycom };
+      this.parked = { ef: V.norm(V.rotZ(v.r, -P.omegaOf(v) * v.clock)), lift: v.tel.ycom };
       this.endQueued = true; this.call('end', 3000, () => !this.ended);
     } else this.fail(`hit the ground at ${sp.toFixed(0)} m/s${v.chute.state === 'stowed' ? ' (no parachutes deployed)' : v.chute.state === 'failed' ? ' (parachutes failed)' : ''}`, 'impact');
   }
@@ -338,8 +469,8 @@ export class Flight {
     const v = this.v, f = this.flags, tilt = Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), V.norm(v.r))))) * 180 / Math.PI;
     f.touchdown = sp; v.throttle = v.ut = 0;
     if (sp <= SAFE_LANDING.speed && tilt <= SAFE_LANDING.tilt) {
-      f.landed = 1; this.toast(`🎯 LANDED at ${sp.toFixed(1)} m/s, ${tilt.toFixed(0)}° tilt`, '#7dffa6'); this.call('sound', 'landed');
-      this.parked = { ef: V.norm(V.rotZ(v.r, v.earthRot ? -P.OMEGA_E * v.clock : 0)), lift: v.tel.ycom };
+      f.landed = 1; if (this.body !== 'earth') this.goal(this.body, 'landed'); else this.toast(`🎯 LANDED at ${sp.toFixed(1)} m/s, ${tilt.toFixed(0)}° tilt`, '#7dffa6'); this.call('sound', 'landed');
+      this.parked = { ef: V.norm(V.rotZ(v.r, -P.omegaOf(v) * v.clock)), lift: v.tel.ycom };
       this.endQueued = true; this.call('end', 3000, () => !this.ended);
     } else this.fail(`hit the ground at ${sp.toFixed(0)} m/s${tilt > SAFE_LANDING.tilt ? `, ${tilt.toFixed(0)}° from upright` : ''}`, 'ground');
   }
@@ -387,7 +518,7 @@ export class Flight {
   // Coasting outside the air with nothing commanding the craft: exact Kepler "rails", any warp.
   railsOK() {
     const v = this.v, b = this.booster, inp = v.input || {};
-    if (!this.ignited || this.flags.dead || v.clamped || this.alt < P.RAILS_ALT) return false;
+    if (!this.ignited || this.flags.dead || v.clamped || this.alt < C.railsAltOf(this.body)) return false;
     if (b && b.state === 'flying') return false;
     if (this.autoOn && v.guid !== 'done' && v.guid !== 'coast') return false;
     if (this.ret && this.ret.phase !== 'coast') return false;
@@ -402,10 +533,11 @@ export class Flight {
     if (this.flyingBooster()) return [1, 'flying booster'];
     if (this.parked) return [1, ''];
     if (this.ret && this.ret.phase === 'entry' && h < 60000) return [v.chute.state === 'main' ? 10 : 4, 'reentry'];
-    if (h < ATM && v.thrust > 0) return [4, 'engines on in the air'];
+    const top = this.body === 'earth' ? ATM : P.atmTop(this.body);
+    if (h < top && v.thrust > 0) return [4, 'engines on in the air'];
     if (v.thrust > 0 && this.autoWarp) return [4, 'burning'];
     if (this.railsOK()) return [WARPS[WARPS.length - 1], ''];
-    if (h < P.RAILS_ALT) return [50, 'below 140 km'];
+    if (h < C.railsAltOf(this.body)) return [50, this.body === 'earth' ? 'below 140 km' : P.BODIES[this.body].atm ? 'in the atmosphere' : 'too low'];
     return [50, v.thrust > 0 ? 'burning' : 'controls active'];
   }
   effWarp() { return Math.min(WARPS[this.warpI], this.warpLimit()[0]); }
@@ -423,29 +555,49 @@ export class Flight {
     } else { const left = (tAp - lead) / SIM_SPEED; this.setWarp(left > 200 ? 6 : left > 60 ? 5 : left > 25 ? 4 : left > 8 ? 3 : 2, true); }
   }
   advance(rdt) {
-    this.realT += rdt; this.updateAutoWarp();
-    const W = this.effWarp(), simDt = rdt * SIM_SPEED * W;
+    this.realT += rdt; this.updateAutoWarp(); this.updateExec();
+    const wt = this.warpTarget;
+    if (wt && this.tAbs >= wt.t - 1e-3) { this.warpTarget = null; this.setWarp(0, true); this.toast(`Arrived: ${wt.label}`, '#ffd23a'); this.call('sound', 'beep', 1000); }
+    const W = this.effWarp(); let simDt = rdt * SIM_SPEED * W;
+    if (this.warpTarget) simDt = Math.max(0, Math.min(simDt, this.warpTarget.t - this.tAbs));
     this.rails = W > 1 && this.railsOK();
-    if (this.rails) {
-      // never let one rails jump carry the craft deep below the rails altitude (deorbit coast)
-      const pr = P.propagate(this.v.r, this.v.v, simDt);
-      if (V.len(pr.r) - R > P.RAILS_ALT - 3000) { P.railsStep(this.v, simDt); this.met += simDt; this.postStep(); this.updateReturn(simDt); return simDt; }
-      this.rails = false; this.setWarp(Math.min(this.warpI, 5), true);
-    }
-    const W2 = this.rails ? W : Math.min(W, 50), simDt2 = rdt * SIM_SPEED * W2;
-    const step = W2 > 4 ? PHYS_DT * 2 : PHYS_DT, N = Math.ceil(simDt2 / step - 1e-9);
+    if (this.rails) return this.railsAdvance(simDt);
+    const W2 = Math.min(W, 50), simDt2 = this.warpTarget ? Math.min(rdt * SIM_SPEED * W2, simDt || rdt * SIM_SPEED) : rdt * SIM_SPEED * W2;
+    const step = W2 > 4 ? PHYS_DT * 2 : PHYS_DT, N = Math.max(1, Math.ceil(simDt2 / step - 1e-9));
     for (let i = 0; i < N; i++) this.step(simDt2 / N);
+    this.checkSOI();
     return simDt2;
+  }
+  // Event-bounded rails: one Kepler jump per frame, cut at the first SOI change, node lead, alarm or the
+  // atmosphere / low-altitude boundary; the warp drops there.
+  railsAdvance(simDt) {
+    const v = this.v, body = this.body, lead = this.nodes.map(n => ({ t: n.t - this.nodeBurnTime(n) / 2 - NODE_LEAD })).filter(n => n.t > this.tAbs + 0.5);
+    const al = this.alarms.filter(a => a.t > this.tAbs + 0.5);
+    const ev = C.nextEvent(body, v.r, v.v, this.tAbs, simDt, { nodes: [...lead, ...al], stopAlt: C.railsAltOf(body) - (body === 'earth' ? 3000 : 0) });
+    const dt = ev ? Math.max(0, ev.dt) : simDt;
+    P.railsStep(v, dt); this.met += dt; this.postStep(); this.updateReturn(dt); this.updateNode(0, 1);
+    if (ev) {
+      if (ev.type === 'soi-exit' || ev.type === 'soi-enter') { this.switchBody(ev.to); }
+      else if (ev.type === 'node') {
+        const a = this.alarms.find(x => Math.abs(x.t - (this.tAbs)) < 1);
+        if (a) { this.alarms.splice(this.alarms.indexOf(a), 1); this.toast('⏰ Alarm: ' + a.label, '#ffd23a'); this.call('sound', 'beep', 880); }
+        else if (!this.exec) this.toast('Maneuver node ahead — point SAS MANEUVER (8) and burn', '#ffd23a');
+        if (!this.exec || this.warpTarget) this.warpTarget = this.exec ? null : this.warpTarget;
+        this.setWarp(0, true);
+      } else { this.rails = false; this.setWarp(Math.min(this.warpI, 5), true); if (body !== 'earth') this.toast(P.BODIES[body].atm ? `Entering ${P.BODIES[body].name}'s atmosphere` : `Low over ${P.BODIES[body].name} — warp limited`, '#ffb35c'); }
+    } else this.checkSOI();
+    return dt;
   }
   // ---------- one physics step ----------
   step(dt) {
     const v = this.v, f = this.flags;
     if (this.parked) { // recovered capsule: rides the turning Earth
-      v.clock += dt; const th = v.earthRot ? P.OMEGA_E * v.clock : 0; v.r = V.rotZ(V.scale(this.parked.ef, R + this.parked.lift), th); v.v = [-(v.earthRot ? P.OMEGA_E : 0) * v.r[1], (v.earthRot ? P.OMEGA_E : 0) * v.r[0], 0]; v.w = [0, 0, 0];
+      v.clock += dt; const w = P.omegaOf(v), th = w * v.clock; v.r = V.rotZ(V.scale(this.parked.ef, P.radOf(v) + this.parked.lift), th); v.v = [-w * v.r[1], w * v.r[0], 0]; v.w = [0, 0, 0];
       if (v.tel) { v.tel.q = 0; v.tel.heat = 0; v.tel.vAir = 0; v.tel.gload = 1; }
       return;
     }
     if (this.ret) this.updateReturn(dt);
+    if (this.exec && !f.dead) this.updateExec();
     if (!f.dead) {
       if (!this.ignited) { v.throttle = 0; v.steerDir = null; }
       else if (this.ret) { v.throttle = v.cur <= this.lastPow ? v.ut : 0; if (!this.ret.auto) v.steerDir = null; }
@@ -463,6 +615,7 @@ export class Flight {
       if (this.ret && tel.gload > this.maxGret) this.maxGret = tel.gload;
       if (this.ret && !f.reentry && h < 100000 && tel.heat > 1000) f.reentry = 1;
       if (v.thrust > 0 && !v.clamped) this.dvUsed += v.thrust / m0 * dt;
+      this.updateNode(dt, m0);
       // Max-Q is an ascent figure: reentry and falling back are tracked separately (maxQEntry)
       if (this.ascent && (this.ret || (f.space && V.dot(v.v, V.norm(v.r)) < 0) || f.orbit)) this.ascent = false;
       if (this.ascent) { if (tel.q > this.maxQ) this.maxQ = tel.q; } else if (tel.q > this.maxQEntry) this.maxQEntry = tel.q;
@@ -498,7 +651,7 @@ export class Flight {
       const n = Math.max(1, Math.ceil(dt / (1 / 50) - 1e-9));
       for (let i = 0; i < n && b.state === 'flying'; i++) this.stepBooster(b, dt / n);
     }
-    if (!this.ended && !f.dead && f.orbit && v.thrust <= 0 && (!b || b.state !== 'flying') && !this.endQueued && !this.ret) {
+    if (!this.ended && !f.dead && f.orbit && !this.deep && !this.nodes.length && this.body === 'earth' && v.thrust <= 0 && (!b || b.state !== 'flying') && !this.endQueued && !this.ret) {
       // a craft that can come home keeps flying: the mission ends at touchdown (or press R)
       if (this.rec.capsule && this.rec.shield && this.rec.chute) { if (!this.homeHint) { this.homeHint = 1; this.toast('Orbit! Press O to deorbit and bring the capsule home', '#ffd23a'); } }
       else { this.endQueued = true; this.call('end', 2500, () => !f.dead); }
@@ -506,6 +659,11 @@ export class Flight {
   }
   postStep() {
     const v = this.v, f = this.flags, h = this.alt;
+    if (this.body !== 'earth') { // other bodies: orbit goal; Earth's own flags below stay as they were
+      const o = P.orbitOf(v), b = P.BODIES[this.body], floor = b.atm ? P.atmTop(this.body) : Math.max(5000, b.R * 0.005);
+      if (o.e < 1 && o.pe > floor && o.ra < b.soi && !(this.goals[this.body] || {}).orbit) this.goal(this.body, 'orbit');
+      return;
+    }
     f.maxAlt = Math.max(f.maxAlt, h);
     if (!f.space && h > P.KARMAN) { f.space = 1; this.toast('🌌 SPACE! Kármán line (100 km) +1000', '#b98cff'); this.call('sound', 'beep', 1200); }
     const o = P.orbitOf(v);
@@ -591,7 +749,7 @@ export class Flight {
     if (f.space) s += 1000;
     if (f.orbit) { s += 3000; if (isFinite(o.ap)) s += Math.max(0, 1500 - Math.abs(o.ap - o.pe) / 100); s += fuelLeft * 800; }
     if (f.recovered) s += 4000;
-    s *= mult; s += f.boosterBonus; if (f.dead) s *= 0.5;
+    s *= mult; s += f.boosterBonus + this.goalScore(); if (f.dead) s *= 0.5;
     return Math.round(s);
   }
   finish() { if (!this.ended) { this.finalScore = this.score(); this.ended = true; this.autoWarp = false; this.warpI = 0; } return this.finalScore; }

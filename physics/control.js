@@ -7,8 +7,8 @@ import { sub, scale, dot, cross, len, norm, qrot, qinv, clamp } from './vec.js?v
 import { authority, airVel, engineOut, radOf, atmAt } from './dynamics.js?v=ss1';
 import { stackGeom, massProps } from './vehicle.js?v=ss1';
 import { atmosphere } from './atmosphere.js?v=ss1';
-export const SAS_MODES = ['off', 'stab', 'prograde', 'retrograde', 'radial', 'antiradial', 'normal', 'antinormal'];
-export const SAS_LABEL = { off: 'OFF', stab: 'STABILITY', prograde: 'PROGRADE', retrograde: 'RETROGRADE', radial: 'RADIAL OUT', antiradial: 'RADIAL IN', normal: 'NORMAL', antinormal: 'ANTI-NORMAL' };
+export const SAS_MODES = ['off', 'stab', 'prograde', 'retrograde', 'radial', 'antiradial', 'normal', 'antinormal', 'node'];
+export const SAS_LABEL = { off: 'OFF', stab: 'STABILITY', prograde: 'PROGRADE', retrograde: 'RETROGRADE', radial: 'RADIAL OUT', antiradial: 'RADIAL IN', normal: 'NORMAL', antinormal: 'ANTI-NORMAL', node: 'MANEUVER' };
 // Prograde reference: air-relative below 40 km (what the airflow sees), inertial (orbital) above.
 export function progradeOf(v) { const h = len(v.r) - radOf(v), vel = h < 40000 ? airVel(v) : v.v; return len(vel) > 1 ? norm(vel) : norm(v.r); }
 export function sasDir(v, mode) {
@@ -19,6 +19,7 @@ export function sasDir(v, mode) {
     case 'radial': return rad; case 'antiradial': return scale(rad, -1);
     case 'normal': return nrm; case 'antinormal': return scale(nrm, -1);
     case 'stab': return v.sasHold || qrot(v.q, [0, 1, 0]);
+    case 'node': return v.nodeDir || v.sasHold || qrot(v.q, [0, 1, 0]);
   }
   return null;
 }

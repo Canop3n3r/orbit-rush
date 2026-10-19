@@ -1,9 +1,11 @@
-// Orbit Rush Academy: ten interactive lessons, the HUD glossary (Learn overlay) and progress storage.
+// Orbit Rush Academy: twelve interactive lessons, the HUD glossary (Learn overlay) and progress storage.
 // No DOM: main.js / academy-ui.js render it, and tests/academy.mjs drives the same lessons headlessly.
 // Every number shown in a lesson comes from the physics modules (single source of truth): the constants and
 // functions are imported, never re-typed here.
 import * as P from './physics.js?v=ss1';
 import { TEMPLATES, PARTS, designStats, aeroBalance, ORBIT_DV } from './parts.js?v=ss1';
+import * as C from './physics/patched.js?v=ss1';
+import { BODIES } from './physics/solar.js?v=ss1';
 import { chuteLimits, SAFE_TOUCHDOWN, SAFE_LANDING, DEORBIT_PE } from './flight.js?v=ss1';
 const { V, G0, MU, R } = P;
 
@@ -48,6 +50,16 @@ export const DESIGNS = {
   home: tpl('Orbit & home'),
   lander: D('Hopper', ['probe', 'tank-l', { id: 'mule', n: 1 }, 'fins']),
 };
+// Moon-bound craft for the two solar-system lessons: parked in a 200 km orbit; soi: already on a lunar transfer
+const moonPlan = F => C.planFull('earth', F.v.r, F.v.v, F.tAbs, 'moon', { minWait: 600 });
+export function setupTransfer(F) { F.placeInOrbit(200000, 1); F.v.sas = 'prograde'; return F; }
+export function setupSOI(F) {
+  setupTransfer(F); const pl = moonPlan(F); if (!pl || !pl.reaches) return F;
+  F.target = 'moon'; F.applyNodeNow(F.addNode(pl.tuned));
+  const pr = C.predict('earth', F.v.r, F.v.v, F.tAbs, { maxPatches: 3 }), ix = pr.patches.findIndex(p => p.body === 'moon');
+  if (ix > 0) F.coastTo(pr.patches[ix - 1].t1 - 3 * 3600); F.v.sas = 'prograde'; return F;
+}
+const reachesMoon = F => { const pr = C.predict(F.body, F.v.r, F.v.v, F.tAbs, { maxPatches: 3 }); return pr.patches.some(p => p.body === 'moon'); };
 export const Q_LIMIT = 32000; // Pa: lesson 4's Max-Q budget (Falcon 9-class rockets peak around 30–35 kPa)
 
 // ---------- lessons ----------
@@ -264,6 +276,45 @@ export const LESSONS = [
         <div class="eq">h = <span class="fr"><i>v²</i><i>2 (T/m − g)</i></span></div>
         ${F ? `<p>Now: T ${f0(T / 1000)} kN, m ${f0(m / 1000, 1)} t, g ${f0(calc.gravity(F.alt), 2)} m/s², v ${f0(vv)} m/s → h ≈ <b data-v="hBurn">${f0(calc.stopDistance(vv, T, m, F.alt))} m</b>.</p>` : ''}
         <p>A booster with a thrust-to-weight above 1 at its lowest throttle can't hover, so it lights at the last moment and reaches zero speed exactly at the ground: the "suicide burn" or hoverslam.</p>`; },
+    },
+  },
+  {
+    id: 'transfer', title: 'Transfer orbits & launch windows', goal: 'Plan and fly a burn that reaches the Moon',
+    start: { mode: 'flight', design: tpl('Moon lander'), setup: setupTransfer },
+    steps: [
+      { text: 'Open the map: M. Drag to orbit the camera, scroll or pinch to zoom.', keys: ['M'], done: c => c.ui.camMode === 'map' || c.mem.mapSeen },
+      { text: 'Open the Planner and pick the Moon as target: it finds the next launch window and the burn.', hl: ['#mapBar'], done: c => c.F.target === 'moon' || c.F.nodes.length > 0 },
+      { text: 'Add the planned maneuver node (the Planner\'s "Create node" button).', hl: ['#mapPanel'], done: c => c.F.nodes.length > 0 || c.mem.burned },
+      { text: c => { const n = c.F.nodes[0]; return n ? `Warp to the node: G (burn in ${f0(Math.max(0, n.t - c.F.tAbs) / 60, 1)} min), then point SAS MANEUVER and burn until the node is done.` : 'Burning…'; }, keys: ['G'], done: c => c.mem.burned },
+    ],
+    track: c => { if (c.ui.camMode === 'map') c.mem.mapSeen = true; if (!flying(c)) return;
+      if (c.F.dvUsed > 2500 && !c.F.nodes.length && c.v.thrust <= 0 && !c.mem.burned) { c.mem.burned = true; c.mem.reach = reachesMoon(c.F); } },
+    pass: c => !!c.mem.reach,
+    fail: c => c.mem.burned && !c.mem.reach ? 'The burn missed the Moon — open the Planner again and add a correction node.' : null,
+    concept: {
+      title: 'Hohmann transfers and launch windows',
+      body: () => { const r1 = R + 200000, r2 = 384400e3, h = C.hohmann(MU, r1, r2);
+        return `<p>The cheapest way between two circular orbits is a <b>Hohmann transfer</b>: one prograde burn makes an ellipse that just touches the target orbit, a second burn there matches it.</p>
+        <div class="eq">Δv₁ = √(μ/r₁) · (√(2r₂/(r₁+r₂)) − 1)</div>
+        <p>From 200 km to the Moon's distance: Δv₁ ≈ <b data-v="tliDv">${f0(h.dv1)} m/s</b>, and the coast takes ${f0(h.tt / 86400, 1)} days. The Moon must be at the far end when you get there, so you can only leave at the right phase angle: the <b>launch window</b>. For Mars the window repeats every synodic period, about 26 months.</p>`; },
+    },
+  },
+  {
+    id: 'soi', title: 'Spheres of influence & gravity assists', goal: "Coast into the Moon's sphere of influence",
+    start: { mode: 'flight', design: tpl('Moon lander'), setup: setupSOI },
+    steps: [
+      { text: "You're on the way to the Moon. Open the map (M): the path changes colour where the Moon's gravity takes over.", keys: ['M'], done: c => c.ui.camMode === 'map' || c.mem.mapSeen },
+      { text: 'Time warp: G. Warp stops by itself at the sphere-of-influence boundary.', keys: ['G'], done: c => c.F.body === 'moon' || c.F.warpI > 0 || c.mem.warped },
+      { text: c => c.F.body === 'moon' ? 'Inside the Moon\'s SOI!' : 'Warping to the Moon\'s sphere of influence…', done: c => c.F.body === 'moon' },
+    ],
+    track: c => { if (c.ui.camMode === 'map') c.mem.mapSeen = true; if (flying(c) && c.F.warpI > 0) c.mem.warped = true; },
+    pass: c => flying(c) && c.F.body === 'moon',
+    fail: c => flying(c) && c.F.flags.dead ? 'Lost the craft.' : null,
+    concept: {
+      title: 'Patched conics',
+      body: () => { const soi = BODIES.moon.soi;
+        return `<p>Near a body only its gravity matters: inside its <b>sphere of influence</b> r<sub>SOI</sub> ≈ a · (m/M)<sup>2/5</sup> the game uses a plain Kepler orbit around it, and switches body at the boundary. The Moon's SOI reaches <b data-v="moonSoi">${f0(soi / 1000)} km</b>.</p>
+        <p>In the Moon's frame you arrive on a hyperbola and leave at the same speed — but the Moon itself is moving, so in Earth's frame your speed changes: a <b>gravity assist</b>. Passing behind the Moon speeds you up, in front of it slows you down.</p>`; },
     },
   },
 ];

@@ -15,6 +15,7 @@
   <div class="bhead"><h1>ORBIT RUSH</h1><p class="sub">Hangar — build it from parts. Launch it. Orbit it. Land it.</p><button id="academyBtn" class="acad" title="Interactive lessons: learn real rocket science by flying">🎓 Academy</button></div>
   <div class="trow"><label>Templates</label><div id="presets" class="opts"></div>
     <label class="chk" title="The launch site is on the equator: Earth's rotation gives you ~465 m/s eastward for free"><input type="checkbox" id="earthRot"> Earth rotation</label>
+    <label class="chk" title="Target orbit inclination to the equator. 0° = due east (cheapest). AUTO flies the matching launch azimuth; the map's transfer planner suggests the best value for a Moon or planet transfer.">Launch incl. <input type="number" id="inclIn" min="0" max="180" step="0.5" value="0">° <span id="azOut" class="sm"></span></label>
     <label class="chk" title="Airflow particles, vapor cones, shock and plasma effects. Lowered automatically if the frame rate drops. (U in flight)">Effects <select id="fxSel"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label>
     <span class="saved"><select id="savedSel"></select><button id="saveBtn">Save</button><button id="delBtn" title="Delete the selected saved design">Delete</button><button id="clearBtn" title="Start from just a probe core">New</button></span></div>
   <div class="bcols">
@@ -31,7 +32,7 @@
         <li>Full-scale Earth: orbit is ~7.8 km/s and costs ~9.4 km/s of Δv. Pitch over gently east after liftoff, keep the angle of attack small through Max-Q, cut at Ap ~180 km, then burn prograde at Ap until Pe &gt; 130 km.</li>
         <li><b>Coming home:</b> build a capsule (pod + heat shield under it, parachute pack on top, a separator below; try the <i>Orbit &amp; home</i> template). In orbit press <b>O</b>: AUTO turns retrograde, burns Pe down to ~45 km, drops the service stage and flies the capsule heat-shield first. <b>P</b> deploys parachutes by hand: drogues below Mach 1.2 and 15 kPa, mains under 95 m/s — outside those limits they shred. Watch the HEAT gauges: every part has a temperature limit.</li>
         <li><b>U</b> cycles effects quality (High/Medium/Low). <b>/</b> opens the Learn overlay: what every HUD readout means (or hover a label).</li>
-        <li>New to rockets? Open the <b>🎓 Academy</b>: ten short lessons from a first hop to a recovered orbital mission.</li>
+        <li>New to rockets? Open the <b>🎓 Academy</b>: twelve short lessons from a first hop to a Moon transfer.</li>
         <li>Keep the yellow CoM above the cyan CoP (fins at the bottom) or the rocket flips. Stage with fuel left in the booster and it can land on the droneship (+1000 auto, +2500 by hand with Y).</li>
       </ul></details>
     </div>

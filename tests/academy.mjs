@@ -7,6 +7,7 @@ import * as P from '../physics.js?v=ss1';
 import { designStats, cloneDesign } from '../parts.js?v=ss1';
 import { Flight } from '../flight.js?v=ss1';
 import * as A from '../academy.js?v=ss1';
+import * as C from '../physics/patched.js?v=ss1';
 const { V, R } = P;
 let pass = 0, fail = 0;
 const ok = (c, name, extra = '') => { if (c) { pass++; console.log('  ✔', name, extra); } else { fail++; console.log('  ✘', name, extra); } };
@@ -148,6 +149,23 @@ console.log('2. Progress: save / load / unlock / skip');
   ok(!A.saveProgress(bad, p) && A.loadProgress(bad).v === 1, 'storage that throws (private mode) is tolerated');
 }
 
+
+console.log('1b. Solar-system lessons');
+{ // 11 transfer: open map, plan, node, warp & burn → reaches the Moon
+  const g = play('transfer'), F = g.S.F; g.S.ui.camMode = 'map'; g.upd(); g.S.ui.camMode = 'chase';
+  ok(g.T.i >= 1, '11 transfer: map step done');
+  const pl = C.planFull('earth', F.v.r, F.v.v, F.tAbs, 'moon', { minWait: 600 }); F.target = 'moon'; g.upd();
+  const n = F.addNode(pl.tuned); g.upd(); ok(g.T.i >= 3 && !g.T.passed, '11 transfer: planner + node steps done, not passed before burning');
+  F.applyNodeNow(n); g.upd(); ok(g.T.passed, '11 transfer: burn that reaches the Moon passes', `Δv ${F.dvUsed.toFixed(0)} m/s`);
+  const g2 = play('transfer'), F2 = g2.S.F; const n2 = F2.addNode({ t: F2.tAbs + 600, pro: 2600, nrm: 0, rad: 0 }); F2.applyNodeNow(n2); g2.upd();
+  ok(!g2.T.passed, '11 transfer: a blind 2.6 km/s burn does not pass');
+}
+{ // 12 soi: warp into the Moon's SOI
+  const g = play('soi'), F = g.S.F; ok(F.body === 'earth' && F.target === 'moon', '12 soi: starts on a lunar transfer');
+  ok(!g.T.passed, '12 soi: not passed before the SOI');
+  F.warpToSOI(); for (let i = 0; i < 4000 && F.body !== 'moon'; i++) { F.advance(1 / 30); if (i % 3 === 0) g.upd(0.1); }
+  g.upd(); ok(F.body === 'moon' && g.T.passed, '12 soi: entering the Moon SOI passes', F.body);
+}
 console.log('3. Formula values in lessons come from the physics modules');
 {
   const src = readFileSync(new URL('../academy.js', import.meta.url), 'utf8');
@@ -186,7 +204,7 @@ console.log('3. Formula values in lessons come from the physics modules');
 
 console.log('4. Lesson definitions');
 {
-  ok(A.LESSONS.length === 10 && new Set(A.LESSONS.map(l => l.id)).size === 10, 'ten lessons with unique ids');
+  ok(A.LESSONS.length === 12 && new Set(A.LESSONS.map(l => l.id)).size === 12, 'twelve lessons with unique ids');
   ok(A.LESSONS.every(l => l.title && l.goal && l.steps.length && l.concept && typeof l.pass === 'function'), 'each has a title, goal, steps, concept card and pass check');
   for (const l of A.LESSONS) { let h = ''; try { h = l.concept.body({ stats: designStats(l.start.design) }); } catch (e) { h = ''; } if (!h || /NaN|undefined/.test(h)) ok(false, `concept card ${l.id} renders cleanly`); }
   ok(true, 'every concept card renders without NaN/undefined (no flight)');

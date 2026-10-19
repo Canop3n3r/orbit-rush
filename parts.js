@@ -9,7 +9,7 @@ export const ORBIT_DV = 9400; // m/s: what reaching low Earth orbit really costs
 // heights h and diameters d in metres. Real-ish values: tank structure is 6% of its fuel; 2.5 m stack diameter.
 const D = 2.5, DEG = Math.PI / 180;
 export const TANK_DRY = 0.06;
-const tankH = fuel => 0.3 + fuel / (Math.PI * D * D / 4 * 1.0); // ~1 t of propellant per m^3
+const tankH = (fuel, rho = 1.0) => 0.3 + fuel / (Math.PI * D * D / 4 * rho); // ~1 t of propellant per m^3 (hydrolox ~0.36 t/m^3)
 export const PARTS = {
   probe:   { type: 'pod', name: 'Wren Probe Core', m: 0.25, h: 0.9, d: 1.4, rw: 4, mult: 1, nose: { cd: 1.15, rn: 0.6, cpFrac: 0.4 }, desc: 'Light uncrewed command core with reaction wheels (4 kN·m).' },
   crew:    { type: 'pod', name: 'Heron Crew Pod', m: 4.0, h: 3.2, d: D, rw: 12, mult: 2, nose: { cd: 1.3, rn: 2.0, cpFrac: 0.5 }, desc: 'Two crew, blunt heat shield, reaction wheels (12 kN·m). ×2 score.' },
@@ -18,10 +18,15 @@ export const PARTS = {
   'tank-s':  { type: 'tank', name: 'FT-8 Tank', fuel: 8, desc: '8 t of propellant, 0.48 t empty.' },
   'tank-m':  { type: 'tank', name: 'FT-20 Tank', fuel: 20, desc: '20 t of propellant, 1.2 t empty.' },
   'tank-l':  { type: 'tank', name: 'FT-50 Tank', fuel: 50, desc: '50 t of propellant, 3 t empty.' },
+  'tank-h2': { type: 'tank', name: 'HX-24 Hydrolox Tank', fuel: 24, rho: 0.36, desc: '24 t of liquid hydrogen + oxygen: light but bulky (0.36 t/m³). Feed it to a Lark or an Osprey.' },
+  xenon:   { type: 'tank', name: 'XT-2 Xenon Tank', fuel: 2, rho: 2.0, desc: '2 t of xenon for the Glimmer ion thruster: a tiny tank for a huge Δv.' },
   'tank-xl': { type: 'tank', name: 'FT-100 Tank', fuel: 100, desc: '100 t of propellant, 6 t empty.' },
   thumper: { type: 'engine', name: 'Thumper', tv: 950, ispSl: 285, ispVac: 312, m: 0.55, h: 2.4, gimbal: 5 * DEG, desc: 'High-thrust kerosene booster engine (868 kN at sea level). 5° gimbal.' },
+  bison:   { type: 'engine', name: 'Bison', tv: 2400, ispSl: 291, ispVac: 318, m: 1.7, h: 3.3, gimbal: 5 * DEG, desc: 'Heavy-lift kerosene engine (2.2 MN at sea level) for big boosters. 5° gimbal.' },
   mule:    { type: 'engine', name: 'Mule', tv: 450, ispSl: 270, ispVac: 335, m: 0.7, h: 2.2, gimbal: 4 * DEG, desc: 'All-rounder sustainer: good thrust, decent efficiency. 4° gimbal.' },
   lark:    { type: 'engine', name: 'Lark', tv: 110, ispSl: 150, ispVac: 455, m: 0.3, h: 2.6, gimbal: 4 * DEG, desc: 'Hydrogen vacuum engine: Isp 455 s in space, useless at sea level. 4° gimbal.' },
+  osprey:  { type: 'engine', name: 'Osprey', tv: 160, ispSl: 210, ispVac: 451, m: 0.5, h: 2.9, gimbal: 4 * DEG, desc: 'Hydrogen upper-stage engine: Isp 451 s in vacuum, 160 kN. The transfer stage for the Moon and Mars.' },
+  ion:     { type: 'engine', name: 'Glimmer Ion Thruster', tv: 2, ispSl: 100, ispVac: 3100, m: 0.25, h: 0.8, gimbal: 0, desc: 'Electric thruster: Isp 3,100 s but only 2 kN (game-scaled ~20× a real one; burns take hours, use warp ×50). Vacuum only.' },
   spark:   { type: 'engine', name: 'Spark', tv: 30, ispSl: 220, ispVac: 320, m: 0.06, h: 0.9, gimbal: 0, desc: 'Tiny fixed kick-stage engine (no gimbal: steer with wheels/RCS).' },
   dec:     { type: 'decoupler', name: 'Stage Separator', m: 0.3, h: 0.5, d: D, desc: 'Splits the rocket into stages. Everything below it drops when you stage.' },
   fins:    { type: 'fins', name: 'Tail Fins', m: 0.4, cna: 6, chord: 2.4, cd: 0.06, desc: 'Four big fins: move the centre of pressure aft so the rocket weathervanes into the airflow.' },
@@ -34,7 +39,7 @@ export const PARTS = {
     desc: 'Goes on top of the pod. Drogues: below Mach 1.2 and 15 kPa. Mains: below 95 m/s and 4.5 kPa (~8 m/s touchdown). P deploys; outside the limits they shred.' },
   rcs:     { type: 'rcs', name: 'Puffer RCS Ring', m: 0.15, mono: 0.15, h: 0.4, d: D, F: 2, isp: 240, desc: 'Cold-gas RCS thrusters (2 kN) for rotation and translation. C toggles RCS. 0.15 t monopropellant.' },
 };
-for (const [id, d] of Object.entries(PARTS)) { if (d.type === 'tank') { d.h = tankH(d.fuel); d.d = D; } if (d.type === 'engine') d.d = D; }
+for (const [id, d] of Object.entries(PARTS)) { if (d.type === 'tank') { d.h = tankH(d.fuel, d.rho); d.d = D; } if (d.type === 'engine') d.d = D; }
 export const MAX_ENGINES = 5;
 export const partMass = p => { const d = PARTS[p.id]; return d.type === 'tank' ? d.fuel * TANK_DRY : d.type === 'engine' ? d.m * (p.n || 1) : d.type === 'rcs' ? d.m + d.mono : d.m; };
 
@@ -50,8 +55,12 @@ export const TEMPLATES = [
     parts: [P('fairing'), P('chute'), P('crew'), P('ablator'), P('dec'), P('tank-l'), P('mule'), P('dec'), P('tank-xl'), P('tank-xl'), P('thumper', 5), P('fins')] },
   { name: 'Three-stager', note: 'Booster, Mule middle stage, Spark kick stage: more stages, less dead weight.',
     parts: [P('fairing'), P('sat'), P('probe'), P('tank-s'), P('spark', 2), P('dec'), P('tank-m'), P('mule'), P('dec'), P('tank-l'), P('tank-xl'), P('thumper', 3), P('fins')] },
+  { name: 'Moon lander', goal: 'moon', note: 'Lark lander (lands and stays on the Moon) on an Osprey hydrogen transfer stage, 5-Thumper booster. Orbit, plan a Moon transfer on the map (M), execute it, capture and land.',
+    parts: [P('fairing'), P('probe'), P('rcs'), P('tank-m'), P('lark'), P('dec'), P('tank-h2'), P('tank-h2'), P('tank-h2'), P('osprey', 4), P('dec'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('bison', 5), P('fins')] },
+  { name: 'Mars explorer', goal: 'mars', note: 'Entry capsule (ablative shield + parachutes) with a Spark kick stage, Osprey hydrogen transfer stage, 5-Thumper booster. Wait for the window, burn for Mars, aerocapture or enter directly and land under chutes.',
+    parts: [P('fairing'), P('chute'), P('probe'), P('ablator'), P('dec'), P('tank-s'), P('spark'), P('dec'), P('tank-h2'), P('tank-h2'), P('tank-h2'), P('osprey', 4), P('dec'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('bison', 5), P('fins')] },
 ];
-export const cloneDesign = d => ({ name: d.name, parts: d.parts.map(p => ({ ...p })) });
+export const cloneDesign = d => ({ name: d.name, ...(d.goal ? { goal: d.goal } : {}), ...(d.incl ? { incl: d.incl } : {}), parts: d.parts.map(p => ({ ...p })) });
 
 // Split a design into stages. Returned in FLIGHT order: [0] fires first (bottom). Each decoupler belongs to
 // the stage below it (it drops with that stage). Each stage: { parts (indices into design.parts, top→bottom), ... }.

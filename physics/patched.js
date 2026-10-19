@@ -108,12 +108,13 @@ export function predict(id, r, v, t, opts = {}) {
   return { patches, end: patches[patches.length - 1].end };
 }
 // Closest approach to body `target` along predicted patches (patches around its parent, or inside its SOI).
-export function closestApproach(pred, target) {
+export function closestApproach(pred, target, tMax = Infinity) {
   let best = { d: Infinity, t: null, relV: 0, inside: false };
   for (const pa of pred.patches) {
+    if (pa.t0 > tMax) break;
     if (pa.body === target) { const pe = pa.o.rp; if (pe < best.d) best = { d: pe, t: pa.t0, relV: 0, inside: true, alt: pe - BODIES[target].R }; continue; }
     if (BODIES[target].parent !== pa.body) continue;
-    const mu = muB(pa.body), N = 400, dt = (pa.t1 - pa.t0) / N;
+    const mu = muB(pa.body), N = 400, dt = (Math.min(pa.t1, tMax) - pa.t0) / N;
     let iBest = 0, dB = Infinity;
     for (let i = 0; i <= N; i++) { const s = propagate(pa.r0, pa.v0, dt * i, mu), c = relState(target, pa.t0 + dt * i), d = len(sub(s.r, c.r)); if (d < dB) { dB = d; iBest = i; } }
     let lo = Math.max(0, iBest - 1) * dt, hi = Math.min(N, iBest + 1) * dt; // golden-section refine
@@ -140,7 +141,7 @@ export function planTransfer(id, r, v, t, target) {
   if (tb.parent === id) { // moon transfer from orbit around its planet
     const H = hohmann(mu, r1, tb.a), cs = relState(target, t), pNow = angIn(nz(r), nz(sub(cs.r, sc(hN, dot(cs.r, hN)))), hN), n2 = Math.sqrt(mu / tb.a ** 3);
     let wait = (pNow - H.phase) / (n1 - n2); const syn = TAU / Math.abs(n1 - n2); wait = ((wait % syn) + syn) % syn;
-    return { kind: 'moon', hohmann: H, phaseNow: pNow, phaseReq: H.phase, wait, node: { t: t + wait, pro: H.dv1, nrm: 0, rad: 0 }, dvTotal: H.dv1 + H.dv2 };
+    return { kind: 'moon', syn, hohmann: H, phaseNow: pNow, phaseReq: H.phase, wait, node: { t: t + wait, pro: H.dv1, nrm: 0, rad: 0 }, dvTotal: H.dv1 + H.dv2 };
   }
   if (b.parent && tb.parent === b.parent) { // interplanetary from a parking orbit
     const P = BODIES[b.parent], ps = relState(id, t), ts = relState(target, t), rp1 = len(ps.r), H = hohmann(P.mu, rp1, tb.a);
@@ -154,7 +155,7 @@ export function planTransfer(id, r, v, t, target) {
     const pDir = rotAbout(sP, hN, -nuInf);
     // time after the window at which the craft passes pDir in its (near-circular) parking orbit
     const sw = propagate(r, v, wait, mu), dAng = angIn(nz(sw.r), pDir, hN), tNode = tw + dAng / n1;
-    return { kind: 'planet', hohmann: H, phaseNow: pNow, phaseReq: H.phase, wait, vinf, ejection: dvEj, node: { t: tNode, pro: dvEj, nrm: 0, rad: 0 }, dvTotal: dvEj + Math.abs(H.dv2) };
+    return { kind: 'planet', syn, hohmann: H, phaseNow: pNow, phaseReq: H.phase, wait, vinf, ejection: dvEj, node: { t: tNode, pro: dvEj, nrm: 0, rad: 0 }, dvTotal: dvEj + Math.abs(H.dv2) };
   }
   return null;
 }
@@ -195,18 +196,38 @@ export function planInterplanetary(id, r, v, t, target, guess) {
   }
   const sw = propagate(r, v, best.td - t, mu), tNode = best.td + angIn(nz(sw.r), pick.pDir, hN) / n1;
   const at = propagate(r, v, tNode - t, mu), f = nodeFrame(at.r, at.v), dv = pick.dvv;
-  return { td: best.td, tf: best.tf, vinf, ejection: len(dv), node: { t: tNode, pro: dot(dv, f.pro), nrm: dot(dv, f.nrm), rad: dot(dv, f.rad) } };
+  return { td: best.td, tf: best.tf, vinf, dla: Math.asin(Math.max(-1, Math.min(1, s[2]))), ejection: len(dv), node: { t: tNode, pro: dot(dv, f.pro), nrm: dot(dv, f.nrm), rad: dot(dv, f.rad) } };
 }
 function rotAbout(vv, k, a) { const c = Math.cos(a), s = Math.sin(a); return add(add(sc(vv, c), sc(cross(k, vv), s)), sc(k, dot(k, vv) * (1 - c))); }
 // Refine a node so the predicted trajectory reaches `target` (minimise closest approach, then aim the
 // periapsis at `peAlt` once inside the SOI). Nelder–Mead over (time, prograde, normal).
+// Finite burn of `node` with an engine { T (N), m0 (kg), isp (s) }, centred on the node time and following the
+// local prograde / normal / radial frame like the flight's node execution. Returns the state at burn end.
+export function finiteBurn(id, r, v, t, node, eng) {
+  const mu = BODIES[id].mu, ve = eng.isp * G0, dv = nodeDv(node), bt = burnTime(dv, eng.T, eng.m0, eng.isp), t0 = node.t - bt / 2;
+  let s = propagate(r, v, t0 - t, mu), R = s.r, Vv = s.v, m = eng.m0, tt = t0; const done = [0, 0, 0], h = Math.max(0.5, bt / 300);
+  const acc = (R, Vv, m) => { const f = nodeFrame(R, Vv), L = [node.pro - done[0], (node.nrm || 0) - done[1], (node.rad || 0) - done[2]], Lm = Math.hypot(...L) || 1;
+    const dir = nz(add(add(sc(f.pro, L[0] / Lm), sc(f.nrm, L[1] / Lm)), sc(f.rad, L[2] / Lm))), g = sc(R, -mu / len(R) ** 3); return { a: add(g, sc(dir, eng.T / m)), dir, f }; };
+  for (let k = 0; k < 4000; k++) {
+    const L = [node.pro - done[0], (node.nrm || 0) - done[1], (node.rad || 0) - done[2]], left = Math.hypot(...L), along = L[0] * node.pro + L[1] * (node.nrm || 0) + L[2] * (node.rad || 0);
+    if (left < 0.3 || along <= 0) break;
+    const step = Math.min(h, left / (eng.T / m) + 1e-3), a1 = acc(R, Vv, m);
+    // midpoint integration (good to well under a metre per second over a burn)
+    const Rm = add(R, sc(Vv, step / 2)), Vm = add(Vv, sc(a1.a, step / 2)), mm = m - eng.T / ve * step / 2, a2 = acc(Rm, Vm, mm);
+    R = add(R, sc(Vm, step)); Vv = add(Vv, sc(a2.a, step)); const dA = sc(a2.dir, eng.T / mm * step);
+    done[0] += dot(dA, a2.f.pro); done[1] += dot(dA, a2.f.nrm); done[2] += dot(dA, a2.f.rad); m -= eng.T / ve * step; tt += step;
+  }
+  return { r: R, v: Vv, t: tt };
+}
 export function refineNode(id, r, v, t, node, target, opts = {}) {
   const tb = BODIES[target], peAlt = opts.peAlt ?? Math.max(50000, tb.R * 0.1), scaleT = opts.scaleT || 600, scaleV = opts.scaleV || 20;
   const cost = x => {
     const n = { t: node.t + x[0] * scaleT, pro: node.pro + x[1] * scaleV, nrm: (node.nrm || 0) + x[2] * scaleV, rad: (node.rad || 0) + (x[3] || 0) * scaleV };
-    if (n.t < t + 1) return 1e30;
-    const pr = predict(id, r, v, t, { nodes: [n], maxPatches: 4, samples: 2, stopAlt: 0 }), ca = closestApproach(pr, target);
-    return ca.inside ? Math.abs(ca.d - (tb.R + peAlt)) : ca.d + tb.soi * 3;
+    if (n.t < (opts.tMin ?? t + 1)) return 1e30;
+    let pr; if (opts.burn) { const fb = finiteBurn(id, r, v, t, n, opts.burn); pr = predict(id, fb.r, fb.v, fb.t, { maxPatches: 4, samples: 2, stopAlt: 0 }); }
+    else pr = predict(id, r, v, t, { nodes: [n], maxPatches: 4, samples: 2, stopAlt: 0 });
+    const ca = closestApproach(pr, target, opts.byT);
+    return (ca.inside ? Math.abs(ca.d - (tb.R + peAlt)) : ca.d + tb.soi * 3) + (opts.dvWeight || 0) * Math.hypot(n.pro, n.nrm, n.rad);
   };
   const D = opts.radial ? 4 : 3, E = Array.from({ length: D + 1 }, (_, i) => Array.from({ length: D }, (_, k) => (k === i - 1 ? 1 : 0)));
   let S = E.map(p => ({ p, f: cost(p) }));
@@ -222,4 +243,56 @@ export function refineNode(id, r, v, t, node, target, opts = {}) {
   }
   S.sort((a, b) => a.f - b.f); const x = S[0].p;
   return { node: { t: node.t + x[0] * scaleT, pro: node.pro + x[1] * scaleV, nrm: (node.nrm || 0) + x[2] * scaleV, rad: (node.rad || 0) + (x[3] || 0) * scaleV }, cost: S[0].f };
+}
+
+// Time to the next periapsis on the conic (s); Infinity for a circular orbit.
+export function timeToPe(r, v, mu) {
+  const o = elements(r, v, mu); if (o.e < 1e-6) return Infinity;
+  const cosNu = Math.max(-1, Math.min(1, dot(o.ev, r) / (o.e * o.r))); let nu = Math.acos(cosNu); if (o.vr < 0) nu = TAU - nu;
+  if (o.e < 1) { const E = 2 * Math.atan(Math.sqrt((1 - o.e) / (1 + o.e)) * Math.tan(nu / 2)), M = E - o.e * Math.sin(E), n = Math.sqrt(mu / o.a ** 3); return ((TAU - M) % TAU + TAU) % TAU / n; }
+  if (o.vr >= 0) return Infinity; const H = 2 * Math.atanh(Math.sqrt((o.e - 1) / (o.e + 1)) * Math.tan(nu / 2)), M = o.e * Math.sinh(H) - H, n = Math.sqrt(mu / (-o.a) ** 3); return -M / n;
+}
+// Best parking-orbit inclination (deg, to the departure body's equator) for a transfer to `target`:
+// the Moon's orbital plane for a lunar transfer, the declination of the outgoing asymptote for a planet.
+export function suggestInclination(id, target, t, plan) {
+  if (BODIES[target].parent === id) { const s = relState(target, t + (plan ? plan.wait : 0)), h = nz(cross(s.r, s.v)); return Math.acos(Math.max(-1, Math.min(1, h[2]))) * 180 / Math.PI; }
+  if (plan && plan.dla !== undefined) return Math.abs(plan.dla) * 180 / Math.PI;
+  return 0;
+}
+// One-call planner for the map's planner panel: Hohmann window and phase angle, the tuned (refined) node
+// (the default: usually the cheapest), the Lambert-exact alternative for planets, and the suggested
+// parking-orbit inclination for this transfer.
+export function planFull(id, r, v, t, target, opts = {}) {
+  let pl = planTransfer(id, r, v, t, target); if (!pl) return null;
+  const minWait = opts.minWait ?? 900;
+  if (pl.node.t - t < minWait) { // too soon to turn and start the burn: the next window
+    const mu = BODIES[id].mu, n1 = Math.sqrt(mu / len(r) ** 3), k = Math.ceil((minWait - (pl.node.t - t)) / (TAU / n1));
+    pl = pl.kind === 'moon' ? { ...pl, wait: pl.wait + k * TAU / n1, node: { ...pl.node, t: pl.node.t + k * TAU / n1 } } : pl;
+  }
+  const tb = BODIES[target], peAlt = opts.peAlt ?? (pl.kind === 'moon' ? Math.max(30000, Math.min(100000, tb.R * 0.06)) : Math.max(300000, (tb.atm ? atmTop(target) : 0) + 150000));
+  const byT = pl.kind === 'planet' ? pl.node.t + pl.hohmann.tt * 1.3 : undefined;
+  const ref = pl.kind === 'moon' ? refineNode(id, r, v, t, pl.node, target, { peAlt, good: 2000 }) : refineNode(id, r, v, t, pl.node, target, { peAlt, scaleT: 900, scaleV: 30, iters: 250, byT });
+  if (opts.burn) { // finite-burn aware: re-tune the node so the real (spread-out) burn gives the encounter
+    const r2 = refineNode(id, r, v, t, ref.node, target, { peAlt, burn: opts.burn, scaleT: pl.kind === 'moon' ? 60 : 120, scaleV: pl.kind === 'moon' ? 5 : 10, iters: 200, radial: true, good: pl.kind === 'moon' ? 3000 : 20000, byT });
+    ref.node = r2.node;
+  }
+  const exact = pl.kind === 'planet' ? planInterplanetary(id, r, v, t, target, pl) : null;
+  let pr; if (opts.burn) { const fb = finiteBurn(id, r, v, t, ref.node, opts.burn); pr = predict(id, fb.r, fb.v, fb.t, { maxPatches: 4 }); } else pr = predict(id, r, v, t, { nodes: [ref.node], maxPatches: 4 });
+  const ca = closestApproach(pr, target, byT);
+  const incl = suggestInclination(id, target, t, exact || pl);
+  return { ...pl, target, peAlt, byT, tuned: ref.node, tunedDv: nodeDv(ref.node), exact: exact ? exact.node : null, exactDv: exact ? nodeDv(exact.node) : null, exactInfo: exact, incl, ca, reaches: !!ca.inside };
+}
+
+// Mid-course correction: the cheapest small burn (tried from several start times) that puts periapsis at
+// `peAlt` above the target. Used by the planner's "Fix encounter" button and the scripted missions.
+export function correctionNode(id, r, v, t, target, opts = {}) {
+  const tb = BODIES[target], peAlt = opts.peAlt ?? 100000, tol = opts.tol ?? Math.max(20000, peAlt * 0.5), starts = opts.starts || [1800, 7200, 21600, 43200];
+  let best = null;
+  for (const dt0 of starts) {
+    const rf = refineNode(id, r, v, t, { t: t + dt0, pro: 0, nrm: 0, rad: 0 }, target, { tMin: t + Math.min(...starts) * 0.8, peAlt, scaleT: dt0 * 0.3, scaleV: opts.scaleV || 5, radial: true, iters: opts.iters || 220, dvWeight: opts.dvWeight ?? 1000, byT: opts.byT });
+    const pr = predict(id, r, v, t, { nodes: [rf.node], maxPatches: 4 }), ca = closestApproach(pr, target), dv = nodeDv(rf.node);
+    const good = ca.inside && Math.abs(ca.d - tb.R - peAlt) < tol;
+    if (!best || (good && !best.good) || (good === best.good && dv < best.dv)) best = { node: rf.node, dv, good, alt: ca.alt };
+  }
+  return best;
 }

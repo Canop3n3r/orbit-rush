@@ -1,6 +1,8 @@
 import * as THREE from 'three/webgpu';
 import * as P from './physics.js?v=ss1';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN } from './flight.js?v=ss1';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=ss1';
+import * as C from './physics/patched.js?v=ss1';
+import { createSolarMap } from './solarmap.js?v=ss1';
 import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, swapStages, partMass, buildVehicle, aeroBalance } from './parts.js?v=ss1';
 import { FX } from './fx.js?v=ss1';
 import { createAcademy } from './academy-ui.js?v=ss1';
@@ -508,6 +510,8 @@ function later(fn, ms) { const g = gen; setTimeout(() => { if (g === gen) fn(); 
 let shipVis = null;
 const ER_KEY = 'orbitrush.earthRot';
 let earthRot = localStorage.getItem(ER_KEY) !== '0';
+const INC_KEY = 'orbitrush.incl', EPOCH = params.get('epoch') && isFinite(Date.parse(params.get('epoch'))) ? Date.parse(params.get('epoch')) : Date.now();
+let launchIncl = Math.max(0, Math.min(180, +(params.get('incl') ?? localStorage.getItem(INC_KEY) ?? 0) || 0));
 function siteVel(b) { const w = b.earthRot === false ? 0 : P.OMEGA_E; return [-w * b.r[1], w * b.r[0], 0]; }
 const hooks = {
   toast: (m, c) => toast(m, c),
@@ -540,7 +544,7 @@ function showPreview() {
   if (rocketG) scene.remove(rocketG);
   rocketG = new THREE.Group(); SG = design.parts.length ? makeRocketGroups(design) : [];
   let y = 0; for (const g of SG) { g.position.y = y; y += g.userData.h; rocketG.add(g); } scene.add(rocketG);
-  F = new Flight(validate(design).ok ? design : TEMPLATES[0], hooks, { padZ: PAD_Z, earthRot }); v = F.v;
+  F = new Flight(validate(design).ok ? design : TEMPLATES[0], hooks, { padZ: PAD_Z, earthRot, incl: launchIncl, epoch: EPOCH }); v = F.v;
   rocketG.add(comMark, copMark);
   fx.attach(rocketG); chuteVis = makeChutes(); rocketG.add(chuteVis);
   for (const g of SG) for (const hp of g.userData.hot) hp.part = v.stages[g.userData.stage] && v.stages[g.userData.stage].parts[hp.pi];
@@ -557,7 +561,7 @@ function reset() {
   if (booster && booster.mesh) scene.remove(booster.mesh);
   for (const d of debris) scene.remove(d.mesh); debris.length = 0;
   if (shipVis) earth.remove(shipVis);
-  shipVis = null; booster = null; camMode = 'chase';
+  shipVis = null; booster = null; camMode = 'chase'; if (typeof smap !== 'undefined') smap.reset();
   camDist = 90; camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8; camAim = 0.45;
   fire.clear(); smoke.clear(); for (const k in keys) keys[k] = false;
   if (swingArm) swingArm.rotation.y = 0;
@@ -567,6 +571,7 @@ function reset() {
 function launch() {
   initAudio(); reset(); state = 'flight'; mobile.buzzed = false;
   const sc = params.get('scenario');
+  if (['moon', 'moonsoi', 'mars', 'solar'].includes(sc) && !launch.busy) { launch.busy = true; try { runScenario(sc); } finally { launch.busy = false; } return; }
   if (sc === 'orbit' || sc === 'reentry') { // dev/test start: the capsule stack parked in orbit (optionally already deorbiting)
     F.placeInOrbit(+(params.get('alt') || 170000)); syncStages(); camDist = 60;
     if (sc === 'reentry') F.deorbit();
@@ -585,6 +590,9 @@ function goBuild() {
 }
 let camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
 $('earthRot').checked = earthRot;
+function showAz() { $('inclIn').value = launchIncl; $('azOut').textContent = `→ heading ${(launchAzimuth(launchIncl, 0, earthRot ? P.OMEGA_E * R : 0) * DEG).toFixed(1)}°`; }
+$('inclIn').onchange = e => { launchIncl = Math.max(0, Math.min(180, +e.target.value || 0)); try { localStorage.setItem(INC_KEY, String(launchIncl)); } catch (x) { } showAz(); reset(); refreshBuild(); };
+showAz();
 $('earthRot').onchange = e => { earthRot = e.target.checked; try { localStorage.setItem(ER_KEY, earthRot ? '1' : '0'); } catch (x) { } reset(); refreshBuild(); };
 function setThrottleTouch(u) { // the touch slider takes over from AUTO like Z/X do
   if (state !== 'flight' || F.flags.dead) return;
@@ -596,7 +604,9 @@ function setThrottleTouch(u) { // the touch slider takes over from AUTO like Z/X
 }
 const mobile = createMobile({ press, setSAS: m => { if (state === 'flight') { if (v.auto) F.takeOverUpper(); F.setSAS(m); } }, setThrottle: setThrottleTouch, toast: (m, c) => toast(m, c), unlockAudio: initAudio });
 const academy = createAcademy({ setDesign: d => setDesign(cloneDesign(d)), launch, goBuild, toast: (m, c) => toast(m, c),
-  ctx: () => ({ state, F: state === 'flight' ? F : null, design, ui: { camMode } }) });
+  ctx: () => ({ state, F: state === 'flight' ? F : null, design, ui: { camMode, mapPanel: typeof smap !== 'undefined' ? smap.panelMode : null, plan: typeof smap !== 'undefined' ? smap.plan : null } }) });
+const smap = createSolarMap({ renderer, getF: () => F, toast: (m, c) => toast(m, c), touch: TOUCH, earthMap: planet.material.map,
+  onChange: (k) => { if (k === 'close') camMode = flyingBooster() ? 'booster' : 'chase'; if (k === 'exec') $('tProg').classList.remove('on'); } });
 reset(); refreshBuild();
 $('launchBtn').onclick = e => { e.currentTarget.blur(); launch(); };
 $('againBtn').onclick = () => goBuild();
@@ -610,7 +620,7 @@ function toast(msg, color = '#7dffa6') { msg = localize(msg, TOUCH); if (msg ===
 // ---------- input ----------
 // Throttle Shift/Ctrl (or ↑/↓), Z/X full/cut · W/S pitch, A/D yaw, Q/E roll · C RCS · I/K J/L H/N RCS translate
 // 1–7 SAS mode (V toggles SAS) · F AUTO · Space stage · T/, warp · G warp to Ap · M map · B booster cam · Y fly booster · R hangar
-const SAS_KEYS = { Digit1: 'stab', Digit2: 'prograde', Digit3: 'retrograde', Digit4: 'radial', Digit5: 'antiradial', Digit6: 'normal', Digit7: 'antinormal', Digit0: 'off' };
+const SAS_KEYS = { Digit8: 'node', Digit1: 'stab', Digit2: 'prograde', Digit3: 'retrograde', Digit4: 'radial', Digit5: 'antiradial', Digit6: 'normal', Digit7: 'antinormal', Digit0: 'off' };
 const flyingBooster = () => F.flyingBooster();
 function press(code) {
   if (state !== 'flight') return;
@@ -621,7 +631,9 @@ function press(code) {
   if (code === 'KeyM') { camMode = camMode === 'map' ? (flyingBooster() ? 'booster' : 'chase') : 'map'; return; }
   if (code === 'KeyT') { F.autoWarp = false; F.setWarp(F.warpI + 1 >= WARPS.length ? 0 : F.warpI + 1); return; }
   if (code === 'Comma') { F.autoWarp = false; F.setWarp(F.warpI - 1); return; }
-  if (code === 'KeyG') { F.startAutoWarp(); return; }
+  if (code === 'KeyG') { if (F.canWarpToAp() || !F.flags.orbit && F.body === 'earth') F.startAutoWarp(); else smap.warpNext(); return; }
+  if (code === 'Period') { smap.warpNext(); return; }
+  if (code === 'Digit9') { if (F.exec) { F.setExec(false); toast('Maneuver execution off', '#9cc3ff'); } else F.setExec(true); return; }
   if (code === 'KeyY') { F.toggleBooster(); return; }
   if (code === 'KeyB') { if (booster && booster.state === 'flying') camMode = camMode === 'booster' ? 'chase' : 'booster'; else toast('No booster in flight', '#ffb35c'); return; }
   if (F.flags.dead) return;
@@ -650,6 +662,7 @@ addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
   if (e.target && e.target.tagName === 'BUTTON') e.target.blur();
   if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+  if (state === 'flight' && camMode === 'map' && smap.key(e.code, e)) return;
   if (e.repeat) return; keys[e.code] = true; press(e.code);
 });
 addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'Space') e.preventDefault(); });
@@ -669,13 +682,13 @@ $('academyBtn').onclick = e => { e.currentTarget.blur(); academy.openMenu(); };
 $('deoBtn').onclick = e => { e.currentTarget.blur(); press('KeyO'); };
 $('chuteBtn').onclick = e => { e.currentTarget.blur(); press('KeyP'); };
 const zoomLim = d => Math.min(5000, Math.max(20, d));
-renderer.domElement.addEventListener('wheel', e => { if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * (1 + e.deltaY * 0.001))); else camDist = zoomLim(camDist * (1 + e.deltaY * 0.001)); }, { passive: true });
+renderer.domElement.addEventListener('wheel', e => { if (camMode === 'map') return; if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * (1 + e.deltaY * 0.001))); else camDist = zoomLim(camDist * (1 + e.deltaY * 0.001)); }, { passive: true });
 const pts = new Map();
 renderer.domElement.addEventListener('pointerdown', e => { pts.set(e.pointerId, [e.clientX, e.clientY]); });
 addEventListener('pointerup', e => pts.delete(e.pointerId));
 addEventListener('pointercancel', e => pts.delete(e.pointerId));
 addEventListener('pointermove', e => {
-  if (!pts.has(e.pointerId)) return; const [px, py] = pts.get(e.pointerId);
+  if (!pts.has(e.pointerId) || camMode === 'map') return; const [px, py] = pts.get(e.pointerId);
   if (pts.size === 1) { camYaw -= (e.clientX - px) * 0.006; camPitch = Math.max(-1.4, Math.min(1.5, camPitch + (e.clientY - py) * 0.004)); }
   else if (pts.size === 2) { let o; for (const [id, q] of pts) if (id !== e.pointerId) o = q; const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); const f = d0 / Math.max(d1, 1); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * f)); else camDist = zoomLim(camDist * f); }
   pts.set(e.pointerId, [e.clientX, e.clientY]);
@@ -703,6 +716,19 @@ function readControls(rdt) {
   v.input = v.clamped ? { pitch: 0, yaw: 0, roll: 0 } : inp; v.trans = tr;
 }
 
+// ---------- scenario starts (?scenario=moon|mars|solar, the smoke test and the SOI lesson) ----------
+function runScenario(kind, o = {}) {
+  const T = n => TEMPLATES.find(t => t.name === n);
+  if (kind === 'moon' || kind === 'moonsoi' || kind === 'mars' || kind === 'solar') {
+    setDesign(cloneDesign(T(kind === 'mars' ? 'Mars explorer' : 'Moon lander'))); launch(); F.placeInOrbit(200000, kind === 'mars' ? 2 : 1); syncStages(); camDist = 70;
+    if (kind === 'solar') { camMode = 'map'; return F; }
+    const pl = C.planFull('earth', v.r, v.v, F.tAbs, kind === 'mars' ? 'mars' : 'moon', { minWait: 1200 }); if (!pl || !pl.reaches) { toast('Scenario: no transfer found', '#ff6262'); return F; }
+    F.target = pl.target; const n = F.addNode(pl.tuned); F.applyNodeNow(n);
+    const pr = C.predict('earth', v.r, v.v, F.tAbs, { maxPatches: 3 }), ix = pr.patches.findIndex(p => p.body === pl.target);
+    if (ix > 0) { const pa = pr.patches[ix - 1]; const tIn = pa.t1; if (kind === 'moonsoi') F.coastTo(tIn - (o.before ?? 6 * 3600)); else if (kind === 'mars') F.coastTo(tIn - 6 * 86400); else F.coastTo(tIn + (pr.patches[ix].t1 - tIn) * 0.35); }
+    v.sas = 'prograde'; camMode = o.cam || 'map'; return F;
+  }
+}
 // ---------- visuals ----------
 function explode(pos, vel, big) {
   burst(big ? 1.2 : 0.7, 2.5, 700);
@@ -781,6 +807,18 @@ function updateOrbitLine(O) {
 }
 
 // ---------- HUD ----------
+function hudNode() {
+  const n = F.nodes[0]; if (!n) return ''; const dv = V.len(F.nodeRemaining(n) || [0, 0, 0]), bt = F.nodeBurnTime(n), dt = n.t - F.tAbs - bt / 2;
+  return `\n<b data-l="node">NODE</b  >  Δv ${fmtN(dv, 1)} m/s · burn ${fmtDur(P.burnTimeFor(v, dv))} · ${n.started ? '<span class="warn">BURNING</span>' : dt > 0 ? `start in ${fmtDur(dt)}` : '<span class="warn">BURN NOW</span>'}${F.exec ? ' · AUTO' : ''}`.replace('</b  >', '</b>');
+}
+let tgtCache = { t: 0, s: '' };
+function hudTarget() {
+  const tg = F.target; if (!tg) return ''; const now = performance.now();
+  if (now - tgtCache.t > 500) { tgtCache.t = now; const ts = P.transfer(tg, F.body, [0, 0, 0], [0, 0, 0], F.tAbs), d = V.len(V.sub(v.r, ts.r)), rv = V.len(V.sub(v.v, ts.v));
+    let ca = ''; try { const pr = C.predict(F.body, v.r, v.v, F.tAbs, { nodes: F.nodes, maxPatches: 4, samples: 2 }), c = C.closestApproach(pr, tg); ca = c.inside ? ` · encounter Pe ${fmtD(c.alt)}` : isFinite(c.d) ? ` · CA ${fmtD(c.d)} in ${fmtDur(c.t - F.tAbs)}` : ''; } catch (e) { }
+    tgtCache.s = `\n<b data-l="tgt">TGT</b>   ${P.BODIES[tg].name} · ${fmtD(d)} · rel ${fmtN(rv)} m/s${ca}`; }
+  return tgtCache.s;
+}
 const fmtD = m => Math.abs(m) >= 1e5 ? (m / 1000).toFixed(0) + ' km' : Math.abs(m) >= 1000 ? (m / 1000).toFixed(1) + ' km' : m.toFixed(0) + ' m';
 const fmtT = s => { const m = Math.floor(s / 60), ss = Math.floor(s % 60); return `${m}:${String(ss).padStart(2, '0')}`; };
 const fmtN = (x, d = 0) => x.toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -813,6 +851,7 @@ PITCH ${pitch.toFixed(1)}° from vertical · HDG ${hdg.toFixed(0)}°
 SAS   ${P.SAS_LABEL[v.sas]} · RCS ${v.rcsOn ? (hasRCS ? `on ${(v.rcsFuel * 1000).toFixed(0)} kg` : 'on (no ring)') : 'off'}
 STAGE ${v.cur + 1}/${v.stages.length}  ${fair}
 AIR   ${tel.rho > 1e-9 ? `${tel.T.toFixed(0)} K · ρ ${tel.rho.toExponential(2)} · ${tel.regime || ''}${tel.Kn > 1e-3 ? ` Kn ${tel.Kn.toExponential(1)}` : ''}` : 'vacuum'}
+SOI   ${P.BODIES[F.body].name}${F.body !== 'earth' ? '' : ''} · ${new Date(P.dateFromT(F.tAbs)).toISOString().slice(0, 16).replace('T', ' ')} UTC${hudNode()}${hudTarget()}
 HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span class="${tel.heat > 3e5 ? 'warn' : ''}">${fmtN(tel.heat / 1000, 1)} kW/m²</span>` : '—'}${F.maxHeat > 2e4 ? ` (max ${fmtN(F.maxHeat / 1000, 0)})` : ''}`;
   const b = booster;
   if (b && b.state === 'flying') {
@@ -1031,6 +1070,9 @@ renderer.setAnimationLoop(() => {
   else if (state === 'build' && academy.active && (hudT += rdt) > 0.25) { academy.tick(hudT); hudT = 0; }
   if (state === 'build') { camYaw += rdt * 0.15; camDist = Math.max(70, stackL() * 1.9); camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.36, 0, innerWidth, innerHeight); }
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
-  renderer.render(scene, camera);
+  const mapOn = state === 'flight' && camMode === 'map';
+  if (smap.state.on !== mapOn) smap.show(mapOn);
+  if (mapOn) { smap.update(rdt); renderer.render(smap.scene, smap.camera); }
+  else renderer.render(scene, camera);
 });
-window.__game = { BUILD, P, get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages };
+window.__game = { BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages };

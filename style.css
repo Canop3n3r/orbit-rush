@@ -181,3 +181,35 @@ body.touch #lesson.build{left:auto;right:calc(6px + var(--sar));top:auto;bottom:
 .dragGhost{position:fixed;z-index:100;pointer-events:none;opacity:.85;transform:translate(-50%,-120%);box-shadow:0 6px 20px #000c}
 #mMenu .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}#mMenu .mh span{font:700 11px monospace;opacity:.8}#mMenu .mh button{min-height:36px;min-width:44px}
 @media (orientation:landscape){#mMenu{width:min(470px,calc(100vw - 12px))}#mMenu .mg{grid-template-columns:repeat(6,1fr)}#mMenu button{min-height:38px}}
+/* ---------- 3D map (Milestone A) ---------- */
+#mapUI{position:fixed;inset:0;pointer-events:none;z-index:6;font:12px system-ui}
+#mapUI.hidden{display:none}
+#mapLabels{position:absolute;inset:0;overflow:hidden}
+.mlab,.mmark,.mhandle{position:absolute;left:0;top:0;white-space:nowrap;pointer-events:auto;user-select:none;-webkit-user-select:none}
+.mlab{color:#cfe0ff;font-weight:600;text-shadow:0 1px 3px #000;cursor:pointer;padding:2px 4px}
+.mlab.moon{font-weight:400;color:#a9b6cc;font-size:11px}.mlab.star{color:#ffe9a8}.mlab.craft{color:#ffb35c}
+.mlab.dim{opacity:.35}.mlab.tgt{color:#ff7ab0;outline:1px solid #ff7ab088;border-radius:4px}
+.mmark{transform-origin:0 0;color:#fff;background:#0009;border-radius:6px;padding:1px 6px;margin:-9px 0 0 -6px;font-size:11px;pointer-events:none}
+.mmark.ap{color:#7fd0ff}.mmark.pe{color:#ffd27f}.mmark.enc{color:#c89cff}.mmark.imp{color:#ff6262}.mmark.ca{color:#ff7ab0}.mmark.ca2{color:#ff7ab0;opacity:.7}.mmark.node-an{color:#9cff9c}
+.mmark.nodem{color:#ffd23a;pointer-events:auto;cursor:pointer;border:1px solid #ffd23a66}.mmark.nodem.sel{background:#3a3000d0}
+.mhandle{width:28px;height:28px;border-radius:50%;background:#000a;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:grab;touch-action:none}
+.h-pro,.h-ret{border-color:#ffd23a;color:#ffd23a}.h-nrm,.h-anti{border-color:#c46cff;color:#d79cff}.h-rad,.h-radin{border-color:#4ad8ff;color:#8ae6ff}
+body.touch .mhandle{width:40px;height:40px;font-size:20px}
+#mapBar{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);display:flex;gap:4px;flex-wrap:wrap;justify-content:center;pointer-events:auto;background:#0009;padding:5px;border-radius:12px;max-width:96vw}
+#mapBar button,#mapPanel button{background:#1c2638;color:#dfe8ff;border:1px solid #3a4c6c;border-radius:8px;padding:5px 9px;font:600 12px system-ui;cursor:pointer;min-height:30px}
+#mapBar span{color:#ffb35c;font-weight:700;align-self:center;min-width:64px;text-align:center}
+body.touch #mapBar button,body.touch #mapPanel button{min-height:40px;min-width:40px;font-size:13px}
+#mapPanel{position:absolute;right:10px;top:84px;width:min(360px,94vw);max-height:calc(100vh - 200px);overflow:auto;pointer-events:auto;background:#0b1220ee;border:1px solid #2c3c5c;border-radius:12px;padding:8px 10px;color:#dfe8ff}
+#mapPanel.hidden{display:none}#mapPanel h4{margin:2px 0 6px}
+#mapPanel .nrow{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin:4px 0}
+#mapPanel .nk{width:66px;font-weight:700}#mapPanel input{width:74px;background:#000;color:#fff;border:1px solid #3a4c6c;border-radius:6px;padding:4px}
+#mapPanel button.go{background:#1d4a2c;border-color:#3c8c58}#mapPanel button.bad{background:#4a1d1d}#mapPanel button.on{background:#3a3000;border-color:#ffd23a}
+#mapPanel .pl{line-height:1.5;margin:6px 0}#mapPanel .good{color:#7dffa6}#mapPanel .bad{color:#ff8a8a}
+#mapInfo{position:absolute;left:10px;top:10px;background:#0009;padding:6px 10px;border-radius:10px;color:#dfe8ff;line-height:1.5;pointer-events:none;max-width:60vw}
+body.mapOn #tele,body.mapOn #heat,body.mapOn #mleft{display:none}
+body.touch #mapBar{bottom:calc(8px + env(safe-area-inset-bottom))}
+body.touch #mapPanel{top:calc(64px + env(safe-area-inset-top));bottom:auto;max-height:calc(100vh - 190px);width:min(340px,48vw)}
+@media (orientation:portrait){body.touch #mapPanel{width:94vw;right:3vw;top:auto;bottom:calc(120px + env(safe-area-inset-bottom));max-height:40vh}}
+body.touch.mapOn #mright,body.touch.mapOn #mhud{display:none}
+body.touch #mapInfo{top:calc(64px + env(safe-area-inset-top));font-size:11px;max-width:46vw}
+body.touch #mapPanel .nk{width:54px}body.touch #mapPanel input{width:58px}body.touch #mapPanel .nrow{flex-wrap:nowrap;gap:3px}body.touch #mapPanel .nrow button{padding:4px 6px}

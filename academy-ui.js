@@ -147,7 +147,7 @@ export function createAcademy(api) {
   // ---------- first run ----------
   function firstRun() {
     if (prog.seen) return;
-    first.innerHTML = `<h2>Welcome to Orbit Rush 🚀</h2><p>New to rockets? The <b>Academy</b> teaches real rocket science by doing: ten short lessons from your first hop to deorbiting a capsule and landing a booster.</p>
+    first.innerHTML = `<h2>Welcome to Orbit Rush 🚀</h2><p>New to rockets? The <b>Academy</b> teaches real rocket science by doing: twelve short lessons from your first hop to landing a booster and flying to the Moon.</p>
       <div class="row"><button id="frAc" class="big">🎓 Start the Academy</button><button id="frSb">Sandbox — just let me fly</button></div><p class="small">You can open the Academy any time from the hangar.</p>`;
     first.classList.remove('hidden');
     $('frAc').onclick = () => { prog.seen = true; save(); first.classList.add('hidden'); start(0); };

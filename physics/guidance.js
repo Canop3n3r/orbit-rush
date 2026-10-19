@@ -47,8 +47,19 @@ export function burnTimeFor(v, dv) {
 }
 export const qCap = qPa => clamp(1 - (qPa - 28000) / 8000, 0.4, 1);
 // Returns { dir (world unit vector), throttle, phase }.
+// Launch heading for a target inclination (v.incl, deg): rotating-frame azimuth from the current latitude.
+export function azimuthHd(v) {
+  const up = norm(v.r), east = eastOf(v.r), north = cross(up, east), lat = Math.asin(clamp(up[2], -1, 1)), i = v.incl * Math.PI / 180;
+  const sA = clamp(Math.cos(i) / Math.max(1e-6, Math.cos(lat)), -1, 1), A = Math.asin(sA), vEq = v.earthRot === false ? 0 : 465.1 * Math.cos(lat);
+  const Ar = Math.atan2(7800 * Math.sin(A) - vEq, 7800 * Math.cos(A)); return norm(add(scale(north, Math.cos(Ar)), scale(east, Math.sin(Ar))));
+}
 export function autoGuide(v) {
-  const f = localFrame(v), r = len(v.r), h = r - R_E, o = elements(v.r, v.v), vr = dot(v.v, f.up);
+  const f = localFrame(v);
+  if (v.incl && (v.guid || 'ascent') === 'ascent' && len(v.r) - R_E < 120000) { // fly the launch azimuth, blending into the velocity heading high up
+    const az = azimuthHd(v), up = f.up, vh = add(v.v, scale(up, -dot(v.v, up))), k = clamp((len(vh) - 2500) / 4500, 0, 1);
+    f.hd = len(vh) > 30 ? norm(add(scale(az, 1 - k), scale(norm(vh), k))) : az;
+  }
+  const r = len(v.r), h = r - R_E, o = elements(v.r, v.v), vr = dot(v.v, f.up);
   const va = airVel(v), spAir = len(va), qPa = v.tel ? v.tel.q : 0;
   const pgAir = spAir > 5 ? pitchOfVec(va, f) : 0, pgIn = pitchOfVec(v.v, f);
   const blend = clamp((h - 40000) / 30000, 0, 1), pg = pgAir + wrapA(pgIn - pgAir) * blend;
