@@ -8,11 +8,11 @@ const boosters = { engines: { 'cl-k1': 8 }, dry: 55200, prop: 571200, burn: 173,
 const core = { engines: { 'cl-h1': 2 }, dry: 21600, prop: 165300, burn: 492, group: 0, recovery: 'expended' };
 export const ROSTER_CALT = [
   // core-to-orbit variant (no second stage): the sourced 25 t LEO figure is for this one
-  { id: 'long-stride-5', name: 'Long Stride 5', company: 'calt', src: 'spec:long-stride-5', variant: 'core-to-orbit', area: 54.9, fairing: 0,
+  { id: 'jade-lantern-5', name: 'Jade Lantern 5', company: 'calt', src: 'spec:jade-lantern-5', variant: 'core-to-orbit', area: 54.9, fairing: 0,
     stages: [{ ...boosters }, { ...core }],
-    modes: [{ variant: 'core-to-orbit', payload: 25000, orbit: { hp: 200, ha: 400, inc: 42 }, src: 'spec:long-stride-5#leo',
- }] },
-  { id: 'long-stride-5', name: 'Long Stride 5', company: 'calt', src: 'spec:long-stride-5', variant: 'two-stage', area: 54.9, fairing: 4000, est: ['fairing'],
+    modes: [{ variant: 'core-to-orbit', payload: 25000, orbit: { hp: 200, ha: 400, inc: 42 }, src: 'spec:jade-lantern-5#leo',
+      knownGap: 'model +24 % after the finer trajectory search (it passed at +2 % on the coarse grid): burnout masses (residuals, interstage, adapter) unsourced' }] },
+  { id: 'jade-lantern-5', name: 'Jade Lantern 5', company: 'calt', src: 'spec:jade-lantern-5', variant: 'two-stage', area: 54.9, fairing: 4000, est: ['fairing'],
     stages: [{ ...boosters }, { ...core }, { engines: { 'cl-h2': 2 }, dry: 5100, prop: 29100, burn: 700, group: 1, recovery: 'expended' }],
     modes: [], gto: 14000, tli: 9400, tmi: 6000, flights: 18 },
 ];

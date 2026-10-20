@@ -15,7 +15,7 @@ export const ROSTER_ULX = [
  }], gto: 4750 },
   { id: 'atlantean-v', name: 'Atlantean V', company: 'ulx', src: 'spec:atlantean-v', variant: 'v5 (5 m fairing, 5 boosters)', area: 32.9, fairing: 4000, est: ['fairing'],
     stages: [{ engines: { 'ulx-s1': 5 }, dry: 20335, prop: 213150, burn: 94, group: 0, recovery: 'expended' }, { ...core }, { ...upper }],
-    modes: [{ variant: 'v5', payload: 18814, orbit: { hp: 200, ha: 200, inc: 28.7 }, src: 'spec:atlantean-v#leo-v5', est: ['orbit.hp'],
+    modes: [{ variant: 'v5', payload: 18814, orbit: { hp: 200, ha: 200, inc: 28.7 }, src: 'spec:atlantean-v#leo-v5', est: ['orbit.hp'], knownGap: 'model +17 % after the finer trajectory search (it passed at +14 % on the coarse grid): residuals, reserves and adapters unsourced; booster SL Isp EST',
  }], gto: 8900, flights: 110 },
   { id: 'deltoid-4', name: 'Deltoid IV', company: 'ulx', src: 'spec:deltoid-4', variant: 'heavy (3 cores)', area: 61.3, fairing: 3500, est: ['fairing'],
     stages: [
