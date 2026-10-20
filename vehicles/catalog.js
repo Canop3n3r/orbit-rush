@@ -131,3 +131,5 @@ export { ROSTER_DOUGLAS, ENGINES_DOUGLAS } from './roster/douglas.js';
 export { ROSTER_YUZHNO, ENGINES_YUZHNO } from './roster/yuzhno.js';
 // Roster company 'jaxo' (data only, neutral ids; spec:loss-model): see vehicles/roster/jaxo.js
 export { ROSTER_JAXO, ENGINES_JAXO } from './roster/jaxo.js';
+// Roster company 'isra' (data only, neutral ids; spec:loss-model): see vehicles/roster/isra.js
+export { ROSTER_ISRA, ENGINES_ISRA } from './roster/isra.js';
