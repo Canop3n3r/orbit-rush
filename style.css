@@ -688,3 +688,4 @@ body.splitOn #sL{display:none!important}
 #spCardB2{left:10px;bottom:10px}
 #spHud2{position:static!important;background:none!important;padding:0!important;font:600 11px/1.3 monospace}
 #split.portrait.tri #spCardU{bottom:calc(66.7% + 10px)!important}
+#split.portrait.tri #spCardB2{top:10px;bottom:auto}

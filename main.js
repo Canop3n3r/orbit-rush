@@ -1531,10 +1531,10 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
 const splitPortrait = () => innerHeight > innerWidth;
 const _html = {}; function setHTML(id, h) { if (_html[id] !== h) { _html[id] = h; const e = $(id); if (e) e.innerHTML = h; } }
 function placeTopStack(on) { // f4.1b: in split, toasts/hints (#topStack, compact #hintS) live in the upper pane, below its card and clear of the pane buttons
-  const land = on && !splitPortrait() && camMode !== 'map', W = innerWidth, card = $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, top = cb ? Math.max(cb.bottom + 10, 112) : 0;
+  const por = splitPortrait(), land = on && camMode !== 'map', W = innerWidth, card = $('spCardU') || $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, pTop = innerHeight * (booster2 ? 1 / 3 : 0.5), top = cb ? (por ? (cb.bottom + 58 < pTop ? cb.bottom + 8 : Math.max(70, cb.top - 54)) : Math.max(cb.bottom + 10, 112)) : 0; // f4.2 portrait: under the upper card if it fits above the booster pane, else above the card
   for (const id of ['topStack', 'hintS']) { const ts = $(id); if (!ts) continue;
     if (!land) { if (ts.dataset.sp) { ts.style.removeProperty('left'); ts.style.removeProperty('top'); ts.style.removeProperty('max-width'); delete ts.dataset.sp; } continue; }
-    ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * 0.25) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(W * 0.5 - 32) + 'px', 'important'); } }
+    ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * (por ? 0.5 : 0.25)) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(por ? W - 24 : W * 0.5 - 32) + 'px', 'important'); } }
 function paneRect(i = 0, nb = 1) { const W = innerWidth, H = innerHeight; // f4.2: a heavy's two boosters: stacked on the right (landscape) or rows 2-3 (portrait)
   if (nb > 1) return splitPortrait() ? { x: 0, y: H / 3 * (i + 1), w: W, h: H / 3 } : { x: W * 0.5, y: H * 0.5 * i, w: W * 0.5, h: H * 0.5 };
   return splitPortrait() ? { x: 0, y: H * 0.5, w: W, h: H * 0.5 } : { x: W * 0.5, y: 0, w: W * 0.5, h: H }; }
