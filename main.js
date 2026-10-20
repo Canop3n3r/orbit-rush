@@ -1860,8 +1860,8 @@ function startMission(id, plan) { // f5.1h: no plan -> the mission card (choose 
 }
 function openMissionCard(id) {
   const m = MISSIONS[id]; if (!m) return; let card = $('misCard'); if (!card) { card = document.createElement('div'); card.id = 'misCard'; document.body.appendChild(card); }
-  const houses = []; for (const [h, ids] of Object.entries(HOUSE_SETS)) for (const mid of ids) { const b = pickBase(STAGE_KEYS[mid] || [], (ART[mid] && ART[mid].height) || 50); if (SHOW.some(x => x.id === b)) houses.push({ model: mid, name: houseName(mid), base: b }); }
-  const q = qualifying(id, SHOW, houses), mine = validate(design).ok ? [{ key: 'mine', name: design.name || 'Your rocket', mine: true }] : [];
+  const houses = []; for (const [h, ids] of Object.entries(HOUSE_SETS)) if (h !== 'originals') for (const mid of ids) { const b = pickBase(STAGE_KEYS[mid] || [], (ART[mid] && ART[mid].height) || 50); if (SHOW.some(x => x.id === b)) houses.push({ model: mid, name: houseName(mid), base: b }); }
+  const q0 = qualifying(id, SHOW, houses), q = q0.filter(x => x.name !== design.name), mine = validate(design).ok ? [{ key: 'mine', name: design.name || 'Your rocket', mine: true }] : [];
   const list = [...mine, ...q]; let sel = list[0] && list[0].key;
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const draw = () => { card.innerHTML = `<div class="mcIn"><h3>${m.icon} ${esc(m.name)}</h3><p>${esc(m.blurb || '')}</p><h5>Rocket</h5><div class="mcList">${list.map(r => `<button data-k="${esc(r.key)}" class="${r.key === sel ? 'on' : ''}">${r.mine ? '⭐ Your rocket: ' : ''}${esc(r.name)}${r.mine && !q.some(x => x.base && SHOW.find(s => s.id === x.base && s.name === r.name)) ? ' <small>(not checked for this mission)</small>' : ''}</button>`).join('')}</div>
