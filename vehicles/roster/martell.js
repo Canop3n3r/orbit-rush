@@ -18,7 +18,7 @@ export const ROSTER_MARTELL = [
       { engines: {'mm-e1': 2}, dry: 4000, prop: 118000, burn: 147.0, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'mm-e2': 1}, dry: 2400, prop: 26500, burn: 182.0, group: 1, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 3763, orbit: { hp: 159, ha: 269, inc: 28.9 }, src: "spec:titanus-2#ref (flown: heaviest crewed capsule, launch mass, and its insertion orbit; agency history)", est: [] }] },
+    modes: [{ variant: 'leo', payload: 3600, orbit: { hp: 161, ha: 298, inc: 28.9 }, src: "spec:titanus-2#ref (published capability: 3,600 kg, encyclopedia entry; agency design orbit 87 x 161 nmi from the launch-vehicle technical paper and agency report)", est: ['inclination 28.9 deg (the flown rendezvous missions) ESTIMATE'] }] },
   { id: 'titanus-3', name: "Titanus III", company: 'martell', src: 'spec:titanus-3', area: 22.5, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'mm-e3': 2}, dry: 67600, prop: 384800, burn: 115.0, group: 0, jettisonAt: 115.0, recovery: 'expended', src: 'GCAT' },
