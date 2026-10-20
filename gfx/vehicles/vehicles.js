@@ -7,7 +7,7 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { Kit, xf, mat, compact, shareGeometries, dispose, geometryCacheSize } from './kit.js?v=art1';
+import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, geometryCacheSize } from './kit.js?v=art1';
 export { dispose, geometryCacheSize };
 import * as PR from './profiles.js?v=art1';
 import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
@@ -148,7 +148,7 @@ export const VEHICLES = {
 };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
-  if (det === 'lo') { compact(g, []); g.userData.legs = []; } else if (det === 'mid' || id === 'heron-heavy') compact(g); shareGeometries(g); // lo: legs baked at o.legs (static)
+  if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy'); shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)
 // o.phone: the near level uses 'mid' (titan ~11k instead of ~53k tris)
