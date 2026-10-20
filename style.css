@@ -776,3 +776,8 @@ body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #h
 .bMore>summary{cursor:pointer;font:700 14px var(--ui);padding:8px 4px;list-style:none;opacity:.85}.bMore>summary::-webkit-details-marker{display:none}
 #build>#homeBack{margin:2px 0 4px}
 @media (orientation:landscape) and (max-height:500px){body.touch:not(.home) #build.builder{left:calc(8px + env(safe-area-inset-left,0px))!important;right:auto!important;width:46vw!important;max-width:46vw!important;top:8px!important;height:auto!important}}
+.palRow{display:flex;gap:6px;margin:4px 0 8px;flex-wrap:nowrap}
+.palRow .palH{flex:1;min-width:44px;height:44px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:12px}
+.palRow .palH.on{background:#2b5fd9;border-color:#6d9bff}
+.palRow .palH img{width:24px;height:24px;filter:invert(1)}
+.palRow .palH::after{display:none!important}

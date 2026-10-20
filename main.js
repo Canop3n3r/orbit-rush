@@ -498,7 +498,7 @@ const partStat = (id, p) => { const d = PARTS[id];
   if (d.type === 'tank') return `${d.fuel} t fuel · ${(d.fuel * TANK_DRY).toFixed(1)} t empty`;
   if (d.type === 'shield') return `${d.m} t · max ${d.heat.Tmax.toLocaleString()} K${d.heat.abl ? ' · ablative' : ' · reusable'}`;
   if (d.type === 'chute') return `${d.m} t · drogue + 3 mains`;
-  return `${(p ? partMass(p) : d.m).toFixed(1)} t${d.mult ? ' · ×' + d.mult + ' score' : ''}`; };
+  return `${(p ? partMass(p) : d.m).toFixed(1)} t${d.mult ? ' · ×' + d.mult : ''}`; };
 // rich part tooltip (hover on desktop, ⓘ on touch): every number from the part catalog
 function partTip(id, p) {
   const d = PARTS[id], n = (p && p.n) || 1, L = [`<b>${d.name}</b>`, `<span class="sm">${d.desc}</span>`], kv = (k, x) => L.push(`<div class="kv"><span>${k}</span><b>${x}</b></div>`);
@@ -529,12 +529,23 @@ function buildPalette() {
       h.onclick = (g => () => { const now = !g.classList.contains('shut'); g.classList.toggle('shut', now); h.classList.toggle('shut', now); BUILD_OPEN[head] = !now; })(grp); }
     for (const [id, d] of Object.entries(PARTS)) if (d.type === type) {
       const t = document.createElement('div'); t.className = 'tile'; t.draggable = true;
-      t.innerHTML = `<i style="background:${TYPE_COL[type]}"></i><b>${d.name}</b><small>${partStat(id)}</small>`; qol.attachTip(t, () => partTip(id) + '<div class="sm">Click to add above the selected part, or drag into the stack.</div>', TOUCH);
+      t.innerHTML = `<i style="background:${TYPE_COL[type]}"></i><b>${d.name}</b><small>${partStat(id)}</small>`; if (!TOUCH) qol.attachTip(t, () => partTip(id) + '<div class="sm">Click to add above the selected part, or drag into the stack.</div>', false); // QA f5.1c: no ⓘ on touch
       t.onclick = () => { if (!dragEaten()) addPart(id); }; touchDrag(t, 'new:' + id); t.ondragstart = e => { e.dataTransfer.setData('text/plain', 'new:' + id); e.dataTransfer.effectAllowed = 'copy'; };
       t.dataset.id = id; if (partLock(id)) { t.classList.add('locked'); t.title = 'Locked — earn it with contracts'; } grp.appendChild(t);
     }
   }
+  if (TOUCH) { // QA f5.1c: categories as one icon row (tabs), one group visible at a time
+    const ICON = { COMMAND: 'pod', PAYLOAD: 'payload', 'FUEL TANKS': 'tank', ENGINES: 'engine', STRUCTURE: 'decoupler', RECOVERY: 'chute' };
+    const row = document.createElement('div'); row.className = 'palRow'; el.prepend(row);
+    const hs = [...el.querySelectorAll(':scope > .palH')], gs = [...el.querySelectorAll(':scope > .palG')];
+    const pick = k => hs.forEach((h, j) => { h.classList.toggle('on', j === k); h.classList.remove('shut'); gs[j].classList.toggle('shut', j !== k); });
+    hs.forEach((h, k) => { const key = h.textContent.trim().toUpperCase(), ic = ICON[key];
+      h.title = h.textContent; h.setAttribute('aria-label', h.textContent); h.innerHTML = ic ? `<img src="assets/icons/part-${ic}.svg" alt="">` : h.textContent.slice(0, 2);
+      h.onclick = () => { pick(k); BUILD_TAB = k; }; row.appendChild(h); });
+    pick(Math.min(BUILD_TAB, hs.length - 1));
+  }
 }
+let BUILD_TAB = 0;
 // Touch drag in the hangar: long-press (~0.3 s) a part or a stack row, then drag it onto the stack.
 // A quick swipe still scrolls the drawer/list; a plain tap still adds/selects.
 let dragState = null, eatClick = 0;
@@ -2076,7 +2087,7 @@ var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].i
   back.onclick = () => { goBuild.toHome = true; home.show(true); home.set(home.index); }; const bh = document.querySelector('#build .bhead'); if (bh) bh.prepend(back); }
 { // QA f5b.3: on touch, everything above the parts list lives behind one ⋯ (keeps ‹ Home + the parts in view)
   const b = $('build'), cols = b && b.querySelector('.bcols');
-  if (TOUCH && cols && !b.querySelector('.bMore')) { const d = document.createElement('details'); d.className = 'bMore'; d.innerHTML = '<summary>⋯ Hangar options</summary>';
+  if (TOUCH && cols && !b.querySelector('.bMore')) { const d = document.createElement('details'); d.className = 'bMore'; d.innerHTML = '<summary aria-label="Hangar options">⋯</summary>';
     [...b.children].filter(c => c !== cols && c.id !== 'homeBack' && cols.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_PRECEDING).forEach(c => d.appendChild(c));
     b.insertBefore(d, cols); const hb = $('homeBack'); if (hb) b.insertBefore(hb, d); }
 }
