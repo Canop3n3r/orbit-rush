@@ -149,3 +149,5 @@ export { ROSTER_LEVANT, ENGINES_LEVANT } from './roster/levant.js';
 export { ROSTER_CNFOLL, ENGINES_CNFOLL } from './roster/cnfoll.js';
 // Roster company 'firefly' (data only, neutral ids; spec:loss-model): see vehicles/roster/firefly.js
 export { ROSTER_FIREFLY, ENGINES_FIREFLY } from './roster/firefly.js';
+// Roster company 'skyland' (data only, neutral ids; spec:loss-model): see vehicles/roster/skyland.js
+export { ROSTER_SKYLAND, ENGINES_SKYLAND } from './roster/skyland.js';
