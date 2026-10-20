@@ -308,8 +308,8 @@ export function createSolarMap(opts) {
     const ease = S.trans ? S.trans.k * S.trans.k * (3 - 2 * S.trans.k) : 0;
     const origin = V.add(V.add(focusAbs(), S.pan), S.trans ? V.scale(S.trans.from, ease) : [0, 0, 0]);
     // camera at the origin of the scene looking at -z of S.q; focus point at (0,0,0)
-    S.idle += Math.min(rdt, 0.1); if (S.idle > 1.5) S.pitchT = S.idle > 1e6 ? S.pitchT : PITCH0; // after a drag, ease back to the upright default (yaw kept)
-    { const k = Math.min(1, rdt * (S.idle > 50 ? 9 : 3)); let dy = S.yawT - S.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); S.yaw += dy * k; S.pitch += (S.pitchT - S.pitch) * k; if (S.idle > 50 && Math.abs(dy) + Math.abs(S.pitchT - S.pitch) < 1e-3) S.idle = 3; applyYP(); }
+    { const nw = performance.now(); S.idle += Math.min(0.5, (nw - (S._lt || nw)) / 1000); S._lt = nw; } S.pitchT = Math.max(4 * Math.PI / 180, Math.min(88 * Math.PI / 180, S.pitchT)); if (S.idle > 1.5) S.pitchT = S.idle > 1e6 ? S.pitchT : PITCH0; // after a drag, ease back to the upright default (yaw kept)
+    { const k = Math.min(1, Math.max(rdt, 0.05) * (S.idle > 50 ? 14 : 3)); let dy = S.yawT - S.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); S.yaw += dy * k; S.pitch += (S.pitchT - S.pitch) * k; if (S.idle > 50 && Math.abs(dy) + Math.abs(S.pitchT - S.pitch) < 1e-3) S.idle = 3; applyYP(); }
     const back = new THREE.Vector3(0, 0, 1).applyQuaternion(S.q).multiplyScalar(S.dist);
     camera.position.copy(back); camera.quaternion.copy(S.q); camera.near = Math.max(0.5, S.dist * 1e-4); camera.far = Math.max(1e13, S.dist * 1e3);
     { // keep the focus in the free part of the screen (not under the toolbar or the side panel)

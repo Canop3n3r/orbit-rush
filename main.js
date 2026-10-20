@@ -801,7 +801,7 @@ $('creditsBtn').onclick = () => $('credits').classList.remove('hidden');
 $('creditsClose').onclick = () => $('credits').classList.add('hidden');
 reset(); refreshBuild();
 $('launchBtn').onclick = e => { e.currentTarget.blur(); launch(); };
-$('againBtn').onclick = () => goBuild();
+$('againBtn').onclick = () => { goBuild(); const hb = $('homeBack'); if (hb) hb.click(); }; // f3: the result card's Home goes back to the showroom
 $('relaunchBtn').onclick = () => launch();
 $('contBtn').onclick = () => { $('end').classList.add('hidden'); F.unfinish(); F.endQueued = true; };
 function shareText() { const sc = F.score(); return `🚀 I scored ${sc.toLocaleString()} in Orbit Rush${F.flags.orbit ? ' — reached a full-scale orbit' : ''}${F.flags.boosterBonus ? ' and landed the booster' : ''}${F.flags.recovered ? ' and brought the capsule home' : ''}! Can you beat it?`; }
@@ -1018,6 +1018,7 @@ function updateChunks(dt, O) {
     c.m.position.set(c.r[0] - O[0], c.r[1] - O[1], c.r[2] - O[2]); c.m.rotation.x += c.w[0] * dt; c.m.rotation.y += c.w[1] * dt; c.m.rotation.z += c.w[2] * dt;
     if (c.smk && Math.random() < 0.5) smoke.spawn(c.r, c.v, 1.5, 1, 5, 0x333333, null, 1); }
 }
+let endMin = false;
 function showEnd() {
   if (F.ended) return; const score = F.finish();
   const flags = F.flags, o = F.orbitSnap ? F.orbitSnap.o : P.orbitOf(v), ok = flags.orbit && !flags.dead;
@@ -1038,7 +1039,8 @@ function showEnd() {
   // f3: compact result card: headline result, score and medal up top; the stats wall folds into "Details"
   const extra = fun.endExtras(out, true), sc = lines.pop(), head = [], rest = [];
   for (const l of lines) (/class="(bad|warn)"|^<b class=/.test(l) && head.length < 3 ? head : rest).push(l);
-  $('endBody').innerHTML = head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
+  const stars = { gold: 3, silver: 2, bronze: 1 }[out && out.medal] || (ok || (director && director.ok) ? 1 : 0);
+  $('endBody').innerHTML = `<div class="endStars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<i>${'★'.repeat(3 - stars)}</i></div>` + head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
     + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}${extra.more ? '<br>' + extra.more : ''}</details>`;
   $('replayBtn').classList.toggle('hidden', !(flags.dead && recBuf.length > 30));
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
@@ -1403,7 +1405,10 @@ renderer.setAnimationLoop(() => {
   else if (state === 'build') { camYaw += rdt * 0.15; camDist = Math.max(70, stackL() * 1.9); camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.36, 0, innerWidth, innerHeight); }
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   const mapOn = state === 'flight' && camMode === 'map';
-  if (smap.state.on !== mapOn) { smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
+  if (smap.state.on !== mapOn) { // f3: any modal steps aside while the map is open (the result card comes back after)
+    if (mapOn && !$('end').classList.contains('hidden')) { $('end').classList.add('hidden'); endMin = true; } else if (!mapOn && endMin) { endMin = false; if (F.ended) $('end').classList.remove('hidden'); }
+    if (mapOn) document.querySelectorAll('.modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
+    smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
   updateSplit(rdt);
   if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.25, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
   if (mapOn) { smap.update(rdt); mapPost.render(); }

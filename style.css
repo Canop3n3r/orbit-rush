@@ -593,3 +593,12 @@ body.mapOn #strip,body.mapOn #engS,body.mapOn #hintS{display:none!important}
 body.mapOn #toasts{top:calc(44px + var(--sat,0px))!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;align-items:center!important}
 @media (orientation:landscape) and (max-height:500px){#mapMore{grid-template-columns:repeat(3,minmax(110px,1fr));bottom:calc(58px + var(--sab,0px))}#mapMore button{min-height:40px}}
 body.touch .qKeys{display:none} /* f3: no key bindings on a phone */
+
+#endBody .endStars{font-size:26px;letter-spacing:4px;color:#ffd23a;line-height:1.1;margin-bottom:2px}#endBody .endStars i{font-style:normal;color:#ffffff2a}
+#end .endMain{flex-wrap:nowrap}#end .endMain button{flex:1}#end .endMain .big{flex:1.4 1 0}
+@media (orientation:landscape) and (max-height:500px){.spBtns{top:calc(56px + var(--sat,0px))}}
+#hub .mbox,#atlas .mbox{max-height:calc(100dvh - 24px - var(--sat,0px) - var(--sab,0px));overflow:auto;display:flex;flex-direction:column}#hub #hubBody{overflow:auto;min-height:0;flex:1 1 auto}
+#hub .mis,#hub .grid,#hubBody>div{max-width:100%}
+#hubBody .misGrid,#hubBody .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+body.touch #build #launchBtn{position:sticky;bottom:calc(8px + var(--sab,0px));z-index:5;box-shadow:0 -6px 24px #000a}
+#hub .mgrid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important;gap:8px}#hub .mgrid .mis{min-width:0}
