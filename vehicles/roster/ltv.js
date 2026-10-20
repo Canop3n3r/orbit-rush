@@ -3,12 +3,12 @@
 export const ENGINES_LTV = {
   'lt-e1': { tSl: 352.0, tVac: 400.0, ispSl: 227.8, ispVac: 258.9, src: 'spec:engines#lt-e1', est: ['tSl', 'ispSl'] },
   'lt-e2': { tSl: 0, tVac: 259.0, ispSl: 0, ispVac: 281.9, src: 'spec:engines#lt-e2' },
-  'lt-e3': { tSl: 0, tVac: 93.0, ispSl: 0, ispVac: 300, src: 'spec:engines#lt-e3', est: ['ispVac'] },
-  'lt-e4': { tSl: 0, tVac: 25.0, ispSl: 0, ispVac: 300, src: 'spec:engines#lt-e4', est: ['ispVac'] },
+  'lt-e3': { tSl: 0, tVac: 93.0, ispSl: 0, ispVac: 0, unsourced: ['ispVac'], src: 'spec:engines#lt-e3', est: ['ispVac'] },
+  'lt-e4': { tSl: 0, tVac: 25.0, ispSl: 0, ispVac: 0, unsourced: ['ispVac'], src: 'spec:engines#lt-e4', est: ['ispVac'] },
   'lt-e5': { tSl: 363.4, tVac: 413.0, ispSl: 188.3, ispVac: 214.0, src: 'spec:engines#lt-e5', est: ['tSl', 'ispSl'] },
   'lt-e6': { tSl: 0, tVac: 235.0, ispSl: 0, ispVac: 254.3, src: 'spec:engines#lt-e6' },
   'lt-e7': { tSl: 0, tVac: 60.0, ispSl: 0, ispVac: 255.0, src: 'spec:engines#lt-e7' },
-  'lt-e8': { tSl: 0, tVac: 13.0, ispSl: 0, ispVac: 300, src: 'spec:engines#lt-e8', est: ['ispVac'] },
+  'lt-e8': { tSl: 0, tVac: 13.0, ispSl: 0, ispVac: 0, unsourced: ['ispVac'], src: 'spec:engines#lt-e8', est: ['ispVac'] },
 };
 export const ROSTER_LTV = [
   { id: 'scoutling', name: "Scoutling", company: 'ltv', src: 'spec:scoutling', area: 0.8, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
@@ -18,7 +18,7 @@ export const ROSTER_LTV = [
       { engines: {'lt-e3': 1}, dry: 107, prop: 1193, burn: 36.0, group: 2, recovery: 'expended', src: 'GCAT' },
       { engines: {'lt-e4': 1}, dry: 32, prop: 268, burn: 30.5, group: 3, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 143, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:scoutling#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model no orbit: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 143, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:scoutling#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "UNMODELLED: rocketdb has no vacuum Isp for lt-e3, lt-e4 (the old generator filled 300 s, an invented figure); data request to Rocket Art Bot" }] },
   { id: 'blue-scoutling', name: "Blue Scoutling", company: 'ltv', src: 'spec:blue-scoutling', area: 0.8, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'lt-e5': 1}, dry: 1380, prop: 9320, burn: 44.0, group: 0, recovery: 'expended', src: 'GCAT' },
@@ -26,5 +26,5 @@ export const ROSTER_LTV = [
       { engines: {'lt-e7': 1}, dry: 240, prop: 960, burn: 38.0, group: 2, recovery: 'expended', src: 'GCAT' },
       { engines: {'lt-e8': 1}, dry: 24, prop: 276, burn: 39.0, group: 3, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 50, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:blue-scoutling#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model no orbit: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 50, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:blue-scoutling#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "UNMODELLED: rocketdb has no vacuum Isp for lt-e8 (the old generator filled 300 s, an invented figure); data request to Rocket Art Bot" }] },
 ];

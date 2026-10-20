@@ -43,7 +43,7 @@ export function sim(v, E, P, vt, v0, { nograv = false, steer = true, dt = 0.25 }
 export const DRAG_T = 120, GT_ALT = 45000, PARK = 120000; // PARK m: lowest transfer perigee for a restart (EST) // m: gravity turn below, linear-tangent steering above (EST)
 // trajectory grid (gamebot-specs/roster-gaps): kick 0.25–15° step 0.25°, β0 −20–85° step 2.5°, gravity-turn ceiling 30/45/60 km
 const KICKS = Array.from({ length: 60 }, (_, i) => (i + 1) * 0.25 * Math.PI / 180), BETAS = Array.from({ length: 43 }, (_, i) => (-20 + 2.5 * i) * Math.PI / 180), GTS = [30000, 45000, 60000];
-export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 0.5) {
+export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 0.5, coastF = false) {
   const S = v.stages.map(s => ({ ...s, left: s.prop, mdot: s.prop / s.burn, sl: ispOf(s.engines, E, 'sl'), vac: ispOf(s.engines, E, 'vac'), g: s.group }));
   const maxg = Math.max(...S.map(s => s.g)), fair = v.fairing || 0, rpT = RE + orbit.hp * 1e3, raT = RE + orbit.ha * 1e3;
   let upT = 0, tu0 = null;
@@ -51,7 +51,13 @@ export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 
   for (;;) {
     const act = S.filter(s => s.g <= grp && s.left > 1e-6 && t >= (s.igniteAt || 0)); // igniteAt (s, sourced sequence): air-lit strap-ons
     if (!act.length && S.some(s => s.g <= grp && s.left > 1e-6)) { const g = MU / (r * r); vr += (vh * vh / r - g) * dt; vh -= vr * vh / r * dt; r += vr * dt; gl += g * dt; t += dt; continue; } // coasting to a timed ignition
-    if (!act.length) { if (grp >= maxg) return { ok: false, gl, sl }; grp++; if (fair) { m -= fair * (grp === 1); } continue; }
+    if (!act.length) { if (grp >= maxg) return { ok: false, gl, sl };
+      // coast-to-apogee before the final group (trajectory choice, searched like kick/β0; spec:loss-model#coast): small solid
+      // stacks fly burn, unpowered coast, then an unguided (spin-stabilised) final stage lit at apogee in fixed horizontal attitude.
+      if (coastF && grp + 1 === maxg && !coasted) { const en = (vr * vr + vh * vh) / 2 - MU / r, hh = r * vh;
+        if (en < 0) { const sma = -MU / (2 * en), e = Math.sqrt(Math.max(0, 1 + 2 * en * hh * hh / (MU * MU))), ra = sma * (1 + e);
+          if (ra > r) { r = ra; vr = 0; vh = hh / ra; t = Math.max(t, DRAG_T); coasted = true; if (tu0 === null) tu0 = t; } } }
+      grp++; if (fair) { m -= fair * (grp === 1); } continue; }
     let T = 0; for (const s of act) { const isp = s.g === 0 ? s.vac - (s.vac - s.sl) * Math.exp(-t / 45) : s.vac; T += Math.min(s.mdot, s.left / dt) * isp * G0; }
     const a = T / m, g = MU / (r * r), wa = vh - v0 * r / RE, sp = Math.hypot(vr, wa);
     let ur, uh; // thrust direction (radial, horizontal)
@@ -85,16 +91,19 @@ export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 
 // best trajectory on the grid: a combo is bisected only if it beats the current best payload
 export function best(v, E, orbit, v0, drag) {
   let b = null;
-  for (const g of GTS) for (const k of KICKS) for (const be of BETAS) {
-    const P0 = b ? b.P + 1 : 0; if (!fly(v, E, P0, orbit, v0, drag, k, be, g).ok) continue;
-    let lo = P0, hi = Math.max(2 * P0, 1000); while (fly(v, E, hi, orbit, v0, drag, k, be, g).ok) { lo = hi; hi *= 2; }
-    for (let i = 0; i < 16; i++) { const m = (lo + hi) / 2; if (fly(v, E, m, orbit, v0, drag, k, be, g).ok) lo = m; else hi = m; }
-    b = { P: lo, k, be, g };
+  const CF = Math.max(...v.stages.map(s => s.group)) > 0 ? [false, true] : [false];
+  for (const c of CF) for (const g of GTS) for (const k of KICKS) for (const be of BETAS) {
+    const P0 = b ? b.P + 1 : 0; if (!fly(v, E, P0, orbit, v0, drag, k, be, g, 0.5, c).ok) continue;
+    let lo = P0, hi = Math.max(2 * P0, 1000); while (fly(v, E, hi, orbit, v0, drag, k, be, g, 0.5, c).ok) { lo = hi; hi *= 2; }
+    for (let i = 0; i < 16; i++) { const m = (lo + hi) / 2; if (fly(v, E, m, orbit, v0, drag, k, be, g, 0.5, c).ok) lo = m; else hi = m; }
+    b = { P: lo, k, be, g, c };
   }
-  return b && { ...fly(v, E, b.P, orbit, v0, drag, b.k, b.be, b.g), P: b.P, kick: b.k, beta: b.be, gtAlt: b.g };
+  return b && { ...fly(v, E, b.P, orbit, v0, drag, b.k, b.be, b.g, 0.5, b.c), P: b.P, kick: b.k, beta: b.be, gtAlt: b.g, coast: b.c };
 }
 export function modelPayload(v, E, mode, opt = {}) {
   if (mode.stagesUsed) v = { ...v, stages: v.stages.slice(0, mode.stagesUsed) }; // reference figure for the lower stages only
+  const uns = [...new Set(v.stages.flatMap(s => Object.keys(s.engines).filter(k => E[k].unsourced)))]; // no invented Isp: unmodelled
+  if (uns.length) return { payload: NaN, unsourced: uns };
   const { hp, ha, inc } = mode.orbit, vt = vPerigee(hp, ha), v0 = VEQ * Math.cos(inc * Math.PI / 180);
   const m0 = v.stages.reduce((a, s) => a + s.prop + s.dry, 0) + (v.fairing || 0) + mode.payload;
   const pub = opt.physics ? null : v.publishedLoss, drag = pub ? pub.drag : DRAG_C * v.area / m0, extra = mode.orbitMass ? v.stages[v.stages.length - 1].dry : 0;
@@ -106,5 +115,5 @@ export function modelPayload(v, E, mode, opt = {}) {
   }
   const r = best(v, E, mode.orbit, v0, drag); if (!r) return { payload: 0, drag };
   const lo = r.P;
-  return { payload: lo + extra, drag, gl: r.gl, steer: r.sl, kick: r.kick * 180 / Math.PI, beta: r.beta * 180 / Math.PI };
+  return { payload: lo + extra, drag, gl: r.gl, steer: r.sl, coast: r.coast, kick: r.kick * 180 / Math.PI, beta: r.beta * 180 / Math.PI };
 }
