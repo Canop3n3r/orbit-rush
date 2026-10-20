@@ -697,7 +697,7 @@ const hooks = {
   sound: (k, f) => { if (k === 'ignite') { burst(0.6, 1.2, 500); if (F.alt < 200) ignitionClouds(v); } else if (k === 'beep') beep(f); else if (k === 'orbit') { beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); } },
   stage: b => { b.mesh = detachStage(b.stageIndex ?? 0); booster = b; stagingDrama(v.r, v.v, P.noseOf(v)); },
   drop: d => { if (opHooks) try { opHooks.drop(d); } catch (e) {} d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
-  ship: s => { if (s.lz) return; shipVis = makeShip(s); }, // RTLS: the landing zone is the pad area, no droneship
+  ship: s => { if (s.lz) { shipVis = makeLZ(s); return; } shipVis = makeShip(s); }, // RTLS: the landing zone is the pad area, no droneship
   shipMoved: s => shipVis && onSurface(shipVis, s.ef, 0),
   jettison: () => { heroFairing(false); const f = SG[SG.length - 1].userData.fair; if (f) { f.visible = false; const p = V.sub(v.r, V.scale(P.noseOf(v), -10)); for (let k = 0; k < 12; k++) smoke.spawn(p, jit(v.v, 15), 1.5, 1, 3, 0xffffff, null, 0.1); } beep(990); },
   // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
@@ -1094,6 +1094,13 @@ function showEnd() {
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
   $('shareBtn').textContent = 'Share score';
   $('end').classList.remove('hidden');
+}
+function makeLZ(s) { // f4.1 RTLS landing zone: a concrete disc with a ring and cross, 1.6 km from the pad
+  const g = new THREE.Group(), cm = new THREE.MeshStandardMaterial({ color: 0x9a9a96, roughness: 0.9 }), wm = new THREE.MeshBasicMaterial({ color: 0xf2f2f2 });
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(45, 47, 0.8, 48), cm); pad.position.y = 0; g.add(pad);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(30, 33, 48), wm); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.42; g.add(ring);
+  for (const r of [0, Math.PI / 2]) { const bar = new THREE.Mesh(new THREE.PlaneGeometry(40, 3), wm); bar.rotation.set(-Math.PI / 2, 0, r); bar.position.y = 0.43; g.add(bar); }
+  return onSurface(g, s.ef, 0);
 }
 function makeShip(s) {
   const g = new THREE.Group();
@@ -1524,7 +1531,7 @@ const apPill = ph => { const p = (ph || '').toLowerCase(); return /boost/.test(p
 // f4 mini navball: sky/ground split by the nose pitch, roll-free; prograde marker from the velocity
 function miniBall(cv, dir, r, vel) {
   if (!cv) return; const c = cv.getContext('2d'), W = cv.width, H = cv.height, R0 = W / 2 - 2, up = V.norm(r), e = P.eastOf(r), n = V.cross(up, e);
-  const pit = Math.asin(Math.max(-1, Math.min(1, V.dot(dir, up)))), hy = Math.max(-1, Math.min(1, -pit / (Math.PI / 2))) * R0;
+  const pit = Math.asin(Math.max(-1, Math.min(1, V.dot(dir, up)))), hy = Math.max(-1, Math.min(1, pit / (Math.PI / 2))) * R0; // f4.1: nose up = horizon drops = more sky (local horizon from r)
   c.clearRect(0, 0, W, H); c.save(); c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.clip();
   c.fillStyle = '#3d7bd6'; c.fillRect(0, 0, W, H); c.fillStyle = '#8a5a2b'; c.fillRect(0, H / 2 + hy, W, H);
   c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(0, H / 2 + hy); c.lineTo(W, H / 2 + hy); c.stroke();
@@ -1535,19 +1542,22 @@ function miniBall(cv, dir, r, vel) {
   c.strokeStyle = '#9cc3ff88'; c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.stroke();
 }
 function renderSplit(O) {
-  if (!split.on || split.full === 'b' || !booster) return;
+  const son = !!(split.on && split.full !== 'b' && booster); if (document.body.classList.contains('splitOn') !== son) document.body.classList.toggle('splitOn', son); // f4.1: class follows what is drawn
+  if (!son) return;
   const R2 = paneRect(), b = booster; let br = b.r, bd = b.dir;
   if (split.replay) { const rp = split.replay; rp.k += 0.5; const f = split.rec[Math.min(split.rec.length - 1, rp.i + Math.floor(rp.k))]; if (f) { br = f.r; bd = f.dir; setRel(b.mesh, br, O); dirQ(b.mesh, bd); b.mesh.userData.plume.visible = f.thr > 0.01; } }
   const up = V.norm(br), e = P.eastOf(br), n = V.cross(up, e); if (performance.now() - split.userT > 4000) split.yaw += 0.002;
-  const tx = br[0] - O[0], ty = br[1] - O[1], tz = br[2] - O[2], d = split.dist, cp = Math.cos(split.pitch);
-  const off = V.add(V.add(V.scale(n, Math.cos(split.yaw) * d * cp), V.scale(e, Math.sin(split.yaw) * d * cp)), V.scale(up, d * Math.sin(split.pitch)));
-  cam2.position.set(tx + off[0], ty + off[1], tz + off[2]); cam2.up.set(up[0], up[1], up[2]); cam2.lookAt(tx + bd[0] * 15, ty + bd[1] * 15, tz + bd[2] * 15);
+  const landed = b.state !== 'flying', pz = landed ? Math.max(0.18, split.pitch) : split.pitch; // f4.1: never under the ground
+  if (landed) bd = up; // the landed booster stands up: frame its middle, camera upright
+  const lift = landed ? 20 : 0, tx = br[0] - O[0] + up[0] * lift, ty = br[1] - O[1] + up[1] * lift, tz = br[2] - O[2] + up[2] * lift, d = split.dist, cp = Math.cos(pz);
+  const off = V.add(V.add(V.scale(n, Math.cos(split.yaw) * d * cp), V.scale(e, Math.sin(split.yaw) * d * cp)), V.scale(up, d * Math.sin(pz)));
+  cam2.position.set(tx + off[0], ty + off[1], tz + off[2]); cam2.up.set(up[0], up[1], up[2]); cam2.lookAt(landed ? tx : tx + bd[0] * 15, landed ? ty : ty + bd[1] * 15, landed ? tz : tz + bd[2] * 15);
   cam2.aspect = R2.w / R2.h; cam2.updateProjectionMatrix();
   const fxV = fx.root ? fx.root.visible : null; if (fx.root) fx.root.visible = false; // Low look in the pane: no flow particles
   // render the pane into an offscreen target (half resolution on phones), then composite it over the main view
   const sc = TOUCH ? 0.5 : Math.min(1, renderer.getPixelRatio()), tw = Math.max(16, Math.round(R2.w * sc)), th2 = Math.max(16, Math.round(R2.h * sc));
-  if (!split.rt) { split.rt = new THREE.RenderTarget(tw, th2, { samples: TOUCH ? 0 : 4 }); split.qm = new THREE.MeshBasicMaterial({ map: split.rt.texture, depthTest: false, depthWrite: false });
-    split.qs = new THREE.Scene(); split.qs.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), split.qm)); split.qc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); }
+  if (!split.rt) { split.rt = new THREE.RenderTarget(tw, th2, { samples: TOUCH ? 0 : 4 }); split.qm = new THREE.MeshBasicMaterial({ map: split.rt.texture, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+    split.qs = new THREE.Scene(); const qm = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), split.qm); if (renderer.backend && renderer.backend.isWebGPUBackend) qm.scale.y = -1; /* f4.1: WebGPU render-target textures come out flipped: the pane showed the ground at the top */ split.qs.add(qm); split.qc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); }
   if (split.rt.width !== tw || split.rt.height !== th2) split.rt.setSize(tw, th2);
   renderer.setRenderTarget(split.rt); renderer.render(scene, cam2); renderer.setRenderTarget(null);
   const ac0 = renderer.autoClear; renderer.autoClear = false; renderer.setViewport(R2.x, R2.y, R2.w, R2.h);

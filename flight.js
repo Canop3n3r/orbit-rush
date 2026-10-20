@@ -42,7 +42,7 @@ export function chuteLimits(spec, tel, stage) {
   }
   return { ok: true, why: '' };
 }
-const DECK = 3, PAD_EF = [1, 0, 0];         // launch site on the equator (Earth-fixed unit vector)
+const DECK = 3, PAD_EF = [1, 0, 0], LZ_EF = (() => { const a = 1600 / 6371000; return [Math.cos(a), 0, Math.sin(a)]; })(); // f4.1: landing zone 1.6 km north of the pad, clear of the tower and slab         // launch site on the equator (Earth-fixed unit vector)
 const wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
 const fmtKm = m => (m / 1000).toFixed(0) + ' km';
 // Droneship position (ECI) at clock t: an Earth-fixed point that turns with the planet.
@@ -366,7 +366,7 @@ export class Flight {
     if (v.cur > 0 || v.stages[0].radial) {
       const d = P.makeBooster(v); d.stageIndex = v.cur; d.radial = v.stages[v.cur].radial || 0; this.shiftCom(() => { v.cur++; });
       if (d.radial && this.recovery === 'rtls' && !this.booster && d.stages[0].fuel > 0.3 && bh > 2000) { // f4: side boosters fly back to the landing zone
-        d.ut = 0; d.manual = false; d.maxH = bh; d.stagedAlt = bh; d.rtls = true; d.canLand = true; this.booster = d; this.ship = { ef: PAD_EF.slice(), moved: true, lz: true }; this.call('ship', this.ship); this.call('stage', d);
+        d.ut = 0; d.manual = false; d.maxH = bh; d.stagedAlt = bh; d.rtls = true; d.canLand = true; this.booster = d; this.ship = { ef: LZ_EF.slice(), moved: true, lz: true }; this.call('ship', this.ship); this.call('stage', d);
         this.flags.stagedFuel = d.stages[0].fuel; this.flags.stagedAlt = bh; this.toast(`BOOSTER SEP — ${d.radial} side boosters boosting back to the landing zone`, '#fff'); return;
       }
       this.call('drop', d);
@@ -379,7 +379,7 @@ export class Flight {
     this.shiftCom(() => { v.cur = 1; }); this.flags.stagedFuel = b.stages[0].fuel; this.flags.stagedAlt = bh;
     this.call('stage', b);
     const fuel = b.stages[0].fuel;
-    if (fuel > 0.3 && bh > 2000 && this.recovery === 'rtls') { b.rtls = true; b.canLand = true; this.ship = { ef: PAD_EF.slice(), moved: true, lz: true }; this.call('ship', this.ship); this.toast(`STAGE SEP — booster boosting back to the landing zone (${fuel.toFixed(1)} t)`, '#fff'); }
+    if (fuel > 0.3 && bh > 2000 && this.recovery === 'rtls') { b.rtls = true; b.canLand = true; this.ship = { ef: LZ_EF.slice(), moved: true, lz: true }; this.call('ship', this.ship); this.toast(`STAGE SEP — booster boosting back to the landing zone (${fuel.toFixed(1)} t)`, '#fff'); }
     else if (fuel > 0.3 && bh > 2000) {
       // the droneship waits where the auto-land profile (entry burn + landing burn) touches down
       const lc = landingCheck(b), ok = lc.lands; b.canLand = ok;
@@ -766,7 +766,7 @@ export class Flight {
       ship.ef = V.norm(V.rotZ(at, b.earthRot === false ? 0 : -P.OMEGA_E * t)); ship.moved = true; this.call('shipMoved', ship);
     }
     if (b.state === 'flying') {
-      const nearShip = ship && surfDist(b.r, shipPos(ship, b.clock, b.earthRot !== false)) < 40;
+      const nearShip = ship && !ship.lz && surfDist(b.r, shipPos(ship, b.clock, b.earthRot !== false)) < 40;
       if (e === 'ground' || (nearShip && bh < DECK)) this.landBooster(b, sp);
     }
   }
@@ -786,7 +786,7 @@ export class Flight {
     if (ok) { b.state = 'landed'; b.dir = up; this.call('boosterLanded', b); this.call('sound', 'landed'); }
     else { b.state = 'lost'; this.call('boosterLost', b, false); }
     // ride along with the rotating Earth from now on
-    b.ef = V.norm(V.rotZ(b.r, b.earthRot === false ? 0 : -P.OMEGA_E * b.clock)); b.lift = ok && dist < 40 ? DECK : 0;
+    b.ef = V.norm(V.rotZ(b.r, b.earthRot === false ? 0 : -P.OMEGA_E * b.clock)); b.lift = ok && dist < 40 ? (ship && ship.lz ? 0.4 : DECK) : 0;
   }
   fail(reason, cause) {
     const f = this.flags; if (f.dead) return;

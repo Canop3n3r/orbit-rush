@@ -25,7 +25,7 @@ for (const r of SHOWROOM) {
   const res = simulateAuto(r.design, { dt: 1 / 20, tMax: 3000 });
   if (r.check === 'space') ok(!res.dead && res.ap > 100000, `${r.name} reaches space with AUTO (Ap ${km(res.ap)})`);
   if (r.check === 'orbit') ok(res.orbit && res.pe > P.ORBIT_PE, `${r.name} reaches orbit with AUTO (${km(res.ap)} × ${km(res.pe)})`);
-  if (r.check === 'booster') { const rb = simulateAuto(r.design, { dt: 1 / 20, reserve: 16 }); ok(rb.orbit && rb.boosterLanded, `${r.name}: orbit and the booster lands itself`); }
+  if (r.check === 'booster') { const rb = simulateAuto(r.design, { dt: 1 / 20, ...(r.design.recovery === 'rtls' ? {} : { reserve: 16 }) }) /* f4.1: RTLS boosters stage on AUTO's own boostback reserve */; ok(rb.orbit && rb.boosterLanded, `${r.name}: orbit and the booster lands itself`); }
   if (r.check === 'hop') ok(!res.dead && res.ap > 20000 && res.ap < 100000, `${r.name} hops to ${km(res.ap)} (suborbital)`);
 }
 console.log(`showroom: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
