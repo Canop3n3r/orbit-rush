@@ -11,14 +11,16 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 const rot = s => s.replace(/[a-z]/gi, c => String.fromCharCode((c <= 'Z' ? 65 : 97) + ((c.charCodeAt(0) - (c <= 'Z' ? 65 : 97) + 13) % 26)));
 const BAD = ['fcnprk', 'fgneyvaxf?', 'snypbaf?', 'qentbaf?', 'fgnefuvcf?', 'fhcre ?urnil', 'zrpunmvyyn', 'pubcfgvpxf?', 'encgbef?', 'zreyvaf?', 'SU', 'nfqf', 'zhfx', 'S9'].map(rot);
 const BRANDS = new RegExp('\\b(' + BAD.join('|') + ')\\b', 'i');
-const here = new URL('..', import.meta.url), files = [...readdirSync(new URL('missions/', here)).map(f => 'missions/' + f), 'tests/missions.mjs', 'tests/missions_regress.mjs'];
+const here = new URL('..', import.meta.url), walk = d => readdirSync(new URL(d, here), { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(d + e.name + '/') : [d + e.name]);
+const files = [...walk('missions/'), ...readdirSync(new URL('tests/', here)).filter(f => /^(missions|campaign)/.test(f)).map(f => 'tests/' + f)];
 for (const f of files) readFileSync(new URL(f, here), 'utf8').split('\n').forEach((l, i) => ok(!BRANDS.test(l), `${f}:${i + 1} neutral (code + comments): ${l.trim().slice(0, 80)}`));
 ok(BRANDS.test(rot('fgnefuvc')) && !BRANDS.test('heron-9'), 'scan catches a real name and passes a neutral id');
 ok(!validateMission({ id: 'Bad Id' }).ok, 'schema rejects a bad mission');
 const ms = await loadMissions(); ok(ms.length === MISSION_IDS.length, 'catalog loads all missions: ' + ms.map(m => m.id).join(', '));
+const cb = ms.find(m => m.id === 'constellation-batch');
 setBrandPack({ 'constellation-batch': 'Private Label', 'heron-9': 'Private Rocket' });
-ok(missionName(ms[0]) === 'Private Label' && vehicleName(ms[0]) === 'Private Rocket', 'brand pack overrides mission + vehicle names');
-setBrandPack(null); ok(missionName(ms[0]) === 'Constellation batch', 'no pack: neutral mission name');
+ok(missionName(cb) === 'Private Label' && vehicleName(cb) === 'Private Rocket', 'brand pack overrides mission + vehicle names');
+setBrandPack(null); ok(missionName(cb) === 'Constellation batch', 'no pack: neutral mission name');
 for (const m of ms) {
   ok(MISSION_IDS.includes(m.id), m.id + ' listed in catalog');
   const v = validateMission(m); ok(v.ok, m.id + ' valid ' + v.err.join('; '));

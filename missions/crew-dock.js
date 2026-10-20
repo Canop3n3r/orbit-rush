@@ -7,7 +7,7 @@
 export default {
   id: 'crew-dock', name: 'Crew to station',
   blurb: 'Take a crew capsule up to the station orbit and hold position to dock.',
-  vehicle: { template: 'Orbit & home', role: 'crew-capsule-launcher', vehicleId: 'heron-9-crew', capsuleId: 'capsule-2' },
+  vehicle: { template: 'Orbit & home', role: 'crew-capsule-launcher', payloadPart: 'crew', gameMassT: 4.0 /* game-scale capsule (catalogue pod 4 t; real capsule-2 12.5 t) */, vehicleId: 'heron-9-crew', capsuleId: 'capsule-2' },
   real: { capsuleLaunchMassKg: 12519 /* capsule-2 launch */, capsuleDryKg: 7700 /* capsule-2 dry */,
     crew: 4 /* capsule-2 crew */, rcsPropKg: 2562 /* capsule sheet, Thrusters row */, recovery: 'parachute splashdown' /* capsule-2 recovery */, stationAltKm: 400 /* ESTIMATE */ },
   deploy: [ { kind: 'fairing-sep' }, { kind: 'booster-return', mode: 'droneship' },

@@ -17,16 +17,22 @@
 //   objectives: [ { id, kind, label, points, required, ...params } ]
 //     kinds: 'orbit', 'pe-min' {m}, 'ap-max' {m}, 'band' {apM, peM, tolM}, 'fairing-sep', 'stack-release',
 //            'dispensed' {count}, 'booster-landed', 'booster-catch', 'propellant' {minT}, 'hold' {s}
+//   Campaign-era kinds: 'plane-change' {inclDeg}, 'raise-ap' {apM}, 'rendezvous' {altM, leadDeg}, 'dock' {rangeM, relV, holdS},
+//   'prop-transfer' {t, rateTps}, 'director' {dest}, 'interplanetary' {target}; objectives 'incl' {deg, tol}, 'ap-min' {m},
+//   'gate' {rangeM, relV}, 'docked', 'transferred' {t}, 'landed-on' {body}, 'orbiting' {body}, 'helio' {aphMinAU},
+//   'recovered' {which: 'side'|'core', mode: 'rtls'|'droneship'|'catch'}.
 //   scoring: { base: 'flight'|0, timeBonus?: { parS, perS } }
 // }
-export const DEPLOY_KINDS = ['transfer', 'fairing-sep', 'stack-release', 'dispense', 'booster-return', 'coast', 'propellant-check'];
-export const OBJECTIVE_KINDS = ['orbit', 'pe-min', 'ap-max', 'band', 'fairing-sep', 'stack-release', 'dispensed', 'booster-landed', 'booster-catch', 'propellant', 'hold'];
+export const DEPLOY_KINDS = ['transfer', 'fairing-sep', 'stack-release', 'dispense', 'booster-return', 'coast', 'propellant-check',
+  'plane-change', 'raise-ap', 'rendezvous', 'dock', 'prop-transfer', 'director', 'interplanetary'];
+export const OBJECTIVE_KINDS = ['orbit', 'pe-min', 'ap-max', 'band', 'fairing-sep', 'stack-release', 'dispensed', 'booster-landed', 'booster-catch', 'propellant', 'hold',
+  'incl', 'ap-min', 'gate', 'docked', 'transferred', 'landed-on', 'orbiting', 'helio', 'recovered'];
 export const MAX_GAME_MASS_T = 20; // game scale: no template can lift more than this
 export function validateMission(m) {
   const err = [];
   if (!m || typeof m.id !== 'string' || !/^[a-z0-9-]+$/.test(m.id)) err.push('id must be a neutral kebab-case string');
   if (!m.name) err.push('name required');
-  if (!m.vehicle || !m.vehicle.template) err.push('vehicle.template required');
+  if (!m.vehicle || !(m.vehicle.template || Array.isArray(m.vehicle.parts))) err.push('vehicle.template or vehicle.parts required');
   if (!Array.isArray(m.deploy)) err.push('deploy must be an array');
   else for (const d of m.deploy) if (!DEPLOY_KINDS.includes(d.kind)) err.push('unknown deploy kind ' + d.kind);
   const g = m.vehicle && m.vehicle.gameMassT;
