@@ -12,7 +12,7 @@ export const baseFor = h => (h < 30 ? 'needle' : h < 80 ? 'swift' : h < 115 ? 'a
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // sets: { house: [model ids] }; originals: [{ i, name, role, locked }]; name(id) -> display name
 // one-line role for a house card from the model height (m)
-export const roleFor = h => (h < 30 ? 'Small launcher' : h < 60 ? 'Medium launcher' : h < 80 ? 'Medium-heavy launcher' : h < 115 ? 'Heavy lifter' : 'Super-heavy') + ' · ' + Math.round(h) + ' m';
+export const roleFor = h => (h < 30 ? 'Small launcher' : h < 60 ? 'Medium launcher' : h < 80 ? 'Medium-heavy' : h < 115 ? 'Heavy lifter' : 'Super-heavy') + ' · ' + Math.round(h) + ' m';
 export function pickerHTML({ originals, sets, name, sandbox, role = () => '', locked = () => false }) {
   const card = (attr, nm, sub, lk) => `<button class="pkC${lk ? ' lk' : ''}" ${attr}><b>${lk ? '🔒 ' : ''}${esc(nm)}</b><small>${esc(sub)}</small></button>`;
   let h = `<div class="pkH"><b>Rockets</b><button id="pkSandbox" class="pkSw" role="switch" aria-checked="${sandbox ? 'true' : 'false'}"><i></i>Sandbox</button><button id="pkClose" aria-label="Close">✕</button></div>`;
