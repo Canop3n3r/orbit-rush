@@ -44,3 +44,11 @@ export const TRUCK = { etR: 4.2, etNose: 12.0, srbR: 1.86, srbNose: 6.0, orbR: 2
 NOSES['space-truck.et'] = () => ogive(TRUCK.etR, TRUCK.etNose, 0, 18, 0.03);
 NOSES['space-truck.srb'] = () => ogive(TRUCK.srbR, TRUCK.srbNose, 0, 18, 0.1);
 NOSES['space-truck.orbiter'] = () => ogive(TRUCK.orbR, TRUCK.orbNose, 0, 18, 0.12);
+// ---- co-ula (United Lift Alliance parody): 4 m / 5 m fairings, solid-booster nose (tips +Y) ----
+export const ULX = { f4: { r: 2.1, nose: 5.6 }, f5: { r: 2.7, nose: 7.4 }, d5: { r: 2.56, nose: 6.6 } };
+export function srbNose(r = 0.79, L = 2.6) { return ogive(r, L, 0, 14, 0.12); }
+NOSES['atlantean-v.f4'] = () => fairing(ULX.f4.r, 6.5, ULX.f4.nose, 0, 1.53, 18, 1.3);
+NOSES['atlantean-v.f5'] = () => fairing(ULX.f5.r, 12, ULX.f5.nose, 0, 1.9, 18, 0.5);
+NOSES['atlantean-v.srb'] = () => srbNose();
+NOSES['deltoid-4.f5'] = () => fairing(ULX.d5.r, 7.7, ULX.d5.nose, 0, 2.55, 18, 0.1);
+NOSES['deltoid-4.cbcnose'] = () => ogive(2.55, 5.0, 0, 18, 0.1);

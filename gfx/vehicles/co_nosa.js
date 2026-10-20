@@ -13,6 +13,8 @@ function lmat(key) { if (LOCAL.has(key)) return LOCAL.get(key); let m;
     if (key === 'x-foam2') for (let y = 0; y < 512; y += 16) { x.fillStyle = 'rgba(60,25,8,0.35)'; x.fillRect(0, y, 256, 3); }
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.userData.cached = true; m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.92, metalness: 0 }); }
   else if (key === 'x-bellblack') m = new THREE.MeshStandardMaterial({ color: 0x2a2826, roughness: 0.5, metalness: 0.8, side: THREE.DoubleSide });
+  else if (key === 'x-salmon' || key === 'x-salmon2') m = new THREE.MeshStandardMaterial({ color: key === 'x-salmon' ? 0xc98a5e : 0xb07650, roughness: 0.7, metalness: 0.15 }); // co-ula: kerosene core paint
+  else if (key === 'x-bellchar') m = new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }); // ablative bell
   else if (key === 'x-tile') m = new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.85, metalness: 0.05 });
   else if (key === 'x-rcc') m = new THREE.MeshStandardMaterial({ color: 0x55585c, roughness: 0.7, metalness: 0.1 });
   else m = new THREE.MeshStandardMaterial({ color: 0xf0eee8, roughness: 0.55 });
