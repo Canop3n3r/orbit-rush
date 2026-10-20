@@ -15,7 +15,7 @@ export const ROSTER_REDSTAR = [
       { engines: { 'ko-k3': 1 }, dry: 2355, prop: 25400, burn: 270, group: 1, recovery: 'expended' },
     ],
     modes: [{ variant: 'leo', payload: 8670, orbit: { hp: 240, ha: 240, inc: 51.6 }, src: 'spec:soyuzny#leo',
-      knownGap: 'model ~+39 %: physics gravity loss EST below published range; fairing/adapters EST' }],
+ }],
     tli: 2350, flights: 170 },
   { id: 'n-won', name: 'N-Won Moon Rocket', company: 'redstar', src: 'spec:n-won (draft-project masses)', area: 227, fairing: 0,
     stages: [
@@ -24,6 +24,6 @@ export const ROSTER_REDSTAR = [
       { engines: { 'ko-m21': 4 }, dry: 13700, prop: 175000, burn: 370, group: 2, recovery: 'expended' },
     ],
     modes: [{ variant: 'leo', payload: 95000, orbit: { hp: 225, ha: 225, inc: 51.6 }, src: 'spec:n-won#leo (design)',
-      knownGap: 'model ~+44 %: design-stage masses vs design payload; never reached orbit' }],
+ knownGap: 'model +24 % (2-D): design-stage masses vs design payload; never flew to orbit' }],
     tli: 33000, flights: 4 },
 ];

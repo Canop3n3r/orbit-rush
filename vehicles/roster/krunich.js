@@ -12,6 +12,6 @@ export const ROSTER_KRUNICH = [
       { engines: { 'kr-u3': 1 }, dry: 3500, prop: 46562, burn: 238, group: 2, recovery: 'expended' },
     ],
     modes: [{ variant: 'leo', payload: 23000, orbit: { hp: 180, ha: 180, inc: 51.5 }, src: 'spec:protonik#leo',
-      knownGap: 'model ~+38 %: physics gravity loss EST below published range for a high-T/W stack' }],
+ knownGap: 'model +21 % (2-D): burnout masses (residuals, interstage, adapter) unsourced' }],
     gto: 6920, flights: 116 },
 ];

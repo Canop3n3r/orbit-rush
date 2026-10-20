@@ -11,7 +11,7 @@ export const ROSTER_CALT = [
   { id: 'long-stride-5', name: 'Long Stride 5', company: 'calt', src: 'spec:long-stride-5', variant: 'core-to-orbit', area: 54.9, fairing: 0,
     stages: [{ ...boosters }, { ...core }],
     modes: [{ variant: 'core-to-orbit', payload: 25000, orbit: { hp: 200, ha: 400, inc: 42 }, src: 'spec:long-stride-5#leo',
-      knownGap: 'model ~+49 %: cause unverified; stage burnout masses unsourced' }] },
+ }] },
   { id: 'long-stride-5', name: 'Long Stride 5', company: 'calt', src: 'spec:long-stride-5', variant: 'two-stage', area: 54.9, fairing: 4000, est: ['fairing'],
     stages: [{ ...boosters }, { ...core }, { engines: { 'cl-h2': 2 }, dry: 5100, prop: 29100, burn: 700, group: 1, recovery: 'expended' }],
     modes: [], gto: 14000, tli: 9400, tmi: 6000, flights: 18 },

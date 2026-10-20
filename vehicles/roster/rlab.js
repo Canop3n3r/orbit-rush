@@ -13,6 +13,6 @@ export const ROSTER_RLAB = [
     ],
     // reference orbit from the payload user guide: 200 kg to 500 km circular sun-synchronous
     modes: [{ variant: 'sso-500', payload: 200, orbit: { hp: 500, ha: 500, inc: 97.4 }, src: 'spec:electrino#sso',
-      knownGap: 'model overshoots: kick stage, battery mass, and physics gravity/drag loss for a tiny stack are EST' }],
+ knownGap: 'model reaches no 500 km circular orbit: the real vehicle circularizes with a kick stage whose mass and propellant are not in the data' }],
     payloadLow: 300, flights: 97 },
 ];

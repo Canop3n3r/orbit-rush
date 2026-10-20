@@ -7,7 +7,7 @@ export const ENGINES_NOSA = {
 export const ROSTER_NOSA = [
   { id: 'saturnine-v', name: 'Saturnine V', company: 'nosa', src: 'spec:saturnine-v', area: 80.1, fairing: 0,
     // published ascent losses: gravity 1534, drag 40 m/s (spec:loss-model#published)
-    publishedLoss: { grav: 1534, drag: 40 },
+    publishedLoss: { grav: 1534, drag: 40, steer: 243 }, // spec:loss-model#published (steering from the same table)
     stages: [
       { engines: { 'nosa-k1': 5 }, dry: 137439, prop: 2076600, burn: 150, group: 0, recovery: 'expended' },
       { engines: { 'nosa-h1': 5 }, dry: 43091, prop: 427285, burn: 395, group: 1, recovery: 'expended', note: 'dry incl. interstage' },
@@ -15,6 +15,6 @@ export const ROSTER_NOSA = [
     ],
     // sourced 140 t = total mass in orbit (spacecraft + third stage + its remaining propellant), so compared as orbitMass
     modes: [{ variant: 'leo', payload: 140000, orbitMass: true, orbit: { hp: 185, ha: 185, inc: 32.5 }, src: 'spec:saturnine-v#leo', est: ['orbit.inc'],
-      knownGap: 'model +19 % even with published losses: spacecraft mass derived from max liftoff mass (EST); interstage/escape-tower drops not modelled' }],
+ }],
     tli: 43500, flights: 13 },
 ];

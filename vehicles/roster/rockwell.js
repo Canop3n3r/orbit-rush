@@ -7,14 +7,14 @@ export const ENGINES_ROCKWELL = {
 };
 export const ROSTER_ROCKWELL = [
   { id: 'space-truck', name: 'Space Truck Stack (orbiter + tank + boosters)', company: 'rockwell', src: 'spec:space-truck', area: 100, fairing: 0, est: ['area'],
-    publishedLoss: { grav: 1222, drag: 107 }, // spec:loss-model#published
+    publishedLoss: { grav: 1222, drag: 107, steer: 358 }, // spec:loss-model#published
     stages: [
       { engines: { 'rw-s4': 2 }, dry: 181437, prop: 997903, burn: 124, group: 0, recovery: 'parachute to sea, recovered' },
       // tank + orbiter: orbiter carried at its 110 t launch mass (EST: taken as excluding payload); tank prop = gross − empty
       { engines: { 'rw-h3': 3 }, dry: 26535 + 110000, prop: 735510, burn: 510, group: 0, recovery: 'orbiter runway landing; tank expended', est: ['dry'] },
     ],
     modes: [{ variant: 'leo', payload: 27500, orbit: { hp: 204, ha: 204, inc: 28.5 }, src: 'spec:space-truck#leo',
-      knownGap: 'model +15.1 % at the edge; orbital-maneuvering burn and tank residuals not modelled' }],
+ knownGap: 'model −26 % with the full published loss set (steering 358 m/s): that budget injects at 111 km with an extra 144 m/s OMS burn, and the 110 t orbiter mass (incl. OMS prop) is ESTIMATE' }],
     gto: 4940, flights: 135 },
   { id: 'super-lift', name: 'Super Lift System', company: 'rockwell', src: 'spec:super-lift', area: 76.9, fairing: 0,
     stages: [
@@ -23,6 +23,6 @@ export const ROSTER_ROCKWELL = [
       { engines: { 'rw-h4': 1 }, dry: 3490, prop: 28576, burn: 1125, group: 1, recovery: 'expended' },
     ],
     modes: [{ variant: 'leo', payload: 95000, orbit: { hp: 200, ha: 200, inc: 28.5 }, src: 'spec:super-lift#leo',
-      knownGap: 'model ~+50 %: stage burnout masses (residuals, adapters) not sourced; physics gravity loss EST' }],
+ knownGap: 'model +18 % (2-D): burnout masses (residuals, interstages, adapters) unsourced' }],
     tli: 27000, flights: 2 },
 ];

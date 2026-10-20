@@ -11,8 +11,8 @@ const a6 = n => ({ id: 'arion-6', name: 'Arion 6', company: 'arion', src: 'spec:
   area: 22.9 + n * 9.08, fairing: 2500, est: ['fairing'],
   stages: [
     { engines: { 'ar-s2': n }, dry: n * 11200, prop: n * 141400, burn: 134, group: 0, recovery: 'expended' },
-    { engines: { 'ar-h21': 1 }, dry: 12000, prop: 140000, burn: 468, group: 0, recovery: 'expended', est: ['dry'] },
-    { engines: { 'ar-h5': 1 }, dry: 6000, prop: 32000, burn: 900, group: 1, recovery: 'expended (deorbit)' },
+    { engines: { 'ar-h21': 1 }, dry: 23000, prop: 154000, burn: 515, group: 0, recovery: 'expended', src: 'spec:arion-6#core-esa', est: ['prop', 'burn'] }, // dry sourced; prop 'almost 154 t'; burn = 468 s × 154/140 (same mass flow) EST
+    { engines: { 'ar-h5': 1 }, dry: 6000, prop: 32000, burn: 900, group: 1, recovery: 'expended (deorbit)', restart: true, src: 'spec:arion-6#restart (user manual §2.3.2: circular orbits use two burns)' },
   ] });
 export const ROSTER_ARION = [
   { id: 'arion-5', name: 'Arion 5', company: 'arion', src: 'spec:arion-5', variant: 'cryo upper stage', area: 30.3, fairing: 2400, est: ['fairing'],
@@ -24,7 +24,7 @@ export const ROSTER_ARION = [
     // GTO 250 × 35,786 km, 6° (orbit definition EST: standard for this site)
     modes: [{ variant: 'gto', payload: 10865, orbit: { hp: 250, ha: 35786, inc: 6 }, src: 'spec:arion-5#gto', est: ['orbit'] }], flights: 117 },
   { ...a6(2), modes: [{ variant: 'b2', payload: 10000, orbit: { hp: 250, ha: 250, inc: 51.6 }, src: 'spec:arion-6#iss (user manual)',
-      knownGap: 'model ~+180 %: core dry, upper-stage Isp, fairing EST; burnout masses unsourced' }] },
+ knownGap: 'model −45 % (2-D): low-T/W core + upper stage; the searched trajectory family (gravity turn + linear tangent + one restart) may be too narrow; user-manual deorbit reserve not modelled' }] },
   { ...a6(4), modes: [{ variant: 'b4', payload: 20000, orbit: { hp: 250, ha: 250, inc: 51.6 }, src: 'spec:arion-6#iss (user manual)',
-      knownGap: 'model ~+120 %: as b2' }], flights: 9 },
+ }], flights: 9 },
 ];
