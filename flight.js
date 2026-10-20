@@ -1,9 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.2.2';
-import * as C from './physics/patched.js?v=f5.2.2';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.2.2';
+import * as P from './physics.js?v=f5.3b1';
+import * as C from './physics/patched.js?v=f5.3b1';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.3b1';
+import { designReusable } from './vehicles/reusable.js?v=f5.3b1';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -165,7 +166,8 @@ export function applySpec(v, sp) { if (!sp || !sp.stages || sp.stages.length !==
   v.spec = sp.src || true; return true; }
 export class Flight {
   constructor(design, hooks = {}, opts = {}) {
-    this.recovery = opts.recovery || design.recovery || 'ship'; // f4: 'rtls' = boostback to the landing zone at the launch site
+    this.reusable = opts.reusable ?? designReusable(design); // f5.3: only reusable boosters fly back (heron/colossus house, new-glendale)
+    this.recovery = !this.reusable ? 'none' : opts.recovery || design.recovery || 'ship'; // f4: 'rtls' = boostback to the landing zone at the launch site
     if (typeof opts === 'number') opts = { padZ: opts };
     this.design = cloneDesign(design); this.h = hooks; this.stats = designStats(design);
     const v = buildVehicle(design); v.earthRot = opts.earthRot !== false;
@@ -422,6 +424,8 @@ export class Flight {
       else this.toast(`STAGE ${v.cur} SEP — stage ${v.cur + 1} ignition`, '#fff');
       return;
     }
+    if (!this.reusable) { const d = P.makeBooster(v); d.stageIndex = 0; this.shiftCom(() => { v.cur = 1; }); this.flags.stagedFuel = d.stages[0].fuel; this.flags.stagedAlt = bh;
+      this.call('drop', d); this.toast('STAGE SEP — expendable booster falls away · stage 2 ignition', '#fff'); return; } // f5.3: no landing, no booster view
     const b = P.makeBooster(v); b.ut = 0; b.manual = false; b.maxH = bh; b.stagedAlt = bh; this.booster = b;
     this.shiftCom(() => { v.cur = 1; }); this.flags.stagedFuel = b.stages[0].fuel; this.flags.stagedAlt = bh;
     this.call('stage', b);
