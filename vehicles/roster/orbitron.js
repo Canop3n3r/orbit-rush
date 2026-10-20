@@ -2,13 +2,13 @@
 // Stage masses, thrust, Isp, burn: GCAT (J. McDowell, planet4589.org, CC BY; see CREDITS.md) via rocketdb. ESTIMATE fields in est.
 export const ENGINES_ORBITRON = {
   'ob-e1': { tSl: 522.7, tVac: 594.0, ispSl: 259.6, ispVac: 295.0, src: 'spec:engines#ob-e1', est: ['tSl', 'ispSl'] },
-  'ob-e2': { tSl: 0, tVac: 154.7, ispSl: 0, ispVac: 289.0, src: 'spec:engines#ob-e2' },
+  'ob-e2': { tSl: 0, tVac: 160.1, ispSl: 0, ispVac: 289.0, src: 'spec:engines#ob-e2' },
   'ob-e3': { tSl: 0, tVac: 36.0, ispSl: 0, ispVac: 289.6, src: 'spec:engines#ob-e3' },
   'ob-e4': { tSl: 1922.0, tVac: 2090.2, ispSl: 311.9, ispVac: 339.2, src: 'spec:engines#ob-e4' },
   'ob-e5': { tSl: 0, tVac: 474.0, ispSl: 0, ispVac: 311.6, src: 'spec:engines#ob-e5', est: ['ispVac (rocketdb isp_estimated) ESTIMATE'], ispEstimated: true },
   'ob-e6': { tSl: 785.0, tVac: 892.0, ispSl: 233.4, ispVac: 265.2, src: 'spec:engines#ob-e6', est: ['ispVac (rocketdb isp_estimated) ESTIMATE', 'tSl', 'ispSl'], ispEstimated: true },
   'ob-e7': { tSl: 0, tVac: 267.0, ispSl: 0, ispVac: 287.5, src: 'spec:engines#ob-e7' },
-  'ob-e8': { tSl: 0, tVac: 154.7, ispSl: 0, ispVac: 289.0, src: 'spec:engines#ob-e8' },
+  'ob-e8': { tSl: 0, tVac: 160.1, ispSl: 0, ispVac: 289.0, src: 'spec:engines#ob-e8' },
   'ob-e9': { tSl: 0, tVac: 36.0, ispSl: 0, ispVac: 289.6, src: 'spec:engines#ob-e9' },
   'ob-e10': { tSl: 1411.5, tVac: 1604.0, ispSl: 246.4, ispVac: 280.0, src: 'spec:engines#ob-e10', est: ['tSl', 'ispSl'] },
   'ob-e11': { tSl: 0, tVac: 118.0, ispSl: 0, ispVac: 292.3, src: 'spec:engines#ob-e11' },
@@ -24,13 +24,13 @@ export const ENGINES_ORBITRON = {
   'ob-e21': { tSl: 0, tVac: 68.7, ispSl: 0, ispVac: 292.1, src: 'spec:engines#ob-e21' },
 };
 export const ROSTER_ORBITRON = [
-  { id: 'pegacorn', name: "Pegacorn", company: 'orbitron', src: 'spec:pegacorn', masses: "spec:pegacorn#masses (user's guide 2.1: release at 11,900 m, Mach 0.82 level, stage 1 ignition 5 s after release; Mach 0.82 = 242 m/s and density ratio 0.258 at 11.9 km from the 1976 standard atmosphere)", airLaunch: { alt: 11900, speed: 242, rhoRatio: 0.258 }, area: 1.3, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'pegacorn', name: "Pegacorn", company: 'orbitron', src: 'spec:pegacorn', masses: "spec:pegacorn#masses (user's guide 2.1: release at 11,900 m, Mach 0.82 level, stage 1 ignition 5 s after release; Mach 0.82 = 242 m/s and density ratio 0.258 at 11.9 km from the 1976 standard atmosphere)", airLaunch: { alt: 11900, speed: 242, rhoRatio: 0.258 }, area: 1.3, fairing: 127, est: ['area'],
     stages: [
       { engines: {'ob-e1': 1}, dry: 2000, prop: 15000, burn: 73.4, group: 0, igniteAt: 5, recovery: 'expended', src: 'GCAT' },
-      { engines: {'ob-e2': 1}, dry: 373, prop: 3958, burn: 72.5, group: 1, recovery: 'expended', src: 'GCAT' },
+      { engines: {'ob-e2': 1}, dry: 395, prop: 3919, burn: 70.1, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e3': 1}, dry: 126, prop: 774, burn: 69.6, group: 2, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 221, orbit: { hp: 741, ha: 741, inc: 90.0 }, src: "spec:pegacorn#ref (user's guide fig. 3-1: 221 kg to 741 km circular polar from the west-coast range; air-launched)", est: [] , knownGap: "model +60 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 221, orbit: { hp: 741, ha: 741, inc: 90.0 }, src: "spec:pegacorn#ref (user's guide fig. 3-1: 221 kg to 741 km circular polar from the west-coast range; air-launched)", est: [] , knownGap: "model +52 %: residuals/reserves unsourced; no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'antarion', name: "Antarion", company: 'orbitron', src: 'spec:antarion', area: 11.9, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'ob-e4': 2}, dry: 18715, prop: 241985, burn: 215.0, group: 0, recovery: 'expended', src: 'GCAT' },
@@ -41,10 +41,10 @@ export const ROSTER_ORBITRON = [
     stages: [
       { engines: {'ob-e6': 1}, dry: 2320, prop: 20580, burn: 60.0, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e7': 1}, dry: 800, prop: 6500, burn: 65.5, group: 1, recovery: 'expended', src: 'GCAT' },
-      { engines: {'ob-e8': 1}, dry: 373, prop: 3958, burn: 72.5, group: 2, recovery: 'expended', src: 'GCAT' },
+      { engines: {'ob-e8': 1}, dry: 395, prop: 3919, burn: 70.1, group: 2, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e9': 1}, dry: 126, prop: 774, burn: 69.6, group: 3, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 580, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: "spec:minotaurus-1#ref (vendor data sheet: 580 kg to 185 km, 28.5 deg; payload includes adapter and separation system)", est: [] , knownGap: "model +35 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 580, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: "spec:minotaurus-1#ref (vendor data sheet: 580 kg to 185 km, 28.5 deg; payload includes adapter and separation system)", est: [] , knownGap: "model +32 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'taurox', name: "Taurox", company: 'orbitron', src: 'spec:taurox', area: 4.3, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'ob-e10': 1}, dry: 4450, prop: 48650, burn: 83.4, group: 0, recovery: 'expended', src: 'GCAT' },
