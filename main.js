@@ -1,31 +1,31 @@
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f2';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f2';
-import * as C from './physics/patched.js?v=f2';
-import { createSolarMap } from './solarmap.js?v=f2';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f2';
-import { FX } from './fx.js?v=f2';
-import { createAcademy } from './academy-ui.js?v=f2';
-import { createMobile, isTouch } from './mobile.js?v=f2';
-import { localize } from './wording.js?v=f2';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f2';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f2';
+import * as P from './physics.js?v=f3';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f3';
+import * as C from './physics/patched.js?v=f3';
+import { createSolarMap } from './solarmap.js?v=f3';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f3';
+import { FX } from './fx.js?v=f3';
+import { createAcademy } from './academy-ui.js?v=f3';
+import { createMobile, isTouch } from './mobile.js?v=f3';
+import { localize } from './wording.js?v=f3';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f3';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f3';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f2';
-import * as GX from './gfx/gfx.js?v=f2';
-import { Director, MISSIONS } from './fun/director.js?v=f2';
-import * as PR from './fun/progress.js?v=f2';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f2';
-import { createAudio } from './fun/audio.js?v=f2';
-import { createCompact } from './fun/compact.js?v=f2';
-import { createHome } from './fun/home.js?v=f2';
-import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f2';
-import { createFunUI } from './fun/ui.js?v=f2';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f3';
+import * as GX from './gfx/gfx.js?v=f3';
+import { Director, MISSIONS } from './fun/director.js?v=f3';
+import * as PR from './fun/progress.js?v=f3';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f3';
+import { createAudio } from './fun/audio.js?v=f3';
+import { createCompact } from './fun/compact.js?v=f3';
+import { createHome } from './fun/home.js?v=f3';
+import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f3';
+import { createFunUI } from './fun/ui.js?v=f3';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -33,7 +33,7 @@ import { createFunUI } from './fun/ui.js?v=f2';
 const { R, ATM, V } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-export const BUILD = '2026-10-19-f2';
+export const BUILD = '2026-10-19-f3';
 const DEG = 180 / Math.PI;
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
@@ -626,7 +626,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f2', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f3', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };

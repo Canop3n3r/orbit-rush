@@ -1,6 +1,6 @@
 // Hangar verdict worker: flies the design on AUTO headlessly (assessDesign) and plans the booster landing
 // (planBuild) off the main thread, so editing the rocket never stalls the 3D view. Same DOM-free rules as the game.
-import { assessDesign, planBuild } from './flight.js?v=f2';
+import { assessDesign, planBuild } from './flight.js?v=f3';
 self.onmessage = e => {
   const { id, design, earthRot } = e.data, t0 = Date.now();
   try {

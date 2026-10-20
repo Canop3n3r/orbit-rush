@@ -1,9 +1,9 @@
 // f2h: every showroom rocket flies its role with AUTO (or its one-tap mission). Run: node tests/showroom.mjs
-import * as P from '../physics.js?v=f2';
-import { Flight, simulateAuto } from '../flight.js?v=f2';
-import { validate, aeroBalance, designStats } from '../parts.js?v=f2';
-import { Director } from '../fun/director.js?v=f2';
-import { SHOWROOM, bars } from '../fun/showroom.js?v=f2';
+import * as P from '../physics.js?v=f3';
+import { Flight, simulateAuto } from '../flight.js?v=f3';
+import { validate, aeroBalance, designStats } from '../parts.js?v=f3';
+import { Director } from '../fun/director.js?v=f3';
+import { SHOWROOM, bars } from '../fun/showroom.js?v=f3';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
 const T0 = P.tFromDate(Date.UTC(2026, 9, 19, 15)), km = x => (x / 1000).toFixed(0) + ' km';
 ok(SHOWROOM.length >= 8 && SHOWROOM.length <= 12, `${SHOWROOM.length} prebuilt rockets`);
