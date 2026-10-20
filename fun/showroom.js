@@ -1,7 +1,7 @@
 // f2h: the home-screen rocket showroom. Nine original prebuilt rockets, each with a role it really flies with AUTO
 // (checked in tests/showroom.mjs): reach space, orbit, land the booster, Moon, Mars, Venus, orbit-and-home, hop.
 // No DOM here: the card bars are derived from the same stats the hangar uses.
-import { TEMPLATES, designStats, cloneDesign } from '../parts.js?v=f5b.3';
+import { TEMPLATES, designStats, cloneDesign } from '../parts.js?v=f5.1a';
 const P = (id, n) => (n ? { id, n } : { id });
 const T = n => TEMPLATES.find(t => t.name === n);
 // check: what tests/showroom.mjs verifies.  space: AUTO apoapsis > 100 km · orbit: AUTO reaches a stable orbit ·

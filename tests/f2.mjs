@@ -1,6 +1,6 @@
 // f2 leftovers: whole-phrase hints (no "…", ≤ 2 lines). Run: node tests/f2.mjs
 import { readFileSync } from 'fs';
-import { shortHint, HINT_MAX } from '../fun/compact.js?v=f5b.3';
+import { shortHint, HINT_MAX } from '../fun/compact.js?v=f5.1a';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
 const src = readFileSync(new URL('../flight.js', import.meta.url), 'utf8'), i0 = src.indexOf('hint('), body = src.slice(i0, i0 + 30000);
 const lits = [...body.matchAll(/(['`])((?:(?!\1)[^\\\n]){24,})\1/g)].map(m => m[2].replace(/\$\{[^}]*\}/g, '12.3'));

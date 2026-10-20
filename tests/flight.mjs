@@ -1,7 +1,7 @@
 // Headless tests for the real game rules in flight.js (the same code main.js runs in the browser).
 // Run: node tests/flight.mjs   (exits non-zero on failure)
-import * as P from '../physics.js?v=f5b.3';
-import { Flight, PRESETS, simulateAuto, planBuild, assessDesign, WARPS, shipPos } from '../flight.js?v=f5b.3';
+import * as P from '../physics.js?v=f5.1a';
+import { Flight, PRESETS, simulateAuto, planBuild, assessDesign, WARPS, shipPos } from '../flight.js?v=f5.1a';
 const D = (...ids) => ({ name: 'test', parts: ids.map(x => { const [id, n] = x.split('*'); return n ? { id, n: +n } : { id }; }) });
 // short of Δv: crew pod on a small rocket (stands in for the old 3x/15t/3t/crew build)
 const LOWDV = D('crew', 'tank-s', 'mule', 'dec', 'tank-m', 'tank-s', 'thumper*2');
