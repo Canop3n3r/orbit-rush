@@ -30,7 +30,7 @@ export const NOSES = {
   'heron-heavy.sidenose': () => ogive(1.83, 6.2),
   'sparrow-1.fairing': () => fairing(0.75, 0.3, 1.65, 0, 0.66),
   'heron-9-crew.capsule': () => capsule(1.85),
-  'titan.shipnose': () => ogive(4.5, 16, 0, 18, 0.12),
+  'colossus.shipnose': () => ogive(4.5, 16, 0, 18, 0.12),
 };
 // ---- co-nosa (NOSA house, rocketdb tier S) ----
 // Saturnine V command module: blunt 3.9 m heat shield, ~33° half-angle cone to a docking tunnel (tip +Y)
