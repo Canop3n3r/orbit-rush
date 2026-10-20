@@ -21,19 +21,22 @@ function coverageAt(weather, U, d) {
 function densityAt(weather, U, p, oct) { // p relative to centre, km
   const r = length(p).toVar(), d = p.div(r).toVar(), h = saturate(r.sub(U.R).sub(U.base).div(U.top.sub(U.base))).toVar();
   const cov = coverageAt(weather, U, d).toVar();
-  const topH = mix(float(0.4), float(1.0), cov).toVar(); // thick cover towers higher
-  const prof = smoothstep(0.0, 0.08, h).mul(float(1).sub(smoothstep(topH.mul(0.5), topH, h)));
-  if (oct === 0) return cov.mul(prof); // cheap light-sample density (no noise)
-  const n = saturate(fbm(p.mul(0.14).toVar().add(vec3(U.time.mul(0.02), 0, 0)), oct).mul(2.6).add(0.5)); // billow 0..1
-  const fine = oct > 1 ? mx_noise_float(p.mul(0.55)).mul(0.5).add(0.5) : float(0.5);
-  // coverage remap (Schneider 2015): noise survives where it exceeds (1 - coverage); fine noise erodes the edges
+  // cumulus towers: flat sharp base (first 3% of the layer), cells that narrow with height into rounded tops;
+  // thick coverage builds taller towers. Threshold rises with h^2 -> domes; small divisor -> crisp edges.
+  const topH = mix(float(0.35), float(1.0), cov).toVar();
+  const base = smoothstep(0.0, 0.03, h), hn = h.div(topH).toVar();
+  if (oct === 0) return cov.mul(base).mul(float(1).sub(smoothstep(0.7, 1.0, hn))); // cheap light-sample density (no noise)
+  const pw = p.mul(0.16).add(vec3(U.time.mul(0.02), 0, 0)).toVar();
+  const n = saturate(fbm(pw, oct).mul(2.4).add(0.5)); // cell / billow field 0..1
+  const fine = oct > 1 ? mx_noise_float(p.mul(0.9)).mul(0.5).add(0.5) : float(0.5);
   // far away (orbit) the billow noise aliases into speckle: blend to the smooth weather-map shape
   const nearK = smoothstep(260.0, 40.0, length(cameraPosition.sub(U.center)).sub(U.R));
-  const shape = mix(smoothstep(0.4, 0.95, cov), saturate(n.sub(float(1).sub(cov)).div(max(cov, 0.05))), nearK);
+  const thr = float(1).sub(cov).add(hn.mul(hn).mul(0.55)).add(fine.mul(0.22).mul(hn.add(0.15))); // erode tops more than bases
+  const near = saturate(n.sub(thr).div(0.08)); // crisp cauliflower edge
+  const far = smoothstep(0.4, 0.95, cov).mul(float(1).sub(smoothstep(0.75, 1.0, hn)));
+  const shape = mix(far, near, nearK).mul(base).mul(hn.lessThan(1.0).select(1.0, 0.0));
   if (globalThis.W1VIEW) return vec3(cov, n, shape);
-  // cumulus look: flat dark bases, cauliflower tops -> erode more with height, rounded by the profile
-  const ero = fine.mul(mix(float(0.18), float(0.5), h)).mul(nearK);
-  return saturate(shape.mul(prof).sub(ero.mul(float(1).sub(shape.mul(prof)))).mul(2.2));
+  return shape;
 }
 export function volumetricCloudMaterial(weatherTex, tier = 'high', U = cloudUniforms(), o = {}) {
   const T = WORLD_TIERS[tier], N = T.steps, NL = T.light;
@@ -67,8 +70,9 @@ export function volumetricCloudMaterial(weatherTex, tier = 'high', U = cloudUnif
     If(alt.greaterThan(U.top).and(sb.x.greaterThan(0.0)).and(sb.y.greaterThan(sb.x)), () => { t1.assign(min(t1, sb.x)); });
     If(alt.lessThan(U.base).and(sb.y.greaterThan(0.0)), () => { t0.assign(max(t0, sb.y)); }); // below base: start at base
     if (globalThis.W1VIEW) { const sm = raySphere(ro, rd, U.R.add(U.base.add(U.top).mul(0.5))); const pm = ro.add(rd.mul(max(sm.x, sm.y.mul(alt.lessThan(U.top).select(1.0, 0.0))))); return vec4(densityAt(weather, U, pm, 2), 1); }
+    t1.assign(min(t1, t0.add(alt.greaterThan(U.top).select(float(o.maxDist ?? 80.0), float(300.0))))); // finer steps from above; long horizon paths from inside the layer
     const span = max(t1.sub(t0), 0.0).toVar(), dt = span.div(N).toVar();
-    const jitter = mx_noise_float(positionWorld.mul(37.1)).mul(0.5).add(0.5).toVar();
+    const jitter = dot(screenUV.mul(vec2(1.0, 1.7)), vec2(12.9898, 78.233)).sin().mul(43758.5453).fract().toVar(); // per-pixel hash: breaks step banding
     const Tr = float(1).toVar(), acc = vec3(0).toVar();
     const cth = dot(rd, U.sunDir), phase = mix(hg(cth, -0.25), hg(cth, 0.75), 0.6).mul(4 * Math.PI).toVar();
     // unrolled at build time (N is a tier constant): straight-line code is much faster on mobile/software GPUs than a dynamic loop
@@ -118,7 +122,7 @@ export function createClouds({ weatherTex, tier = 'high', R = 6371, U = cloudUni
       const p = obj.position.clone(), q = obj.quaternion.clone(), sc = obj.scale.clone(), par = obj.parent; obj.position.set(0, 0, 0); obj.quaternion.identity(); obj.scale.set(1, 1, 1); if (par) par.remove(obj);
       obj.updateMatrixWorld(true); const lb = new THREE.Box3().setFromObject(obj); obj.position.copy(p); obj.quaternion.copy(q); obj.scale.copy(sc); if (par) par.add(obj); obj.updateMatrixWorld(true);
       const s = lb.getSize(new THREE.Vector3()), k = Math.max(sc.x, sc.y, sc.z), r = Math.min(Math.max(s.x, s.z) * 0.5, (lb.max.y - Math.max(lb.min.y, 0)) * 0.03) * k; // legs/fins/stray LOD extents would over-clip: cap at a slender-stack radius
-      const A = new THREE.Vector3(0, Math.max(lb.min.y, 0), 0).applyMatrix4(obj.matrixWorld), B = new THREE.Vector3(0, lb.max.y, 0).applyMatrix4(obj.matrixWorld);
+      const lc = lb.getCenter(new THREE.Vector3()), A = new THREE.Vector3(lc.x, Math.max(lb.min.y, 0), lc.z).applyMatrix4(obj.matrixWorld), B = new THREE.Vector3(lc.x, lb.max.y, lc.z).applyMatrix4(obj.matrixWorld);
       U.capA.value.set(A.x, A.y, A.z, r); U.capB.value.copy(B); },
     dispose() { geo.dispose(); mat.dispose(); } };
 }
