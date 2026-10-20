@@ -49,7 +49,8 @@ export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 
   let upT = 0, tu0 = null;
   let m = S.reduce((a, s) => a + s.prop + s.dry, 0) + P + fair, r = RE, vr = 0, vh = v0, t = 0, tu = 0, grp = 0, kicked = false, coasted = false, gl = 0, sl = 0, ideal = 0;
   for (;;) {
-    const act = S.filter(s => s.g <= grp && s.left > 1e-6);
+    const act = S.filter(s => s.g <= grp && s.left > 1e-6 && t >= (s.igniteAt || 0)); // igniteAt (s, sourced sequence): air-lit strap-ons
+    if (!act.length && S.some(s => s.g <= grp && s.left > 1e-6)) { const g = MU / (r * r); vr += (vh * vh / r - g) * dt; vh -= vr * vh / r * dt; r += vr * dt; gl += g * dt; t += dt; continue; } // coasting to a timed ignition
     if (!act.length) { if (grp >= maxg) return { ok: false, gl, sl }; grp++; if (fair) { m -= fair * (grp === 1); } continue; }
     let T = 0; for (const s of act) { const isp = s.g === 0 ? s.vac - (s.vac - s.sl) * Math.exp(-t / 45) : s.vac; T += Math.min(s.mdot, s.left / dt) * isp * G0; }
     const a = T / m, g = MU / (r * r), wa = vh - v0 * r / RE, sp = Math.hypot(vr, wa);
@@ -65,7 +66,8 @@ export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 
     gl += g * (vr / vi) * dt; sl += a * (1 - (ur * vr + uh * vh) / vi) * dt; ideal += a * dt;
     r += vr * dt; vr += ar * dt; vh += ah * dt; t += dt;
     if (r < RE - 1) return { ok: false, gl, sl };
-    for (const s of act) { const bb = Math.min(s.mdot * dt, s.left); s.left -= bb; m -= bb; if (s.left <= 1e-6 && !s.dropped) { s.left = 0; m -= s.dry; s.dropped = true; } }
+    for (const s of act) { const bb = Math.min(s.mdot * dt, s.left); s.left -= bb; m -= bb; if (s.left <= 1e-6) s.left = 0; }
+    for (const s of S) if (s.left === 0 && !s.dropped && t >= (s.jettisonAt || 0)) { m -= s.dry; s.dropped = true; } // jettisonAt (s, sourced sequence): spent strap-ons carried until jettison
     if (tu0 !== null) { // orbit check
       const en = (vr * vr + vh * vh) / 2 - MU / r, hh = r * vh; if (en < 0) { const sma = -MU / (2 * en), e = Math.sqrt(Math.max(0, 1 + 2 * en * hh * hh / (MU * MU)));
         const rp = sma * (1 - e), ra = sma * (1 + e);
