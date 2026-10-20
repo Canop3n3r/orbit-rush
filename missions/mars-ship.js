@@ -10,7 +10,7 @@ export default {
   maxFrames: 3e6,
   deploy: [ { kind: 'fairing-sep' }, { kind: 'director', dest: 'mars' } ],
   objectives: [
-    { id: 'mars', kind: 'orbiting', body: 'mars', label: 'Captured into Mars orbit', points: 8000, required: true },
+    { id: 'mars', kind: 'orbiting', body: 'mars', label: 'Captured into Mars orbit', points: 16000, required: true /* capstone: must out-score crew-dock */ },
   ],
   scoring: { base: 'flight' },
 };

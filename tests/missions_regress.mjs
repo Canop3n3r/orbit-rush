@@ -50,7 +50,7 @@ const obj = (e, id) => e.objectives.find(o => o.id === id);
   ok(!obj(lazy, 'band').pass && !obj(lazy, 'dock').pass, `6 default AUTO orbit (${(lazy.flight.ap / 1e3).toFixed(0)} × ${(lazy.flight.pe / 1e3).toFixed(0)} km) misses the band`);
   const over = { ...m, deploy: m.deploy.map(d => d.kind === 'transfer' ? { ...d, apM: 300000, peM: 300000 } : d) }, o = runMission(over);
   ok(!obj(o, 'band').pass && !o.complete && o.objectiveScore === 0, `6 overshoot to ${(o.flight.ap / 1e3).toFixed(0)} km fails (score ${o.score} vs perfect ${runMission(m).score})`); }
-// (7) tower-catch: honest labels, catch stays a bonus
+// (7) tower-catch: f4 terminal guidance makes the 35 m catch required, and AUTO earns it
 { const m = ms['tower-catch'], z = m.objectives.find(o => o.id === 'zone'), c = m.objectives.find(o => o.id === 'catch');
   ok(/^Land near the tower/.test(z.label) && z.required && c.required && c.radiusM === 35 && runMission(m).objectives.find(o => o.id === 'catch').pass, '7 tower catch (35 m) required and passed on AUTO'); }
 // (8) score independent of the frame dt

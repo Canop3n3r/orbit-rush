@@ -19,7 +19,8 @@ for (const id of NEW) {
   Object.assign(S, { phase: 'deploy', done: true, idx: 99, releasedT: 1, dispensed: 999, holdS: 1e9, docked: true, transferred: 99 });
   const e = evaluate(m, F, S); ok(!e.complete && e.objectiveScore === 0, `${id}: pad + forged session earns nothing (${e.score})`);
   // lazy player (never does the post-orbit task)
-  const lz = runMission(m, { player: false, postFrames: 60000 }); ok(!lz.complete && lz.score <= 0.15 * r.score, `${id}: skipping the player task fails (${lz.score} ≤ 15% of ${r.score})`);
+  // f4: AUTO terminal guidance now catches the super-heavy booster itself, so that mission has no lazy-player gap
+  if (id !== 'super-heavy-catch') { const lz = runMission(m, { player: false, postFrames: 60000 }); ok(!lz.complete && lz.score <= 0.15 * r.score, `${id}: skipping the player task fails (${lz.score} ≤ 15% of ${r.score})`); }
   if (validateMission(m).ok && m.vehicle.gameMassT != null) for (const g of [NaN, 0, -1, 1e6]) ok(!validateMission({ ...m, vehicle: { ...m.vehicle, gameMassT: g } }).ok, `${id}: rejects gameMassT ${g}`);
 }
 for (const id of LEO) { const d = dies(ms[id]); ok(!d.complete && d.objectiveScore === 0 && d.score <= 0.15 * best[id], `${id}: dying mid-ascent earns ≤ 15% (${d.score})`); }
@@ -33,7 +34,7 @@ for (const id of ['station-rendezvous', 'gto-comsat']) { const a = runMission(ms
 { const m = ms['gto-comsat'], r = runMission({ ...m, vehicle: { ...m.vehicle, recovery: { ...m.vehicle.recovery, sideReserveFrac: 0.01 } } });
   ok(!obj(r, 'side').pass && !r.complete, 'gto-comsat: side boosters without an RTLS reserve are lost and the mission fails'); }
 { const r = runMission(ms['gto-comsat']); ok(r.recovery.side.mode === 'rtls' && r.recovery.side.distM < 2000 && r.recovery.core.mode === 'droneship' && r.recovery.core.lands, `gto-comsat: side RTLS ${r.recovery.side.distM.toFixed(0)} m from the pad, core on the droneship`); }
-{ const r = runMission(ms['super-heavy-catch'], { player: false, postFrames: 20000 }); ok(!obj(r, 'catch').pass, 'super-heavy: AUTO alone does not get the catch (the player flies it)'); }
+{ const r = runMission(ms['super-heavy-catch'], { player: false, postFrames: 20000 }); ok(obj(r, 'catch').pass, 'super-heavy: f4 AUTO terminal guidance gets the catch on its own'); }
 { const r = runMission(ms['sso-rideshare']); ok(Math.abs(r.flight.incl - 97.6) < 0.3, 'sso: plane 97.6° reached ' + r.flight.incl.toFixed(2)); }
 { const r = runMission(ms['roadster-helio']); ok(r.flight.body === 'sun' && r.F.v && P.orbitOf(r.F.v).ra > 1.4 * 1.496e11, 'roadster: heliocentric, aphelion past 1.4 AU'); }
 // ---- PR #7 re-review LOW items ----
@@ -46,4 +47,9 @@ for (const id of ['station-rendezvous', 'gto-comsat']) { const a = runMission(ms
   ok(lo.complete && hi.complete && lo.score <= hi.score, `LOW4 a lighter payload is not rewarded (1 t ${lo.score} ≤ 3 t ${hi.score})`); }
 { const m = ms.rideshare, r = runMission({ ...m, deploy: m.deploy.map(d => d.kind === 'transfer' ? { ...d, apM: 400000, peM: 380000 } : d) });
   ok(!obj(r, 'dropoff').pass && !obj(r, 'release').pass && !obj(r, 'all').pass, 'LOW5 rideshare: missed drop-off orbit → no release / dispense ✓'); }
+// ---- PR #9 review LOWs ----
+{ const cd = runMission(ms['crew-dock']).score; ok(best['lunar-landing'] > cd && best['mars-ship'] > cd, `capstones out-score crew-dock (lunar ${best['lunar-landing']}, mars ${best['mars-ship']} > ${cd})`); }
+for (const id of ['lunar-landing', 'mars-ship']) { const v = validateMission({ ...ms[id], vehicle: { ...ms[id].vehicle, gameMassT: 2 } }); ok(!v.ok && v.err.some(e => /no 'sat' payload part/.test(e)), `${id}: schema rejects gameMassT without a payload part: ${v.err.join('; ')}`); }
+{ const v = validateMission({ ...ms['crew-dock'], vehicle: { ...ms['crew-dock'].vehicle, template: 'Heavy lift', payloadPart: 'probe', gameMassT: 2 } }); ok(!v.ok && v.err.some(e => /'probe'/.test(e)), 'schema error names the actual payload part'); }
+ok(ms['ship-transfer'].real.tankerLoadT === 100, 'tanker cargo is 100 t');
 console.log(`missions_campaign: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);

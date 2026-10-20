@@ -27,6 +27,7 @@ export const DEPLOY_KINDS = ['transfer', 'fairing-sep', 'stack-release', 'dispen
   'plane-change', 'raise-ap', 'rendezvous', 'dock', 'prop-transfer', 'director', 'interplanetary'];
 export const OBJECTIVE_KINDS = ['orbit', 'pe-min', 'ap-max', 'band', 'fairing-sep', 'stack-release', 'dispensed', 'booster-landed', 'booster-catch', 'propellant', 'hold',
   'incl', 'ap-min', 'gate', 'docked', 'transferred', 'landed-on', 'orbiting', 'helio', 'recovered'];
+import { TEMPLATES } from '../parts.js?v=f2';
 export const MAX_GAME_MASS_T = 20; // game scale: no template can lift more than this
 export function validateMission(m) {
   const err = [];
@@ -37,6 +38,8 @@ export function validateMission(m) {
   else for (const d of m.deploy) if (!DEPLOY_KINDS.includes(d.kind)) err.push('unknown deploy kind ' + d.kind);
   const g = m.vehicle && m.vehicle.gameMassT;
   if (g !== undefined && !(typeof g === 'number' && Number.isFinite(g) && g > 0 && g <= MAX_GAME_MASS_T)) err.push(`vehicle.gameMassT must be a number in (0, ${MAX_GAME_MASS_T}] t`);
+  if (g !== undefined && m.vehicle) { const part = m.vehicle.payloadPart || 'sat', t = m.vehicle.parts ? { parts: m.vehicle.parts } : TEMPLATES.find(x => x.name === m.vehicle.template);
+    if (t && !t.parts.some(p => p.id === part)) err.push(`vehicle.gameMassT set but the vehicle has no '${part}' payload part`); }
   for (const d of m.deploy || []) if (d.kind === 'transfer' && !(d.apM >= d.peM && d.peM > 130000 && d.apM < 2e6)) err.push('transfer needs 130 km < peM <= apM < 2000 km');
   if (!Array.isArray(m.objectives) || !m.objectives.length) err.push('objectives required');
   else for (const o of m.objectives) { if (!OBJECTIVE_KINDS.includes(o.kind)) err.push('unknown objective kind ' + o.kind); if (!o.id) err.push('objective id required'); }

@@ -11,7 +11,7 @@ export default {
   maxFrames: 2e6,
   deploy: [ { kind: 'fairing-sep' }, { kind: 'director', dest: 'moon' } ],
   objectives: [
-    { id: 'land', kind: 'landed-on', body: 'moon', label: 'Land on the Moon', points: 8000, required: true },
+    { id: 'land', kind: 'landed-on', body: 'moon', label: 'Land on the Moon', points: 14000, required: true /* capstone: must out-score crew-dock */ },
   ],
   scoring: { base: 'flight' },
 };
