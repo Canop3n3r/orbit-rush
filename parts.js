@@ -75,7 +75,7 @@ export const TEMPLATES = [
   { name: 'Mars explorer', goal: 'mars', note: 'Entry capsule (ablative shield + parachutes) with a Spark kick stage, Osprey hydrogen transfer stage, 5-Thumper booster. Wait for the window, burn for Mars, aerocapture or enter directly and land under chutes.',
     parts: [P('fairing'), P('chute'), P('probe'), P('ablator'), P('dec'), P('tank-s'), P('spark'), P('dec'), P('tank-h2'), P('tank-h2'), P('tank-h2'), P('osprey', 4), P('dec'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('bison', 5), P('fins')] },
 ];
-export const cloneDesign = d => ({ name: d.name, ...(d.goal ? { goal: d.goal } : {}), ...(d.incl ? { incl: d.incl } : {}), parts: d.parts.map(p => ({ ...p })) });
+export const cloneDesign = d => ({ name: d.name, ...(d.goal ? { goal: d.goal } : {}), ...(d.incl ? { incl: d.incl } : {}), ...(d.model ? { model: d.model } : {}), parts: d.parts.map(p => ({ ...p })) });
 
 // Split a design into stages. Returned in FLIGHT order: [0] fires first (bottom). Each decoupler belongs to
 // the stage below it (it drops with that stage). Each stage: { parts (indices into design.parts, top→bottom), ... }.

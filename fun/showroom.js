@@ -23,6 +23,9 @@ export const SHOWROOM = [
     design: { name: 'Grasshopper', parts: [P('chute'), P('crew'), P('tank-n'), P('mule'), P('fins')] } },
 ];
 for (const r of SHOWROOM) if (r.tpl) { const t = T(r.tpl); r.design = { ...cloneDesign(t), name: r.name }; r.tplName = r.tpl; }
+// f4: hero models (gfx/vehicles, Rocket Art Bot) for the catalog-inspired rockets; physics still flies the part stack
+export const MODEL_OF = { needle: 'sparrow-1', kestrel: 'heron-9', heron: 'heron-9-crew', atlas: 'heron-heavy', titan: 'titan-ss-v3' };
+for (const r of SHOWROOM) if (MODEL_OF[r.id]) { r.model = MODEL_OF[r.id]; r.design.model = r.model; }
 const clamp = x => Math.max(0.06, Math.min(1, x));
 // three card bars, 0..1: power = liftoff thrust (log scale), range = total Δv, difficulty = hand-rated piloting skill
 export function bars(r) {

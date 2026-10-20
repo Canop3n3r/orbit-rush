@@ -33,6 +33,8 @@ import { createCompact } from './fun/compact.js?v=f3';
 import { createHome } from './fun/home.js?v=f3';
 import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f3';
 import { createFunUI } from './fun/ui.js?v=f3';
+import { buildLOD as heroLOD } from './gfx/vehicles/vehicles.js?v=art1';
+import { dispose as heroDispose } from './gfx/vehicles/kit.js?v=art1';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -711,7 +713,7 @@ const hooks = {
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
 function detachStage(i) {
   if (v) WV.seps.push({ r: v.r.slice(), t: performance.now() }); WV.pulse = performance.now();
-  const g = SG[i]; rocketG.remove(g); scene.add(g); g.position.set(0, 0, 0); g.userData.plume.visible = false; for (const e of g.userData.plume.userData.extra || []) e.visible = false; burst(0.5, 0.6, 1500); beep(660);
+  const hc = heroPiece(i); heroStage(i + 1); const g = SG[i]; rocketG.remove(g); scene.add(g); if (hc) g.add(hc); g.position.set(0, 0, 0); g.userData.plume.visible = false; for (const e of g.userData.plume.userData.extra || []) e.visible = false; burst(0.5, 0.6, 1500); beep(660);
   let y = 0; for (let j = i + 1; j < SG.length; j++) { SG[j].position.y = y; y += SG[j].userData.h; }
   if (y < 14 && camDist > 45) camDist = 38; // a small capsule: bring the chase camera in
   const sep = V.sub(v.r, V.scale(P.noseOf(v), v.tel.ycom));
@@ -728,6 +730,31 @@ function showPreview() {
   fx.attach(rocketG); chuteVis = makeChutes(); rocketG.add(chuteVis);
   for (const g of SG) for (const hp of g.userData.hot) hp.part = v.stages[g.userData.stage] && v.stages[g.userData.stage].parts[hp.pi];
   applyPaint(design); if (SG[0]) addDecal(SG[0], design);
+  attachHero();
+}
+// f4 model swap: the hero model stands in for the part meshes (same stack height); part groups keep plumes/staging logic
+let hero = null;
+function attachHero() {
+  if (hero) { heroDispose(hero); hero = null; }
+  if (!design.model || !SG.length) return;
+  try { hero = heroLOD(design.model, { phone: TOUCH }); } catch (e) { console.warn('[Orbit Rush] hero model', e); hero = null; return; }
+  let L = 0; for (const g of SG) L += g.userData.h; const hH = new THREE.Box3().setFromObject(hero.userData.hi || hero).getSize(new THREE.Vector3()).y || L;
+  hero.scale.setScalar(L / hH); rocketG.add(hero);
+  for (const g of SG) g.traverse(o => { if (o.isMesh && !isPlumeChild(o, g)) o.visible = false; });
+}
+function isPlumeChild(o, g) { const pl = g.userData.plume, ex = (pl && pl.userData.extra) || []; for (let p = o; p && p !== g; p = p.parent) if (p === pl || ex.includes(p)) return true; return false; }
+function heroPiece(i) { // a copy of the dropped hero stage rides on the detached part group (debris / booster cam)
+  if (!hero || !hero.userData.hi) return null; const st = hero.userData.hi.userData.stages || {}, heavy = design.model === 'heron-heavy';
+  const keys = (heavy ? [['side0', 'side1', 'struts'], ['booster'], ['upper']] : [['booster'], ['upper']])[i] || []; const grp = new THREE.Group();
+  let y0 = 0; for (let j = 0; j < i; j++) y0 += SG[j].userData.h;
+  for (const k of keys) if (st[k]) { const c = st[k].clone(); grp.add(c); }
+  if (!grp.children.length) return null; grp.scale.copy(hero.scale); grp.position.y = -y0; return grp;
+}
+function heroStage(cur) { // hide the stages already dropped (hi LOD only detaches; lo keeps the whole stack)
+  if (!hero) return; const st = (hero.userData.hi && hero.userData.hi.userData.stages) || {}, heavy = design.model === 'heron-heavy';
+  const gone = heavy ? [['side0', 'side1', 'struts'], ['booster'], ['upper']] : [['booster'], ['upper']];
+  for (let j = 0; j < cur && j < gone.length; j++) for (const k of gone[j]) if (st[k]) st[k].visible = false;
+  if (cur > 0 && hero.levels && hero.levels[1]) hero.levels[1].distance = 1e9; // keep the hi level once stages are gone
 }
 // f1 paint shop + decals: the shared hull/accent materials take the design's paint; a canvas decal (symbol + name)
 // is wrapped on the first stage
@@ -743,7 +770,7 @@ function addDecal(g, d) {
 }
 // Re-stack the visible stage groups from v.cur (used after F.placeInOrbit in the ?scenario=orbit start)
 function syncStages() {
-  for (let j = 0; j < v.cur && j < SG.length; j++) SG[j].visible = false;
+  for (let j = 0; j < v.cur && j < SG.length; j++) SG[j].visible = false; heroStage(v.cur);
   let y = 0; for (let j = v.cur; j < SG.length; j++) { SG[j].position.y = y; y += SG[j].userData.h; }
   const f = SG.length && SG[SG.length - 1].userData.fair; if (f && v.fairing <= 0) f.visible = false;
 }
@@ -1805,7 +1832,7 @@ function testStand() { // static fire: engines lit at full throttle, held down b
 function dropTest() { if (!validate(design).ok) return; launch(); F.placeState({ h: 1500, vUp: 0, vEast: 0, stage: 0, att: 'up', sas: 'stab' }); syncStages(); F.ignited = true; F.flags.liftoff = true; F.met = 20; v.ut = 0; v.throttle = 0; camDist = Math.max(120, stackL() * 3); fun.call('📦', 'DROP TEST — 1.5 km', '#ffd23a', true); }
 $('missionsBtn').onclick = () => fun.openHub(); $('atlasBtn').onclick = () => fun.openAtlas();
 // ---------- f2h: home = rocket showroom; the hangar is its own "Build" mode ----------
-const HOME_KEY = 'orbitrush.homeIdx', SHOW = SHOWROOM.map(r => ({ ...r, bars: showBars(r), missionLabel: missionLabel[r.mission] || '' }));
+const HOME_KEY = 'orbitrush.homeIdx', SHOW = SHOWROOM.map(r => { const o = { ...r, bars: showBars(r), missionLabel: missionLabel[r.mission] || '' }; if (r.model) Object.defineProperty(o, 'name', { get: () => brandVName(r.model), enumerable: true }); return o; }); // f4: hero-model rockets carry the brand name
 var home = createHome({ list: SHOW,
   onSelect: i => { try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(cloneDesign(SHOW[i].design)); },
   onFly: i => { setDesign(cloneDesign(SHOW[i].design)); home.show(false); launch(); },
