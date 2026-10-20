@@ -8,9 +8,9 @@ export const ENGINES_ALBION = {
 export const ROSTER_ALBION = [
   { id: 'dark-dart', name: "Dark Dart", company: 'albion', src: 'spec:dark-dart', area: 3.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
-      { engines: {'ab-e1': 1}, dry: 1070, prop: 13030, burn: 125.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb f708c45)' },
-      { engines: {'ab-e2': 1}, dry: 535, prop: 2965, burn: 113.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb f708c45)' },
-      { engines: {'ab-e3': 1}, dry: 39, prop: 312, burn: 40.0, group: 2, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb f708c45)' },
+      { engines: {'ab-e1': 1}, dry: 1070, prop: 13030, burn: 125.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
+      { engines: {'ab-e2': 1}, dry: 535, prop: 2965, burn: 113.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
+      { engines: {'ab-e3': 1}, dry: 39, prop: 312, burn: 40.0, group: 2, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
     ],
     modes: [{ variant: 'leo', payload: 75, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:dark-dart#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +59 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
 ];
