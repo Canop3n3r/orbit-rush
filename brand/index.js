@@ -25,6 +25,7 @@ export const label = (key, fb) => (PACK.labels || {})[key] ?? fb;
 export function applyBrandDom(doc = document) {
   const t = B('title', 'Orbit Rush');
   doc.title = doc.title.replace(/^Orbit Rush/, t);
+  if (t !== 'Orbit Rush') doc.querySelectorAll('.hLogo').forEach(el => { el.textContent = t; });
   doc.querySelectorAll('[data-brand]').forEach(el => { const v = B(el.dataset.brand, null); if (v) el.textContent = v; });
   doc.querySelectorAll('[data-brand-logo]').forEach(el => { const u = (PACK.logos || {})[el.dataset.brandLogo]; if (u) { el.src = u; el.hidden = false; } else el.hidden = true; });
   doc.documentElement.dataset.brand = PACK.id || 'default';
