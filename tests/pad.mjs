@@ -1,6 +1,6 @@
 // Hotfix pad: surface props (pad, tower, droneship) stand along the local vertical. onSurface() in main.js
 // uses exactly P.surfaceFrame(ef).q, so checking that quaternion checks what is rendered.
-import * as P from '../physics.js?v=f2';
+import * as P from '../physics.js?v=f3';
 const V = P.V; let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log('FAIL', m); } };
 const deg = (a, b) => Math.acos(Math.max(-1, Math.min(1, V.dot(V.norm(a), V.norm(b))))) * 180 / Math.PI;
 const sites = [[1, 0, 0], [0, 1, 0], [-1, 0.2, 0.1], [0.3, -0.8, 0.5], [0.1, 0.1, 0.99], ...Array.from({ length: 20 }, (_, i) => [Math.cos(i * 1.7), Math.sin(i * 1.7), Math.sin(i * 0.9) * 0.8])];

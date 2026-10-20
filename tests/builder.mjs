@@ -1,9 +1,9 @@
 // Part-builder tests: per-stage Δv/TWR math, staging from decouplers, validation, templates on AUTO,
 // and a hand-built three-stage rocket that stages correctly in the real flight rules.
 // Run: node tests/builder.mjs   (exits non-zero on failure)
-import * as P from '../physics.js?v=f2';
-import { PARTS, TEMPLATES, TANK_DRY, analyze, designStats, validate, splitStages, swapStages, insertPart, movePart, removePart, setEngines, buildVehicle, aeroBalance } from '../parts.js?v=f2';
-import { Flight, simulateAuto, assessDesign } from '../flight.js?v=f2';
+import * as P from '../physics.js?v=f3';
+import { PARTS, TEMPLATES, TANK_DRY, analyze, designStats, validate, splitStages, swapStages, insertPart, movePart, removePart, setEngines, buildVehicle, aeroBalance } from '../parts.js?v=f3';
+import { Flight, simulateAuto, assessDesign } from '../flight.js?v=f3';
 let pass = 0, fail = 0;
 const ok = (c, name, extra = '') => { if (c) { pass++; console.log('  ✔', name, extra); } else { fail++; console.log('  ✘', name, extra); } };
 const near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(b));
@@ -96,7 +96,7 @@ console.log('4. Hand-built three-stage rocket stages correctly');
   ok(r.orbit && r.pe > P.ORBIT_PE, '3-stage rocket reaches orbit on AUTO', `Pe ${km(r.pe)}, top stage ${r.s2left.toFixed(2)} t left`);
   ok(r.F.flags.fairing === 1, 'fairing jettisoned');
   // manual staging needs the double press each time
-  const F = new Flight(d); F.stagePress(); F.setAuto(true, true); let presses = 0;
+  const F = new Flight(d); F.stagePress(); F.setAuto(true, true); F.autoStage = false; let presses = 0;
   for (let i = 0; i < 120 * 900 && F.v.cur < 2 && !F.flags.dead; i++) {
     F.realT += 1 / 120; F.step(1 / 120);
     if (F.v.stages[F.v.cur].fuel < 0.5 && F.canStage()) { const a = F.stagePress(); F.realT += 0.2; const b = F.stagePress(); if (a === 'armed' && b === 'stage') presses++; }

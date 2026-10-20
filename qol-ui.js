@@ -1,7 +1,7 @@
 // Milestone Q UI: pause menu, settings (key remap, sensitivity, units, overlays), the Δv map and rich part
 // tooltips. DOM only; the logic it shows lives in settings.js, physics/dvmap.js and parts.js.
-import { ACTIONS, keyOf, bindKey, resetKeys, saveSettings, DEFAULT_KEYS } from './settings.js?v=f2';
-import { dvMap, ORBIT_DV, LEO } from './physics/dvmap.js?v=f2';
+import { ACTIONS, keyOf, bindKey, resetKeys, saveSettings, DEFAULT_KEYS } from './settings.js?v=f3';
+import { dvMap, ORBIT_DV, LEO } from './physics/dvmap.js?v=f3';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 export const keyName = c => !c ? '—' : c.startsWith('Key') ? c.slice(3) : c.startsWith('Digit') ? c.slice(5) : ({ Space: 'Space', ShiftLeft: 'Shift', ControlLeft: 'Ctrl', Comma: ',', Period: '.', Slash: '/', Backquote: '`', Backslash: '\\', Escape: 'Esc', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Minus: '−', Equal: '=' })[c] || c;
 const fdv = x => x === null || x === undefined ? '—' : (x / 1000).toFixed(2);
@@ -39,7 +39,7 @@ export function createQoL(api) {
         <h4>View</h4><label><input type="checkbox" data-set="overlay" ${s.overlay ? 'checked' : ''}> CoM / CoP / CoT markers in flight</label>
         <label>Flight camera <select data-set="camStyle"><option value="free" ${s.camStyle === 'free' ? 'selected' : ''}>Free (horizon up)</option><option value="locked" ${s.camStyle === 'locked' ? 'selected' : ''}>Locked to the craft</option></select></label>
         <label>Map patches <select data-set="conic"><option value="body" ${s.conic === 'body' ? 'selected' : ''}>Relative to their body</option><option value="parent" ${s.conic === 'parent' ? 'selected' : ''}>Moon patches as seen from the planet</option></select></label></section>
-      <section><h4>Keys <button data-q="resetKeys" class="ghost">Reset all</button></h4><div class="keys">${ACTIONS.map(([a, l]) => `<div class="krow"><span>${esc(l)}</span><button data-key="${a}" class="${listening === a ? 'listen' : ''} ${keyOf(s, a) !== DEFAULT_KEYS[a] ? 'changed' : ''}">${listening === a ? 'press a key…' : esc(keyName(keyOf(s, a)))}</button></div>`).join('')}</div>
+      <section class="qKeys"><h4>Keys <button data-q="resetKeys" class="ghost">Reset all</button></h4><div class="keys">${ACTIONS.map(([a, l]) => `<div class="krow"><span>${esc(l)}</span><button data-key="${a}" class="${listening === a ? 'listen' : ''} ${keyOf(s, a) !== DEFAULT_KEYS[a] ? 'changed' : ''}">${listening === a ? 'press a key…' : esc(keyName(keyOf(s, a)))}</button></div>`).join('')}</div>
         <p class="sm">Click an action, then press the new key (Esc cancels). A key used elsewhere is moved here.</p></section></div>`;
   }
   root.addEventListener('click', e => {

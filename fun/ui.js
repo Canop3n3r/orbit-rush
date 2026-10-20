@@ -2,12 +2,12 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import { MISSIONS } from './director.js?v=f2';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f2';
-import { ATLAS, poisOf } from './lore.js?v=f2';
+import { MISSIONS } from './director.js?v=f3';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f3';
+import { ATLAS, poisOf } from './lore.js?v=f3';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f2';
+import { createNavball } from './navball.js?v=f3';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();
@@ -64,7 +64,7 @@ export function createFunUI(ctx) {
   const callout = el('div', { id: 'callout' }); document.body.appendChild(callout);
   $('pEng').onclick = e => { e.currentTarget.blur(); toggleEngineer(); };
   $('pPhoto').onclick = e => { e.currentTarget.blur(); photo.toggle(); };
-  $('pMute').onclick = e => { e.currentTarget.blur(); const m = ctx.audio.toggleMute(); $('pMute').textContent = m ? '🔇' : '🔊'; };
+  $('pMute').textContent = ctx.audio.muted ? '🔇' : '🔊'; $('pMute').onclick = e => { e.currentTarget.blur(); const m = ctx.audio.toggleMute(); $('pMute').textContent = m ? '🔇' : '🔊'; const hs = document.getElementById('hSound'); if (hs) hs.textContent = m ? '🔇 Sound off' : '🔊 Sound on'; };
   $('pTake').onclick = e => { e.currentTarget.blur(); ctx.takeOver(); };
   $('pGlobe').onclick = () => ctx.press('KeyM');
   function applyEngineer() { document.body.classList.toggle('eng', engineer); document.body.classList.toggle('pilotMode', !engineer); $('pEng').classList.toggle('on', engineer); }
@@ -126,7 +126,9 @@ export function createFunUI(ctx) {
         ${seen ? poisOf(id).map(p => `<p class="poi">📍 <b>${p.name}</b> — ${p.lore}</p>`).join('') : ''}</div></div>`; }).join('');
     atlas.classList.remove('hidden');
   }
-  function reveal(id) { // first visit to a world
+  let revealQ = [], revealBusy = false; // f3: one NEW WORLD card at a time (Sun + Moon used to stack on top of each other)
+  function reveal(id) { if (revealBusy) { if (!revealQ.includes(id)) revealQ.push(id); return; } revealBusy = true; setTimeout(() => { revealBusy = false; const n = revealQ.shift(); if (n) reveal(n); }, 5300); revealNow(id); }
+  function revealNow(id) { // first visit to a world
     const a = ATLAS[id] || {}, b = ctx.bodies()[id]; if (!b) return;
     const d = el('div', { className: 'reveal' }, `<small>NEW WORLD</small><b>${b.name}</b><i>${a.tag || ''}</i><p>${a.blurb || ''}</p>`); document.body.appendChild(d);
     ctx.audio.ui('fanfare'); setTimeout(() => d.classList.add('out'), 4200); setTimeout(() => d.remove(), 5200);
@@ -191,7 +193,11 @@ export function createFunUI(ctx) {
     const CAUSE = { breakup: ['🌪️', 'Torn apart by the air'], tumble: ['🔄', 'Tumbled out of control'], overq: ['💨', 'Too fast, too low'], ground: ['🪨', 'Met the ground'], impact: ['🪨', 'Hard landing'], burnup: ['🔥', 'Burned up'], fellback: ['⬇️', 'Fell back'], twr: ['🐢', 'Too heavy to fly'] }[cause] || ['💥', 'Kaboom'];
     return `<div class="boom"><span>${CAUSE[0]}</span><div><b>UNPLANNED DISASSEMBLY</b><small>${CAUSE[1]}</small></div></div>`;
   }
-  function endExtras(out) {
+  function endExtras(out, split) {
+    if (split) { if (!out) return {}; const u = [...out.contracts.map(c => `📜 <b>${c.name}</b>`), ...out.ach.map(a => `${a.icon} <b>${a.name}</b>`)];
+      if (out.daily) u.push(`⭐ Daily ${out.daily.score.toLocaleString()}${out.daily.best ? ' · best!' : ''}`); if (out.streak > 1) u.push(`🔥 ${out.streak}-day streak`);
+      const more = [...out.contracts.filter(c => c.reward).map(c => `📜 ${c.name} — unlocked ${c.reward.replace(':', ' ')}`), ...out.ach.map(a => `${a.icon} Achievement: ${a.name}`)].join('<br>');
+      return { medal: out.medal ? ` <span class="medal ${out.medal}">${out.medal.toUpperCase()}</span>` : '', unlocks: u.join(' · '), more }; }
     if (!out) return ''; const L = [];
     if (out.medal) L.push(`<span class="medal ${out.medal}">${out.medal.toUpperCase()} MEDAL</span>`);
     for (const c of out.contracts) L.push(`<span class="good">📜 Contract complete: <b>${c.name}</b>${c.reward ? ` — unlocked ${c.reward.replace(':', ' ')}` : ''}</span>`);

@@ -1,31 +1,31 @@
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f2';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f2';
-import * as C from './physics/patched.js?v=f2';
-import { createSolarMap } from './solarmap.js?v=f2';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f2';
-import { FX } from './fx.js?v=f2';
-import { createAcademy } from './academy-ui.js?v=f2';
-import { createMobile, isTouch } from './mobile.js?v=f2';
-import { localize } from './wording.js?v=f2';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f2';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f2';
+import * as P from './physics.js?v=f3';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f3';
+import * as C from './physics/patched.js?v=f3';
+import { createSolarMap } from './solarmap.js?v=f3';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f3';
+import { FX } from './fx.js?v=f3';
+import { createAcademy } from './academy-ui.js?v=f3';
+import { createMobile, isTouch } from './mobile.js?v=f3';
+import { localize } from './wording.js?v=f3';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f3';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f3';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f2';
-import * as GX from './gfx/gfx.js?v=f2';
-import { Director, MISSIONS } from './fun/director.js?v=f2';
-import * as PR from './fun/progress.js?v=f2';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f2';
-import { createAudio } from './fun/audio.js?v=f2';
-import { createCompact } from './fun/compact.js?v=f2';
-import { createHome } from './fun/home.js?v=f2';
-import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f2';
-import { createFunUI } from './fun/ui.js?v=f2';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f3';
+import * as GX from './gfx/gfx.js?v=f3';
+import { Director, MISSIONS } from './fun/director.js?v=f3';
+import * as PR from './fun/progress.js?v=f3';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f3';
+import { createAudio } from './fun/audio.js?v=f3';
+import { createCompact } from './fun/compact.js?v=f3';
+import { createHome } from './fun/home.js?v=f3';
+import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f3';
+import { createFunUI } from './fun/ui.js?v=f3';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -33,7 +33,7 @@ import { createFunUI } from './fun/ui.js?v=f2';
 const { R, ATM, V } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-export const BUILD = '2026-10-19-f2';
+export const BUILD = '2026-10-19-f3';
 const DEG = 180 / Math.PI;
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
@@ -432,11 +432,14 @@ const funAudio = createAudio(() => ac ? { ac, master } : null);
 let ac, rumble, rumbleF, master;
 function noiseBuf(sec) { const b = ac.createBuffer(1, ac.sampleRate * sec, ac.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < d.length; i++) { l = (l + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; } return b; }
 function initAudio() {
-  if (ac) { if (ac.state === 'suspended') ac.resume(); return; } ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.connect(master); funAudio.apply();
+  if (ac) { if (ac.state === 'suspended') ac.resume(); return; } ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.connect(ac.destination); funAudio.apply(); // f3: since f1 the master gain was wired to itself, so nothing reached the speakers
   const src = ac.createBufferSource(); src.buffer = noiseBuf(3); src.loop = true;
   rumbleF = ac.createBiquadFilter(); rumbleF.type = 'lowpass'; rumbleF.frequency.value = 300;
   rumble = ac.createGain(); rumble.gain.value = 0; src.connect(rumbleF).connect(rumble).connect(master); src.start();
 }
+// f3: unlock on the first gesture anywhere (iOS needs resume() inside the touch handler) and resume after the tab comes back
+for (const ev of ['pointerdown', 'touchend', 'keydown', 'click']) window.addEventListener(ev, () => { if (!ac || ac.state !== 'running') initAudio(); }, { capture: true, passive: true });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && ac && ac.state !== 'running') ac.resume().catch(() => {}); });
 function burst(vol, dur, freq) {
   if (!ac) return; const s = ac.createBufferSource(); s.buffer = noiseBuf(dur); const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
   const g = ac.createGain(); g.gain.setValueAtTime(vol, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
@@ -623,7 +626,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f2', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f3', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -798,7 +801,7 @@ $('creditsBtn').onclick = () => $('credits').classList.remove('hidden');
 $('creditsClose').onclick = () => $('credits').classList.add('hidden');
 reset(); refreshBuild();
 $('launchBtn').onclick = e => { e.currentTarget.blur(); launch(); };
-$('againBtn').onclick = () => goBuild();
+$('againBtn').onclick = () => { goBuild(); const hb = $('homeBack'); if (hb) hb.click(); }; // f3: the result card's Home goes back to the showroom
 $('relaunchBtn').onclick = () => launch();
 $('contBtn').onclick = () => { $('end').classList.add('hidden'); F.unfinish(); F.endQueued = true; };
 function shareText() { const sc = F.score(); return `🚀 I scored ${sc.toLocaleString()} in Orbit Rush${F.flags.orbit ? ' — reached a full-scale orbit' : ''}${F.flags.boosterBonus ? ' and landed the booster' : ''}${F.flags.recovered ? ' and brought the capsule home' : ''}! Can you beat it?`; }
@@ -1015,6 +1018,7 @@ function updateChunks(dt, O) {
     c.m.position.set(c.r[0] - O[0], c.r[1] - O[1], c.r[2] - O[2]); c.m.rotation.x += c.w[0] * dt; c.m.rotation.y += c.w[1] * dt; c.m.rotation.z += c.w[2] * dt;
     if (c.smk && Math.random() < 0.5) smoke.spawn(c.r, c.v, 1.5, 1, 5, 0x333333, null, 1); }
 }
+let endMin = false;
 function showEnd() {
   if (F.ended) return; const score = F.finish();
   const flags = F.flags, o = F.orbitSnap ? F.orbitSnap.o : P.orbitOf(v), ok = flags.orbit && !flags.dead;
@@ -1032,8 +1036,12 @@ function showEnd() {
   else if (booster && booster.state === 'flying') lines.push('Booster still descending…');
   lines.push(`Rocket: ${design.name || 'Custom'} — ${v.stages.length} stages, ${F.stats.total.toFixed(0)} m/s · payload ×${v.mult}`, `<b style="font-size:20px">SCORE ${score.toLocaleString()}</b>`);
   if (director && director.result) lines.unshift(`<b class="${director.ok ? 'good' : 'warn'}">${MISSIONS[director.id].icon} ${director.result}</b>`);
-  const extra = fun.endExtras(out); if (extra) lines.push(extra);
-  $('endBody').innerHTML = lines.join('<br>');
+  // f3: compact result card: headline result, score and medal up top; the stats wall folds into "Details"
+  const extra = fun.endExtras(out, true), sc = lines.pop(), head = [], rest = [];
+  for (const l of lines) (/class="(bad|warn)"|^<b class=/.test(l) && head.length < 3 ? head : rest).push(l);
+  const stars = { gold: 3, silver: 2, bronze: 1 }[out && out.medal] || (ok || (director && director.ok) ? 1 : 0);
+  $('endBody').innerHTML = `<div class="endStars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<i>${'★'.repeat(3 - stars)}</i></div>` + head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
+    + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}${extra.more ? '<br>' + extra.more : ''}</details>`;
   $('replayBtn').classList.toggle('hidden', !(flags.dead && recBuf.length > 30));
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
   $('shareBtn').textContent = 'Share score';
@@ -1070,21 +1078,25 @@ function emit(veh, group, dt, bottom, dir) {
     dia.children.forEach((m, i) => { m.position.y = -(1.1 + i * 1.35) * w0 * (1 + 0.2 * thr); m.scale.set(1 - i * 0.12, 0.6, 1 - i * 0.12); }); }
   // continuous, thick, billowing exhaust column: puffs laid along the path since last frame (no gaps at 500 m/s),
   // warm and lit near the flame, drifting with the wind, thinning out as the air does
+  // f3: one clean continuous trail straight behind the nozzle: hot and engine-lit at the flame, white condensation in
+  // dense humid low air when transonic or at high thrust, widening and fading with altitude. No random kicks, no spiral.
   const sm = pl.smoke, tr = group.userData.trail || (group.userData.trail = { last: null });
+  const Mach = veh.tel && veh.tel.mach || 0, hum = Math.max(0, 1 - h / 12000), cond = hum * Math.min(1, Math.max(Mach > 0.7 ? (Mach - 0.7) / 0.4 : 0, thr > 0.6 ? (thr - 0.6) * 1.5 : 0) * (Mach < 2.2 ? 1 : 0.3));
   if (sm > 0.03 && h < 45000) {
-    const at = V.addS(bottom, dir, -len * 0.55), last = tr.last && V.len(V.sub(at, tr.last)) < 400 ? tr.last : V.addS(at, veh.v, -dt);
-    const seg = V.sub(at, last), dist = V.len(seg), N = Math.min(TOUCH ? 10 : 18, Math.ceil(dist / Math.max(1.5, (4 + 6 * sm) * 0.45)) + 1), sz = Math.max(4 + 6 * sm, dist / N * 1.8);
-    tr.rate = (tr.rate || 60) * 0.9 + 0.1 * N / Math.max(dt / SIM_SPEED, 1e-3); const lifeK = Math.min(1, smoke.n * 0.85 / (tr.rate * 9)); // stay inside the particle pool
-    const wind = V.add(siteVel(veh), V.scale(P.eastOf(veh.r), 6 * (1 + h / 3000)));
-    for (let i = 0; i < N; i++) { const pos = V.addS(last, seg, (i + Math.random()) / N), ground = h < 60 ? 1 : 0;
-      const vel = ground ? V.add(wind, [rnd(60), rnd(60), rnd(60)]) : V.add(wind, [rnd(6), rnd(6), rnd(6)]);
-      smoke.spawn(pos, vel, Math.max(1.5, (5 + 4 * Math.random()) * (0.6 + 0.4 * sm) * lifeK), sz, (26 + 22 * sm) * (1 + ground), Math.random() < 0.25 ? 0xffd7a6 : 0xeeeeee, 0xb9bfc8, 0.35); }
+    const vAir = V.sub(veh.v, siteVel(veh)), sp0 = V.len(vAir), back = sp0 > 30 ? V.scale(vAir, -1 / sp0) : V.scale(dir, -1);
+    const at = V.addS(bottom, back, len * 0.5), lw = tr.last && V.addS(tr.last, siteVel(veh), dt), last = lw && V.len(V.sub(at, lw)) < 400 ? lw : V.addS(at, vAir, -dt); // the previous point rode the rotating air for dt (else: a sawtooth/corkscrew)
+    const seg = V.sub(at, last), dist = V.len(seg), wid = (3 + 5 * sm) * (1 + h / 9000) * (1 + 0.6 * cond), N = Math.min(TOUCH ? 10 : 18, Math.ceil(dist / Math.max(1.5, wid * 0.45)) + 1), sz = Math.max(wid, dist / N * 1.6);
+    tr.rate = (tr.rate || 60) * 0.9 + 0.1 * N / Math.max(dt / SIM_SPEED, 1e-3); const lifeK = Math.min(1, smoke.n * 0.85 / (tr.rate * 9));
+    const wind = siteVel(veh), ground = h < 60 ? 1 : 0, cA = cond > 0.3 ? 0xf6f8fb : 0xe4e6ea, cB = cond > 0.3 ? 0xdfe6ee : 0xb9bfc8;
+    for (let i = 0; i < N; i++) { const pos = V.addS(V.addS(last, seg, (i + 0.5) / N), wind, -dt); // pre-step: update() moves it by vel·dt this same frame
+      const vel = ground ? V.add(wind, [rnd(60), rnd(60), rnd(60)]) : wind;
+      smoke.spawn(pos, vel, Math.max(1.5, (4 + 3 * cond) * (0.6 + 0.4 * sm) * lifeK * (1 - Math.min(0.6, h / 60000))), sz, wid * (2.6 + 1.4 * cond) * (1 + ground), cond > 0.3 ? cA : 0xffe4c4, cB, 0.35); }
   }
-  tr.last = sm > 0.03 && h < 45000 ? V.addS(bottom, dir, -len * 0.55) : null;
+  tr.last = sm > 0.03 && h < 45000 ? (() => { const va = V.sub(veh.v, siteVel(veh)), s0 = V.len(va); return V.addS(bottom, s0 > 30 ? V.scale(va, -1 / s0) : V.scale(dir, -1), len * 0.5); })() : null;
   const n = Math.min(6, Math.ceil(dt * 120));
   for (let i = 0; i < n; i++) {
     const sp = 60 + Math.random() * 40, spread = 6 + (1 - p) * 30;
-    fire.spawn(V.addS(bottom, dir, -2), jit(V.addS(veh.v, dir, -sp), spread), 0.25 + Math.random() * 0.25, 2.5, 6 + (1 - p) * 10, 0xffd9a0, 0x200800, 2);
+    const fv = jit(V.addS(veh.v, dir, -sp), spread); fire.spawn(V.addS(V.addS(bottom, dir, -2), fv, -dt * (i + 1) / n), fv, 0.25 + Math.random() * 0.25, 2.5, 6 + (1 - p) * 10, 0xffd9a0, 0x200800, 2);
     if (false) {
       const gk = h < 60 ? 1 : 0, up = V.norm(veh.r), wind = siteVel(veh);
       const base = V.add(wind, V.scale(V.sub(veh.v, wind), 0.15));
@@ -1208,7 +1220,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
   const cst = v.chute && v.chute.state; $('chuteBtn').classList.toggle('hidden', !F.hasChute() || !F.ignited || cst === 'main' || cst === 'failed' || F.flags.recovered);
   $('chuteBtn').textContent = cst === 'drogue' ? 'MAIN CHUTES (P)' : 'DROGUES (P)';
   $('sasBtn').textContent = 'SAS ' + P.SAS_LABEL[v.sas]; $('rcsBtn').textContent = 'RCS ' + (v.rcsOn ? 'ON' : 'OFF');
-  const hint = F.hint();
+  const hint = (h => director && director.active && /AUTO|stage/i.test(h) ? "" : h)(F.hint()); // f3: no "tap AUTO / stage" coaching while the director flies
   const hintL = localize(hint, TOUCH); $('hint').textContent = hintL; $('hint').style.display = hint ? '' : 'none';
   $('ignite').classList.toggle('hidden', F.ignited || state !== 'flight');
 }
@@ -1251,11 +1263,6 @@ function updateFX(rdt, pdt, base, nose, isMap) {
       if (Math.random() < 0.6 + 0.4 * fs.ablate) fire.spawn(p0, vel, 0.5 + Math.random() * 1.2, 0.6 + R0 * 0.25, 0.2, Math.random() < 0.5 ? 0xffe0a0 : c0, 0x601800, 2.5 + Math.random() * 2);
       if (fs.ablate > 0.1 && Math.random() < 0.35 * fs.ablate) smoke.spawn(p0, V.add(jit(v.v, 20), V.scale(dd, 40)), 3 + Math.random() * 3, R0 * 0.6, R0 * 3, 0x3a3028, null, 1.5);
     }
-  }
-  // condensation puffs shed from the vapor collar at Max-Q
-  if (fs && pdt > 0 && fs.vapor > 0.25 && Math.random() < fs.vapor * 0.5) {
-    const pp = V.addS(base, nose, shoulderY - g.d), dd = V.norm(V.sub(siteVel(v), v.v));
-    smoke.spawn(jit(pp, g.d * 1.6), V.add(v.v, V.scale(dd, 40)), 0.6, g.d * 0.6, g.d * 1.6, 0xffffff, null, 6);
   }
   // parachutes: canopies trail downstream of the pack along the airflow; they inflate over the opening time
   const c = v.chute, spec = F.chuteSpec(), cs = c && c.state;
@@ -1398,7 +1405,10 @@ renderer.setAnimationLoop(() => {
   else if (state === 'build') { camYaw += rdt * 0.15; camDist = Math.max(70, stackL() * 1.9); camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.36, 0, innerWidth, innerHeight); }
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   const mapOn = state === 'flight' && camMode === 'map';
-  if (smap.state.on !== mapOn) { smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
+  if (smap.state.on !== mapOn) { // f3: any modal steps aside while the map is open (the result card comes back after)
+    if (mapOn && !$('end').classList.contains('hidden')) { $('end').classList.add('hidden'); endMin = true; } else if (!mapOn && endMin) { endMin = false; if (F.ended) $('end').classList.remove('hidden'); }
+    if (mapOn) document.querySelectorAll('.modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
+    smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
   updateSplit(rdt);
   if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.25, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
   if (mapOn) { smap.update(rdt); mapPost.render(); }
@@ -1758,6 +1768,8 @@ var home = createHome({ list: SHOW,
 { const g = document.createElement('div'); g.id = 'hGearM'; g.className = 'hidden'; document.body.appendChild(g);
   const mk = (t, fn) => { const b = document.createElement('button'); b.textContent = t; b.onclick = () => { g.classList.add('hidden'); fn(); }; g.appendChild(b); };
   for (const id of ['gfxSel', 'fxSel']) { const l = $(id) && $(id).closest('label'); if (l) g.appendChild(l); }
+  { const sb = document.createElement('button'); sb.id = 'hSound'; const lab = () => { sb.textContent = funAudio.muted ? '🔇 Sound off' : '🔊 Sound on'; const pm = $('pMute'); if (pm) pm.textContent = funAudio.muted ? '🔇' : '🔊'; };
+    sb.onclick = () => { initAudio(); funAudio.toggleMute(); lab(); }; lab(); g.appendChild(sb); }
   mk('⚙ All settings', () => qol.openSettings()); mk('🎓 Lessons (Academy)', () => academy.openMenu()); mk('Credits', () => $('creditsBtn').click());
   document.addEventListener('pointerdown', e => { if (!g.classList.contains('hidden') && !e.target.closest('#hGearM,#hGear')) g.classList.add('hidden'); }, true);
   const back = document.createElement('button'); back.id = 'homeBack'; back.className = 'acad'; back.textContent = '‹ Home'; back.title = 'Back to the rocket showroom';
@@ -1768,4 +1780,22 @@ addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e
 refreshBuild();
 setInterval(() => { const on = state === 'flight' && !replay; if (on !== funShown) { funShown = on; fun.show(on); } }, 200);
 setMarkers(MARK.on);
-window.__game = { home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };
+// f3 plume audit: every visible plume group sits on an engine of a live stage; shock/vapor size; smoke trail lateral spread
+function plumeAudit() {
+  const out = { plumes: [], engines: 0, bad: [] }, wp = new THREE.Vector3(), we = new THREE.Vector3(), eng = [];
+  rocketG.updateMatrixWorld(true); scene.updateMatrixWorld(true);
+  for (let j = v.cur; j < SG.length; j++) SG[j].traverse(o => { if (o.isMesh && o.material === M.engine) { o.getWorldPosition(we); eng.push(we.clone()); } });
+  const live = new Set(SG.slice(v.cur));
+  scene.traverse(o => { const u = o.userData; if (!u || !u.glow || !u.core || !o.visible) return; let vis = true; for (let p = o; p; p = p.parent) if (!p.visible) vis = false; if (!vis) return;
+    o.getWorldPosition(wp); let dm = 1e9; for (const e of eng) dm = Math.min(dm, Math.hypot(wp.x - e.x, wp.z - e.z, 0) + 0 * e.y); const lat = Math.min(...eng.map(e => { const d = wp.clone().sub(e); const ax = new THREE.Vector3(0, 1, 0).applyQuaternion(rocketG.quaternion); return d.sub(ax.multiplyScalar(d.dot(ax))).length(); }));
+    let g = o; while (g.parent && !live.has(g) && g !== scene) g = g.parent; const own = live.has(g) || (booster && booster.mesh && (() => { let x = o; while (x) { if (x === booster.mesh) return true; x = x.parent; } return false; })());
+    out.plumes.push({ lat: +lat.toFixed(2), own }); if (!own || lat > Math.max(1.5, u.w * 2)) out.bad.push({ lat, own }); });
+  out.engines = eng.length;
+  const sh = fx.shock, vp = fx.vapor; out.shock = sh.visible ? +Math.max(sh.scale.x, sh.scale.y).toFixed(1) : 0; out.vapor = vp.visible ? +Math.max(vp.scale.x, vp.scale.y).toFixed(1) : 0;
+  out.flow = fx.flow && fx.flow.mesh.visible; out.L = P.stackGeom(v).L;
+  // smoke trail: lateral distance of live puffs from the line through the base along the velocity (a corkscrew = big spread)
+  const nose = P.noseOf(v), vh = V.norm(V.sub(v.v, siteVel(v))), base = V.sub(v.r, V.scale(nose, v.tel.ycom)); let n = 0, s2 = 0, mx = 0;
+  for (const p of smoke.d) { if (p.life <= 0) continue; const d = [p.x - base[0], p.y - base[1], p.z - base[2]], along = V.dot(d, vh); if (along > 60 || along < -400) continue; const lat = V.len(V.addS(d, vh, -along)); if (p.max - p.life > 2.5) continue; n++; s2 += lat * lat; mx = Math.max(mx, lat); }
+  out.smoke = { samp: smoke.d.filter(p => { if (p.life <= 0 || p.max - p.life > 2.5) return false; const al = V.dot([p.x - base[0], p.y - base[1], p.z - base[2]], vh); return al < 60 && al > -400; }).slice(0, 10).map(p => { const d = [p.x - base[0], p.y - base[1], p.z - base[2]], al = V.dot(d, vh); return [+(p.max - p.life).toFixed(1), Math.round(al), Math.round(V.len(V.addS(d, vh, -al)))]; }), n, rms: n ? +Math.sqrt(s2 / n).toFixed(1) : 0, max: +mx.toFixed(1) }; return out;
+}
+window.__game = { audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };
