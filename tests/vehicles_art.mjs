@@ -6,6 +6,10 @@ const dir = new URL('../gfx/vehicles/', import.meta.url), BAN = /spacex|falcon|m
 for (const f of readdirSync(dir)) { const s = readFileSync(new URL(f, dir), 'utf8'); s.split('\n').forEach((l, i) => ok(!BAN.test(l.replace(/function \w+|\w+\(|\b(falcon9|falcon1|falconHeavy|starship|superHeavy)\b/g, '')) || /^\s*\/\//.test(l) === false && false, `${f}:${i + 1} brand word: ${l.trim().slice(0, 80)}`)); }
 const v = readFileSync(new URL('vehicles.js', dir), 'utf8');
 for (const id of ['sparrow-1', 'heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'colossus-v3', 'colossus-v4', 'catch-tower']) ok(v.includes(`'${id}':`), 'model id ' + id);
+// real-name guard: patterns live OUTSIDE the public repo (REALNAMES env or the studio's private list); skipped when absent
+const realHit = (() => { const f = process.env.REALNAMES || '/workspace/wk/realnames.txt'; let ci = [], cs = [];
+  try { let sec = ''; for (const l of readFileSync(f, 'utf8').split('\n')) { if (/^# ci$/.test(l)) { sec = 'ci'; continue; } if (/^# cs/.test(l)) { sec = 'cs'; continue; } if (l.startsWith('#') || !l.trim()) continue; (sec === 'ci' ? ci : cs).push(new RegExp(l, sec === 'ci' ? 'i' : '')); } } catch { return () => false; }
+  return t => ci.some(r => r.test(t)) || cs.some(r => r.test(t)); })();
 { const c = readFileSync(new URL('co_nosa.js', dir), 'utf8'); for (const id of ['saturnine-v', 'space-truck']) ok(c.includes(`'${id}':`), 'co-nosa model id ' + id); ok(!/\b(nasa|saturn|apollo|boeing|rocketdyne|shuttle|rockwell|endeavour|discovery|atlantis|columbia|challenger)\b/i.test(c.replace(/saturnine/gi, '')), 'co_nosa.js: no real agency/vehicle names'); }
 const d = readFileSync(new URL('decals.js', dir), 'utf8'); ok(/setBrandPack/.test(d) && /function generic/.test(d), 'decal slots with generic default');
 // public-name audit: rocketdb/tools/namecheck.py (PRIVATE, never in this repo) checks every model id, display/src string and stage-group
@@ -22,6 +26,7 @@ for f,v in J.items():
 print(json.dumps(out))`;
     const r = spawnSync('python3', ['-c', py, db + '/tools'], { input: JSON.stringify(job), encoding: 'utf8' });
     if (r.status !== 0) ok(false, 'namecheck run: ' + (r.stderr || '').slice(-200)); else for (const [f, pr] of Object.entries(JSON.parse(r.stdout))) ok(pr.length === 0, `${f}: public names clean ${pr.join('; ')}`); } }
+{ const c = readFileSync(new URL('co_irg.js', dir), 'utf8'); for (const id of ['new-shepherdish','featherwing-1']) ok(c.includes(`'${id}':`), 'co_irg id ' + id); ok(!realHit(c), 'co_irg.js: no real names'); }
 console.log(`vehicles_art: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
 // noses/fairings: every profile's narrowest point is its highest point (tips point +Y, away from the engines)
 const PR = await import('../gfx/vehicles/profiles.js');
