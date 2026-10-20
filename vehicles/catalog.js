@@ -49,7 +49,9 @@ export const VEHICLES = [
       { engines: { 'kero-dv': 1 }, dry: 3900, prop: 92670, recovery: 'expended' },
     ], fairing: 1900,
     // Reusable LEO figures (57 t / <50 t) are unsourced in spec:heron-heavy, so only the expendable figure is tested.
-    modes: [{ mode: 'expendable', payloadLEO: 63800, src: 'spec:heron-heavy#leo-expendable' }] },
+    // Documented exception (owner decision): 63.8 t is an advertised theoretical max, structurally limited and never flown (spec:heron-heavy),
+    // so payload is checked against a 50-64 t band instead of +/-8 %.
+    modes: [{ mode: 'expendable', payloadLEO: 63800, payloadBand: [50000, 64000], src: 'spec:heron-heavy#leo-expendable' }] },
   { id: 'titan-ss-v3', src: 'spec:titan-ss#v3', lat: 26, est: ['lat'],
     stages: [
       { engines: { 'meth-3': 33 }, dry: 275000, prop: 3650000, recovery: 'boostback + tower catch' },

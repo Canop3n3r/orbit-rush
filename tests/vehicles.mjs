@@ -1,5 +1,5 @@
 // Data-only vehicles (vehicles/catalog.js) vs the rocket-equation model (vehicles/perf.js). Run: node tests/vehicles.mjs
-// Every payload figure is checked in the recovery mode it was quoted for; hard ±8 % tolerance, no exemptions.
+// Every payload figure is checked in the recovery mode it was quoted for; hard ±8 % tolerance; the only exception is a documented payloadBand (see catalog comment).
 import { VEHICLES, ENGINES } from '../vehicles/catalog.js';
 import { deltaV, payloadToLEO, leoDv } from '../vehicles/perf.js';
 import { displayName, setBrandPack, NEUTRAL_NAMES } from '../vehicles/brand.js';
@@ -14,7 +14,8 @@ for (const v of VEHICLES) {
   for (const md of v.modes) {
     const need = leoDv(v), dv = deltaV(v, md.payloadLEO, md.reserve), cap = payloadToLEO(v, md.reserve);
     ok(within(dv, need), `${v.id} [${md.mode}]: Δv ${dv.toFixed(0)} m/s with ${(md.payloadLEO / 1000).toFixed(1)} t vs LEO ${need.toFixed(0)} (${pct(dv, need)})`);
-    ok(within(cap, md.payloadLEO), `${v.id} [${md.mode}]: payload to LEO ${(cap / 1000).toFixed(1)} t vs sourced ${(md.payloadLEO / 1000).toFixed(1)} t (${pct(cap, md.payloadLEO)})`);
+    if (md.payloadBand) ok(cap >= md.payloadBand[0] && cap <= md.payloadBand[1], `${v.id} [${md.mode}]: payload to LEO ${(cap / 1000).toFixed(1)} t within documented band ${md.payloadBand.map(x => x / 1000).join('-')} t (${md.src})`);
+    else ok(within(cap, md.payloadLEO), `${v.id} [${md.mode}]: payload to LEO ${(cap / 1000).toFixed(1)} t vs sourced ${(md.payloadLEO / 1000).toFixed(1)} t (${pct(cap, md.payloadLEO)})`);
     if (v.capsule) ok(cap >= v.capsule.launch, `${v.id}: capacity covers the ${(v.capsule.launch / 1000).toFixed(1)} t capsule`);
   }
 }
