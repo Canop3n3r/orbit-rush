@@ -11,6 +11,8 @@ const BUD = { // [maxTris, maxMeshes] per id/detail
   for (const x of r.rows) { const B = BUD[x.id]?.[x.detail]; console.log(`${x.id.padEnd(22)} ${x.detail.padEnd(3)} legs ${String(x.legs).padEnd(1)} tris ${String(x.tris).padStart(6)} meshes ${x.meshes}`); if (B) { ok(x.tris <= B[0], `${x.id} ${x.detail} tris ${x.tris} > ${B[0]}`); ok(x.meshes <= B[1], `${x.id} ${x.detail} meshes ${x.meshes} > ${B[1]}`); } }
   const mid = id => r.rows.find(x => x.id === id && x.detail === 'mid' && x.legs === 0);
   for (const x of r.phone) { console.log(`phone ${x.id.padEnd(16)} near tris ${x.tris} meshes ${x.meshes}`); ok(x.tris === mid(x.id).tris && x.meshes === mid(x.id).meshes, `${x.id}: phone near level is the mid build`); }
+  for (const x of r.packBounds) ok(x.y1 < x.y0 - 1 && x.culled, `${x.id} ${x.detail}: packed legs bbox follows deploy (min y ${x.y0.toFixed(2)} -> ${x.y1.toFixed(2)})`);
+  for (const x of r.armBounds) ok(x.y1 < x.y0 - 0.5 && x.culled, `${x.id} hi: arms bbox follows deploy (min y ${x.y0.toFixed(2)} -> ${x.y1.toFixed(2)}, culled ${x.culled})`);
   const NEED = { 'heron-heavy': ['booster', 'side0', 'side1', 'upper'] };
   for (const x of r.stages) { const names = Object.keys(x.stages); ok(names.length >= 2, `${x.id} ${x.detail}: ≥2 stages (${names})`);
     for (const n of NEED[x.id] || []) ok(names.includes(n), `${x.id} ${x.detail}: stage ${n} present`);
