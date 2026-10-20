@@ -636,3 +636,8 @@ details.bset{display:contents}details.bset[open]>summary{display:none}
   #end .endMain,#end .endShare{margin-top:6px!important;gap:6px!important}
   #end .endShare button,#end .endMain button{min-height:44px;padding:4px 8px}
 }
+/* f4: compact career hub (tier rows of contract chips) */
+.cgrid{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.ctier{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.ctier>b{flex:0 0 100%;font-size:12px;opacity:.75;text-transform:uppercase;letter-spacing:.06em}
+.cgrid .mis.op{min-height:44px;padding:6px 10px;display:flex;flex-direction:column;align-items:flex-start;flex:1 1 140px;max-width:220px}
+.cgrid .mis.op small{font-size:11px;opacity:.75}.cgrid .mis.op.locked{opacity:.45}

@@ -107,13 +107,15 @@ export function createFunUI(ctx) {
     const ms = Object.entries(MISSIONS).map(([id, m]) => `<button class="mis" data-m="${id}"><span>${m.icon}</span><b>${m.name}</b><small>${m.blurb}</small>${s.medals[id] ? `<em class="medal ${s.medals[id]}">${s.medals[id]}</em>` : ''}<i>▶ ONE-TAP FLY</i></button>`).join('');
     const cs = CONTRACTS.map(c => `<li class="${s.contracts[c.id] ? 'done' : c === nx ? 'next' : ''}">${s.contracts[c.id] ? '✔' : c === nx ? '▶' : '•'} <b>${c.name}</b> — ${c.goal}${c.reward ? ` <small>🎁 ${c.reward.split(':')[1]}</small>` : ''}</li>`).join('');
     const ach = ACHIEVEMENTS.map(a => `<span class="ach ${s.ach[a.id] ? 'got' : ''}" title="${a.desc}">${a.icon}<small>${a.name}</small></span>`).join('');
-    const ops = (ctx.ops ? ctx.ops() : []).map(m => `<button class="mis op" data-op="${m.id}"><span>${m.icon || '🛰️'}</span><b>${esc(ctx.opName ? ctx.opName(m) : m.name)}</b><small>${esc(m.blurb || m.summary || '')}</small><i>▶ FLY</i></button>`).join('');
-    $('hubBody').innerHTML = `<h2>🎯 Missions</h2>${ops ? `<h3>🛰️ Operations</h3><div class="mgrid">${ops}</div>` : ''}<p class="sm">One tap: the mission director builds the rocket, flies the whole mission on real physics, and picks the camera. Steer anytime to take over.</p><div class="mgrid">${ms}</div>
+    const K = ctx.career ? ctx.career() : null, OPS = ctx.ops ? ctx.ops() : [];
+    const ops = K ? K.CAREER.map(t => `<div class="ctier"><b>${esc(ctx.vname ? ctx.vname(t.vehicleId) : t.vehicleId)}</b>${t.contracts.map(id => { const m = OPS.find(x => x.id === K.missionOf(id)); if (!m) return ''; const g = K.canFly(K.c, id), c = K.CONTRACTS[id], done = Object.hasOwn(K.c.done, id);
+      return `<button class="mis op${g.ok ? '' : ' locked'}" data-op="${id}" title="${esc(m.blurb || '')}${g.ok ? '' : ' — ' + g.why}"><b>${done ? '✔ ' : ''}${esc(id === 'practice' ? 'Practice' : (ctx.opName ? ctx.opName(m) : m.name))}</b><small>${c.cost ? '💰' + c.cost + ' → ' + c.reward : 'free'}${g.ok ? '' : ' · 🔒'}</small></button>`; }).join('')}</div>`).join('') : '';
+    $('hubBody').innerHTML = `<h2>🎯 Missions</h2>${ops ? `<h3>🛰️ Career <small>💰 ${K.c.money} · ⭐ ${K.c.rep}</small></h3><div class="cgrid">${ops}</div>` : ''}<p class="sm">One tap: the mission director builds the rocket, flies the whole mission on real physics, and picks the camera. Steer anytime to take over.</p><div class="mgrid">${ms}</div>
       <div class="hcols"><div><h3>📜 Contracts</h3><ol class="cl">${cs}</ol></div>
       <div><h3>⭐ Daily challenge <small>${dc.day}</small></h3><p class="daily">${esc(dc.text)}</p><p class="sm">${best != null ? 'Your best today: ' + best.toLocaleString() : 'Not done yet today'} · 🔥 streak ${s.streak.n} day${s.streak.n === 1 ? '' : 's'} (best ${s.streak.best})</p>
       <h3>🏅 Achievements <small>${Object.keys(s.ach).length}/${ACHIEVEMENTS.length}</small></h3><div class="achs">${ach}</div>
       <p class="sm">Flights ${s.stats.flights} · explosions ${s.stats.booms} · best score ${s.stats.best.toLocaleString()} · worlds visited ${s.visited.length}</p></div></div>`;
-    hub.querySelectorAll('.mis').forEach(b => b.onclick = () => { hub.classList.add('hidden'); if (b.dataset.op) ctx.startOp(b.dataset.op); else ctx.startMission(b.dataset.m); });
+    hub.querySelectorAll('.mis').forEach(b => b.onclick = () => { hub.classList.add('hidden'); if (b.dataset.op) { if (b.classList.contains('locked')) return; ctx.startOp(b.dataset.op); } else ctx.startMission(b.dataset.m); });
     hub.classList.remove('hidden');
   }
   // ---------- Planetary Atlas ----------

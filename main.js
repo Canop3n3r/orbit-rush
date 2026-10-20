@@ -4,8 +4,12 @@ import * as P from './physics.js?v=f3';
 import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f3';
 import * as C from './physics/patched.js?v=f3';
 import { loadMissions } from './missions/catalog.js';
-import { missionDesign, applyMission, missionSession, evaluate as evalOp, missionName as opName } from './missions/runner.js';
-import { loadBrand, applyBrandDom, B as brandB } from './brand/index.js?v=f3';
+import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
+import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
+import { newCareer, canFly, applyFlight } from './missions/campaign/state.js';
+import { saveTo, loadFrom } from './missions/campaign/save.js';
+var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName } from './brand/index.js?v=f3';
 import { createSolarMap } from './solarmap.js?v=f3';
 import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f3';
 import { FX } from './fx.js?v=f3';
@@ -689,7 +693,7 @@ const hooks = {
   toast: (m, c) => toast(m, c),
   sound: (k, f) => { if (k === 'ignite') { burst(0.6, 1.2, 500); if (F.alt < 200) ignitionClouds(v); } else if (k === 'beep') beep(f); else if (k === 'orbit') { beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); } },
   stage: b => { b.mesh = detachStage(0); booster = b; stagingDrama(v.r, v.v, P.noseOf(v)); },
-  drop: d => { d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
+  drop: d => { if (opHooks) try { opHooks.drop(d); } catch (e) {} d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
   ship: s => { shipVis = makeShip(s); },
   shipMoved: s => shipVis && onSurface(shipVis, s.ef, 0),
   jettison: () => { const f = SG[SG.length - 1].userData.fair; if (f) { f.visible = false; const p = V.sub(v.r, V.scale(P.noseOf(v), -10)); for (let k = 0; k < 12; k++) smoke.spawn(p, jit(v.v, 15), 1.5, 1, 3, 0xffffff, null, 0.1); } beep(990); },
@@ -718,7 +722,7 @@ function showPreview() {
   if (rocketG) scene.remove(rocketG);
   rocketG = new THREE.Group(); SG = design.parts.length ? makeRocketGroups(design) : [];
   let y = 0; for (const g of SG) { g.position.y = y; y += g.userData.h; rocketG.add(g); } scene.add(rocketG);
-  F = new Flight(validate(design).ok ? design : TEMPLATES[0], hooks, { padZ: PAD_Z, earthRot, incl: launchIncl, epoch: EPOCH }); v = F.v;
+  F = new Flight(validate(design).ok ? design : TEMPLATES[0], hooks, { padZ: PAD_Z, earthRot, incl: launchIncl, epoch: EPOCH, ...(opFlightOpts || {}) }); v = F.v;
   rocketG.add(comMark, copMark, cotMark);
   fx.attach(rocketG); chuteVis = makeChutes(); rocketG.add(chuteVis);
   for (const g of SG) for (const hp of g.userData.hot) hp.part = v.stages[g.userData.stage] && v.stages[g.userData.stage].parts[hp.pi];
@@ -1562,7 +1566,7 @@ fun = createFunUI({
   toast, press, audio: funAudio, canvas: renderer.domElement, bodies: () => P.BODIES, bodyColor: id => BODY_COL[id] || '#888',
   setSas: m => { F.setSAS(v.sas === m && m === 'radial' ? 'antiradial' : v.sas === m && m === 'normal' ? 'antinormal' : m); },
   progress: () => PROG, design: () => design, takeOver: () => { if (director && director.active) director.takeOver(); },
-  startMission: id => startMission(id), startOp: id => startOp(id), ops: () => opsList, opName: m => opName(m), setPhoto: on => { photoOn = on; if (on) { camDist = Math.max(camDist, 60); } },
+  startMission: id => startMission(id), startOp: id => startOp(id), ops: () => opsList, opName: m => opName(m), vname: id => brandVName(id), career: () => { const c = career(); return { c, CAREER, CONTRACTS, canFly, missionOf }; }, setPhoto: on => { photoOn = on; if (on) { camDist = Math.max(camDist, 60); } },
   snap: filter => { snapReq = { filter }; },
   tunnelGeom: mach => { const ab = aeroBalance(design, mach); if (!ab) return null; const vv = buildVehicle(design), g = P.stackGeom(vv); const COL = { engine: '#ff9a3c', tank: '#e8e8e8', pod: '#9cc3ff', payload: '#e0b84a', fins: '#555', decoupler: '#333', fairing: '#f4f4f4', shield: '#7a4a2a', chute: '#ff7a3c', rcs: '#8a9099' };
     return { parts: g.list.map(e => ({ y: e.y, h: e.h, d: e.kind === 'fins' ? (e.d || 2) * 1.8 : e.d, col: COL[e.kind] || '#ccc' })), L: g.L, ycom: ab.ycom, ycp: ab.ycp, stable: ab.stable, margin: ab.margin }; },
@@ -1573,21 +1577,29 @@ const cx = createCompact({ touch: TOUCH, onSpeedTap: () => fun.cycleSpeed(), onM
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
   for (const id of ['hint', 'toasts', 'callout']) { const e = document.getElementById(id); if (e) st.appendChild(e); } }
 // f4: recovery missions (missions/*.js) run through the shared runner session; S.task drives a compact HUD prompt
-let opsList = [], opSess = null, opPlan = null;
 loadMissions().then(l => { opsList = l; }).catch(e => console.warn('[Orbit Rush] missions', e));
 loadBrand().then(() => applyBrandDom()).catch(() => {});
-function startOp(id) {
-  const m = opsList.find(x => x.id === id); if (!m) return;
-  setDesign(missionDesign(m)); launch(); applyMission(m, F); opSess = missionSession(m); opPlan = null;
-  try { const pl = planBuild(F.design || missionDesign(m)); opPlan = pl && pl.minReserve; } catch (e) {}
+// career (PR #9): money / reputation / unlocks, saved in localStorage via the campaign save module
+function career() { const r = loadFrom(localStorage); return r && r.ok && r.career ? r.career : newCareer(); }
+function startOp(contractId) {
+  const mid = missionOf(contractId), m = opsList.find(x => x.id === mid); if (!m) return;
+  const c = career(), g = canFly(c, contractId); if (!g.ok) { fun.call('🔒', g.why, '#ffb35c'); return; }
+  opContract = contractId; opHooks = missionHooks(m, () => F); opFlightOpts = missionFlightOpts(m);
+  setDesign(missionDesign(m)); launch(); opFlightOpts = null; applyMission(m, F); opSess = missionSession(m).attach(F);
   fun.call('🎯', opName(m) + ' — AUTO flies the ascent; follow the prompts on orbit', '#ffe9b0', true);
+}
+function opEnd(why) {
+  const S = opSess; if (!S || S._shown) return; S._shown = 1;
+  const r = evalOp(S.m, F, S), ok = r.objectives.filter(o => o.pass).length;
+  let line = `${opName(S.m)}: ${ok}/${r.objectives.length} objectives · score ${r.score.toLocaleString()}`;
+  try { const c1 = applyFlight(career(), opContract, r); saveTo(localStorage, c1); line += ` · 💰 ${c1.money} · ⭐ ${c1.rep}`; } catch (e) { console.warn('[Orbit Rush] career', e); }
+  fun.call(r.complete ? '🏆' : '⚠️', line, r.complete ? '#7dffa6' : '#ffb35c', true); opSess = null; opHooks = null;
 }
 function opTick() {
   const S = opSess, el = document.getElementById('opTask'); if (!S) { if (el) el.hidden = true; return; }
   S.tick(F);
-  if (el) { const t = S.task; el.hidden = !t; if (t) el.innerHTML = `<b>▶ Burn ${t.burn}/${t.of}</b> ${t.label} <small>${F.nodes.length ? 'press X / ◆ Execute' : ''}</small>`; }
-  if (S.done && !S._shown) { S._shown = 1; const r = evalOp(S.m, F, S), ok = r.objectives.filter(o => o.pass).length;
-    fun.call(r.complete ? '🏆' : '⚠️', `${opName(S.m)}: ${ok}/${r.objectives.length} objectives · score ${r.score.toLocaleString()}`, r.complete ? '#7dffa6' : '#ffb35c', true); opSess = null; }
+  if (el) { const t = S.task; el.hidden = !t; if (t) el.innerHTML = t.kind === 'execute-node' ? `<b>▶ Burn ${t.burn}/${t.of}</b> ${t.label} <small>${F.nodes.length ? 'X / ◆ Execute' : ''}</small>` : `<b>▶</b> ${t.label || t.kind}`; }
+  if (S.done || S.failed || F.flags.dead) opEnd();
 }
 function startMission(id) {
   opSess = null;
