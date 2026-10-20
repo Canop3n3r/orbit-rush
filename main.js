@@ -1,56 +1,57 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.4a';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.4b';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.4a';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.4a';
-import * as C from './physics/patched.js?v=f5.4a';
+import * as P from './physics.js?v=f5.4b';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.4b';
+import * as C from './physics/patched.js?v=f5.4b';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.4a';
-import { createCareerUI } from './fun/career-ui.js?v=f5.4a';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.4a';
-import { createSolarMap } from './solarmap.js?v=f5.4a';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.4a';
-import { FX } from './fx.js?v=f5.4a';
-import { createAcademy } from './academy-ui.js?v=f5.4a';
-import { createMobile, isTouch } from './mobile.js?v=f5.4a';
-import { localize } from './wording.js?v=f5.4a';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.4a';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.4a';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.4b';
+import { createCareerUI } from './fun/career-ui.js?v=f5.4b';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.4b';
+import { createSolarMap } from './solarmap.js?v=f5.4b';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.4b';
+import { FX } from './fx.js?v=f5.4b';
+import { createAcademy } from './academy-ui.js?v=f5.4b';
+import { createMobile, isTouch } from './mobile.js?v=f5.4b';
+import { localize } from './wording.js?v=f5.4b';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.4b';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.4b';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.4a';
-import * as GX from './gfx/gfx.js?v=f5.4a';
-import { Director, MISSIONS } from './fun/director.js?v=f5.4a';
-import * as PR from './fun/progress.js?v=f5.4a';
-import * as WORLD from './fun/world.js?v=f5.4a';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.4a';
-import { createAudio } from './fun/audio.js?v=f5.4a';
-import { createCompact } from './fun/compact.js?v=f5.4a';
-import { createHome } from './fun/home.js?v=f5.4a';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.4a';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.4a';
-import { createFunUI } from './fun/ui.js?v=f5.4a';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.4a';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.4a';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.4a';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.4a';
-import { specFor, specDesign } from './fun/specstack.js?v=f5.4a';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.4a';
-import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.4a';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.4b';
+import * as GX from './gfx/gfx.js?v=f5.4b';
+import { Director, MISSIONS } from './fun/director.js?v=f5.4b';
+import * as PR from './fun/progress.js?v=f5.4b';
+import * as WORLD from './fun/world.js?v=f5.4b';
+import { stageEngines, nozzles, nozzleR, LOOK as PLOOK } from './fun/exhaust.js?v=f5.4b';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.4b';
+import { createAudio } from './fun/audio.js?v=f5.4b';
+import { createCompact } from './fun/compact.js?v=f5.4b';
+import { createHome } from './fun/home.js?v=f5.4b';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.4b';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.4b';
+import { createFunUI } from './fun/ui.js?v=f5.4b';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.4b';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.4b';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.4b';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.4b';
+import { specFor, specDesign } from './fun/specstack.js?v=f5.4b';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.4b';
+import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.4b';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.4a';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.4a';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.4a';
-import { buildSiteLOD, placeSite, disposeSite } from './gfx/sites/kit.js?v=f5.4a';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.4b';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.4b';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.4b';
+import { buildSiteLOD, placeSite, disposeSite } from './gfx/sites/kit.js?v=f5.4b';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -279,7 +280,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.4a').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.4b').then(m => (siteArt.data[id] = m.SITE));
 function syncSiteArt() { const s = sbSite && !opFlightOpts && F && F.sandbox ? sbSite : null, key = s ? [s.body, s.id, s.lat, s.lon].join(':') : '';
   if (key === siteArt.key) return; siteArt.key = key; for (const o of siteArt.obj) disposeSite(o); siteArt.obj = []; siteArt.objMain = null;
   if (padCx) padCx.visible = !(s && s.body === 'earth');
@@ -367,18 +368,26 @@ function bells(g, n, y, h, r) {
 function addFins(g, y, chord, r) {
   for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(1.7, chord, 0.14), M.black); const a = i * Math.PI / 2 + Math.PI / 4; f.position.set(Math.cos(a) * (r + 0.85), y, Math.sin(a) * (r + 0.85)); f.rotation.y = -a; g.add(f); }
 }
-function makePlume(w) { // f1 layered exhaust: outer glow, mid flame, hot core, vacuum bell, shock diamonds, nozzle glow
-  const g = new THREE.Group(), cone = (rw, mat, seg = 24) => { const m = new THREE.Mesh(new THREE.ConeGeometry(rw, 1, seg, 1, true), mat); m.rotation.x = Math.PI; m.position.y = -0.5; g.add(m); return m; };
-  const glow = cone(w, M.plumeGlow), outer = cone(w, M.plume), core = cone(w * 0.5, M.plumeCore, 16);
+// f5.3 exhaust: one material set per propellant (fun/exhaust.js LOOK): kerolox orange + soot, methalox blue-violet,
+// hydrolox near-clear with Mach diamonds, hypergolic pale orange, solid bright with heavy smoke
+const PLUME_MATS = {};
+function plumeMats(prop = 'kerolox') { if (PLUME_MATS[prop]) return PLUME_MATS[prop]; const L = PLOOK[prop] || PLOOK.kerolox, c = m => { const x = m.clone(); x.userData = { ...m.userData, cached: true }; return x; };
+  const o = { plume: c(M.plume), plumeGlow: c(M.plumeGlow), plumeCore: c(M.plumeCore), plumeBell: c(M.plumeBell), plumeSprite: c(M.plumeSprite), diamond: c(M.diamond), look: L, prop };
+  o.plume.color.setHex(L.plume); o.plumeGlow.color.setHex(L.glow); o.plumeCore.color.setHex(L.core); o.plumeBell.color.setHex(L.bell); o.plumeSprite.color.setRGB(...L.sprite); if (prop === 'hydrolox') o.diamond.color.setHex(0xe8f0ff);
+  return (PLUME_MATS[prop] = o); }
+function makePlume(w, prop = 'kerolox', lite = false) { // f1 layered exhaust: outer glow, mid flame, hot core, vacuum bell, shock diamonds, nozzle glow
+  const PM = plumeMats(prop), g = new THREE.Group(), cone = (rw, mat, seg = 24) => { const m = new THREE.Mesh(new THREE.ConeGeometry(rw, 1, seg, 1, true), mat); m.rotation.x = Math.PI; m.position.y = -0.5; g.add(m); return m; };
+  if (lite) { const outer = cone(w, PM.plume, 12), core = cone(w * 0.5, PM.plumeCore, 8), noz = new THREE.Sprite(PM.plumeSprite); noz.position.y = -0.3; g.add(noz); g.userData = { w, outer, core, noz, lite: true, mats: PM }; g.visible = false; return g; }
+  const glow = cone(w, PM.plumeGlow), outer = cone(w, PM.plume), core = cone(w * 0.5, PM.plumeCore, 16);
   // underexpanded bell: a lathe that flares from the nozzle rim into a wide, soft "jellyfish" (scaled by plumeLook().bellW)
   const pts = []; for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push(new THREE.Vector2(w * (0.9 + Math.sin(t * Math.PI * 0.62) * 1.0 + t * 0.15), -t)); }
   const bg = new THREE.LatheGeometry(pts, 32), pa = bg.attributes.position, col = new Float32Array(pa.count * 3);
   for (let i = 0; i < pa.count; i++) { const k = Math.pow(1 + pa.getY(i), 1.6); col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k; } // additive: fades to nothing at the rim
   bg.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const bell = new THREE.Mesh(bg, M.plumeBell); g.add(bell);
-  const dia = new THREE.Group(); for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(w * 0.32, 12, 8), M.diamond); m.scale.y = 0.45; dia.add(m); }
-  const noz = new THREE.Sprite(M.plumeSprite); noz.position.y = -0.3; g.add(noz);
-  g.add(dia); g.userData = { dia, w, glow, outer, core, bell, noz };
+  const bell = new THREE.Mesh(bg, PM.plumeBell); g.add(bell);
+  const dia = new THREE.Group(); for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(w * 0.32, 12, 8), PM.diamond); m.scale.y = 0.45; dia.add(m); }
+  const noz = new THREE.Sprite(PM.plumeSprite); noz.position.y = -0.3; g.add(noz);
+  g.add(dia); g.userData = { dia, w, glow, outer, core, bell, noz, mats: PM, env: 1 };
   g.visible = false; return g;
 }
 // Parachute canopies (drogues, mains), drawn downstream of the canister along the airflow.
@@ -391,8 +400,9 @@ function makeChutes() {
   const lines = new THREE.LineSegments(lg, M.line); lines.frustumCulled = false;
   g.add(dro, main, lines); g.userData = { dro, main, lines }; g.visible = false; return g;
 }
+let rgModel = null;
 function makeRocketGroups(design) {
-  const vv = buildVehicle(design), out = [];
+  const vv = buildVehicle(design), out = []; rgModel = design.model || null;
   vv.stages.forEach((s, si) => {
     if (s.radial) { out.push(makeRadialGroup(s, si)); return; }
     const g = new THREE.Group(); let y = 0, engH = 0, payloadY = null, bellW = 1, nEng = 0, rMax = 1.25; const hot = [];
@@ -421,7 +431,14 @@ function makeRocketGroups(design) {
       cyl(fr, fr, y - y0, M.white, 0, fair); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.25, fr, cone, 32), M.white); c.position.y = y - y0 + cone / 2; fair.add(c);
       fair.position.y = y0; g.add(fair);
     }
-    const plume = makePlume(Math.max(0.8, nEng > 1 ? rMax * 0.95 : bellW * 1.1)); g.add(plume);
+    // f5.3: one plume per engine at its nozzle (engines-1 count/layout/propellant); the centre plume carries the merged glow/bell
+    const ei = stageEngines(design.model, out.filter(x => !x.userData.radial).length, s.parts), nz = ei.n > 1 ? nozzles(ei, rMax) : [];
+    let plume;
+    if (nz.length > 1) { const rn = nozzleR(ei.n, rMax), cen = nz.findIndex(p => Math.hypot(p[0], p[1]) < 0.05 * rMax);
+      plume = makePlume(rn, ei.prop); plume.userData.env = rMax / rn; plume.userData.noCore = cen < 0; g.add(plume);
+      plume.userData.extra = nz.filter((p, i) => i !== cen).map(p => { const e = makePlume(rn, ei.prop, true); e.position.set(p[0], 0, p[1]); g.add(e); return e; });
+    } else { plume = makePlume(Math.max(0.8, nEng > 1 ? rMax * 0.95 : bellW * 1.1), ei.prop); g.add(plume); }
+    plume.userData.prop = ei.prop; plume.userData.nEng = Math.max(1, nz.length);
     let legs = null;
     if (si === 0) {
       legs = new THREE.Group();
@@ -449,8 +466,9 @@ function makeRadialGroup(s, si) {
     const strut = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.3), M.black); strut.position.set(-(rB + 0.2), y * 0.8, 0); c.add(strut);
     const R0 = 1.25 + rB + 0.08; c.position.set(Math.cos(a) * R0, 0, Math.sin(a) * R0); c.rotation.y = -a; g.add(c); cols.push(c);
   }
-  const plume = makePlume(Math.max(0.8, rB * 0.9)); g.add(plume);
-  const extra = cols.slice(1).map(c => { const pl = makePlume(Math.max(0.8, rB * 0.9)); pl.position.copy(c.position); g.add(pl); return pl; });
+  const rp = stageEngines(rgModel, 0, s.parts, true).prop; // f5.3: strap-ons burn their own propellant (solids: bright, heavy smoke)
+  const plume = makePlume(Math.max(0.8, rB * 0.9), rp); g.add(plume); plume.userData.prop = rp;
+  const extra = cols.slice(1).map(c => { const pl = makePlume(Math.max(0.8, rB * 0.9), rp, true); pl.position.copy(c.position); g.add(pl); return pl; });
   plume.position.copy(cols[0].position); plume.userData.extra = extra;
   g.userData = { h: 0, plume, legs: null, fair: null, fairH: 0, hot: [], stage: si, radial: k };
   return g;
@@ -725,7 +743,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.4a', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.4b', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -1295,30 +1313,33 @@ function emit(veh, group, dt, bottom, dir) {
   const h = V.len(veh.r) - R, p = P.pressureRatio(h), thr = veh.throttle;
   // underexpanded jet (fxmap.plumeShape): the plume widens ~sqrt(pe/pa) as the ambient pressure drops
   const ps = plumeShape(p * 101325, thr), pl = plumeLook(p * 101325, thr), ud = plume.userData, w0 = ud.w, fl = 0.92 + 0.16 * Math.random();
-  const len = pl.len * w0 * fl; plume.scale.set(1, 1, 1);
+  const len = pl.len * w0 * fl * Math.sqrt(ud.env || 1); plume.scale.set(1, 1, 1); // f5.3: the engines' jets merge into one column as long as the whole base would make
   const setL = (m, wk, lk = 1) => { m.scale.set(wk, len * lk, wk); m.position.y = -len * lk / 2; };
-  const applyTo = P0 => { const u = P0.userData; setL(u.glow, pl.glowW * 1.15 * (0.95 + 0.1 * Math.random()), 0.85); setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.1 * Math.random());
-    u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW, len * 0.45, pl.bellW); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl); };
+  const PM = ud.mats || plumeMats('kerolox'), LK = PM.look, env = ud.env || 1;
+  const applyTo = P0 => { const u = P0.userData; if (u.lite) { setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.1 * Math.random()); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl); return; }
+    setL(u.glow, pl.glowW * 1.15 * (0.95 + 0.1 * Math.random()) * Math.sqrt(env), 0.85); setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.1 * Math.random());
+    u.outer.visible = u.core.visible = !u.noCore;
+    u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW * env, len * 0.45 * Math.sqrt(env), pl.bellW * env); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * (u.noCore ? 0 : 1)); };
   applyTo(plume); if (ex) for (const e of ex) applyTo(e);
   const hiF = 1 - 0.92 * Math.min(1, Math.max(0, (h - 25000) / 15000)); // f4: above ~40 km the vacuum plume is just a faint glow
-  M.plume.opacity = (0.55 + 0.35 * Math.random()) * pl.bright * (1 - 0.45 * pl.vac) * hiF; M.plumeGlow.opacity = 0.42 * pl.bright * fl * hiF; M.plumeCore.opacity = (0.75 + 0.25 * Math.random()) * (0.35 + 0.65 * hiF);
-  M.plumeBell.opacity = 0.5 * pl.bell * fl * hiF; M.plumeSprite.opacity = 0.9 * pl.bright * (0.4 + 0.6 * hiF);
+  const kk = LK.k; PM.plume.opacity = Math.min(1, (0.55 + 0.35 * Math.random()) * pl.bright * (1 - 0.45 * pl.vac) * hiF * kk); PM.plumeGlow.opacity = Math.min(1, 0.42 * pl.bright * fl * hiF * kk); PM.plumeCore.opacity = Math.min(1, (0.75 + 0.25 * Math.random()) * (0.35 + 0.65 * hiF) * Math.max(0.5, kk));
+  PM.plumeBell.opacity = 0.5 * pl.bell * fl * hiF * Math.max(0.6, kk); PM.plumeSprite.opacity = Math.min(1, 0.9 * pl.bright * (0.4 + 0.6 * hiF) * Math.max(0.6, kk));
   const dia = ud.dia; dia.visible = QUALITY[fx.q].diamonds && ps.diamonds > 0.02;
-  if (dia.visible) { M.diamond.opacity = ps.diamonds * (0.55 + 0.3 * Math.random());
+  if (dia.visible) { PM.diamond.opacity = Math.min(1, ps.diamonds * (0.55 + 0.3 * Math.random()) * LK.dia);
     dia.children.forEach((m, i) => { m.position.y = -(1.1 + i * 1.35) * w0 * (1 + 0.2 * thr); m.scale.set(1 - i * 0.12, 0.6, 1 - i * 0.12); }); }
   // continuous, thick, billowing exhaust column: puffs laid along the path since last frame (no gaps at 500 m/s),
   // warm and lit near the flame, drifting with the wind, thinning out as the air does
   // f3: one clean continuous trail straight behind the nozzle: hot and engine-lit at the flame, white condensation in
   // dense humid low air when transonic or at high thrust, widening and fading with altitude. No random kicks, no spiral.
-  const sm = pl.smoke, tr = group.userData.trail || (group.userData.trail = { last: null });
+  const sm = Math.min(1, pl.smoke * LK.smoke), tr = group.userData.trail || (group.userData.trail = { last: null });
   const Mach = veh.tel && veh.tel.mach || 0, hum = Math.max(0, 1 - h / 12000), cond = hum * Math.min(1, Math.max(Mach > 0.7 ? (Mach - 0.7) / 0.4 : 0, thr > 0.6 ? (thr - 0.6) * 1.5 : 0) * (Mach < 2.2 ? 1 : 0.3));
   const vacW = thinAir(); // f5.4: airless worlds (Moon...): no exhaust smoke/condensation, just the flame
   if (sm > 0.03 && h < 40000 && !vacW) { // f4.1: no smoke/condensation above 40 km
     const vAir = V.sub(veh.v, siteVel(veh)), sp0 = V.len(vAir), back = sp0 > 30 ? V.scale(vAir, -1 / sp0) : V.scale(dir, -1);
     const at = V.addS(bottom, back, len * 0.5), lw = tr.last && V.addS(tr.last, siteVel(veh), dt), last = lw && V.len(V.sub(at, lw)) < 400 ? lw : V.addS(at, vAir, -dt); // the previous point rode the rotating air for dt (else: a sawtooth/corkscrew)
-    const seg = V.sub(at, last), dist = V.len(seg), wid = (3 + 5 * sm) * (1 + h / 9000) * (1 + 0.6 * cond), N = Math.min(TOUCH ? 10 : 18, Math.ceil(dist / Math.max(1.5, wid * 0.45)) + 1), sz = Math.max(wid, dist / N * 1.6);
+    const seg = V.sub(at, last), dist = V.len(seg), wid = (3 + 5 * sm) * (1 + h / 9000) * (1 + 0.6 * cond) * (LK.smoke > 2 ? 1.6 : 1) * Math.min(2, Math.sqrt(env)), N = Math.min(TOUCH ? 10 : 18, Math.ceil(dist / Math.max(1.5, wid * 0.45)) + 1), sz = Math.max(wid, dist / N * 1.6);
     tr.rate = (tr.rate || 60) * 0.9 + 0.1 * N / Math.max(dt / SIM_SPEED, 1e-3); const lifeK = Math.min(1, smoke.n * 0.85 / (tr.rate * 9));
-    const wind = siteVel(veh), ground = h < 60 ? 1 : 0, cA = cond > 0.3 ? 0xf6f8fb : 0xe4e6ea, cB = cond > 0.3 ? 0xdfe6ee : 0xb9bfc8;
+    const wind = siteVel(veh), ground = h < 60 ? 1 : 0, soot = LK.soot && cond <= 0.3, cA = cond > 0.3 ? 0xf6f8fb : soot ? 0x9a9690 : 0xe4e6ea, cB = cond > 0.3 ? 0xdfe6ee : soot ? 0x6e6a66 : 0xb9bfc8; // kerolox: sooty grey
     for (let i = 0; i < N; i++) { const pos = V.addS(V.addS(last, seg, (i + 0.5) / N), wind, -dt); // pre-step: update() moves it by vel·dt this same frame
       const vel = ground ? V.add(wind, [rnd(60), rnd(60), rnd(60)]) : wind;
       smoke.spawn(pos, vel, Math.max(1.5, (4 + 3 * cond) * (0.6 + 0.4 * sm) * lifeK * (1 - Math.min(0.6, h / 60000))), sz, wid * (2.6 + 1.4 * cond) * (1 + ground), cond > 0.3 ? cA : 0xffe4c4, cB, 0.35); }
