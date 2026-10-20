@@ -112,6 +112,11 @@ export function autoGuide(v) {
         if (weak && qPa < 1000 && o.ap >= TARGET_AP - 1000) pitch = holdPitch(v, f, sag, 0.06); // lofted hand-back: may pitch below the horizon to stop the climb (f4)
       }
     }
+    // heavy pitch program: side boosters (radial stage) lift the whole stack at TWR ~1.1-1.4, so a plain gravity turn droops
+    // flat inside the atmosphere and the dynamic pressure runs away (Max-Q failure ~16 km). Hold a climb-rate floor instead
+    // so the boosters separate steep and high, like the real three-core flights.
+    // the lone core after side-booster sep keeps the floor (tapering out by 50 km) so it climbs out of the dense air before turning
+    if (v.stages[0] && v.stages[0].radial && spAir >= 70 && h < 50000) pitch = Math.min(pitch, holdPitch(v, f, (120 + h * 0.012) * clamp((50000 - h) / 15000, 0, 1), 0.08));
     const tMax = s && s.eng ? s.eng.tv * 1000 * s.n : 0;
     thr = Math.max(qCap(qPa, v.qFloor ?? 0.4), tMax > 0 ? Math.min(1, 1.3 * g * m / tMax) : 1);
     if (tMax > 0) thr = Math.min(thr, G_LIMIT * 9.80665 * m / tMax); // g-limit: throttle back near burnout
@@ -125,7 +130,9 @@ export function autoGuide(v) {
   } else if (ph === 'coast' || ph === 'done') { pitch = pgIn; thr = 0; }
   else { pitch = holdPitch(v, f, 0, 0.05); thr = 1; }
   const lim2 = qPa > 15000 ? 0.08 : qPa > 3000 ? 0.2 : qPa > 500 ? 0.5 : 1.4;
-  pitch = clamp(pitch, pgAir - lim2, pgAir + lim2);
+  // heavy: the q-limited prograde clamp may tilt UP a little more (never down) while the climb is under the floor
+  const heavyUp = ph === 'ascent' && v.stages[0] && v.stages[0].radial && h < 50000 && vr < 120 + h * 0.012 ? 0.2 : 0;
+  pitch = clamp(pitch, pgAir - lim2 - heavyUp, pgAir + lim2);
   pitch = clamp(pitch, 0, Math.PI * 0.75);
   return { dir: dirOfPitch(pitch, f), throttle: thr, phase: ph, pitch };
 }
