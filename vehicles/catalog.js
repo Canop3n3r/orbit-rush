@@ -141,3 +141,5 @@ export { ROSTER_ALBION, ENGINES_ALBION } from './roster/albion.js';
 export { ROSTER_GAULOIS, ENGINES_GAULOIS } from './roster/gaulois.js';
 // Roster company 'ltv' (data only, neutral ids; spec:loss-model): see vehicles/roster/ltv.js
 export { ROSTER_LTV, ENGINES_LTV } from './roster/ltv.js';
+// Roster company 'spacey': points at the hand-sourced catalog ids above (no duplicates); see vehicles/roster/spacey.js
+export { SPACEY_CATALOG_IDS } from './roster/spacey.js';
