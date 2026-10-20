@@ -929,7 +929,7 @@ reset(); refreshBuild();
 $('launchBtn').onclick = e => { e.currentTarget.blur(); launch(); };
 $('againBtn').onclick = () => { goBuild(); const hb = $('homeBack'); if (hb) hb.click(); }; // f3: the result card's Home goes back to the showroom
 $('relaunchBtn').onclick = () => launch();
-new MutationObserver(() => { if ($('end').classList.contains('hidden')) document.body.classList.remove('endOn'); }).observe($('end'), { attributes: true, attributeFilter: ['class'] });
+new MutationObserver(() => { document.body.classList.toggle('endOn', !$('end').classList.contains('hidden')); }).observe($('end'), { attributes: true, attributeFilter: ['class'] });
 $('contBtn').onclick = () => { $('end').classList.add('hidden'); document.body.classList.remove('endOn'); F.unfinish(); F.endQueued = true; };
 function shareText() { const sc = F.score(); return `🚀 I scored ${sc.toLocaleString()} in Orbit Rush${F.flags.orbit ? ' — reached a full-scale orbit' : ''}${F.flags.boosterBonus ? ' and landed the booster' : ''}${F.flags.recovered ? ' and brought the capsule home' : ''}! Can you beat it?`; }
 $('shareBtn').onclick = async () => { const t = shareText(), url = location.href.split('?')[0]; try { if (navigator.share) await navigator.share({ text: t, url }); else { await navigator.clipboard.writeText(t + ' ' + url); $('shareBtn').textContent = 'Copied!'; } } catch (e) { } };
@@ -1914,6 +1914,7 @@ function heatVis(L, now) {
     WV.sheath.position.copy(rocketG.position).addScaledVector(noseW, lead).addScaledVector(d, -g.d * 0.15);
     WV.sheath.quaternion.setFromUnitVectors(_wy, d.clone().negate()); const R = g.d * (0.75 + 0.35 * pl); WV.sheath.scale.set(R, R * (1.6 + 2.2 * pl), R);
     WV.sm.color.setRGB(1, 0.45 + 0.4 * pl, 0.3 + 0.6 * pl * pl); WV.sm.opacity = 0.5 * pl * flick; }
+  if (document.body.classList.contains('endOn') || (TOUCH && camDist < 40)) { WV.sm.opacity *= 0.3; WV.hm.opacity *= 0.5; } // QA f5b.3: no full-screen orange glow under the end card / close phone camera
   WV.heat.halo = WV.halo.visible ? WV.hm.opacity : 0; WV.heat.sheath = WV.sheath.visible ? WV.sm.opacity : 0;
 }
 function worldVis(base, O, nose) {
