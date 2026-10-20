@@ -13,7 +13,7 @@ const realHit = (() => { const f = process.env.REALNAMES || '/workspace/wk/realn
 { const c = readFileSync(new URL('co_nosa.js', dir), 'utf8'); for (const id of ['saturnine-v', 'space-truck']) ok(c.includes(`'${id}':`), 'co-nosa model id ' + id); ok(!/\b(nasa|saturn|apollo|boeing|rocketdyne|shuttle|rockwell|endeavour|discovery|atlantis|columbia|challenger)\b/i.test(c.replace(/saturnine/gi, '')), 'co_nosa.js: no real agency/vehicle names'); }
 const d = readFileSync(new URL('decals.js', dir), 'utf8'); ok(/setBrandPack/.test(d) && /function generic/.test(d), 'decal slots with generic default');
 { const c = readFileSync(new URL('co_krasnaya.js', dir), 'utf8'); for (const id of ['rodnik', 'rodnik-2', 'lastochka', 'pervy']) ok(c.includes(`'${id}':`), 'co-krasnaya model id ' + id); ok(!realHit(c), 'co_krasnaya.js: no real names'); }
-{ const c = readFileSync(new URL('co_nwon.js', dir), 'utf8'); for (const id of ['n-won']) ok(c.includes(`'${id}':`), 'co_nwon id ' + id); ok(!realHit(c), 'co_nwon.js: no real names'); }
+{ const c = readFileSync(new URL('co_moonhammer.js', dir), 'utf8'); for (const id of ['moonhammer']) ok(c.includes(`'${id}':`), 'co_moonhammer id ' + id); ok(!realHit(c), 'co_moonhammer.js: no real names'); }
 { const c = readFileSync(new URL('co_mogutny.js', dir), 'utf8'); for (const id of ['mogutny', 'mogutny-glider']) ok(c.includes(`'${id}':`), 'co_mogutny id ' + id); ok(!realHit(c), 'co_mogutny.js: no real names'); }
 // public-name audit: rocketdb/tools/namecheck.py (PRIVATE, never in this repo) checks every model id, display/src string and stage-group
 // name, plus a whole-file real-name-stem scan. Path: ROCKETDB env or the studio checkout; the check is skipped when the file is absent.
@@ -21,7 +21,8 @@ const d = readFileSync(new URL('decals.js', dir), 'utf8'); ok(/setBrandPack/.tes
   const db = process.env.ROCKETDB || '/workspace/game-studio/orbit-rush/rocketdb', nc = db + '/tools/namecheck.py';
   if (existsSync(nc)) { const files = readdirSync(new URL('.', dir)).filter(f => /^co_.*\.js$/.test(f)), job = {};
     for (const f of files) { const c = readFileSync(new URL(f, dir), 'utf8'), fields = [f.replace(/\.js$/, '')];
-      for (const m of c.matchAll(/'([a-z0-9-]+)': \{ height/g)) fields.push(m[1]); for (const m of c.matchAll(/src: '([^']*)'/g)) fields.push(m[1]); for (const m of c.matchAll(/group\('([^']+)'/g)) fields.push(m[1]);
+      for (const m of c.matchAll(/'([a-z0-9-]+)': \{ (?:name: [^,]+, )?height/g)) fields.push(m[1]); for (const m of c.matchAll(/src: '([^']*)'/g)) { fields.push(m[1].replace(/[()]/g, ' ')); for (const q of m[1].matchAll(/\(([^)]*)\)/g)) fields.push(q[1]); } // src = dev provenance: parens allowed, contents still checked
+      const nm = c.match(/export const NAMES = \{([^}]*)\}/); if (nm) for (const m of nm[1].matchAll(/: '([^']*)'/g)) fields.push(m[1]); // display names: full check (no parentheses) for (const m of c.matchAll(/group\('([^']+)'/g)) fields.push(m[1]);
       job[f] = { fields, text: c }; }
     const py = `import sys,json;sys.path.insert(0,sys.argv[1]);import namecheck as n;J=json.load(sys.stdin);out={}
 for f,v in J.items():

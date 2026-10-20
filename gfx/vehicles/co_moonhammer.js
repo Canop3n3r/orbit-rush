@@ -1,6 +1,6 @@
-// co-krasnaya-2: Krasnaya Orbita Bureau — N-Won super-heavy moon rocket: 105 m cone stack, 30-engine first stage in two rings with
+// co-krasnaya-2: Krasnaya Orbita Bureau — Moonhammer super-heavy moon rocket: 105 m cone stack, 30-engine first stage in two rings with
 // 4 lattice grid fins, two conical upper stages, then lunar stack (two small stages, crew shroud, escape tower). White with grey.
-// Dimensions: rocketdb n-won (GCAT) + design.md; stage split art-fitted. Fully parody; no logos/names.
+// Dimensions: rocketdb moonhammer (GCAT) + design.md; stage split art-fitted. Fully parody; no logos/names.
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=art1';
 import * as PR from './profiles.js?v=art1';
@@ -26,9 +26,11 @@ function lunar(d, y0) { const k = new Kit(d); // 4th/5th stages + crew shroud + 
   tube(k, 0.25, 0.18, 4.6, nose + 3.9, 'grey', { seg: k.hi ? 10 : 6 }); lathe(k, PR.ogive(0.3, 1.4, nose + 8.5, 8, 0.05), 'dark');
   if (k.hi) for (const [x, z] of ringPos([[4, 0.32, PI / 4]])) tube(k, 0.05, 0.05, 2.2, nose + 3.6, 'grey', { x, z, seg: 4 });
   const g = k.build('payload'); g.userData.top = nose + 9.9; return g; }
-function nwon(o) { const d = o.detail, a = s1(d), b = cone(d, 's2', a.userData.top, 20.5, 5.15, 3.8, 8, 0.55), c = cone(d, 's3', b.userData.top, 11.5, 3.8, 3.0, 4, 0.45);
+function moonhammer(o) { const d = o.detail, a = s1(d), b = cone(d, 's2', a.userData.top, 20.5, 5.15, 3.8, 8, 0.55), c = cone(d, 's3', b.userData.top, 11.5, 3.8, 3.0, 4, 0.45);
   const g4 = cone(d, 's4', c.userData.top, 10.0, 3.0, 2.2, 1, 0.6), p = lunar(d, g4.userData.top);
-  const g = group('n-won', [a, b, c, g4, p], p.userData.top); if (o.plume) g.add(plume(0, ringPos([[8, 6.8, 0]]), 2.4, 95 * o.plume)); return g; }
-export const CO_NWON = {
-  'n-won': { height: H, build: nwon, src: 'rocketdb n-won (GCAT): 105.3 m, 17 m base cone, 30-engine first stage, 3 conical stages + lunar stack', est: ['stage lengths', 'lunar stack split'] },
+  const g = group('moonhammer', [a, b, c, g4, p], p.userData.top); if (o.plume) g.add(plume(0, ringPos([[8, 6.8, 0]]), 2.4, 95 * o.plume)); return g; }
+// display names: the only place they live (cheap to rename later)
+export const NAMES = {'moonhammer': 'Moonhammer'};
+export const CO_MOONHAMMER = {
+  'moonhammer': { name: NAMES['moonhammer'], height: H, build: moonhammer, src: 'rocketdb moonhammer (GCAT): 105.3 m, 17 m base cone, 30-engine first stage, 3 conical stages + lunar stack', est: ['stage lengths', 'lunar stack split'] },
 };
