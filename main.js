@@ -91,9 +91,9 @@ const plumeLight = new THREE.PointLight(0xffa860, 0, 900, 1.6); scene.add(plumeL
 // pad detail (gx1): flame deflector, lightning masts with catenary wires, apron, roads, service buildings, lights
 function padExtras(g) {
   const conc = new THREE.MeshStandardMaterial({ map: (() => { const t = GX.concreteTexture(); t.repeat.set(18, 18); return t; })(), roughness: 0.95 });
-  const apron = new THREE.Mesh(new THREE.CircleGeometry(150, 64), conc); apron.rotation.x = -Math.PI / 2; apron.position.y = 0.08; g.add(apron);
+  const apron = new THREE.Mesh(new THREE.CircleGeometry(150, 64), conc); apron.rotation.x = -Math.PI / 2; apron.position.y = 0.08; apron.userData.tilesHide = 1; g.add(apron);
   const asphalt = new THREE.MeshStandardMaterial({ color: 0x2a2b2d, roughness: 0.9 });
-  for (const [x, z, w, l, ry] of [[0, -420, 9, 560, 0], [-260, -150, 7, 300, 1.2], [230, 120, 7, 260, -0.9]]) { const r = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, l), asphalt); r.position.set(x, 0.05, z); r.rotation.y = ry; g.add(r); }
+  for (const [x, z, w, l, ry] of [[0, -420, 9, 560, 0], [-260, -150, 7, 300, 1.2], [230, 120, 7, 260, -0.9]]) { const r = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, l), asphalt); r.position.set(x, 0.05, z); r.rotation.y = ry; r.userData.tilesHide = 1; g.add(r); }
   const defl = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 7, 6, 3, 1), new THREE.MeshStandardMaterial({ color: 0x55504a, roughness: 0.6, metalness: 0.6 })); defl.rotation.set(Math.PI / 2, 0, 0); defl.position.set(0, PAD_Z - 3, 18); g.add(defl);
   const wireM = new THREE.LineBasicMaterial({ color: 0x222222 }), tops = [];
   for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4, x = Math.cos(a) * 70, z = Math.sin(a) * 70;
@@ -102,7 +102,7 @@ function padExtras(g) {
   for (let i = 0; i < 4; i++) { const a = tops[i], b = tops[(i + 1) % 4], pts = []; for (let k = 0; k <= 24; k++) { const t = k / 24; pts.push(new THREE.Vector3().lerpVectors(a, b, t).add(new THREE.Vector3(0, -18 * 4 * t * (1 - t), 0))); }
     g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), wireM)); }
   const bm = new THREE.MeshStandardMaterial({ color: 0xc8c4b8, roughness: 0.8 });
-  for (const [x, z, w, h, d] of [[-120, 60, 30, 10, 18], [-150, 95, 16, 7, 12], [130, -110, 24, 14, 24], [60, 140, 40, 6, 14]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bm); b.position.set(x, h / 2, z); g.add(b); }
+  for (const [x, z, w, h, d] of [[-120, 60, 30, 10, 18], [-150, 95, 16, 7, 12], [130, -110, 24, 14, 24], [60, 140, 40, 6, 14]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bm); b.position.set(x, h / 2, z); b.userData.tilesHide = 1; g.add(b); }
   const lampM = new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 2.8, 2.4) });
   for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.4, l = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 0.4), lampM); l.position.set(Math.cos(a) * 45, 30.5, Math.sin(a) * 45); l.lookAt(0, 20, 0); g.add(l); }
 }

@@ -81,9 +81,12 @@ export function createTiles({ earth, camera, renderer, onSurface, padEF, ground,
     if (!hit) return null; return 3000 - hit.distance; // height of the real ground above the current game ground
   }
 
+  let hideList = [], hideT = 0; // the game's generic apron, roads and sheds give way to the real site while tiles show
   function update({ alt, hidden, light = 1 }) {
+    if (++hideT % 120 === 1) { hideList = []; earth.traverse(o => { if (o.userData.tilesHide) hideList.push(o); }); }
     const k = hidden ? 0 : Math.max(0, Math.min(1, (ALT_OFF - alt) / (ALT_OFF - ALT_FULL)));
     stats.alt = alt; stats.on = k > 0;
+    for (const o of hideList) o.visible = k < 0.5;
     anchor.visible = k > 0; uAlt.value = k; uLight.value = light;
     if (ground) ground.position.setLength(R - 40 * k); // drop the game's coloured ground cap under the real terrain
     if (k <= 0) { attr.style.display = 'none'; return; }   // above 30 km: no traversal, no requests
