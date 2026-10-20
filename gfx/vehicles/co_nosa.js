@@ -133,7 +133,7 @@ function orbiter(d) { const k = new Kit(d), y0 = 7.6, L = 37.2, top = y0 + L, fy
 export function spaceTruck(o) { const d = o.detail; const g = group('space-truck', [srb(d, -1), srb(d, 1), et(d), orbiter(d)], ETT + 1.5);
   if (o.plume) { const p = plume(5, [[-6.6, 0], [6.6, 0]], 2.4, 70 * o.plume); g.add(p); const q = plume(3, [[0, OZ + 1.3], [-1.35, OZ - 0.6], [1.35, OZ - 0.6]], 1.1, 30 * o.plume); q.position.y = 4.5; g.add(q); } return g; }
 export const CO_NOSA = {
-  'space-truck': { height: 57.6, build: spaceTruck, src: 'rocketdb space-truck (GCAT): SRB 45.5 x 3.71 m, ET 47 x 8.4 m, orbiter 37.2 m; stack 56.1 m', est: ['orbiter planform', 'attach placement'] },
-  'saturnine-v': { height: 110.6, build: saturnine, src: 'rocketdb saturnine-v (GCAT): 110.6 m, 10.06 m; stage1 42.1, stage2 24.8, stage3 6.6 m dia; stack split art-fitted', est: ['IU/SLA/CSM/LES split', 'fin shape'] },
+  'space-truck': { height: 57.6, build: spaceTruck, src: 'rocketdb space-truck, GCAT: SRB 45.5 x 3.71 m, ET 47 x 8.4 m, orbiter 37.2 m; stack 56.1 m', est: ['orbiter planform', 'attach placement'] },
+  'saturnine-v': { height: 110.6, build: saturnine, src: 'rocketdb saturnine-v, GCAT: 110.6 m, 10.06 m; stage1 42.1, stage2 24.8, stage3 6.6 m dia; stack split art-fitted', est: ['IU/SLA/CSM/LES split', 'fin shape'] },
 };
 export { group, lmat, kbuild, plume }; // shared helpers for the other co_* company files
