@@ -1,9 +1,9 @@
 // f5.1h staging audit (node half): every house model's stage groups match the physics stack it flies on, and every stack stages on AUTO.
 // The browser half (each picker rocket launched, model groups checked per stage) writes playtest/staging_audit.md.
-import { Flight } from '../flight.js?v=f5.3b2';
-import { SHOWROOM, EXTRA_STACKS } from '../fun/showroom.js?v=f5.3b2';
-import { audit, pickBase, dropPlan } from '../fun/stagemap.js?v=f5.3b2';
-import { STAGE_KEYS, HEIGHTS } from '../gfx/vehicles/stage_keys.js?v=f5.3b2';
+import { Flight } from '../flight.js?v=f5.3b3';
+import { SHOWROOM, EXTRA_STACKS } from '../fun/showroom.js?v=f5.3b3';
+import { audit, pickBase, dropPlan } from '../fun/stagemap.js?v=f5.3b3';
+import { STAGE_KEYS, HEIGHTS } from '../gfx/vehicles/stage_keys.js?v=f5.3b3';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; } else { fail++; console.log('FAIL', m); } };
 const stacks = {}; for (const r of SHOWROOM) stacks[r.id] = r.design; for (const [k, x] of Object.entries(EXTRA_STACKS)) stacks[k] = x.design;
 const st = {}; for (const [k, d] of Object.entries(stacks)) st[k] = new Flight(JSON.parse(JSON.stringify(d)), {}, {}).v.stages;

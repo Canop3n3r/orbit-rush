@@ -1,17 +1,17 @@
 // f5.2 manual flying across the ladder missions: AUTO stays off, the pilot steers (stick/SAS direction + throttle) and
 // presses STAGE (twice = confirm) when a stage is spent. Each press pair separates exactly one stage and the next one
 // lights. In orbit, the transfer uses the player's map planner (plan node + Execute), never the mission director.
-import { Flight } from '../flight.js?v=f5.3b2';
-import * as P from '../physics.js?v=f5.3b2';
-import * as C from '../physics/patched.js?v=f5.3b2';
-import { qrot } from '../physics/vec.js?v=f5.3b2';
-import { SHOWROOM } from '../fun/showroom.js?v=f5.3b2';
-import { LADDER } from '../fun/ladder.js?v=f5.3b2';
-import { qualifying } from '../fun/mispick.js?v=f5.3b2';
-import { cloneDesign } from '../parts.js?v=f5.3b2';
-import { pickBase } from '../fun/stagemap.js?v=f5.3b2';
-import { specFor } from '../fun/specstack.js?v=f5.3b2';
-import { STAGE_KEYS, HEIGHTS } from '../gfx/vehicles/stage_keys.js?v=f5.3b2';
+import { Flight } from '../flight.js?v=f5.3b3';
+import * as P from '../physics.js?v=f5.3b3';
+import * as C from '../physics/patched.js?v=f5.3b3';
+import { qrot } from '../physics/vec.js?v=f5.3b3';
+import { SHOWROOM } from '../fun/showroom.js?v=f5.3b3';
+import { LADDER } from '../fun/ladder.js?v=f5.3b3';
+import { qualifying } from '../fun/mispick.js?v=f5.3b3';
+import { cloneDesign } from '../parts.js?v=f5.3b3';
+import { pickBase } from '../fun/stagemap.js?v=f5.3b3';
+import { specFor } from '../fun/specstack.js?v=f5.3b3';
+import { STAGE_KEYS, HEIGHTS } from '../gfx/vehicles/stage_keys.js?v=f5.3b3';
 const houses = Object.keys(STAGE_KEYS).map(id => ({ model: id, name: id, base: pickBase(STAGE_KEYS[id], HEIGHTS[id] || 50) })).filter(h => SHOWROOM.some(r => r.id === h.base) && !specFor(h.model));
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('FAIL', m); } };
 const V = { add: (a, b) => a.map((x, i) => x + b[i]), sc: (a, k) => a.map(x => x * k), dot: (a, b) => a.reduce((t, x, i) => t + x * b[i], 0), norm: a => { const l = Math.hypot(...a); return a.map(x => x / l); } };

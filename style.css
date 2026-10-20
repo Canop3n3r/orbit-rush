@@ -830,3 +830,7 @@ body.mcOn #hud,body.mcOn .pilot,body.mcOn #stageBtn{visibility:hidden}
 #mapTrack h4{margin:2px 0 4px;font-size:12px;color:#7dffb0}
 #mapTrack div{white-space:nowrap}
 .mmark.sat{color:#7dffb0}
+/* f5.3 split: one layout rule for every half (positions set in main.js layoutSplitCards) */
+#split #spBtnsU{position:fixed;pointer-events:auto;display:flex;gap:6px}
+#split.fullU #spPane,#split.fullU #spPane2,#split.fullB #spPane2,#split.fullB #spMain{display:none!important}
+#split.fullU #spMain{width:100%!important;height:100%!important}

@@ -1,52 +1,52 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.3b2';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.3b3';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.3b2';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.3b2';
-import * as C from './physics/patched.js?v=f5.3b2';
+import * as P from './physics.js?v=f5.3b3';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.3b3';
+import * as C from './physics/patched.js?v=f5.3b3';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.3b2';
-import { createCareerUI } from './fun/career-ui.js?v=f5.3b2';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.3b2';
-import { createSolarMap } from './solarmap.js?v=f5.3b2';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.3b2';
-import { FX } from './fx.js?v=f5.3b2';
-import { createAcademy } from './academy-ui.js?v=f5.3b2';
-import { createMobile, isTouch } from './mobile.js?v=f5.3b2';
-import { localize } from './wording.js?v=f5.3b2';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.3b2';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.3b2';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.3b3';
+import { createCareerUI } from './fun/career-ui.js?v=f5.3b3';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.3b3';
+import { createSolarMap } from './solarmap.js?v=f5.3b3';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.3b3';
+import { FX } from './fx.js?v=f5.3b3';
+import { createAcademy } from './academy-ui.js?v=f5.3b3';
+import { createMobile, isTouch } from './mobile.js?v=f5.3b3';
+import { localize } from './wording.js?v=f5.3b3';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.3b3';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.3b3';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.3b2';
-import * as GX from './gfx/gfx.js?v=f5.3b2';
-import { Director, MISSIONS } from './fun/director.js?v=f5.3b2';
-import * as PR from './fun/progress.js?v=f5.3b2';
-import * as WORLD from './fun/world.js?v=f5.3b2';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.3b2';
-import { createAudio } from './fun/audio.js?v=f5.3b2';
-import { createCompact } from './fun/compact.js?v=f5.3b2';
-import { createHome } from './fun/home.js?v=f5.3b2';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.3b2';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.3b2';
-import { createFunUI } from './fun/ui.js?v=f5.3b2';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.3b2';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.3b2';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.3b2';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.3b2';
-import { specFor, specDesign } from './fun/specstack.js?v=f5.3b2';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.3b2';
-import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.3b2';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.3b3';
+import * as GX from './gfx/gfx.js?v=f5.3b3';
+import { Director, MISSIONS } from './fun/director.js?v=f5.3b3';
+import * as PR from './fun/progress.js?v=f5.3b3';
+import * as WORLD from './fun/world.js?v=f5.3b3';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.3b3';
+import { createAudio } from './fun/audio.js?v=f5.3b3';
+import { createCompact } from './fun/compact.js?v=f5.3b3';
+import { createHome } from './fun/home.js?v=f5.3b3';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.3b3';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.3b3';
+import { createFunUI } from './fun/ui.js?v=f5.3b3';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.3b3';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.3b3';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.3b3';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.3b3';
+import { specFor, specDesign } from './fun/specstack.js?v=f5.3b3';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.3b3';
+import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.3b3';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.3b2';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.3b3';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -699,7 +699,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.3b2', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.3b3', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -1648,12 +1648,12 @@ renderer.setAnimationLoop(() => {
 // The booster pane renders the same scene a second time with its own camera (scissored, no bloom, flow
 // particles off = the Low look). Tap a pane to make it full screen; ⇄ switches control between the craft.
 const cam2 = new THREE.PerspectiveCamera(55, 1, 0.5, 2e9), SPLIT_KEY = 'orbitrush.split';
-const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: localStorage.getItem(SPLIT_KEY) !== '0', yaw: 0.9, pitch: 0.25, dist: 90, userT: -1e9, frame: 0 };
+const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: localStorage.getItem(SPLIT_KEY) !== '0', yaw: 1.35, pitch: 0.25, dist: 90, userT: -1e9, frame: 0 };
 { const d = document.createElement('div'); d.id = 'split'; d.className = 'hidden';
-  d.innerHTML = '<div id="spPane"><div class="spCard" id="spCardB"><canvas class="spBall" id="spBallB" width="64" height="64"></canvas><div id="spHud"></div></div><div class="spBtns"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div class="spCard" id="spCardU"><canvas class="spBall" id="spBallU" width="64" height="64"></canvas><div id="spHud1"></div></div></div>';
+  d.innerHTML = '<div id="spPane"><div class="spCard" id="spCardB"><canvas class="spBall" id="spBallB" width="64" height="64"></canvas><div id="spHud"></div></div><div class="spBtns"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div class="spBtns" id="spBtnsU"><button id="spFullU" title="Focus the upper stage">⤢</button></div><div class="spCard" id="spCardU"><canvas class="spBall" id="spBallU" width="64" height="64"></canvas><div id="spHud1"></div></div></div>';
   document.body.appendChild(d);
   { const p2 = document.createElement('div'); p2.id = 'spPane2'; p2.className = 'hidden'; p2.innerHTML = '<div class="spCard" id="spCardB2"><canvas class="spBall" id="spBallB2" width="64" height="64"></canvas><div id="spHud2"></div></div>'; d.appendChild(p2); } // f4.2: booster B pane
-  $('spFull').onclick = e => { e.stopPropagation(); split.full = split.full === 'b' ? null : 'b'; camMode = split.full === 'b' ? 'booster' : 'chase'; };
+  $('spFull').onclick = e => { e.stopPropagation(); split.full = split.full === 'b' ? null : 'b'; camMode = split.full === 'b' ? 'booster' : 'chase'; if (split.full === 'b') camDist = 90; }; // f5.3: frame the whole booster
   // f4: the booster pane has its own camera: drag orbits, pinch / wheel zooms, a tap (no drag) toggles full screen
   const pp = $('spPane'), pts = new Map(); let moved = 0, pinch0 = 0, d0 = 90;
   pp.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; pp.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0;
@@ -1662,10 +1662,11 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
     if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) split.dist = Math.max(25, Math.min(1500, d0 * pinch0 / Math.max(d, 1))); moved = 99; }
     else { moved += Math.abs(dx) + Math.abs(dy); split.yaw -= dx * 0.008; split.pitch = Math.max(-0.4, Math.min(1.3, split.pitch + dy * 0.006)); split.userT = performance.now(); } e.stopPropagation(); });
   const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0;
-    if (!pts.size && moved < 8) { if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; } } e.stopPropagation(); };
+    if (!pts.size && moved < 8) { if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; camDist = 90; } } e.stopPropagation(); };
   pp.addEventListener('pointerup', up); pp.addEventListener('pointercancel', up);
   pp.addEventListener('wheel', e => { split.dist = Math.max(25, Math.min(1500, split.dist * Math.exp(e.deltaY * 0.001))); e.preventDefault(); e.stopPropagation(); }, { passive: false });
   $('spMain').onclick = () => { if (split.full) { split.full = null; camMode = 'chase'; } };
+  $('spFullU').onclick = e => { e.stopPropagation(); split.full = split.full === 'u' ? null : 'u'; camMode = 'chase'; }; // f5.3: focus the upper stage (keeps its own card)
   $('spCtl').onclick = e => { e.stopPropagation(); if (booster && booster.state === 'flying' && F.ship && booster.stages[0].fuel > 0) F.toggleBooster(); else toast('The booster is on autopilot', '#9cc3ff'); };
   $('spClose').onclick = e => { e.stopPropagation(); split.closed = true; };
 }
@@ -1692,13 +1693,13 @@ function updateSplit(rdt) {
     if (!split.done && split.rec.length > 30) split.replay = { i: Math.max(0, split.rec.length - 240), k: 0 };
     split.done += rdt;
   }
-  document.body.classList.toggle('splitOn', !!(want && split.full !== 'b')); placeTopStack(!!(want && split.full !== 'b'));
+  document.body.classList.toggle('splitOn', !!want); placeTopStack(!!(want && split.full !== 'b')); // f5.3: focused halves keep the split HUD (own card, no shared strip)
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want) { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
   if (!split.on) return;
   const nb = booster2 ? 2 : 1, R2 = paneRect(0, nb), fb = split.full === 'b';
-  $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('fullB', fb); $('split').classList.toggle('tri', nb > 1);
+  $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('fullB', fb); $('split').classList.toggle('fullU', split.full === 'u'); $('split').classList.toggle('tri', nb > 1);
   { const p2 = $('spPane2'), on2 = nb > 1 && !fb; p2.classList.toggle('hidden', !on2); if (on2) { const r3 = paneRect(1, nb), s2 = p2.style; s2.left = r3.x + 'px'; s2.top = r3.y + 'px'; s2.width = r3.w + 'px'; s2.height = r3.h + 'px'; } }
-  { const cu = $('spCardU'); if (cu) cu.style.setProperty('bottom', nb > 1 && splitPortrait() && !fb ? (innerHeight - ctlTop() / 3 + 10) + 'px' : '', 'important'); }
+  layoutSplitCards(nb, fb);
   const st = $('spPane').style; if (fb) { st.left = '0'; st.top = '0'; st.width = '100%'; st.height = '100%'; } else { st.left = R2.x + 'px'; st.top = R2.y + 'px'; st.width = R2.w + 'px'; st.height = R2.h + 'px'; }
   split.frame++; if (b) { // f4.1b: every frame (was every 6th — at low fps the cards lagged by seconds)
     const card = (b, label, hud, ball, rp) => { const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
@@ -1711,6 +1712,21 @@ function updateSplit(rdt) {
     setHTML('spHud1', `<div class="spT"><b>UPPER STAGE</b><span class="pill ${v.thrust > 0 ? 'hot' : ''}">${uPh}</span></div><div class="spG"><span>ALT</span><b>${fmtD(P.altOf(v))}</b><span>SPD</span><b>${fmtS(V.len(v.v))}</b><span>V/S</span><b>${uvs >= 0 ? '+' : ''}${uvs.toFixed(0)} m/s</b><span>FUEL</span><b>${ufp}%</b></div>`);
     miniBall($('spBallU'), P.noseOf(v), v.r, P.altOf(v) > 80000 ? v.v : uva);
   }
+}
+// f5.3 (Aaron): identical layout in every half: the card (navball + telemetry) sits at the pane's top-left under one
+// button row, the pane buttons at its top-right. Positions are set here (viewport px) so every pane uses one rule.
+function upperRect(nb) { const W = innerWidth, H = innerHeight; if (split.full === 'u') return { x: 0, y: 0, w: W, h: H };
+  return splitPortrait() ? { x: 0, y: 0, w: W, h: nb > 1 ? ctlTop() / 3 : H * 0.5 } : { x: 0, y: 0, w: W * 0.5, h: H }; }
+const SP_INSET = 58;
+function placeIn(el, r, corner) { if (!el) return; const s = el.style, sat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0;
+  s.setProperty('position', 'fixed', 'important'); s.setProperty('bottom', 'auto', 'important');
+  if (corner === 'card') { s.setProperty('left', (r.x + 10) + 'px', 'important'); s.setProperty('right', 'auto', 'important'); s.setProperty('top', (r.y + SP_INSET + (r.y < 1 ? sat : 0)) + 'px', 'important'); }
+  else { s.setProperty('left', 'auto', 'important'); s.setProperty('right', (innerWidth - r.x - r.w + 10) + 'px', 'important'); s.setProperty('top', (r.y + 10 + (r.y < 1 ? sat : 0)) + 'px', 'important'); } }
+function layoutSplitCards(nb, fb) {
+  const full = { x: 0, y: 0, w: innerWidth, h: innerHeight }, rb = fb ? full : paneRect(0, nb);
+  placeIn($('spCardU'), upperRect(nb), 'card'); placeIn($('spBtnsU'), upperRect(nb), 'btns');
+  placeIn($('spCardB'), rb, 'card'); placeIn(document.querySelector('#spPane .spBtns'), rb, 'btns');
+  if (nb > 1) placeIn($('spCardB2'), paneRect(1, nb), 'card');
 }
 const apPill = ph => { const p = (ph || '').toLowerCase(); return /boost/.test(p) ? 'BOOSTBACK' : /entry/.test(p) ? 'ENTRY BURN' : /landing|controlled/.test(p) ? 'LANDING BURN' : /glide|fin/.test(p) ? 'GRID-FIN GLIDE' : /touch/.test(p) ? 'TOUCHDOWN' : /coast/.test(p) ? 'COAST' : (ph || 'AUTO').toUpperCase(); };
 // f4 mini navball: sky/ground split by the nose pitch, roll-free; prograde marker from the velocity
@@ -1727,8 +1743,8 @@ function miniBall(cv, dir, r, vel) {
   c.strokeStyle = '#9cc3ff88'; c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.stroke();
 }
 function renderSplit(O) {
-  const son = !!(split.on && split.full !== 'b' && booster); if (document.body.classList.contains('splitOn') !== son) document.body.classList.toggle('splitOn', son); // f4.1: class follows what is drawn
-  if (!son) return;
+  const son = !!(split.on && booster); if (document.body.classList.contains('splitOn') !== son) document.body.classList.toggle('splitOn', son); // f4.1: class follows what is drawn
+  if (!son || split.full) return; // f5.3: a focused half draws full screen through the main camera
   const bs = splitBs(); for (let i = 0; i < bs.length; i++) renderPane(bs[i], O, paneRect(i, bs.length), i);
 }
 // f4.2: the booster panes in split (1, or 2 for a heavy's side pair). Each has its own camera, render target and
@@ -1739,10 +1755,11 @@ function renderPane(b, O, R2, i) {
   const S = paneSlots[i] || (paneSlots[i] = { cam: i ? new THREE.PerspectiveCamera(55, 1, 0.5, 2e9) : cam2, up: null, look: null, t: 0 });
   const cam = S.cam; let br = b.r, bd = b.dir;
   if (split.replay && i === 0) { const rp = split.replay; rp.k += 0.5; const f = split.rec[Math.min(split.rec.length - 1, rp.i + Math.floor(rp.k))]; if (f) { br = f.r; bd = f.dir; setRel(b.mesh, br, O); dirQ(b.mesh, bd); b.mesh.userData.plume.visible = f.thr > 0.01; } }
-  const up = V.norm(br), e = P.eastOf(br), n = V.cross(up, e); if (i === 0 && performance.now() - split.userT > 4000) split.yaw += 0.002;
+  const up = V.norm(br); let e = P.eastOf(br), n = V.cross(up, e);
+  { const vh = V.sub(b.v, V.scale(up, V.dot(b.v, up))), hs = V.len(vh); if (hs > 20) { const f = V.scale(vh, 1 / hs); S.f = S.f ? V.norm(V.add(S.f, V.scale(V.sub(f, S.f), 0.03))) : f; } if (S.f) { n = S.f; e = V.cross(n, up); } } // f5.3: frame relative to the booster's heading (eased), no slow auto spin
   const landed = b.state !== 'flying', pz = landed ? Math.max(0.18, split.pitch) : split.pitch; // f4.1: never under the ground
   if (landed) bd = up; // the landed booster stands up: frame its middle, camera upright
-  const lift = landed ? 20 : 0, tx = br[0] - O[0] + up[0] * lift, ty = br[1] - O[1] + up[1] * lift, tz = br[2] - O[2] + up[2] * lift, d = split.dist, cp = Math.cos(pz), yaw = split.yaw + (i ? 0.35 : 0);
+  const lift = landed ? 20 : 0, tx = br[0] - O[0] + up[0] * lift, ty = br[1] - O[1] + up[1] * lift, tz = br[2] - O[2] + up[2] * lift, d = split.dist / 90 * boosterFrameDist(b, R2), cp = Math.cos(pz), yaw = split.yaw + (i ? 0.35 : 0);
   const off = V.add(V.add(V.scale(n, Math.cos(yaw) * d * cp), V.scale(e, Math.sin(yaw) * d * cp)), V.scale(up, d * Math.sin(pz)));
   const now = performance.now(), dt = Math.min(0.1, Math.max(0, (now - (S.t || now)) / 1000)); S.t = now; const kE = 1 - Math.exp(-dt * 4); // same 4/s easing as the chase camera
   const lk = landed ? [0, 0, 0] : V.scale(bd, 15); S.look = S.look ? V.add(S.look, V.scale(V.sub(lk, S.look), kE)) : lk; S.up = S.up ? V.norm(V.add(S.up, V.scale(V.sub(up, S.up), kE))) : up;
@@ -1759,6 +1776,8 @@ function renderPane(b, O, R2, i) {
   if (fx.root && fxV !== null) fx.root.visible = fxV;
   S.dbg = { up: S.up, camUp: [cam.up.x, cam.up.y, cam.up.z], bd, br, cam: [cam.position.x + O[0], cam.position.y + O[1], cam.position.z + O[2]], R2 };
 }
+// f5.3: the booster fills ~45 % of the pane's short side whatever its length or the pane shape (phone panes are short)
+function boosterFrameDist(b, R2) { let L = 40; try { L = Math.max(10, P.stackGeom(b).L || 40); } catch (e) { } return L * 2.14 * R2.h / Math.max(60, Math.min(R2.w, R2.h)); }
 const splitBs = () => [booster, booster2].filter(x => x && x.mesh && (x.state === 'flying' || x.state === 'landed' || x === booster));
 // ---------- gx1: sun, sky, scattering, eclipse, plume light; cinematic shake and staging drama ----------
 scene.fog = new THREE.FogExp2(0x9cc4ec, 2e-5); const cHaze = new THREE.Color(0xdde8f4);

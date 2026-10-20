@@ -1,6 +1,6 @@
 // Booster reusability (Aaron f5.3): a stage is reusable only when its catalog/roster entry says reusable: true.
 // Reads the per-stage reusable flag (engines-1, #46): only the heron/colossus house and the new-glendale first stage are; every other booster is expended.
-import { VEHICLES, ROSTER_BLUEH } from './catalog.js?v=f5.3b2';
+import { VEHICLES, ROSTER_BLUEH } from './catalog.js?v=f5.3b3';
 const ALL = [...VEHICLES, ...ROSTER_BLUEH];
 const ALIAS = { 'titan-ss-v3': 'colossus-v3', 'titan-ss-v4': 'colossus-v4' };
 export function stageReusable(model, i = 0) {
