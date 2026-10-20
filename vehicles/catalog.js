@@ -143,3 +143,5 @@ export { ROSTER_GAULOIS, ENGINES_GAULOIS } from './roster/gaulois.js';
 export { ROSTER_LTV, ENGINES_LTV } from './roster/ltv.js';
 // Roster company 'spacey': points at the hand-sourced catalog ids above (no duplicates); see vehicles/roster/spacey.js
 export { SPACEY_CATALOG_IDS } from './roster/spacey.js';
+// Roster company 'levant' (data only, neutral ids; spec:loss-model): see vehicles/roster/levant.js
+export { ROSTER_LEVANT, ENGINES_LEVANT } from './roster/levant.js';
