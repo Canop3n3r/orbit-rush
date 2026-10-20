@@ -12,5 +12,5 @@ export const ROSTER_ALBION = [
       { engines: {'ab-e2': 1}, dry: 535, prop: 2965, burn: 113.0, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'ab-e3': 1}, dry: 39, prop: 261, burn: 37.2, group: 2, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 75, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:dark-dart#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model no orbit: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 75, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:dark-dart#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +41 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
 ];
