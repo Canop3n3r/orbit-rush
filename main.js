@@ -682,7 +682,7 @@ buildPalette();
   const r = document.createElement('button'); r.id = 'redoBtn'; r.textContent = '↷'; r.title = 'Redo (Ctrl+Y)'; r.onclick = () => redo();
   document.querySelector('.saved').prepend(u, r); }
 // ---------- game state ----------
-let state = 'build', F, v, booster, rocketG, SG = [], camMode, gen = 0;
+let state = 'build', F, v, booster, booster2 = null, shipVis2 = null, rocketG, SG = [], camMode, gen = 0;
 const debris = [];
 const keys = {};
 function later(fn, ms) { const g = gen; setTimeout(() => { if (g === gen) fn(); }, ms); }
@@ -695,9 +695,11 @@ function siteVel(b) { const w = b.earthRot === false ? 0 : P.OMEGA_E; return [-w
 const hooks = {
   toast: (m, c) => toast(m, c),
   sound: (k, f) => { if (k === 'ignite') { burst(0.6, 1.2, 500); if (F.alt < 200) ignitionClouds(v); } else if (k === 'beep') beep(f); else if (k === 'orbit') { beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); } },
-  stage: b => { b.mesh = detachStage(b.stageIndex ?? 0); booster = b; stagingDrama(v.r, v.v, P.noseOf(v)); },
+  stage: (b, parts) => { const g = detachStage(b.stageIndex ?? 0); booster = b; booster2 = null;
+    if (parts && parts[1]) { const [mA, mB] = splitSideMesh(g); parts[0].mesh = mA; parts[1].mesh = mB; booster2 = parts[1]; } else b.mesh = g; // f4.2: one mesh per side booster
+    stagingDrama(v.r, v.v, P.noseOf(v)); },
   drop: d => { if (opHooks) try { opHooks.drop(d); } catch (e) {} d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
-  ship: s => { if (s.lz) { shipVis = makeLZ(s); return; } shipVis = makeShip(s); }, // RTLS: the landing zone is the pad area, no droneship
+  ship: s => { if (s.lz) { if (s.name === 'LZ-2') shipVis2 = makeLZ(s); else shipVis = makeLZ(s); return; } shipVis = makeShip(s); }, // RTLS: the landing zone is the pad area, no droneship
   shipMoved: s => shipVis && onSurface(shipVis, s.ef, 0),
   jettison: () => { heroFairing(false); const f = SG[SG.length - 1].userData.fair; if (f) { f.visible = false; const p = V.sub(v.r, V.scale(P.noseOf(v), -10)); for (let k = 0; k < 12; k++) smoke.spawn(p, jit(v.v, 15), 1.5, 1, 3, 0xffffff, null, 0.1); } beep(990); },
   // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
@@ -711,6 +713,24 @@ const hooks = {
   end: (ms, cond) => later(() => { if (cond()) { if (academy && academy.active) academy.onEnd(); else showEnd(); } }, ms),
 };
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
+// f4.2: the detached side pair is one group (both columns + struts). Make one holder per side booster: a deep copy
+// with only that side's meshes visible, re-centred on that column so each sim's r is its own booster's centre.
+function splitSideMesh(g) {
+  g.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(g.matrixWorld).invert(), bx = new THREE.Box3(), c = new THREE.Vector3();
+  const sideOf = o => { bx.setFromObject(o).applyMatrix4(inv); bx.getCenter(c); return [c.x, c.z]; };
+  let ax = 0, mx = 0; g.traverse(o => { if (o.isMesh && !isPlumeChild(o, g)) { const [x, z] = sideOf(o); if (Math.abs(x) > mx) { mx = Math.abs(x); ax = 0; } if (Math.abs(z) > mx) { mx = Math.abs(z); ax = 1; } } });
+  const make = (src, sgn, orig) => { const holder = new THREE.Group(), k = src;
+    if (orig) { const a = [], b = []; orig.traverse(o => a.push(o)); k.traverse(o => b.push(o)); const map = new Map(a.map((o, i) => [o, b[i]]));
+      const fix = x => x && x.isObject3D ? (map.get(x) || x) : Array.isArray(x) ? x.map(fix) : x; // clone() deep-copies userData as JSON: re-link every Object3D reference
+      a.forEach((o, i) => { const u = {}; for (const key in o.userData) u[key] = fix(o.userData[key]); b[i].userData = u; }); }
+    k.updateMatrixWorld(true); const ki = new THREE.Matrix4().copy(k.matrixWorld).invert(); let off = 0, nOff = 0;
+    k.traverse(o => { if (!o.isMesh || isPlumeChild(o, k)) return; bx.setFromObject(o).applyMatrix4(ki); bx.getCenter(c); const q = ax ? c.z : c.x;
+      if (Math.abs(q) < mx * 0.3) { o.visible = false; return; } /* struts/core-side bits drop away */ if (Math.sign(q) !== sgn) o.visible = false; else if (o.visible) { off += q; nOff++; } });
+    off = nOff ? off / nOff : 0; if (ax) k.position.z = -off; else k.position.x = -off;
+    const pl = k.userData.plume; if (pl) { if (ax) pl.position.z += off; else pl.position.x += off; if (pl.userData.extra) { for (const e of pl.userData.extra) e.visible = false; pl.userData = { ...pl.userData, extra: [] }; } } // one plume, under this column
+    holder.add(k); holder.userData = k.userData; scene.add(holder); return holder; };
+  const gB = g.clone(true); scene.remove(g); const B = make(gB, 1, g), A = make(g, -1, null); return [A, B];
+}
 function detachStage(i) {
   if (v) WV.seps.push({ r: v.r.slice(), t: performance.now() }); WV.pulse = performance.now();
   const hc = heroPiece(i); heroStage(i + 1); const g = SG[i]; rocketG.remove(g); scene.add(g); if (hc) g.add(hc); g.position.set(0, 0, 0); g.userData.plume.visible = false; for (const e of g.userData.plume.userData.extra || []) e.visible = false; burst(0.5, 0.6, 1500); beep(660);
@@ -784,7 +804,7 @@ function reset() {
   gen++;
   if (booster && booster.mesh) scene.remove(booster.mesh);
   for (const d of debris) scene.remove(d.mesh); debris.length = 0;
-  if (shipVis) earth.remove(shipVis);
+  if (shipVis) earth.remove(shipVis); if (shipVis2) earth.remove(shipVis2); shipVis2 = null; if (booster2 && booster2.mesh) scene.remove(booster2.mesh); booster2 = null;
   shipVis = null; booster = null; camMode = 'chase'; try { director = null; replay = null; slowMo = 0; recBuf.length = 0; for (const k in seen) delete seen[k]; dirPhase = ''; } catch (e) { }
   try { split.rec.length = 0; split.done = 0; split.closed = false; split.replay = null; split.full = null; } catch (e) { } if (typeof smap !== 'undefined') smap.reset();
   camDist = Math.min(fitDist(stackL(), 0.62), 140); camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8; camAim = 0.5; // f4 pad framing
@@ -1387,7 +1407,7 @@ renderer.setAnimationLoop(() => {
     if (swingArm && F.ignited && swingArm.rotation.y < 1.4) swingArm.rotation.y += rdt * 0.8;
   }
   const th = v.earthRot === false ? 0 : P.OMEGA_E * (v.clock || 0), wE = v.earthRot === false ? 0 : P.OMEGA_E;
-  if (booster && booster.state !== 'flying' && booster.ef) { booster.r = V.rotZ(V.scale(booster.ef, R + booster.lift), th); booster.v = siteVel(booster); }
+  for (const bb of [booster, booster2]) if (bb && bb.state !== 'flying' && bb.ef) { bb.r = V.rotZ(V.scale(bb.ef, R + bb.lift), th); bb.v = siteVel(bb); }
   // floating origin: the focused craft is at the scene origin
   const focus = (camMode === 'booster' && booster && booster.mesh && booster.mesh.visible) ? booster : v;
   const tel = v.tel, nose = P.noseOf(v), base = V.sub(v.r, V.scale(nose, tel.ycom));
@@ -1407,10 +1427,10 @@ renderer.setAnimationLoop(() => {
     setRel(d.mesh, d.r, O); dirQ(d.mesh, d.dir);
     if (d.gone || d.t > 120) { scene.remove(d.mesh); debris.splice(k, 1); }
   }
-  if (booster && booster.mesh.visible) {
-    setRel(booster.mesh, booster.r, O); dirQ(booster.mesh, booster.dir);
-    const bh = V.len(booster.r) - R, legs = booster.mesh.userData.legs; if (legs) legs.visible = booster.state === 'landed' || (booster.state === 'flying' && (booster.legs || bh < 600));
-    if (booster.state === 'flying') emit(booster, booster.mesh, pdt, booster.r, booster.dir); else booster.mesh.userData.plume.visible = false;
+  for (const bq of [booster, booster2]) if (bq && bq.mesh && bq.mesh.visible) { // f4.2: each side booster
+    setRel(bq.mesh, bq.r, O); dirQ(bq.mesh, bq.dir);
+    const bh = V.len(bq.r) - R, legs = bq.mesh.userData.legs; if (legs) legs.visible = bq.state === 'landed' || (bq.state === 'flying' && (bq.legs || bh < 600));
+    if (bq.state === 'flying') emit(bq, bq.mesh, pdt, bq.r, bq.dir); else bq.mesh.userData.plume.visible = false;
   }
   // ground tile follows the focus (Earth-fixed coordinates)
   const fr = V.len(O), h = fr - R, isMap = camMode === 'map';
@@ -1475,7 +1495,7 @@ renderer.setAnimationLoop(() => {
     if (mapOn) document.querySelectorAll('.modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
     smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
   updateSplit(rdt);
-  if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.25, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
+  if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * (booster2 ? 1 / 3 : 0.25), innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
   if (mapOn) { smap.update(rdt); mapPost.render(); }
   else { post.render(); renderSplit(O); }
   if (snapReq) { const f = snapReq; snapReq = null; savePhoto(f); }
@@ -1491,6 +1511,7 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
 { const d = document.createElement('div'); d.id = 'split'; d.className = 'hidden';
   d.innerHTML = '<div id="spPane"><div class="spCard" id="spCardB"><canvas class="spBall" id="spBallB" width="64" height="64"></canvas><div id="spHud"></div></div><div class="spBtns"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div class="spCard" id="spCardU"><canvas class="spBall" id="spBallU" width="64" height="64"></canvas><div id="spHud1"></div></div></div>';
   document.body.appendChild(d);
+  { const p2 = document.createElement('div'); p2.id = 'spPane2'; p2.className = 'hidden'; p2.innerHTML = '<div class="spCard" id="spCardB2"><canvas class="spBall" id="spBallB2" width="64" height="64"></canvas><div id="spHud2"></div></div>'; d.appendChild(p2); } // f4.2: booster B pane
   $('spFull').onclick = e => { e.stopPropagation(); split.full = split.full === 'b' ? null : 'b'; camMode = split.full === 'b' ? 'booster' : 'chase'; };
   // f4: the booster pane has its own camera: drag orbits, pinch / wheel zooms, a tap (no drag) toggles full screen
   const pp = $('spPane'), pts = new Map(); let moved = 0, pinch0 = 0, d0 = 90;
@@ -1514,10 +1535,12 @@ function placeTopStack(on) { // f4.1b: in split, toasts/hints (#topStack, compac
   for (const id of ['topStack', 'hintS']) { const ts = $(id); if (!ts) continue;
     if (!land) { if (ts.dataset.sp) { ts.style.removeProperty('left'); ts.style.removeProperty('top'); ts.style.removeProperty('max-width'); delete ts.dataset.sp; } continue; }
     ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * 0.25) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(W * 0.5 - 32) + 'px', 'important'); } }
-function paneRect() { const W = innerWidth, H = innerHeight; return splitPortrait() ? { x: 0, y: H * 0.5, w: W, h: H * 0.5 } : { x: W * 0.5, y: 0, w: W * 0.5, h: H }; }
+function paneRect(i = 0, nb = 1) { const W = innerWidth, H = innerHeight; // f4.2: a heavy's two boosters: stacked on the right (landscape) or rows 2-3 (portrait)
+  if (nb > 1) return splitPortrait() ? { x: 0, y: H / 3 * (i + 1), w: W, h: H / 3 } : { x: W * 0.5, y: H * 0.5 * i, w: W * 0.5, h: H * 0.5 };
+  return splitPortrait() ? { x: 0, y: H * 0.5, w: W, h: H * 0.5 } : { x: W * 0.5, y: 0, w: W * 0.5, h: H }; }
 function updateSplit(rdt) {
-  const b = booster, flying = b && b.state === 'flying' && b.mesh && b.mesh.visible !== false;
-  if (flying) { split.rec.push({ r: b.r.slice(), dir: b.dir.slice(), thr: b.thrust, n: b.n }); if (split.rec.length > 900) split.rec.shift(); split.done = 0; }
+  const b = booster, flyA = b && b.state === 'flying' && b.mesh && b.mesh.visible !== false, flying = flyA || !!(booster2 && booster2.state === 'flying');
+  if (flyA) { split.rec.push({ r: b.r.slice(), dir: b.dir.slice(), thr: b.thrust, n: b.n }); if (split.rec.length > 900) split.rec.shift(); split.done = 0; }
   const want = split.enabled && !split.closed && state === 'flight' && camMode !== 'map' && F.body === 'earth' && !photoOn && !replay && !F.flags.dead && b && (flying || split.done < 6);
   if (!flying && b && split.on) { // landed or lost: hold, then a slow replay of the last seconds, then close
     if (!split.done && split.rec.length > 30) split.replay = { i: Math.max(0, split.rec.length - 240), k: 0 };
@@ -1526,18 +1549,20 @@ function updateSplit(rdt) {
   document.body.classList.toggle('splitOn', !!(want && split.full !== 'b')); placeTopStack(!!(want && split.full !== 'b'));
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want) { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
   if (!split.on) return;
-  const R2 = paneRect(), fb = split.full === 'b';
-  $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('fullB', fb);
+  const nb = booster2 ? 2 : 1, R2 = paneRect(0, nb), fb = split.full === 'b';
+  $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('fullB', fb); $('split').classList.toggle('tri', nb > 1);
+  { const p2 = $('spPane2'), on2 = nb > 1 && !fb; p2.classList.toggle('hidden', !on2); if (on2) { const r3 = paneRect(1, nb), s2 = p2.style; s2.left = r3.x + 'px'; s2.top = r3.y + 'px'; s2.width = r3.w + 'px'; s2.height = r3.h + 'px'; } }
   const st = $('spPane').style; if (fb) { st.left = '0'; st.top = '0'; st.width = '100%'; st.height = '100%'; } else { st.left = R2.x + 'px'; st.top = R2.y + 'px'; st.width = R2.w + 'px'; st.height = R2.h + 'px'; }
   split.frame++; if (b) { // f4.1b: every frame (was every 6th — at low fps the cards lagged by seconds)
-    const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
-    const bf = b.stages[0], bfp = bf && bf.fuelMax ? Math.round(100 * bf.fuel / bf.fuelMax) : 0, bs = V.len(bva);
-    const bPh = split.replay ? '⟲ REPLAY' : b.state === 'landed' ? '✔ LANDED' : b.state !== 'flying' ? '✘ LOST' : b.manual ? 'MANUAL' : apPill(b.phase);
-    setHTML('spHud', `<div class="spT"><b>BOOSTER</b><span class="pill ${/BURN|LANDING/.test(bPh) ? 'hot' : ''}">${bPh}</span></div><div class="spG"><span>ALT</span><b>${fmtD(bh)}</b><span>SPD</span><b>${fmtS(bs)}</b><span>V/S</span><b>${vs >= 0 ? '+' : ''}${vs.toFixed(0)} m/s</b><span>FUEL</span><b>${bf ? bf.fuel.toFixed(1) : 0} t</b></div>`);
+    const card = (b, label, hud, ball, rp) => { const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
+      const bf = b.stages[0], bs = V.len(bva), bPh = rp ? '⟲ REPLAY' : b.state === 'landed' ? '✔ LANDED' : b.state !== 'flying' ? '✘ LOST' : b.manual ? 'MANUAL' : apPill(b.phase);
+      setHTML(hud, `<div class="spT"><b>${label}</b><span class="pill ${/BURN|LANDING/.test(bPh) ? 'hot' : ''}">${bPh}</span></div><div class="spG"><span>ALT</span><b>${fmtD(bh)}</b><span>SPD</span><b>${fmtS(bs)}</b><span>V/S</span><b>${vs >= 0 ? '+' : ''}${vs.toFixed(0)} m/s</b><span>FUEL</span><b>${bf ? bf.fuel.toFixed(1) : 0} t</b></div>`);
+      miniBall($(ball), b.dir, b.r, bva); };
+    card(b, booster2 ? 'BOOSTER A · ' + (b.lzName || 'LZ-1') : 'BOOSTER', 'spHud', 'spBallB', !!split.replay); if (booster2) card(booster2, 'BOOSTER B · ' + (booster2.lzName || 'LZ-2'), 'spHud2', 'spBallB2', false);
     const uu = V.norm(v.r), uva = P.airVel(v, v.r, v.v), uvs = V.dot(v.v, uu), us = v.stages[v.cur], ufp = us && us.fuelMax ? Math.round(100 * us.fuel / us.fuelMax) : 0;
     const uPh = v.auto || F.autoOn ? ({ ascent: 'ASCENT', coast: 'COAST TO AP', circ: 'ORBIT INSERTION', done: 'IN ORBIT' }[v.guid] || 'AUTO') : 'MANUAL';
     setHTML('spHud1', `<div class="spT"><b>UPPER STAGE</b><span class="pill ${v.thrust > 0 ? 'hot' : ''}">${uPh}</span></div><div class="spG"><span>ALT</span><b>${fmtD(P.altOf(v))}</b><span>SPD</span><b>${fmtS(V.len(v.v))}</b><span>V/S</span><b>${uvs >= 0 ? '+' : ''}${uvs.toFixed(0)} m/s</b><span>FUEL</span><b>${ufp}%</b></div>`);
-    miniBall($('spBallB'), b.dir, b.r, bva); miniBall($('spBallU'), P.noseOf(v), v.r, P.altOf(v) > 80000 ? v.v : uva);
+    miniBall($('spBallU'), P.noseOf(v), v.r, P.altOf(v) > 80000 ? v.v : uva);
   }
 }
 const apPill = ph => { const p = (ph || '').toLowerCase(); return /boost/.test(p) ? 'BOOSTBACK' : /entry/.test(p) ? 'ENTRY BURN' : /landing|controlled/.test(p) ? 'LANDING BURN' : /glide|fin/.test(p) ? 'GRID-FIN GLIDE' : /touch/.test(p) ? 'TOUCHDOWN' : /coast/.test(p) ? 'COAST' : (ph || 'AUTO').toUpperCase(); };
@@ -1557,26 +1582,37 @@ function miniBall(cv, dir, r, vel) {
 function renderSplit(O) {
   const son = !!(split.on && split.full !== 'b' && booster); if (document.body.classList.contains('splitOn') !== son) document.body.classList.toggle('splitOn', son); // f4.1: class follows what is drawn
   if (!son) return;
-  const R2 = paneRect(), b = booster; let br = b.r, bd = b.dir;
-  if (split.replay) { const rp = split.replay; rp.k += 0.5; const f = split.rec[Math.min(split.rec.length - 1, rp.i + Math.floor(rp.k))]; if (f) { br = f.r; bd = f.dir; setRel(b.mesh, br, O); dirQ(b.mesh, bd); b.mesh.userData.plume.visible = f.thr > 0.01; } }
-  const up = V.norm(br), e = P.eastOf(br), n = V.cross(up, e); if (performance.now() - split.userT > 4000) split.yaw += 0.002;
+  const bs = splitBs(); for (let i = 0; i < bs.length; i++) renderPane(bs[i], O, paneRect(i, bs.length), i);
+}
+// f4.2: the booster panes in split (1, or 2 for a heavy's side pair). Each has its own camera, render target and
+// composite quad. The camera's up vector is the booster's local radial, eased like the main camera, so the horizon
+// stays level and the ground stays below whatever the booster does (flip, boostback, entry, landing).
+const paneSlots = [];
+function renderPane(b, O, R2, i) {
+  const S = paneSlots[i] || (paneSlots[i] = { cam: i ? new THREE.PerspectiveCamera(55, 1, 0.5, 2e9) : cam2, up: null, look: null, t: 0 });
+  const cam = S.cam; let br = b.r, bd = b.dir;
+  if (split.replay && i === 0) { const rp = split.replay; rp.k += 0.5; const f = split.rec[Math.min(split.rec.length - 1, rp.i + Math.floor(rp.k))]; if (f) { br = f.r; bd = f.dir; setRel(b.mesh, br, O); dirQ(b.mesh, bd); b.mesh.userData.plume.visible = f.thr > 0.01; } }
+  const up = V.norm(br), e = P.eastOf(br), n = V.cross(up, e); if (i === 0 && performance.now() - split.userT > 4000) split.yaw += 0.002;
   const landed = b.state !== 'flying', pz = landed ? Math.max(0.18, split.pitch) : split.pitch; // f4.1: never under the ground
   if (landed) bd = up; // the landed booster stands up: frame its middle, camera upright
-  const lift = landed ? 20 : 0, tx = br[0] - O[0] + up[0] * lift, ty = br[1] - O[1] + up[1] * lift, tz = br[2] - O[2] + up[2] * lift, d = split.dist, cp = Math.cos(pz);
-  const off = V.add(V.add(V.scale(n, Math.cos(split.yaw) * d * cp), V.scale(e, Math.sin(split.yaw) * d * cp)), V.scale(up, d * Math.sin(pz)));
-  cam2.position.set(tx + off[0], ty + off[1], tz + off[2]); cam2.up.set(up[0], up[1], up[2]); cam2.lookAt(landed ? tx : tx + bd[0] * 15, landed ? ty : ty + bd[1] * 15, landed ? tz : tz + bd[2] * 15);
-  cam2.aspect = R2.w / R2.h; cam2.updateProjectionMatrix();
+  const lift = landed ? 20 : 0, tx = br[0] - O[0] + up[0] * lift, ty = br[1] - O[1] + up[1] * lift, tz = br[2] - O[2] + up[2] * lift, d = split.dist, cp = Math.cos(pz), yaw = split.yaw + (i ? 0.35 : 0);
+  const off = V.add(V.add(V.scale(n, Math.cos(yaw) * d * cp), V.scale(e, Math.sin(yaw) * d * cp)), V.scale(up, d * Math.sin(pz)));
+  const now = performance.now(), dt = Math.min(0.1, Math.max(0, (now - (S.t || now)) / 1000)); S.t = now; const kE = 1 - Math.exp(-dt * 4); // same 4/s easing as the chase camera
+  const lk = landed ? [0, 0, 0] : V.scale(bd, 15); S.look = S.look ? V.add(S.look, V.scale(V.sub(lk, S.look), kE)) : lk; S.up = S.up ? V.norm(V.add(S.up, V.scale(V.sub(up, S.up), kE))) : up;
+  cam.position.set(tx + off[0], ty + off[1], tz + off[2]); cam.up.set(S.up[0], S.up[1], S.up[2]); cam.lookAt(tx + S.look[0], ty + S.look[1], tz + S.look[2]);
+  cam.aspect = R2.w / R2.h; cam.updateProjectionMatrix();
   const fxV = fx.root ? fx.root.visible : null; if (fx.root) fx.root.visible = false; // Low look in the pane: no flow particles
-  // render the pane into an offscreen target (half resolution on phones), then composite it over the main view
   const sc = TOUCH ? 0.5 : Math.min(1, renderer.getPixelRatio()), tw = Math.max(16, Math.round(R2.w * sc)), th2 = Math.max(16, Math.round(R2.h * sc));
-  if (!split.rt) { split.rt = new THREE.RenderTarget(tw, th2, { samples: TOUCH ? 0 : 4 }); split.qm = new THREE.MeshBasicMaterial({ map: split.rt.texture, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
-    split.qs = new THREE.Scene(); const qm = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), split.qm); if (renderer.backend && renderer.backend.isWebGPUBackend) qm.scale.y = -1; /* f4.1: WebGPU render-target textures come out flipped: the pane showed the ground at the top */ split.qs.add(qm); split.qc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); }
-  if (split.rt.width !== tw || split.rt.height !== th2) split.rt.setSize(tw, th2);
-  renderer.setRenderTarget(split.rt); renderer.render(scene, cam2); renderer.setRenderTarget(null);
+  if (!S.rt) { S.rt = new THREE.RenderTarget(tw, th2, { samples: TOUCH ? 0 : 4 }); S.qm = new THREE.MeshBasicMaterial({ map: S.rt.texture, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+    S.qs = new THREE.Scene(); const qm = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), S.qm); if (renderer.backend && renderer.backend.isWebGPUBackend) qm.scale.y = -1; /* f4.1: WebGPU render-target textures come out flipped */ S.qs.add(qm); S.qc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); }
+  if (S.rt.width !== tw || S.rt.height !== th2) S.rt.setSize(tw, th2);
+  renderer.setRenderTarget(S.rt); renderer.render(scene, cam); renderer.setRenderTarget(null);
   const ac0 = renderer.autoClear; renderer.autoClear = false; renderer.setViewport(R2.x, R2.y, R2.w, R2.h);
-  renderer.render(split.qs, split.qc); renderer.autoClear = ac0; renderer.setViewport(0, 0, innerWidth, innerHeight);
+  renderer.render(S.qs, S.qc); renderer.autoClear = ac0; renderer.setViewport(0, 0, innerWidth, innerHeight);
   if (fx.root && fxV !== null) fx.root.visible = fxV;
+  S.dbg = { up: S.up, camUp: [cam.up.x, cam.up.y, cam.up.z], bd, br, cam: [cam.position.x + O[0], cam.position.y + O[1], cam.position.z + O[2]], R2 };
 }
+const splitBs = () => [booster, booster2].filter(x => x && x.mesh && (x.state === 'flying' || x.state === 'landed' || x === booster));
 // ---------- gx1: sun, sky, scattering, eclipse, plume light; cinematic shake and staging drama ----------
 scene.fog = new THREE.FogExp2(0x9cc4ec, 2e-5); const cHaze = new THREE.Color(0xdde8f4);
 const skyC = new THREE.Color(), cSky = new THREE.Color(0x3d7fe0), cHor = new THREE.Color(0xff8a3c), cNight = new THREE.Color(0x02040a);
@@ -1929,7 +1965,10 @@ function plumeAudit() {
   for (const p of smoke.d) { if (p.life <= 0) continue; const d = [p.x - base[0], p.y - base[1], p.z - base[2]], along = V.dot(d, vh); if (along > 60 || along < -400) continue; const lat = V.len(V.addS(d, vh, -along)); if (p.max - p.life > 2.5) continue; n++; s2 += lat * lat; mx = Math.max(mx, lat); }
   out.smoke = { samp: smoke.d.filter(p => { if (p.life <= 0 || p.max - p.life > 2.5) return false; const al = V.dot([p.x - base[0], p.y - base[1], p.z - base[2]], vh); return al < 60 && al > -400; }).slice(0, 10).map(p => { const d = [p.x - base[0], p.y - base[1], p.z - base[2]], al = V.dot(d, vh); return [+(p.max - p.life).toFixed(1), Math.round(al), Math.round(V.len(V.addS(d, vh, -al)))]; }), n, rms: n ? +Math.sqrt(s2 / n).toFixed(1) : 0, max: +mx.toFixed(1) }; return out;
 }
-window.__game = { dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
+window.__game = { get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
+    const c0 = b.mesh.getWorldPosition(new THREE.Vector3()), p0 = c0.clone().project(cam), p1 = c0.clone().add(ny.clone().multiplyScalar(10)).project(cam), up = V.norm(b.r);
+    const cu = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion), crt = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    return { id: b.id || 'A', replay: !!(i === 0 && split.replay), state: b.state, phase: b.phase, meshVsDir: +(ny.x * b.dir[0] + ny.y * b.dir[1] + ny.z * b.dir[2]).toFixed(3), dirUp: +V.dot(b.dir, up).toFixed(3), noseScreenUp: +(p1.y - p0.y).toFixed(4), onScreen: Math.abs(p0.x) < 1 && Math.abs(p0.y) < 1 && p0.z < 1, camUpRadial: +(cu.x * up[0] + cu.y * up[1] + cu.z * up[2]).toFixed(3), roll: +(crt.x * up[0] + crt.y * up[1] + crt.z * up[2]).toFixed(3), R2: S.dbg.R2 }; }), dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
     const va = V.sub(v.v, siteVel(v)), sp = V.len(va), vh = sp > 1 ? V.scale(va, 1 / sp) : P.noseOf(v), nz = V.sub(v.r, V.scale(P.noseOf(v), P.massProps(v).ycom)); let ahead = 0, maxA = -1e9, n = 0; const dbg = [];
     for (const sys of [fire, smoke]) for (const q of sys.d) { if (q.life <= 0 || Math.hypot(q.x, q.y, q.z) - P.R_E < 300) continue; /* ignore the pad cloud */ const a = V.dot([q.x - nz[0], q.y - nz[1], q.z - nz[2]], vh); if (V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]) > 3000) continue; n++; if (a > maxA) maxA = a; if (a > 2) { ahead++; if (dbg.length < 6) dbg.push({ sys: sys === fire ? 'fire' : 'smoke', a: +a.toFixed(0), age: +(q.max - q.life).toFixed(2), c: q.c0 && q.c0.toString(16), d: q.drag, rva: +V.dot([q.vx - v.v[0], q.vy - v.v[1], q.vz - v.v[2]], vh).toFixed(0), an: +V.dot(P.noseOf(v), vh).toFixed(3), r: +V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]).toFixed(0) }); } }
     return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };

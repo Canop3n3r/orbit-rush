@@ -380,7 +380,7 @@ export class Flight {
       if (d.radial && this.recovery === 'rtls' && !this.booster && d.stages[0].fuel > 0.3 && bh > 2000) { // f4: side boosters fly back to the landing zone
         d.ut = 0; d.manual = false; d.maxH = bh; d.stagedAlt = bh; d.rtls = true; d.canLand = true; this.booster = d; this.ship = { ef: LZ_EF.slice(), moved: true, lz: true, name: 'LZ-1' }; d.ship = this.ship; d.lzName = 'LZ-1';
         const parts = d.radial >= 2 ? this.splitBoosters(d) : [d]; this.boosters = parts;
-        this.call('ship', this.ship); if (parts[1]) this.call('ship', parts[1].ship); this.call('stage', d, parts);
+        this.call('ship', this.ship); if (parts[1]) this.call('ship', parts[1].ship); this.call('stage', parts[0], parts);
         this.flags.stagedFuel = d.stages[0].fuel * parts.length; this.flags.stagedAlt = bh; this.toast(parts.length > 1 ? `BOOSTER SEP — side boosters A and B boosting back to LZ-1 and LZ-2` : `BOOSTER SEP — ${d.radial} side boosters boosting back to the landing zone`, '#fff'); return;
       }
       this.call('drop', d);
