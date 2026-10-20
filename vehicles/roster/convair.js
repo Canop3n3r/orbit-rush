@@ -2,7 +2,7 @@
 // Stage masses, thrust, Isp, burn: GCAT (J. McDowell, planet4589.org, CC BY; see CREDITS.md) via rocketdb. ESTIMATE fields in est.
 export const ENGINES_CONVAIR = {
   'cv-e1': { tSl: 6265.6, tVac: 7120.0, ispSl: 239.4, ispVac: 272.0, src: 'spec:engines#cv-e1', est: ['tSl', 'ispSl'] },
-  'cv-e2': { tSl: 1078.9, tVac: 1226.0, ispSl: 265.8, ispVac: 302.0, src: 'spec:engines#cv-e2', est: ['tSl', 'ispSl'] },
+  'cv-e2': { tSl: 1014.9, tVac: 1226.0, ispSl: 250, ispVac: 302, src: 'spec:engines#cv-e2', est: ['tSl (vac thrust x Isp ratio)'] },
   'cv-e3': { tSl: 0, tVac: 472.2, ispSl: 0, ispVac: 316.0, src: 'spec:engines#cv-e3' },
   'cv-e4': { tSl: 1209.2, tVac: 1375.0, ispSl: 248.0, ispVac: 282, src: 'spec:engines#cv-e4', est: ['tSl (vac thrust x Isp ratio)'] },
   'cv-e5': { tSl: 174.4, tVac: 253.0, ispSl: 213.0, ispVac: 309, src: 'spec:engines#cv-e5', est: ['tSl (vac thrust x Isp ratio)'] },
@@ -14,23 +14,23 @@ export const ENGINES_CONVAIR = {
 export const ROSTER_CONVAIR = [
   { id: 'titanus-4', name: "Titanus IV", company: 'convair', src: 'spec:titanus-4', area: 22.5, fairing: 4989, est: ['area'],
     stages: [
-      { engines: {'cv-e1': 2}, dry: 102400, prop: 536200, burn: 120.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)'] },
+      { engines: {'cv-e1': 2}, dry: 102400, prop: 536200, burn: 120.0, group: 0, jettisonAt: 120.0, recovery: 'expended', src: 'GCAT' },
       { engines: {'cv-e2': 2}, dry: 8000, prop: 155000, burn: 164.0, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'cv-e3': 1}, dry: 4500, prop: 35000, burn: 223.0, group: 1, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 17600, orbit: { hp: 185, ha: 185, inc: 90.0 }, src: "spec:titanus-4#ref (service fact sheet: polar LEO from the west-coast site)", est: ['orbit altitude (fact sheet gives none: 185 km ESTIMATE)'] , knownGap: "model -44 %: strap-on light sequence not in the data (all lit at liftoff); residuals/reserves unsourced; no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 17600, orbit: { hp: 185, ha: 185, inc: 90.0 }, src: "spec:titanus-4#ref (service fact sheet: polar LEO from the west-coast site)", est: ['orbit altitude (fact sheet gives none: 185 km ESTIMATE)'] , knownGap: "model -45 %: residuals/reserves unsourced; no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'atlantean', name: "Atlantean", company: 'convair', src: 'spec:atlantean', area: 14.6, fairing: 0, est: ['area'],
     stages: [
-      { engines: {'cv-e4': 1}, dry: 3400, prop: 67122, burn: 135.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)', 'prop (shared tanks: rated flow \u00d7 burn moved from the sustainer)'] },
-      { engines: {'cv-e5': 1}, dry: 3400, prop: 44478, burn: 281.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['prop (minus the drop-off section share)'] },
+      { engines: {'cv-e4': 1}, dry: 3400, prop: 76320, burn: 135.0, group: 0, jettisonAt: 135.0, recovery: 'expended', src: 'GCAT' },
+      { engines: {'cv-e5': 1}, dry: 3400, prop: 35280, burn: 281.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['prop (minus the drop-off section share)'] },
     ],
-    modes: [{ variant: 'leo', payload: 1383, orbit: { hp: 163, ha: 265, inc: 32.5 }, src: "spec:atlantean#ref (flown: heaviest crewed capsule and its orbit, GCAT launch list/satcat)", est: [] , knownGap: "model no orbit: strap-on light sequence not in the data (all lit at liftoff); residuals/reserves unsourced; no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 1383, orbit: { hp: 163, ha: 265, inc: 32.5 }, src: "spec:atlantean#ref (flown: heaviest crewed capsule and its orbit, GCAT launch list/satcat)", est: [] , knownGap: "model -96 % (losses kept physical, not lowered): rocketdb ideal-delta-v check (DELTA_V.md) gives this variant 9,007 m/s ideal with its own LEO figure, SHORT of the 9,300-9,500 m/s an orbit needs, so its stage data cannot reach orbit with that payload; residuals/reserves unsourced; no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'atlantean-centaurus', name: "Atlantean-Centaurus", company: 'convair', src: 'spec:atlantean-centaurus', area: 17.9, fairing: 2087, est: ['area'],
     stages: [
-      { engines: {'cv-e6': 1}, dry: 3200, prop: 40799, burn: 165.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)', 'prop (shared tanks: rated flow \u00d7 burn moved from the sustainer)'] },
-      { engines: {'cv-e7': 4}, dry: 5600, prop: 1, burn: 56.2, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)', 'prop (minus the drop-off section share)'] },
-      { engines: {'cv-e8': 1}, dry: 10350, prop: 153150, burn: 274.0, group: 0, recovery: 'expended', src: 'GCAT' },
+      { engines: {'cv-e6': 1}, dry: 3200, prop: 123440, burn: 172.0, group: 0, jettisonAt: 172.0, recovery: 'expended', src: 'GCAT' },
+      { engines: {'cv-e7': 4}, dry: 5600, prop: 40800, burn: 56.2, group: 0, jettisonAt: 56.2, recovery: 'expended', src: 'GCAT' },
+      { engines: {'cv-e8': 1}, dry: 10350, prop: 29710, burn: 274.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['prop (minus the drop-off section share)'] },
       { engines: {'cv-e9': 2}, dry: 2200, prop: 16800, burn: 370.0, group: 1, restart: true, restartSrc: 'spec:atlantean-centaurus#restart (rocketdb per-stage restartable, cited)', recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 8610, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: "spec:atlantean-centaurus#ref (185 km circular at 28.5 deg, encyclopedia entry citing the mission planner's guide)", est: [] , knownGap: "model no orbit: strap-on light sequence not in the data (all lit at liftoff); residuals/reserves unsourced; final stage restartable: coast-and-restart flown; SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 8610, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: "spec:atlantean-centaurus#ref (185 km circular at 28.5 deg, encyclopedia entry citing the mission planner's guide)", est: [] }] },
 ];
