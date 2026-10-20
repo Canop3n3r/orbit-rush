@@ -1,4 +1,4 @@
-// co-ula-1: United Lift Alliance (parody) — Atlantean V (4xx/5xx: fairing size, solid-booster count, upper-stage engines)
+// ULX branch: United Lift Alliance (parody) — Atlantean V (4xx/5xx: fairing size, solid-booster count, upper-stage engines)
 // and Deltoid IV (Medium, Medium+ (4,2)/(5,2)/(5,4), Heavy). Original geometry, no logos/names.
 // Dimensions: rocketdb atlantean-v / deltoid-4 (GCAT) + design.md; fairing lengths art-fitted to published totals.
 import * as THREE from 'three/webgpu';
