@@ -39,11 +39,32 @@ function measure() {
   return { controls: ctl.length, belowFold: below, words, uiPct: Math.round(1000 * ui / tot) / 10, modal };
 }
 
+// Spec-gap checks (ideal path rev 2): end card vs HUD/rocket, LAUNCH size + thumb zone, company-group label words, Sandbox gate.
+// The flight camera isn't exposed on window.__game, so the rocket's screen centre is approximated by the viewport centre
+// (chase cam keeps the vehicle centred); swap in a projected point once __game exposes one (__game.rocketScreen?.()).
+function extra() {
+  const vis = e => { if (!e) return false; const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false; for (let p = e; p; p = p.parentElement) { const c = getComputedStyle(p); if (c.display === 'none' || c.visibility === 'hidden' || +c.opacity === 0) return false; } return r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth; };
+  const top = e => { const r = e.getBoundingClientRect(); const h = document.elementFromPoint(Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2))); return h && (h === e || e.contains(h)); };
+  const G = window.__game; let rc = null; try { rc = G && G.rocketScreen && G.rocketScreen(); } catch (e) {}
+  const rocket = rc && isFinite(rc.x) ? { x: rc.x, y: rc.y, src: 'projected' } : { x: innerWidth / 2, y: innerHeight / 2, src: 'viewport-centre' };
+  const end = document.getElementById('end'); let endUp = vis(end), endCover = null;
+  if (endUp) { const r = end.getBoundingClientRect(); endCover = rocket.x >= r.left && rocket.x <= r.right && rocket.y >= r.top && rocket.y <= r.bottom; }
+  const hudSel = '#hud button,#touch button,#warpBar button,#ctl button,#navball,#bars,#tele';
+  const hudVis = [...document.querySelectorAll(hudSel)].filter(e => vis(e) && top(e)).map(e => (e.id || e.textContent.trim().split(/\s+/)[0] || e.tagName).slice(0, 10));
+  const L = ['hLaunch', 'launch', 'hFly', 'launchBtn'].map(i => document.getElementById(i)).find(vis); let launch = null;
+  if (L) { const r = L.getBoundingClientRect(); launch = { id: L.id, h: Math.round(r.height), cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; }
+  const groups = [...document.querySelectorAll('[data-company],.co-chip,.company-chip')].filter(vis).map(e => ({ t: (e.getAttribute('aria-label') || e.textContent || '').trim(), w: ((e.textContent || '').match(/[A-Za-z0-9][\w'.:%/-]*/g) || []).length }));
+  const builder = ['hnBuild', 'buildBtn', 'builder'].map(i => document.getElementById(i)).filter(vis).map(e => e.id);
+  const st = G && G.settings || {}; const sbKey = Object.keys(st).find(k => /sandbox/i.test(k));
+  const sbUi = [...document.querySelectorAll('label,[role=switch],input[type=checkbox]')].some(e => vis(e) && /sandbox/i.test(e.textContent || e.getAttribute('aria-label') || e.name || e.id || '')); // a settings toggle, not the welcome modal's "Sandbox — just let me fly" button
+  return { endUp, endCover, hudVis, rocketSrc: rocket.src, launch, W: innerWidth, H: innerHeight, groups, builder, sandbox: sbKey ? { key: sbKey, on: !!st[sbKey] } : (sbUi ? { key: 'ui', on: null } : null) };
+}
+
 async function runVp(br, vp) {
   const [W, H] = vp.split('x').map(Number), phone = Math.min(W, H) < 600, tag = phone ? (W < H ? 'pp' : 'pl') : 'd' + W;
   const ctx = await br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } });
   const pg = await ctx.newPage(); const ev = (f, a) => pg.evaluate(f, a), wait = ms => pg.waitForTimeout(ms); const M = {}, rows = [];
-  const m = async l => { try { M[l] = await ev(measure); if (shots) await pg.screenshot({ path: `${shots}/uib_${tag}_${l}.png` }); } catch (e) { M[l] = { err: e.message.split('\n')[0] }; } };
+  const m = async l => { try { M[l] = await ev(measure); M[l].x = await ev(extra); if (shots) await pg.screenshot({ path: `${shots}/uib_${tag}_${l}.png` }); } catch (e) { M[l] = { err: e.message.split('\n')[0] }; } };
   const hide = () => ev(() => document.querySelectorAll('.modal').forEach(x => x.classList.add('hidden')));
   const step = async (l, f, ms) => { try { await f(); await wait(ms); await m(l); } catch (e) { M[l] = { err: e.message.split('\n')[0] }; } };
   const load = async () => { await pg.goto(base, { waitUntil: 'load' }); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await wait(2500); };
@@ -86,6 +107,24 @@ async function runVp(br, vp) {
     if (b.controls != null) chk(s, 'controls', r.controls, b.controls); if (b.words != null) chk(s, 'words', r.words, b.words);
     if (b.ui) chk(s, 'ui%', r.uiPct, b.ui[di]); if (b.below != null) chk(s, 'belowFold', r.belowFold, b.below);
     if (s === 'first_run') rows.push({ vp, screen: s, metric: 'welcome', val: r.modal ? 'yes' : 'no', max: 'no', ok: !r.modal }); }
+  // --- spec-gap checks (rev 2). ok:null = SKIP (counted separately, never a FAIL).
+  const X = s => M[s] && M[s].x; const skip = (screen, metric, why) => rows.push({ vp, screen, metric, val: 'SKIP', max: '-', ok: null, info: why });
+  const e = X('end_card');
+  if (!e || !e.endUp) skip('end_card', 'hud_hidden', 'end card not visible'); else {
+    rows.push({ vp, screen: 'end_card', metric: 'hud_hidden', val: e.hudVis.length, max: 0, ok: e.hudVis.length === 0, info: e.hudVis.slice(0, 6).join(',') });
+    rows.push({ vp, screen: 'end_card', metric: 'over_rocket', val: e.endCover ? 'yes' : 'no', max: 'no', ok: !e.endCover, info: 'rocket@' + e.rocketSrc }); }
+  const h = X('home');
+  if (!h || !h.launch) rows.push({ vp, screen: 'home', metric: 'launch', val: 'none', max: '-', ok: false, info: 'no LAUNCH/FLY control visible' }); else {
+    const portrait = h.H > h.W, inZone = portrait ? h.launch.cy >= h.H * 0.75 : (h.launch.cy >= h.H * 0.5 && h.launch.cx >= h.W * 0.5);
+    rows.push({ vp, screen: 'home', metric: 'launch_h', val: h.launch.h, max: '≥64', ok: h.launch.h >= 64, info: '#' + h.launch.id });
+    rows.push({ vp, screen: 'home', metric: 'thumb_zone', val: inZone ? 'in' : 'out', max: 'in', ok: inZone, info: portrait ? 'bottom 25%' : 'bottom-right quadrant' }); }
+  const gs = ['home', 'missions_hub', 'build'].flatMap(s => (X(s) && X(s).groups || []).map(g => ({ s, ...g })));
+  if (!gs.length) skip('picker', 'group_words', 'no company groups in UI yet ([data-company]/.co-chip)');
+  else { const worst = gs.reduce((a, b) => (b.w > a.w ? b : a)); rows.push({ vp, screen: 'picker', metric: 'group_words', val: worst.w, max: 2, ok: worst.w <= 2, info: `${gs.length} groups; worst "${worst.t.slice(0, 24)}" on ${worst.s}` }); }
+  const sb = X('settings') && X('settings').sandbox, hb = X('home');
+  if (!sb) skip('home', 'builder_gated', 'no Sandbox setting yet' + (hb && hb.builder.length ? ` (builder open on home: ${hb.builder.join(',')})` : ''));
+  else if (sb.on === false || sb.on === null) rows.push({ vp, screen: 'home', metric: 'builder_gated', val: hb.builder.length, max: 0, ok: hb.builder.length === 0, info: 'Sandbox off; visible: ' + hb.builder.join(',') });
+  else skip('home', 'builder_gated', 'Sandbox is on in this profile');
   rows.push({ vp, screen: 'taps_to_liftoff', metric: 'taps(fresh)', val: lifted ? taps : `>${taps}`, max: 2, ok: lifted && taps <= 2, info: path.join(' → ') });
   return { vp, metrics: M, taps: { taps, lifted, path }, rows };
 }
@@ -93,10 +132,10 @@ async function runVp(br, vp) {
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: GPU });
   const all = []; for (const vp of vps) all.push(await runVp(br, vp)); await br.close();
-  const rows = all.flatMap(a => a.rows); let fails = 0;
+  const rows = all.flatMap(a => a.rows); let fails = 0, skips = 0;
   console.log(`UI budget smoke · ${base} · ${strict ? 'STRICT' : 'report-only'}`);
-  for (const r of rows) { if (!r.ok) fails++; console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.vp.padEnd(8)} ${r.screen.padEnd(16)} ${r.metric.padEnd(12)} ${String(r.val).padStart(6)} / ≤${r.max}${r.info ? '  ' + r.info : ''}`); }
-  console.log(`${rows.length - fails}/${rows.length} budgets pass`);
+  for (const r of rows) { if (r.ok === null) skips++; else if (!r.ok) fails++; console.log(`${r.ok === null ? 'SKIP' : r.ok ? 'PASS' : 'FAIL'}  ${r.vp.padEnd(8)} ${r.screen.padEnd(16)} ${r.metric.padEnd(12)} ${String(r.val).padStart(6)} / ${/^[≥a-z-]/.test(String(r.max)) ? "" : "≤"}${r.max}${r.info ? '  ' + r.info : ''}`); }
+  console.log(`${rows.length - fails - skips}/${rows.length - skips} budgets pass (${skips} skipped)`);
   if (jsonOut) require('fs').writeFileSync(jsonOut, JSON.stringify(all, null, 1));
   process.exit(strict && fails ? 1 : 0);
 })().catch(e => { console.error('FATAL', e.message); process.exit(strict ? 1 : 0); });
