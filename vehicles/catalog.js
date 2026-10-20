@@ -65,3 +65,28 @@ export const VEHICLES = [
     ], fairing: 0,
     modes: [{ mode: 'fully-reusable', payloadLEO: 200000, reserve: [450000, 70000], src: 'spec:titan-ss#v4-payload', est: ['reserve'] }] },
 ];
+
+// Mission variants of the Mk III super-heavy stack (data only; spec:titan-ss-missions). Built from titan-ss-v3 so shared
+// numbers stay in one place; only the listed fields differ. Kept out of VEHICLES because their "payload" is not a LEO
+// payload quote (propellant cargo, surface payloads), so the LEO ±8 % check does not apply; see tests/mission_vehicles.mjs.
+const V3 = VEHICLES.find(v => v.id === 'titan-ss-v3');
+const variant = (id, src, ship, extra) => ({ id, base: 'titan-ss-v3', src, lat: V3.lat, est: ['lat'], fairing: 0,
+  stages: [{ ...V3.stages[0] }, { ...V3.stages[1], ...ship }], ...extra });
+export const MISSION_VARIANTS = [
+  // Propellant carrier: cargo is transferable propellant. ~150 t per flight sourced (spec:titan-ss-missions#tanker); dry EST.
+  variant('titan-ss-tanker', 'spec:titan-ss-missions#tanker', { recovery: 'belly-flop entry, flip, catch' },
+    { role: 'tanker', cargoProp: 150000, cargoPropRange: [100000, 150000], reserve: V3.modes[0].reserve, est: ['lat', 'reserve'] }),
+  // Orbital depot: stays in LEO, stores transferred propellant; capacity and dry mass unsourced (EST: ~ship tank capacity).
+  variant('titan-ss-depot', 'spec:titan-ss-missions#depot', { recovery: 'none (stays in orbit)', dry: 150000, est: ['dry'] },
+    { role: 'depot', storageCap: 1600000, tankersPerFill: [4, 16], est: ['lat', 'storageCap'] }),
+  // Lunar lander: no heat shield/flaps; refilled in LEO. Tank ~1,200 t sourced; dry ~85–100 t EST; surface payload ~100 t EST.
+  variant('titan-ss-lunar', 'spec:titan-ss-missions#lunar', { recovery: 'none (stays in lunar space)', dry: 100000, dryRange: [85000, 100000], prop: 1200000, est: ['dry'] },
+    { role: 'lunar-lander', payloadSurface: 100000, dvNeed: 5900, tankersPerFill: [4, 16], est: ['lat', 'payloadSurface', 'dvNeed'] }),
+  // Mars ship: >100 t to Mars surface after orbital refill (sourced architecture figure); ship dry EST from Mk III.
+  variant('titan-ss-mars', 'spec:titan-ss-missions#mars', { recovery: 'aerobraked entry, propulsive landing on Mars' },
+    { role: 'mars-transport', payloadSurface: 100000, dvNeed: 4200, est: ['lat', 'dvNeed'] }),
+];
+// Payload items (not vehicles): mass carried by a vehicle mode; the catalog has no payload registry, so this is a plain list.
+export const PAYLOADS = [
+  { id: 'roadster-payload', mass: 1300, massRange: [1250, 1350], kind: 'demo mass (car + mount)', carrier: 'heron-heavy', orbit: 'heliocentric', src: 'spec:roadster-payload' },
+];
