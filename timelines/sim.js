@@ -32,6 +32,7 @@ export function makeFlight(id, opts = {}) {
     Object.assign(gs, { dry: dryT, fuel: propT, fuelMax: propT, eng: { ...eng, gimbal: gs.eng.gimbal || 0.087 }, n });
   });
   if (v.fairing !== undefined) v.fairing = (cat.fairing || 0) / 1000;
+  v._g = null; // stackGeom caches part masses/fuelCap at construction: drop it so the catalog masses take effect
   return { F, cat, mode };
 }
 // Fly AUTO to orbit with the game's own guidance; we stage the booster ourselves when it reaches the catalog
@@ -43,10 +44,14 @@ export function flyAuto(id, opts = {}) {
   const reserveT = (opts.reserve ?? mode.reserve?.[0] ?? 0) / 1000, s0 = cat.stages.find(s => s.parallel) ? 1 : 0;
   let cur = F.v.cur, phase = '';
   F.autoStage = false; F.stagePress(); F.setAuto(true, true);
+  if (opts.ascent) F.v.ascentTable = opts.ascent; // timelines/ascent.js table, read by autoGuide
+  const peak = { q: 0, t: 0, alt: 0 }; let meco = null;
   for (let t = 0; t < (opts.tMax || 1500); t += dt) {
+    if (opts.ascent) F.v.ascentMet = F.met;
     F.realT += dt; F.step(dt);
+    const q = F.v.tel ? F.v.tel.q : 0; if (F.v.cur === s0 && q > peak.q) Object.assign(peak, { q, t: +F.met.toFixed(1), alt: Math.round(F.alt) });
     if (F.flags.maxq) mark('maxq'); // the game's Max-Q call (q fell 20 % below its peak)
-    if (reserveT > 0 && F.v.cur === s0 && F.v.stages[s0].fuel <= reserveT && F.canStage() && F.alt > 2000) F.stage();
+    if (reserveT > 0 && F.v.cur === s0 && F.v.stages[s0].fuel <= reserveT && F.canStage() && F.alt > 2000) { meco = { t: +F.met.toFixed(1), alt: Math.round(F.alt), v: Math.round(F.v.tel?.vAir ?? 0), vIn: Math.round(Math.hypot(...F.v.v)) }; F.stage(); }
     if (F.v.cur !== cur) { mark(cur === 0 ? 'stage1Sep' : 'stage2Sep'); cur = F.v.cur; }
     if (F.flags.fairing) mark('fairing');
     if (F.flags.cutoff) mark('seco');
@@ -55,5 +60,5 @@ export function flyAuto(id, opts = {}) {
       if (b.state === 'landed') mark('boosterLanded'); }
     if (F.flags.dead || F.flags.stranded || (F.flags.cutoff && (!b || b.state !== 'flying'))) break;
   }
-  return { ev, F, cat, orbit: !!F.flags.orbit && !F.flags.dead, dead: F.flags.dead, cause: F.flags.cause, boosterState: F.booster && F.booster.state };
+  return { ev, peak, meco, F, cat, orbit: !!F.flags.orbit && !F.flags.dead, dead: F.flags.dead, cause: F.flags.cause, boosterState: F.booster && F.booster.state };
 }

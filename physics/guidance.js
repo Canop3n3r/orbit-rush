@@ -10,6 +10,7 @@ import { massOf } from './vehicle.js?v=f3';
 import { atmosphere } from './atmosphere.js?v=f3';
 import { cd0 } from './aero.js?v=f3';
 import { hoverslamSolve } from './hoverslam.js?v=f3';
+import { sampleAscent } from '../timelines/ascent.js?v=f4';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -106,6 +107,9 @@ export function autoGuide(v) {
     const tMax = s && s.eng ? s.eng.tv * 1000 * s.n : 0;
     thr = Math.max(qCap(qPa), tMax > 0 ? Math.min(1, 1.3 * g * m / tMax) : 1);
     if (tMax > 0) thr = Math.min(thr, G_LIMIT * 9.80665 * m / tMax); // g-limit: throttle back near burnout
+    // optional data table (timelines/ascent.js): stage-1 pitch/throttle vs time since liftoff (v.ascentMet), additive
+    const tab = v.ascentTable && v.cur === 0 && v.ascentMet != null ? sampleAscent(v.ascentTable, v.ascentMet) : null;
+    if (tab) { pitch = tab.pitch; thr = tMax > 0 ? Math.min(tab.throttle, G_LIMIT * 9.80665 * m / tMax) : tab.throttle; }
   } else if (ph === 'coast' || ph === 'done') { pitch = pgIn; thr = 0; }
   else { pitch = holdPitch(v, f, 0, 0.05); thr = 1; }
   const lim2 = qPa > 15000 ? 0.08 : qPa > 3000 ? 0.2 : qPa > 500 ? 0.5 : 1.4;
