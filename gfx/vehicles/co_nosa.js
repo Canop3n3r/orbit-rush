@@ -107,7 +107,8 @@ function et(d) { const k = new Kit(d), r = TR.etR;
   return kbuild(k, 'ET'); }
 function orbiter(d) { const k = new Kit(d), y0 = 7.6, L = 37.2, top = y0 + L, fy = top - TR.orbNose; // fuselage y0..fy, nose fy..top
   k.push(xf([0, 0, OZ]));
-  k.add(new THREE.CylinderGeometry(1, 1, fy - y0, k.hi ? 28 : 10), 'paint:0,0', xf([0, (y0 + fy) / 2, 0.3], [0, 0, 0], [2.6, 1, 2.45])); // fuselage (oval)
+  k.add(new THREE.BoxGeometry(5.2, fy - y0, 3.0), 'paint:0,0', xf([0, (y0 + fy) / 2, -0.7])); // boxy lower fuselage (flat sides, flat belly)
+  k.add(new THREE.CylinderGeometry(2.6, 2.6, fy - y0, k.hi ? 20 : 8, 1, false, -PI / 2, PI), 'paint:0,0', xf([0, (y0 + fy) / 2, 0.8], [0, 0, 0], [1, 1, 0.75])); // payload-bay doors (rounded top)
   k.add(new THREE.BoxGeometry(5.0, fy - y0 - 0.2, 0.08), 'x-tile', xf([0, (y0 + fy) / 2, -2.17])); // black belly
   lathe(k, PR.ogive(TR.orbR, TR.orbNose, fy, k.hi ? 16 : 7, 0.12), 'paint:0,0', { m: xf([0, 0, 0.3], [0, 0, 0], [1, 1, 0.94]) });
   lathe(k, PR.ogive(TR.orbR, TR.orbNose, fy, k.hi ? 16 : 7, 0.12), 'x-tile', { m: xf([0, 0, 0.25], [0, 0, 0], [1.01, 1, 0.95]), p0: PI * 0.65, pl: PI * 0.7 }); // black chin
