@@ -24,7 +24,7 @@ for (const c of C) { const u = Object.entries(c.unlock); ok(u.length && u.every(
 // placeholder vehicles: contracts flown on them are reachable in the unlock graph but locked to play, and agree with fun/ladder.js
 for (const c of C) { const ph = Object.hasOwn(L.PLACEHOLDER_VEHICLES, c.vehicle); ok(!!c.locked === ph, `${c.id}: locked flag ${!!c.locked} matches placeholder vehicle ${ph}`);
   ok(L.rungLocked(L.LADDER.find(r => r.id === c.rung)) === ph, `${c.id}: fun/ladder.js rung lock agrees`); }
-ok(C.filter(c => c.locked).map(c => c.id).join() === 'lunar-landing,mars-ship', 'exactly the Moon and Mars contracts wait for models');
+ok(C.every(c => !c.locked), 'f5.1h: no contract waits for a model');
 ok(C.filter(c => !c.locked).every(c => !Object.hasOwn(L.PLACEHOLDER_VEHICLES, c.vehicle)), 'every playable contract has a real model');
 // acyclic: the contract → contract unlock graph has a topological order (Kahn)
 { const edges = C.flatMap(c => (c.unlock.missions || []).filter(m => byId[m]).map(m => [c.id, m])), indeg = Object.fromEntries(ids.map(i => [i, 0]));

@@ -810,3 +810,9 @@ body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #h
 #picker .pkSw[aria-checked="true"] i{background:#2fb36b}#picker .pkSw[aria-checked="true"] i::after{left:21px}
 /* f5.1g Build nav dedupe: Missions / Atlas / Academy live on Home's nav (and ⚙); Build keeps ‹ Home */
 #build #academyBtn,#build #missionsBtn,#build #atlasBtn{display:none}
+/* f5.1g mission card: choose the rocket, AUTO opt-in */
+#misCard{position:fixed;inset:0;z-index:70;background:#000a;display:flex;align-items:center;justify-content:center;padding:12px}#misCard.hidden{display:none}
+#misCard .mcIn{background:#0b1324;border:1px solid #2a3c62;border-radius:16px;padding:14px;width:min(460px,100%);max-height:92dvh;overflow:auto;color:#e8f0ff;font:14px system-ui}
+#misCard h3{margin:0 0 4px}#misCard p{margin:0 0 8px;opacity:.75;font-size:13px}#misCard h5{margin:8px 0 4px;color:#9cc3ff;letter-spacing:1px}
+#misCard .mcList{display:grid;gap:6px}#misCard .mcList button{min-height:44px;text-align:left;padding:6px 10px;border-radius:10px;background:#14203a;border:1px solid #2a3c62;color:#fff}
+#misCard .mcList button.on{border-color:#3a8cff;background:#1a3160}#misCard .mcAct{display:grid;gap:8px;margin-top:12px}#misCard .mcAct button{min-height:48px}

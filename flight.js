@@ -1,9 +1,9 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.1g';
-import * as C from './physics/patched.js?v=f5.1g';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.1g';
+import * as P from './physics.js?v=f5.1h';
+import * as C from './physics/patched.js?v=f5.1h';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.1h';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -232,7 +232,7 @@ export class Flight {
     const d = n.done || { pro: 0, nrm: 0, rad: 0 };
     return C.nodeVector(v.r, v.v, { pro: n.pro - d.pro, nrm: n.nrm - d.nrm, rad: n.rad - d.rad });
   }
-  // Closed-loop node guidance (f5.1g, Venus accuracy): aim at the post-burn orbit itself (angular momentum h* and eccentricity
+  // Closed-loop node guidance (f5.1h, Venus accuracy): aim at the post-burn orbit itself (angular momentum h* and eccentricity
   // vector e*, both invariant along the conic) instead of integrating pro/nrm/rad open-loop. At position r the target conic's
   // velocity is v* = h* × (μ(e* + r̂)) / |h*|²; steer along vg = v* − v and stop when vg is spent. Finite-burn and frame errors self-correct.
   closedLoop(n, dt, m0) {

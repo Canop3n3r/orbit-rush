@@ -2,6 +2,7 @@
 // (checked in tests/showroom.mjs): reach space, orbit, land the booster, Moon, Mars, Venus, orbit-and-home, hop.
 // No DOM here: the card bars are derived from the same stats the hangar uses.
 import { TEMPLATES, designStats, cloneDesign } from '../parts.js?v=f5.1a';
+import { setHeavyBase } from './stagemap.js?v=f5.1h';
 const P = (id, n) => (n ? { id, n } : { id });
 const T = n => TEMPLATES.find(t => t.name === n);
 // check: what tests/showroom.mjs verifies.  space: AUTO apoapsis > 100 km · orbit: AUTO reaches a stable orbit ·
@@ -25,8 +26,10 @@ export const SHOWROOM = [
 for (const r of SHOWROOM) if (r.tpl) { const t = T(r.tpl); r.design = { ...cloneDesign(t), name: r.name }; r.tplName = r.tpl; }
 // f4: hero models (gfx/vehicles, Rocket Art Bot) for the catalog-inspired rockets; physics still flies the part stack
 export const MODEL_OF = { needle: 'sparrow-1', swift: 'heron-9', heron: 'heron-9-crew', atlas: 'heron-heavy', titan: 'titan-ss-v3' };
+Object.assign(MODEL_OF, { selene: 'selene', ares: 'ares' }); // f5.1h (QA f5.1e): Selene and Red Arrow fly their own art
 for (const r of SHOWROOM) if (MODEL_OF[r.id]) { r.model = MODEL_OF[r.id]; r.design.model = r.model; }
-for (const r of SHOWROOM) if (r.check === 'space' || r.check === 'mission:hop') r.design.sub = true; // f5.1g: suborbital by role
+for (const r of SHOWROOM) if (r.check === 'space' || r.check === 'mission:hop') r.design.sub = true; // f5.1h: suborbital by role
+{ const h = SHOWROOM.find(r => /colossus|ss-v3/.test(r.model || '')); if (h) setHeavyBase(h.id); } // f5.1h: the super-heavy stack for big house rockets
 export const RTLS = new Set(['swift', 'atlas']); // f4: these fly back to the landing zone (boostback + RTLS) instead of a droneship
 for (const r of SHOWROOM) if (RTLS.has(r.id)) r.design.recovery = 'rtls';
 const clamp = x => Math.max(0.06, Math.min(1, x));
@@ -36,3 +39,8 @@ export function bars(r) {
   return { power: clamp((Math.log10(Math.max(100, thrust)) - 2.4) / (4.3 - 2.4)), range: clamp(s.total / 16000), difficulty: clamp(r.difficulty) };
 }
 export const missionLabel = { hop: 'Hop & land', orbit: 'Orbit & home', moon: 'Moon landing', mars: 'Mars', venus: 'Venus flyby' };
+// f5.1h: extra flyable stacks for house rockets whose stage shape no showroom rocket has (staging audit)
+const PAY = [P('fairing'), P('sat'), P('sat'), P('probe')], CORE = [P('tank-xl'), P('tank-l'), P('mule', 3), P('fins')], RAD = [P('rdec', 2), P('tank-r'), P('tank-r'), P('thumper', 3)];
+export const EXTRA_STACKS = {
+  'booster-2': { name: 'Booster 2-stage', design: { name: 'Booster 2-stage', parts: [...PAY, P('tank-s'), P('lark'), P('dec'), P('tank-m'), P('tank-s'), P('lark', 2), P('dec'), ...CORE, ...RAD] } },
+};

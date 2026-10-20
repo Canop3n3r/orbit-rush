@@ -2,12 +2,12 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import { MISSIONS } from './director.js?v=f5.1g';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.1g';
-import { ATLAS, poisOf } from './lore.js?v=f5.1g';
+import { MISSIONS } from './director.js?v=f5.1h';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.1h';
+import { ATLAS, poisOf } from './lore.js?v=f5.1h';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f5.1g';
+import { createNavball } from './navball.js?v=f5.1h';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();
@@ -154,7 +154,7 @@ export function createFunUI(ctx) {
   const pbar = el('div', { id: 'photobar', className: 'hidden' }, `<b>📸 PHOTO MODE</b> <span class="sm">drag to orbit · scroll/pinch to zoom</span> ${Object.keys(FILTERS).map(f => `<button data-f="${f}">${f}</button>`).join('')}<button id="phSnap" class="big">⦿ SNAP</button><button id="phExit">✕</button>`);
   document.body.appendChild(pbar);
   const photo = { on: false, filter: 'none',
-    toggle() { this.on = !this.on; { const mm = document.getElementById('mMenu'); if (mm) mm.classList.add('hidden'); } // f5.1g (QA): photo mode closes the ☰ menu
+    toggle() { this.on = !this.on; { const mm = document.getElementById('mMenu'); if (mm) mm.classList.add('hidden'); } // f5.1h (QA): photo mode closes the ☰ menu
       document.body.classList.toggle('photo', this.on); pbar.classList.toggle('hidden', !this.on); ctx.setPhoto(this.on); if (!this.on) this.set('none'); },
     set(f) { this.filter = f; ctx.canvas.style.filter = FILTERS[f]; pbar.querySelectorAll('[data-f]').forEach(b => b.classList.toggle('on', b.dataset.f === f)); } };
   pbar.querySelectorAll('[data-f]').forEach(b => b.onclick = () => photo.set(b.dataset.f));
