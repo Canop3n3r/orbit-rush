@@ -7,7 +7,7 @@ export const ENGINES_CONVAIR = {
   'cv-e4': { tSl: 1209.2, tVac: 1375.0, ispSl: 248.0, ispVac: 282, src: 'spec:engines#cv-e4', est: ['tSl (vac thrust x Isp ratio)'] },
   'cv-e5': { tSl: 174.4, tVac: 253.0, ispSl: 213.0, ispVac: 309, src: 'spec:engines#cv-e5', est: ['tSl (vac thrust x Isp ratio)'] },
   'cv-e6': { tSl: 1817.2, tVac: 2065.0, ispSl: 258.2, ispVac: 293.4, src: 'spec:engines#cv-e6', est: ['tSl', 'ispSl'] },
-  'cv-e7': { tSl: 381.7, tVac: 433.7, ispSl: 209.3, ispVac: 237.8, src: 'spec:engines#cv-e7', est: ['tSl', 'ispSl'] },
+  'cv-e7': { tSl: 433.7, tVac: 478.3, ispSl: 237.8, ispVac: 262.3, src: 'spec:engines#cv-e7' },
   'cv-e8': { tSl: 265.0, tVac: 380.6, ispSl: 220.0, ispVac: 316, src: 'spec:engines#cv-e8', est: ['tSl (vac thrust x Isp ratio)'] },
   'cv-e9': { tSl: 0, tVac: 99.2, ispSl: 0, ispVac: 450.5, src: 'spec:engines#cv-e9' },
 };
@@ -24,7 +24,7 @@ export const ROSTER_CONVAIR = [
       { engines: {'cv-e4': 1}, dry: 3400, prop: 76320, burn: 135.0, group: 0, jettisonAt: 135.0, recovery: 'expended', src: 'GCAT' },
       { engines: {'cv-e5': 1}, dry: 3400, prop: 35280, burn: 281.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['prop (minus the drop-off section share)'] },
     ],
-    modes: [{ variant: 'leo', payload: 1360, orbit: { hp: 185, ha: 185, inc: 28.0 }, src: "spec:atlantean#ref (published capability of the crewed-capsule variant: 1,360 kg to 185 km at 28 deg, encyclopedia entry)", est: ['capability quoted for the crewed-capsule sub-variant, applied to the modelled base variant ESTIMATE'] , knownGap: "model no orbit (losses kept physical, not lowered): rocketdb DELTA_V.md flags this variant SHORT (9,007 m/s ideal); residuals/reserves unsourced; no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 1360, orbit: { hp: 185, ha: 185, inc: 28.0 }, src: "spec:atlantean#ref (published capability of the crewed-capsule variant: 1,360 kg to 185 km at 28 deg, encyclopedia entry)", est: ['capability quoted for the crewed-capsule sub-variant, applied to the modelled base variant ESTIMATE'] , knownGap: "(losses kept physical, not lowered; rocketdb DELTA_V.md flags this variant SHORT) model no orbit: residuals/reserves unsourced; no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'atlantean-centaurus', name: "Atlantean-Centaurus", company: 'convair', src: 'spec:atlantean-centaurus', area: 17.9, fairing: 2087, est: ['area'],
     stages: [
       { engines: {'cv-e6': 1}, dry: 3200, prop: 123440, burn: 172.0, group: 0, jettisonAt: 172.0, recovery: 'expended', src: 'GCAT' },
