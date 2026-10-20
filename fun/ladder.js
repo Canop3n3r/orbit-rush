@@ -76,6 +76,7 @@ export const unlockedBy = (kind, id) => LADDER.find(c => (c.unlock[kind] || []).
 export function record(s, r, t = Date.now()) {
   const out = { earned: [], cash: 0, sci: 0, unlocks: [], next: null };
   s.flights++;
+  if (r && r.missed) { out.next = next(s); s.last = { t, earned: [] }; return out; } // f5.1e (QA): a missed mission pays $0
   for (const c of LADDER) {
     if (s.done[c.id]) continue;
     if (rungLocked(c) || !c.test(r || {})) break;

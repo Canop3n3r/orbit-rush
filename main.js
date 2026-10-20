@@ -2031,7 +2031,7 @@ function recordFlight(score) {
   // f5 career ladder: the flown showroom vehicle and any ops contract result ride along
   let op = lastOp; if (opSess) { try { const e = evalOp(opSess.m, F, opSess); op = { id: opSess.m.id, ok: !!e.complete }; } catch (e) { } }
   const sh = SHOW.find(x => x.name === design.name);
-  try { out.ladder = careerUI.record({ ...r, vehicle: sh ? sh.id : null, op: op ? op.id : null, opOk: !!(op && op.ok) }); } catch (e) { console.warn('[Orbit Rush] ladder', e); }
+  try { out.ladder = careerUI.record({ ...r, missed: !!(director && director.result && !director.ok), vehicle: sh ? sh.id : null, op: op ? op.id : null, opOk: !!(op && op.ok) }); } catch (e) { console.warn('[Orbit Rush] ladder', e); }
   lastOp = null;
   return out;
 }

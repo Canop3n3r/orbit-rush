@@ -32,4 +32,8 @@ ok(L.ALL.vehicles.every(v => L.START.vehicles.includes(v) || L.unlockedBy('vehic
   const m = migrate({ v: 2, done: {}, unlocked: { vehicles: ['pip', r13('xrfgery')] } });
   if (m.unlocked.vehicles.includes('swift') && m.unlocked.vehicles.length === 2) { pass++; console.log('ok vehicle alias migrates'); } else { fail++; console.log('FAIL vehicle alias'); }
 }
+{ // f5.1e: a missed mission pays $0
+  const s = L.blank(); const o = L.record(s, { maxAlt: 3e5, space: true, orbit: true, visited: ['earth', 'venus'], missed: true });
+  if (o.cash === 0 && o.earned.length === 0 && s.cash === 0) { pass++; console.log('ok miss pays $0'); } else { fail++; console.log('FAIL miss pays'); }
+}
 console.log(`ladder: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

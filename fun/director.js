@@ -17,6 +17,7 @@ export const CAMS = { hop: 'chase', coast: 'wide', ascent: 'chase', plan: 'map',
 export const MAX_CORR_WAIT = 400 * 86400; // s: never wait longer than this for a course-correction node
 const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'lift', 'capture', 'brake', 'descent', 'home', 'done'];
 const WARP_BURN = () => 4;
+const STALL_PH = ['plan', 'burn', 'correct', 'capture', 'lift'];
 export class Director {
   constructor(F, id, opts = {}) {
     this.F = F; this.id = id; this.m = MISSIONS[id]; this.phase = 'ascent'; this.t = 0; this.log = ['ascent']; this.active = true; this.opts = opts;
@@ -30,7 +31,7 @@ export class Director {
   }
   get progress() { return ORDER.indexOf(this.phase) / (ORDER.length - 1); }
   takeOver() { const F = this.F; this.active = false; F.setExec(false); F.setAuto(false, true); this.say('You have control — mission autopilot off'); }
-  set(ph, msg) { this.phase = ph; this.t = 0; this.log.push(ph); if (msg) this.say(msg); }
+  set(ph, msg) { this.phase = ph; this.t = 0; this._w0 = Date.now(); this.log.push(ph); if (msg) this.say(msg); }
   finish(res, ok = true) { this.result = res; this.ok = ok; this.set('done', res); this.active = false; }
   dvCap() { return 900; }
   execNext(node) { const F = this.F; if (this.target && this.target !== 'moon') node.cl = true; F.addNode(node); F.setExec(true); } // f5.1e: closed-loop guidance for interplanetary burns
@@ -39,6 +40,8 @@ export class Director {
     if (!this.active) return;
     if (F.flags.dead) { this.active = false; this.result = 'Lost: ' + F.flags.dead; this.ok = false; return; }
     this.t += dt;
+    // f5.1e (QA): a mid-course phase that never finishes (sim time or wall time) ends with a card instead of a silent stall
+    if (this.target && STALL_PH.includes(this.phase) && ((this.phase !== 'burn' && this.phase !== 'plan' && this.t > 5 * 86400) || Date.now() - (this._w0 || Date.now()) > 180000)) { this.finish('Stalled during ' + this.label.toLowerCase() + ' — try again', false); return; }
     if (this.m.hop && this.phase === 'ascent') this.set('hop', 'Hop! Straight up to ' + (this.m.hop / 1000).toFixed(0) + ' km');
     switch (this.phase) {
       case 'hop': { // vertical climb; cut when the ballistic apex reaches the target height
