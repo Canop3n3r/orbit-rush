@@ -1,13 +1,14 @@
 // Reusable part builders (all original geometry). y is up, units are metres, every builder adds to a Kit.
 import * as THREE from 'three/webgpu';
-import { xf } from './kit.js?v=art1';
+import { xf, mat } from './kit.js?v=art1';
+import * as PR from './profiles.js?v=art1';
+export const lathe = (k, prof, key, o = {}) => k.add(new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r * (o.s || 1), y)), o.seg || k.seg, o.p0 || 0, o.pl || 2 * Math.PI), key, o.m);
 const PI = Math.PI;
 // cylinder/frustum with its base at y
-export function tube(k, r0, r1, h, y, key, o = {}) { const g = new THREE.CylinderGeometry(r1, r0, h, o.seg || k.seg, o.hs || 1, !!o.open, o.t0 || 0, o.tl || 2 * PI); k.add(g, key, xf([o.x || 0, y + h / 2, o.z || 0], o.r || [0, 0, 0])); }
-// ogive nose from radius r at y up to a tip (blunt radius tip)
-export function ogive(k, r, L, y, key, tip = 0.08) { const pts = [], n = k.hi ? 18 : 7, rho = (r * r + L * L) / (2 * r);
-  for (let i = 0; i <= n; i++) { const t = i / n, yy = t * L, rr = Math.sqrt(Math.max(0, rho * rho - (L - yy) ** 2)) + r - rho; pts.push(new THREE.Vector2(Math.max(tip * r, rr), y + yy)); }
-  pts.push(new THREE.Vector2(0, y + L)); k.add(new THREE.LatheGeometry(pts, k.seg), key); }
+export function tube(k, r0, r1, h, y, key, o = {}) { const g = new THREE.CylinderGeometry(r1, r0, h, o.seg || k.seg, o.hs || 1, !!o.open, o.t0 || 0, o.tl || 2 * PI);
+  if (/^steel/.test(key)) { const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 4 * (o.tl || 2 * PI) / (2 * PI), uv.getY(i) * h / 16); } k.add(g, key, xf([o.x || 0, y + h / 2, o.z || 0], o.r || [0, 0, 0])); }
+// ogive nose from radius r at y up to the tip (+Y)
+export function ogive(k, r, L, y, key, tip = 0.06) { lathe(k, PR.ogive(r, L, y, k.hi ? 18 : 7, tip), key); }
 // rocket bell: exit radius re at y, throat rt, length L, regen look; ext = radiative extension fraction (vacuum)
 export function bell(k, re, L, x, y, z, o = {}) {
   const rt = o.rt || re * 0.38, pts = [], n = k.hi ? 12 : 5;
@@ -32,23 +33,35 @@ export function gridFins(k, r, y, w, h, n = 4, a0 = PI / 4, deploy = 1) {
     } else k.add(new THREE.BoxGeometry(0.12, h, w), 'tiframe', xf([0, h / 2 + 0.1, 0]));
     k.pop(); k.add(new THREE.BoxGeometry(0.5, 0.6, 0.6), 'dark', xf([0.1, 0, 0])); k.pop(); }
 }
-// landing legs: separate animatable group (pivots at the hull bottom); t=0 stowed against the hull, 1 deployed
+// landing legs (brief: carbon/honeycomb, hinge at the base, stowed flush with the foot pad UP, helium telescoping
+// deployment arm from the leg tip to the fuselage, small pusher). Separate animatable group; t=0 stowed, 1 deployed.
 export function legs(KitC, detail, r, len, y, n = 4, a0 = PI / 4) {
-  const g = new THREE.Group(); g.name = 'legs'; g.userData.pivots = [];
-  for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI, piv = new THREE.Group(); piv.position.set(Math.cos(a) * (r + 0.12), y, Math.sin(a) * (r + 0.12)); piv.rotation.y = -a;
+  const g = new THREE.Group(); g.name = 'legs'; g.userData.pivots = []; g.userData.arms = [];
+  const unit = new THREE.CylinderGeometry(1, 1, 1, 8); unit.translate(0, 0.5, 0);
+  for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI, piv = new THREE.Group(); piv.position.set(Math.cos(a) * (r + 0.02), y, Math.sin(a) * (r + 0.02)); piv.rotation.y = -a;
     const k = new KitC(detail);
-    k.add(new THREE.BoxGeometry(0.28, len, 0.9), 'carbon', xf([0.14, len / 2, 0])); // main leg (carbon/honeycomb)
-    k.add(new THREE.BoxGeometry(0.3, 0.5, 1.1), 'dark', xf([0.16, len - 0.25, 0])); // foot
-    if (k.hi) { k.add(new THREE.CylinderGeometry(0.09, 0.09, len * 0.55, 6), 'grey', xf([0.36, len * 0.35, 0], [0, 0, 0.1])); k.add(new THREE.BoxGeometry(0.06, len * 0.9, 0.06), 'dark', xf([0.3, len * 0.5, 0.42])); }
-    const m = k.build('leg'); piv.add(m); g.add(piv); g.userData.pivots.push(piv); }
+    // tapered triangular-section leg: wide at the hinge, narrow at the foot; sits flush (0.22 m proud of the hull)
+    const sh = new THREE.Shape(); sh.moveTo(-0.75, 0); sh.lineTo(0.75, 0); sh.lineTo(0.32, len); sh.lineTo(-0.32, len); sh.closePath();
+    const lg = new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }); k.add(lg, 'carbon', new THREE.Matrix4().makeRotationY(PI / 2));
+    k.add(new THREE.BoxGeometry(0.06, len * 0.92, 0.1), 'grey', xf([0.23, len * 0.5, 0])); // centre spine / arm recess
+    k.add(new THREE.CylinderGeometry(0.42, 0.5, 0.18, k.hi ? 16 : 8), 'dark', xf([0.2, len + 0.02, 0], [0, 0, PI / 2])); // foot pad (crush core)
+    k.add(new THREE.BoxGeometry(0.3, 0.5, 1.2), 'dark', xf([0.1, 0.25, 0])); // hinge clevis
+    piv.add(k.build('leg')); g.add(piv); g.userData.pivots.push(piv);
+    const outer = new THREE.Mesh(unit, mat('grey')), inner = new THREE.Mesh(unit, mat('tiframe')); g.add(outer, inner);
+    g.userData.arms.push({ piv, outer, inner, A: new THREE.Vector3(Math.cos(a) * (r - 0.1), y + len * 0.42, Math.sin(a) * (r - 0.1)), tipL: new THREE.Vector3(0.24, len * 0.86, 0) }); }
   setLegs(g, 0); return g;
 }
-// stowed legs point up along the hull (rotation 0); deployed swing out and down by ~115°
-export function setLegs(g, t) { for (const p of g.userData.pivots) p.rotation.z = -t * 2.0; g.userData.t = t; }
+const _B = new THREE.Vector3(), _d = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+// stowed: leg up along the hull; deployed: swings out and down ~115° so the pad sits below the engines
+export function setLegs(g, t) { for (const p of g.userData.pivots) p.rotation.z = -t * 2.0; g.userData.t = t;
+  for (const m of g.userData.arms || []) { m.piv.updateMatrix(); _B.copy(m.tipL).applyMatrix4(m.piv.matrix); _d.subVectors(_B, m.A); const L = _d.length(); _d.normalize();
+    const q = new THREE.Quaternion().setFromUnitVectors(_up, _d);
+    m.outer.position.copy(m.A); m.outer.quaternion.copy(q); m.outer.scale.set(0.11, L * 0.55, 0.11);
+    m.inner.position.copy(m.A).addScaledVector(_d, L * 0.5); m.inner.quaternion.copy(q); m.inner.scale.set(0.07, L * 0.5, 0.07); } }
 // decal strip: a cylinder section just outside radius r, height h, centred on angle ac, arc width (radians)
 export function decal(k, slot, r, y, h, ac = 0, arc = 1.1) { if (!k.hi) return; k.add(new THREE.CylinderGeometry(r * 1.004, r * 1.004, h, 24, 1, true, ac - arc / 2 + PI / 2, arc), 'decal:' + slot, xf([0, y + h / 2, 0])); }
 // external raceway / cable tray along a tank
-export function raceway(k, r, y0, y1, a = PI / 2) { k.add(new THREE.BoxGeometry(0.22, y1 - y0, 0.45), k.hi ? 'paint:0,0' : 'paint:0,0', xf([Math.cos(a) * (r + 0.1), (y0 + y1) / 2, Math.sin(a) * (r + 0.1)], [0, -a, 0])); }
+export function raceway(k, r, y0, y1, a = PI / 2, key = 'paint:0,0') { k.add(new THREE.BoxGeometry(0.14, y1 - y0, 0.32), key, xf([Math.cos(a) * (r + 0.1), (y0 + y1) / 2, Math.sin(a) * (r + 0.1)], [0, -a, 0])); }
 export function ring(k, r, y, t, key = 'dark') { tube(k, r + t, r + t, t * 1.6, y, key); }
 // strut between two points
 export function strut(k, a, b, rad, key) { const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), L = A.distanceTo(B), g = new THREE.CylinderGeometry(rad, rad, L, 6);
