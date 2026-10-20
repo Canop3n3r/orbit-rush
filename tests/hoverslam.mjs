@@ -52,7 +52,8 @@ const DEF = PRESETS[0];
   const b = r.F.booster;
   ok(r.boosterLanded, 'nominal: booster auto-lands on the droneship: ' + r.F.flags.booster);
   ok(b.touchV < 2, `nominal: touchdown ${b.touchV.toFixed(2)} m/s`);
-  ok(b.stages[0].fuel < 3, `nominal: little fuel left (${b.stages[0].fuel.toFixed(2)} t)`);
+  ok(b.stages[0].fuel < 5, // f5 guidance: later, chatter-free entry burn leaves ~4 t of the 20 t reserve
+  `nominal: little fuel left (${b.stages[0].fuel.toFixed(2)} t)`);
   ok(first && first.h < 3000, `hoverslam lights late (${first && first.h.toFixed(0)} m)`);
   ok(legsAt != null && legsAt < 2000, `legs deploy on time (${legsAt && legsAt.toFixed(0)} m)`);
   ok(track.includes('grid-fin glide') && !track.slice(track.indexOf('grid-fin glide')).includes('entry burn'), 'coast on grid fins between entry and landing burns');
