@@ -44,3 +44,8 @@ export const TRUCK = { etR: 4.2, etNose: 12.0, srbR: 1.86, srbNose: 6.0, orbR: 2
 NOSES['space-truck.et'] = () => ogive(TRUCK.etR, TRUCK.etNose, 0, 18, 0.03);
 NOSES['space-truck.srb'] = () => ogive(TRUCK.srbR, TRUCK.srbNose, 0, 18, 0.1);
 NOSES['space-truck.orbiter'] = () => ogive(TRUCK.orbR, TRUCK.orbNose, 0, 18, 0.12);
+// ---- co-originals (Orbit Rush Originals house line): Selene + Red Arrow fairings, entry capsule (tips +Y)
+export const ORIG = { r: 1.5, fr: 1.75 };
+NOSES['selene.fairing'] = () => fairing(ORIG.fr, 4.6, 4.2, 0, ORIG.r, 18, 0.8);
+NOSES['ares.fairing'] = () => fairing(ORIG.fr, 3.4, 4.0, 0, ORIG.r, 18, 0.8);
+NOSES['ares.capsule'] = () => capsule(1.25);
