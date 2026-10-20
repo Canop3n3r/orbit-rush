@@ -1,6 +1,6 @@
-// Great Long Stride Academy — Long Stride 2F (crew: 3.35 m core with 4 engines, four 2.25 m liquid boosters with cone noses, 2nd stage,
-// 3.8 m crew fairing + escape tower) and Long Stride 3B (same lower stack + hydrogen 3rd stage, 4 m fairing). White.
-// rocketdb long-stride-2f / long-stride-3 (GCAT) + design.md; dims art-fitted. No logos/names.
+// Jade Sky Academy — jade-crane 2F (crew: 3.35 m core with 4 engines, four 2.25 m liquid boosters with cone noses, 2nd stage,
+// 3.8 m crew fairing + escape tower) and jade-crane 3B (same lower stack + hydrogen 3rd stage, 4 m fairing). White.
+// rocketdb jade-crane-2f / jade-crane-3 (GCAT) + design.md; dims art-fitted. No logos/names.
 import { stage, fairing, tower, PI, livery, Kit, tube, kb } from './co_gen.js?v=art1';
 import { group, plume } from './co_nosa.js?v=art1';
 const R = 1.675, RB = 1.125, OFF = R + RB + 0.1, ANG = [0, PI / 2, PI, 3 * PI / 2];
@@ -12,8 +12,11 @@ function ls(o, crew) { const d = o.detail, a = stage(d, 's1', { r: R, h: 21.5, y
   if (!crew) { const c = stage(d, 's3', { r: 1.5, h: 11.4, y0: y, eng: [[2, 0.5, 0.3, 0.9]], drop: 0.8, ext: true, key: livery(0xe3ddd0), skirt: R, bands: [[10.8, 0.6]] }); kids.push(c); y = c.userData.top; }
   const f = fairing(d, 'payload', { r: crew ? 1.9 : 2.0, rb: crew ? R : 1.5, cyl: crew ? 7.5 : 4.4, nose: crew ? 4.2 : 4.6, y0: y }); kids.push(f);
   if (crew) kids.push(tower(d, 'les', { y0: f.userData.top - 0.3, w: 0.3, h: 2.2, rocket: 0.3 }));
-  const g = group(crew ? 'long-stride-2f' : 'long-stride-3b', kids, kids.at(-1).userData.top); if (o.plume) g.add(plume(0, ANG.map(a => [Math.cos(a) * OFF, Math.sin(a) * OFF]), 0.9, 40 * o.plume)); return g; }
-export const CO_GLS2 = {
-  'long-stride-2f': { height: 55.6, build: o => ls(o, true), src: 'rocketdb long-stride-2f (GCAT): 3.35 m core 4 engines, 4 x 2.25 m boosters, s2, 3.8 m crew fairing + tower', est: ['fairing/tower'] },
-  'long-stride-3b': { height: 56.6, build: o => ls(o, false), src: 'rocketdb long-stride-3 (3B-type): + 3 m hydrogen 3rd stage, 4 m fairing', est: ['fairing'] },
+  const g = group(crew ? 'jade-crane-2f' : 'jade-crane-3b', kids, kids.at(-1).userData.top); if (o.plume) g.add(plume(0, ANG.map(a => [Math.cos(a) * OFF, Math.sin(a) * OFF]), 0.9, 40 * o.plume)); return g; }
+// display names: the only place they live (cheap to rename later). PENDING: the Titlecase public names from the rocketdb audit go here, but
+// the shared pre-push list still bans the Titlecase token; ids stand in until the specs bot regenerates that list.
+export const NAMES = {'jade-crane-2f': 'jade-crane 2F Crew', 'jade-crane-3b': 'jade-crane 3B'};
+export const CO_JADECRANE2 = {
+  'jade-crane-2f': { name: NAMES['jade-crane-2f'], height: 55.6, build: o => ls(o, true), src: 'rocketdb jade-crane-2f (GCAT): 3.35 m core 4 engines, 4 x 2.25 m boosters, s2, 3.8 m crew fairing + tower', est: ['fairing/tower'] },
+  'jade-crane-3b': { name: NAMES['jade-crane-3b'], height: 56.6, build: o => ls(o, false), src: 'rocketdb jade-crane-3 (3B-type): + 3 m hydrogen 3rd stage, 4 m fairing', est: ['fairing'] },
 };
