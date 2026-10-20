@@ -10,7 +10,7 @@ import * as GX from '../gfx.js?v=f2';
 import { VEHICLES, build, setLegs } from './vehicles.js?v=art1';
 const q = new URLSearchParams(location.search);
 const renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL: q.has('webgl') });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = q.has('gameexp') ? 1.05 : 0.82; // hero: a touch under the game so white paint keeps its panel detail
 renderer.setSize(innerWidth, innerHeight); document.body.prepend(renderer.domElement); await renderer.init();
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x7ab8ff); scene.fog = new THREE.FogExp2(0xa9c8e8, 0.0009);
 scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x334433, 1.0));
@@ -20,7 +20,11 @@ const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: GX.glowTexture(), c
 const conc = GX.concreteTexture(); conc.repeat.set(24, 24);
 const ground = new THREE.Mesh(new THREE.CircleGeometry(1500, 64), new THREE.MeshStandardMaterial({ map: conc, roughness: 0.92 })); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; scene.add(ground);
 const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 20000);
-const post = GX.makePost(renderer, scene, camera); await post.enable(!q.has('nobloom')); post.strength = 0.35;
+// same bloom node as GX.makePost but with a higher threshold (gfx.js hardcodes 0.82) so lit white paint keeps
+// its detail; only the sun, glints and hot metal bloom. gfx.js is imported, not edited.
+const { bloom } = await import('three/addons/tsl/display/BloomNode.js'); const { pass } = await import('three/tsl');
+const pp = new THREE.PostProcessing(renderer), sp = pass(scene, camera), col = sp.getTextureNode('output'), bl = bloom(col, 0.3, 0.35, 1.6);
+pp.outputNode = q.has('nobloom') ? col : col.add(bl); const post = { render: () => pp.render() };
 let cur = null;
 // shot: { id, opts, cam:[x,y,z] (in vehicle heights), aim:[x,y,z] (heights), fov, sun:[x,y,z] }
 async function shot(s) { if (cur) scene.remove(cur); const h = VEHICLES[s.id].height;
