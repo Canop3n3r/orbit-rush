@@ -11,7 +11,7 @@ export function brandId() {
 }
 export async function loadBrand(id = brandId()) {
   if (id !== 'default') { try { const m = await import(`./${id}.js?v=f4`); PACK = merge(DEFAULT, m.default || m); } catch (e) { PACK = DEFAULT; } }
-  setNames({ ...(PACK.vehicles || {}), ...(PACK.engines || {}) });
+  setNames({ ...(PACK.vehicles || {}), ...(PACK.engines || {}), ...(PACK.missions || {}) });
   if (PACK.decals && Object.keys(PACK.decals).length) { try { (await import('../gfx/vehicles/decals.js?v=art1')).setBrandPack(PACK.decals); } catch (e) {} }
   return PACK;
 }
