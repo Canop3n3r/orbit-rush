@@ -30,3 +30,6 @@ All vehicle models, the catch tower and their textures in `gfx/vehicles/` are or
 ## f5 world-1 (gfx/world/, Rocket Art Bot)
 - Volumetric cloud coverage (weather map), cloud shadows, night lights, coastline mask and ocean specular reuse the Earth day/night/cloud/specular maps from Solar System Scope (CC BY 4.0, above); Moon and Mars detail tuning uses the Solar System Scope Moon/Mars maps (CC BY 4.0).
 - All detail normals, regolith grain, Mars dust haze and cloud erosion noise are procedural and original (MaterialX noise from three.js, MIT). Lighting model: Beer-Powder + dual-lobe Henyey-Greenstein, techniques from public talks (Schneider, "The Real-time Volumetric Cloudscapes of Horizon Zero Dawn", SIGGRAPH 2015); no code or assets copied. KSP EVE/Scatterer were a visual reference only.
+
+## UI icons (assets/icons/, Rocket Art Bot)
+- 15 original 24×24 stroke icons (builder part types, Customize categories, Home Missions/Customize/Settings). Drawn for this project; no third-party icon sets used.
