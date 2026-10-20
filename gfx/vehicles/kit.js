@@ -81,11 +81,10 @@ export function compact(group, keep = ['legs'], fold = false) { const by = new M
   return group; }
 // dispose: free a vehicle's GPU/JS memory when it is swapped out. Cached (shared) materials/textures are kept; shared
 // geometries are refcounted and freed when the last user goes.
-export function dispose(group, freeTex = false) { const seen = new Set(); group.traverse(o => { if (!o.isMesh && !o.isSprite) return; if (o.isInstancedMesh) o.dispose(); const g = o.geometry;
+export function dispose(group) { const seen = new Set(); group.traverse(o => { if (!o.isMesh && !o.isSprite) return; if (o.isInstancedMesh) o.dispose(); const g = o.geometry;
   const k = g && g.userData.shared; // f5.2.1: shared geometries count one ref per mesh (shareGeometries refs++ per mesh), so release one per mesh too
   if (k && GEO.has(k)) { const e = GEO.get(k); if (--e.refs <= 0) { GEO.delete(k); g.dispose(); } } else if (g && !seen.has(g)) { seen.add(g); g.dispose(); }
-  for (const m of [].concat(o.material || [])) if (!m.userData?.cached) { for (const v of Object.values(m)) if (v && v.isTexture && !v.userData?.cached) v.dispose(); m.dispose(); }
-    else if (freeTex) for (const v of Object.values(m)) if (v && v.isTexture) v.dispose(); }); // f5.3: cached materials stay, but their textures' GPU copies are freed (re-uploaded on next use), so each model no longer pins its paint/decal textures
+  for (const m of [].concat(o.material || [])) if (!m.userData?.cached) { for (const v of Object.values(m)) if (v && v.isTexture && !v.userData?.cached) v.dispose(); m.dispose(); } });
   group.removeFromParent(); }
 // release(group, renderer?, scene?, camera?): leak-safe model swap. Detach first, render one frame without it (the renderer
 // drops its per-object render state for objects no longer in the scene), then free GPU geometry/material/texture and
@@ -93,7 +92,7 @@ export function dispose(group, freeTex = false) { const seen = new Set(); group.
 export async function release(group, renderer, scene, camera) {
   group.removeFromParent();
   if (renderer && scene && camera) { renderer.render(scene, camera); await new Promise(r => requestAnimationFrame(r)); }
-  dispose(group, true);
+  dispose(group);
   group.traverse(o => { if (o.isMesh) { if (o.geometry && !o.geometry.userData.shared) { for (const k of Object.keys(o.geometry.attributes)) o.geometry.deleteAttribute(k); o.geometry.setIndex(null); } o.geometry = null; o.material = null; } });
   group.clear(); group.userData = {};
 }
