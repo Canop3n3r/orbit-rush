@@ -60,7 +60,7 @@ function lattice(g, H, W, x, z) { const lv = Math.max(3, W * 0.9), n = Math.floo
   br.count = k; g.add(br); }
 // per-vehicle set: pad radius from the vehicle, a service tower (Heron family), the catch tower + mount (titan)
 function clearStage() { for (const c of stage.children.slice()) dispose(c); }
-const TABLE = /^(a-four|redrock|junoish)/; // ids that stand on a launch table instead of a tower
+const TABLE = /^(a-four|redrock|junoish|pegacorn|dark-dart)/; // ids that stand on a launch table instead of a tower
 function setStage(id, h, rV) { clearStage(); let lift = 0; const small = h < 10;
   const padR = small ? 4 : Math.max(18, rV * 6);
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(padR, padR * 1.06, small ? 0.4 : 1.2, 48), concM); pad.position.y = small ? 0.2 : 0.6; stage.add(pad); lift = small ? 0.4 : 1.2;
@@ -88,7 +88,7 @@ const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 30
 const { bloom } = await import('three/addons/tsl/display/BloomNode.js'); const { pass } = await import('three/tsl');
 const pp = new THREE.PostProcessing(renderer), sp = pass(scene, camera), col = sp.getTextureNode('output'), bl = bloom(col, 0.35, 0.4, 1.4);
 pp.outputNode = q.has('nobloom') ? col : col.add(bl);
-const RADIUS = { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'titan-ss-v3': 4.5, 'titan-ss-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 };
+const RADIUS = { ...Object.fromEntries(['pegacorn','antarion'].map(i => [i, (i === 'pegacorn' ? 0.7 : 2.0)])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'titan-ss-v3': 4.5, 'titan-ss-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 };
 let cur = null;
 // shot: { id, opts, hero:true (auto-frame 85 % of the height, low 3/4) | cam/aim in vehicle heights, fov, sunAz (deg, from camera), only, legs, bare (no set) }
 async function shot(s) { if (cur) { dispose(cur); cur = null; } const h = VEHICLES[s.id].height, rV = RADIUS[s.id] || 2;
