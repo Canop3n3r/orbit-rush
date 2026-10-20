@@ -23,10 +23,9 @@ ok(L.ALL.vehicles.every(v => L.START.vehicles.includes(v) || L.unlockedBy('vehic
   ok(JSON.stringify(L.migrate(L.migrate(JSON.parse(m.getItem(L.KEY))))) === JSON.stringify(L.migrate(JSON.parse(m.getItem(L.KEY)))), 'migration is idempotent');
   ok(L.LADDER.every(c => !Object.values(OLD).includes(c.id)) && L.ALL.sites.every(x => !Object.values(OLD).includes(x)), 'no old ids left in the ladder'); }
 // placeholder vehicles: moon / mars / venus rungs stay locked until the models land
-{ ok(['selene', 'ares'].every(v => L.PLACEHOLDER_VEHICLES[v]), 'selene + ares use a placeholder model');
-  ok(L.LADDER.filter(L.rungLocked).map(c => c.id).join() === 'moon,mars,venus', 'moon, mars, venus rungs locked');
-  const s3 = L.blank(); for (const c of L.LADDER) if (!L.rungLocked(c)) s3.done[c.id] = 1;
-  const o3 = L.record(s3, { landed: 'moon', visited: ['mars', 'venus'], vehicle: 'selene' }); ok(o3.earned.length === 0 && !s3.done.moon, 'a locked rung cannot be earned even when its test passes'); }
+{ ok(Object.keys(L.PLACEHOLDER_VEHICLES).length === 0 && !L.LADDER.some(L.rungLocked), 'f5.1h: no placeholder vehicles; moon, mars, venus rungs open');
+  const s3 = L.blank(); for (const c of L.LADDER) if (!['moon', 'mars', 'venus'].includes(c.id)) s3.done[c.id] = 1;
+  const o3 = L.record(s3, { landed: 'moon', visited: ['moon', 'mars', 'venus'], vehicle: 'selene' }); ok(s3.done.moon && s3.done.mars && s3.done.venus, 'moon, mars, venus rungs can be earned'); }
 { // f5: the old showroom id still loads (save alias)
   const { migrate } = await import('../fun/ladder.js?v=f5.1e'); const r13 = t => t.replace(/[a-z]/g, ch => String.fromCharCode(97 + (ch.charCodeAt(0) - 84) % 26));
   const m = migrate({ v: 2, done: {}, unlocked: { vehicles: ['pip', r13('xrfgery')] } });
@@ -35,5 +34,10 @@ ok(L.ALL.vehicles.every(v => L.START.vehicles.includes(v) || L.unlockedBy('vehic
 { // f5.1e: a missed mission pays $0
   const s = L.blank(); const o = L.record(s, { maxAlt: 3e5, space: true, orbit: true, visited: ['earth', 'venus'], missed: true });
   if (o.cash === 0 && o.earned.length === 0 && s.cash === 0) { pass++; console.log('ok miss pays $0'); } else { fail++; console.log('FAIL miss pays'); }
+}
+{ // f5.1f: Next after Mars/Venus never drops back to an old skipped rung
+  const s = L.blank(); for (const c of L.LADDER) if (c.id !== 'booster' && c.id !== 'venus') s.done[c.id] = 1;
+  const a = L.nextAfter(s, 'mars'), b = L.nextAfter({ ...s, done: { ...s.done, venus: 1 } }, 'venus');
+  if (a && a.id === 'venus' && b === null && L.next(s).id === 'booster') { pass++; console.log('ok nextAfter'); } else { fail++; console.log('FAIL nextAfter', a && a.id, b); }
 }
 console.log(`ladder: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

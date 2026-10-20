@@ -56,7 +56,7 @@ export const CONTRACTS = [
       { company: 'redstar', vehicle: 'rodnik', note: 'decades of crew ferry flights to stations' },
       { company: 'rockwell', vehicle: 'space-truck', note: 'winged orbiter that assembled the station (1998-2011)' },
       { company: 'calt', vehicle: 'jade-lantern-2f', note: 'crew launches to a national station (from 2003)' }] },
-  { id: 'lunar-landing', rung: 'moon', mission: 'lunar-landing', vehicle: 'selene', locked: 'placeholder model (Rocket Art Bot)', site: 'cape-heritage',
+  { id: 'lunar-landing', rung: 'moon', mission: 'lunar-landing', vehicle: 'selene', site: 'cape-heritage',
     goal: { text: 'Land on the Moon', kind: 'landed', body: 'moon' },
     cost: 200, reward: { cash: 250, sci: 60, rep: 25 }, unlock: { vehicles: ['titan', 'ares'], sites: ['gulf-port'], missions: ['mars-ship'] },
     inspiration: [
@@ -64,7 +64,7 @@ export const CONTRACTS = [
       { company: 'calt', vehicle: 'jade-lantern-5', note: 'robotic lunar sample return (2020)' },
       { company: 'rockwell', vehicle: 'super-lift', note: 'uncrewed lunar test flight (2022)' },
       { company: 'redstar', vehicle: 'moonhammer', note: 'the Moon rocket that never succeeded (what-if)' }] },
-  { id: 'mars-ship', rung: 'mars', mission: 'mars-ship', vehicle: 'ares', locked: 'placeholder model (Rocket Art Bot)', site: 'gulf-port',
+  { id: 'mars-ship', rung: 'mars', mission: 'mars-ship', vehicle: 'ares', site: 'gulf-port',
     goal: { text: 'Reach Mars', kind: 'visited', body: 'mars' },
     cost: 250, reward: { cash: 400, sci: 100, rep: 30 }, unlock: { missions: ['venus'] },
     inspiration: [

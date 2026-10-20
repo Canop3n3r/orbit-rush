@@ -35,7 +35,7 @@ export function createCompact({ touch, onSpeedTap, onMarkers, onEngTap }) {
   const mk = document.createElement('button'); mk.id = 'pMark'; mk.textContent = '◎'; mk.title = 'Flight markers on the rocket (tag, arrows, stage rings)'; mk.setAttribute('aria-label', 'Flight markers'); mk.setAttribute('aria-pressed', 'false');
   mk.onclick = e => { e.currentTarget.blur(); const on = mk.getAttribute('aria-pressed') !== 'true'; onMarkers && onMarkers(on); }; group.appendChild(mk);
   let drawer;
-  if (touch) { R.appendChild($('mMap')); R.appendChild($('mMenuBtn')); drawer = $('mMenu'); drawer.insertBefore(group, drawer.children[1] || null); }
+  if (touch) { R.appendChild($('mMap')); R.appendChild($('mMenuBtn')); drawer = $('mMenu'); const more = drawer.querySelector('.mMore'); if (more) more.insertBefore(group, more.children[1] || null); else drawer.insertBefore(group, drawer.children[1] || null); } // f5.1h: the Pilot group lives under More
   else {
     const mb = document.createElement('button'); mb.id = 'dMap'; mb.textContent = 'MAP'; mb.title = 'Map (M)'; R.appendChild(mb);
     const db = document.createElement('button'); db.id = 'dMenuBtn'; db.textContent = '☰'; db.setAttribute('aria-label', 'More'); R.appendChild(db);
