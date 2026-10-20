@@ -6,10 +6,21 @@ import * as PR from './profiles.js?v=art1';
 import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=art1';
 const PI = Math.PI;
 function group(name, kids, h) { const g = new THREE.Group(); g.name = name; for (const c of kids) g.add(c); g.userData.height = h; g.userData.stages = Object.fromEntries(kids.map(c => [c.name, c])); g.userData.legs = []; return g; }
+const LOCAL = new Map();
+function lmat(key) { if (LOCAL.has(key)) return LOCAL.get(key); let m;
+  if (key === 'x-foam' || key === 'x-foam2') { const c = document.createElement('canvas'); c.width = 256; c.height = 512; const x = c.getContext('2d'); x.fillStyle = key === 'x-foam' ? '#b8622c' : '#a6582a'; x.fillRect(0, 0, 256, 512);
+    let s = 7; const r = () => (s = (s * 16807) % 2147483647) / 2147483647; for (let i = 0; i < 2600; i++) { const v = r(); x.fillStyle = `rgba(${v > 0.5 ? '255,170,110' : '90,40,15'},${0.05 + r() * 0.08})`; x.fillRect(r() * 256, r() * 512, 2 + r() * 8, 1 + r() * 5); }
+    if (key === 'x-foam2') for (let y = 0; y < 512; y += 16) { x.fillStyle = 'rgba(60,25,8,0.35)'; x.fillRect(0, y, 256, 3); }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.userData.cached = true; m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.92, metalness: 0 }); }
+  else if (key === 'x-bellblack') m = new THREE.MeshStandardMaterial({ color: 0x2a2826, roughness: 0.5, metalness: 0.8, side: THREE.DoubleSide });
+  else if (key === 'x-tile') m = new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.85, metalness: 0.05 });
+  else if (key === 'x-rcc') m = new THREE.MeshStandardMaterial({ color: 0x55585c, roughness: 0.7, metalness: 0.1 });
+  else m = new THREE.MeshStandardMaterial({ color: 0xf0eee8, roughness: 0.55 });
+  m.name = key; m.userData.cached = true; weakDisposeListeners(m); LOCAL.set(key, m); return m; } // weak listeners: no per-render leak (rockets-3 fix)
 // roll pattern: black quadrant panels over white paint (the classic test-range pattern; generic, no insignia)
-function quads(k, r, y, h, a0 = 0, n = 2) { for (let i = 0; i < n; i++) tube(k, r * 1.003, r * 1.003, h, y, 'dark', { open: true, t0: a0 + i * PI, tl: PI / 2, seg: k.hi ? 10 : 4 }); }
-function band(k, r, y, h) { tube(k, r * 1.003, r * 1.003, h, y, 'dark', { open: true, seg: k.hi ? 40 : 14 }); }
-function stringers(k, r, y, h, n) { if (!k.hi || k.mid) return; for (let i = 0; i < n; i++) { const a = (i + 0.5) / n * 2 * PI; k.add(new THREE.BoxGeometry(0.09, h, 0.06), 'paint:0,0', xf([Math.cos(a) * (r + 0.03), y + h / 2, Math.sin(a) * (r + 0.03)], [0, -a, 0])); } }
+function quads(k, r, y, h, a0 = 0, n = 2) { for (let i = 0; i < n; i++) tube(k, r * 1.006, r * 1.006, h, y, 'dark', { open: true, t0: a0 + i * PI, tl: PI / 2, seg: k.hi ? 10 : 4 }); }
+function band(k, r, y, h) { tube(k, r * 1.006, r * 1.006, h, y, 'dark', { open: true, seg: k.hi ? 40 : 14 }); }
+function stringers(k, r, y, h, n, key = 'paint:0,0') { if (!k.hi || k.mid) return; for (let i = 0; i < n; i++) { const a = (i + 0.5) / n * 2 * PI; k.add(new THREE.BoxGeometry(0.09, h, 0.06), key, xf([Math.cos(a) * (r + 0.03), y + h / 2, Math.sin(a) * (r + 0.03)], [0, -a, 0])); } }
 // Saturnine V stack heights (m, from the F-1 exits): S-IC 0-42.1, interstage 42.1-47.6, S-II -72.4, S-IVB taper -77.4 + cyl -90.1,
 // IU -91.0, SLA -99.5 (6.6 -> 3.9 m), SM -102.2, CM -105.4, LES tower+motor -110.6
 const R1 = 5.03, R3 = 3.3, Y = { ic: 42.1, is: 47.6, ii: 72.4, tp: 77.4, ivb: 90.1, iu: 91.0, sla: 99.5, sm: 102.2, cm: 105.4, top: 110.6 };
@@ -27,10 +38,10 @@ function sic(d, o) { const k = new Kit(d), b0 = 5.2; // body starts above the ha
   quads(k, R1, b0 + 7, 13.8, 0); // black roll quadrants on the fuel tank
   band(k, R1, b0 + 20.8, 3.2); // intertank black band
   tube(k, R1, R1, Y.ic - (b0 + 27.4), b0 + 27.4, 'paint:0,0'); quads(k, R1, Y.ic - 3.0, 3.0, PI / 2, 2); // LOX tank + forward skirt checker
-  stringers(k, R1, b0 + 21, 3, 48); // intertank corrugation only (tank stringers read as noise)
+  stringers(k, R1, b0 + 21, 3, 48, 'dark'); // intertank corrugation only (tank stringers read as noise)
   for (const a of [0.2, PI + 0.2]) k.add(new THREE.BoxGeometry(0.5, 32, 0.7), 'paint:0,0', xf([Math.cos(a) * (R1 + 0.3), b0 + 22, Math.sin(a) * (R1 + 0.3)], [0, -a, 0])); // tunnels (LOX/cable)
   decal(k, 'booster.side', R1, 20, 8, PI, 0.5);
-  const g = k.build('S-IC'); g.userData.top = Y.ic; return g; }
+  const g = k.build('S-IC'); for (const m of g.children) if (m.name.endsWith(':bell')) m.material = lmat('x-bellblack'); g.userData.top = Y.ic; return g; } // F-1: dark regen tubes
 function sii(d) { const k = new Kit(d);
   tube(k, R1, R1, Y.is - Y.ic, Y.ic, 'paint:0,0'); band(k, R1, Y.ic + 0.2, 0.5); stringers(k, R1, Y.ic, Y.is - Y.ic, 36); // interstage (falls away after ignition)
   for (const [x, z] of ringPos([[4, 2.65, PI / 4], [1, 0]])) bell(k, 1.0, 3.1, x, Y.ic + 1.0, z, { ext: false, head: 0.9, rt: 0.3 }); // 5 J-2 (inside the interstage)
@@ -72,16 +83,6 @@ export function saturnine(o) { const d = o.detail; const g = group('saturnine-v'
   if (o.plume) g.add(plume(5, ringPos([[4, 3.2, PI / 4], [1, 0]]), 2.2, 60 * o.plume)); return g; }
 // ---- Space Truck Stack (parody of the winged orbiter stack): ET axis at x=z=0, boosters at x=±6.6, orbiter on +z ----
 // rocketdb space-truck (GCAT): SRB 45.5 x 3.71 m, ET 47.0 x 8.4 m, orbiter 37.2 m long; stack 56.1 m; wingspan 23.8 m (art-fitted placement)
-const LOCAL = new Map();
-function lmat(key) { if (LOCAL.has(key)) return LOCAL.get(key); let m;
-  if (key === 'x-foam' || key === 'x-foam2') { const c = document.createElement('canvas'); c.width = 256; c.height = 512; const x = c.getContext('2d'); x.fillStyle = key === 'x-foam' ? '#b8622c' : '#a6582a'; x.fillRect(0, 0, 256, 512);
-    let s = 7; const r = () => (s = (s * 16807) % 2147483647) / 2147483647; for (let i = 0; i < 2600; i++) { const v = r(); x.fillStyle = `rgba(${v > 0.5 ? '255,170,110' : '90,40,15'},${0.05 + r() * 0.08})`; x.fillRect(r() * 256, r() * 512, 2 + r() * 8, 1 + r() * 5); }
-    if (key === 'x-foam2') for (let y = 0; y < 512; y += 16) { x.fillStyle = 'rgba(60,25,8,0.35)'; x.fillRect(0, y, 256, 3); }
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.userData.cached = true; m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.92, metalness: 0 }); }
-  else if (key === 'x-tile') m = new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.85, metalness: 0.05 });
-  else if (key === 'x-rcc') m = new THREE.MeshStandardMaterial({ color: 0x55585c, roughness: 0.7, metalness: 0.1 });
-  else m = new THREE.MeshStandardMaterial({ color: 0xf0eee8, roughness: 0.55 });
-  m.name = key; m.userData.cached = true; weakDisposeListeners(m); LOCAL.set(key, m); return m; } // weak listeners: no per-render leak (rockets-3 fix)
 function kbuild(k, name) { const g = k.build(name); for (const m of g.children) { const key = m.name.split(':').slice(1).join(':'); if (key.startsWith('x-')) m.material = lmat(key); } return g; }
 const TR = PR.TRUCK, ET0 = 9.1, ETT = 56.1, OZ = TR.etR + 1.25 + 2.5; // tank base/top, orbiter fuselage centre z
 function srb(d, side) { const k = new Kit(d), r = TR.srbR, x = side * 6.6;
@@ -116,8 +117,8 @@ function orbiter(d) { const k = new Kit(d), y0 = 7.6, L = 37.2, top = y0 + L, fy
     for (const sx of [-1, 1]) k.add(new THREE.BoxGeometry(0.04, fy - y0 - 6, 0.04), 'dark', xf([sx * 0.02, (y0 + fy) / 2 + 1, 2.78])); } // payload-bay door seam
   // double-delta wings (span along x), thin, white top / black underside
   const wing = new THREE.Shape([new THREE.Vector2(0, y0 - 0.4), new THREE.Vector2(11.9, y0), new THREE.Vector2(11.9, y0 + 1.4), new THREE.Vector2(5.4, y0 + 13.5), new THREE.Vector2(2.9, y0 + 21.5), new THREE.Vector2(0, y0 + 24)]);
-  for (const sx of [-1, 1]) { const m = xf([0, 0, -1.4], [0, 0, 0], [sx, 1, 1]); k.add(new THREE.ExtrudeGeometry(wing, { depth: 0.55, bevelEnabled: false, curveSegments: 1 }), 'paint:0,0', m);
-    k.add(new THREE.ShapeGeometry(wing), 'x-tile', xf([0, 0, -1.42], [0, PI, 0], [-sx, 1, 1])); // underside
+  for (const sx of [-1, 1]) { const m = xf([0, 0, -1.4], [0, 0, 0], [sx, 1, 1]); k.add(new THREE.ExtrudeGeometry(wing, { depth: 0.5, bevelEnabled: true, bevelThickness: 0.35, bevelSize: 0.3, bevelSegments: k.hi && !k.mid ? 3 : 1, curveSegments: 1 }), 'paint:0,0', m); // rounded airfoil-ish section (~1.2 m root)
+    k.add(new THREE.ShapeGeometry(wing), 'x-tile', xf([0, 0, -1.77], [0, PI, 0], [-sx, 1, 1])); // underside (below the bevel)
     k.add(new THREE.BoxGeometry(0.35, 0.35, 0.6), 'x-rcc', xf([sx * 11.9, y0 + 0.7, -1.1])); }
   if (k.hi) { const le = (a, b) => strut(k, [a[0], a[1], -1.13], [b[0], b[1], -1.13], 0.2, 'x-rcc'); for (const sx of [-1, 1]) { le([sx * 11.9, y0 + 1.4], [sx * 5.4, y0 + 13.5]); le([sx * 5.4, y0 + 13.5], [sx * 2.9, y0 + 21.5]); } }
   // vertical tail (+z), with split rudder line
