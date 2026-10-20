@@ -19,6 +19,7 @@ const realHit = (() => { const f = process.env.REALNAMES || '/workspace/wk/realn
 { const c = readFileSync(new URL('co_bolt.js', dir), 'utf8'); for (const id of ['electrino','electrino-recovery']) ok(c.includes(`'${id}':`), 'co_bolt id ' + id); ok(!realHit(c), 'co_bolt.js: no real names'); }
 { const c = readFileSync(new URL('co_convex.js', dir), 'utf8'); for (const id of ['titanus-4','atlantean-crew','atlantean-upper']) ok(c.includes(`'${id}':`), 'co_convex id ' + id); ok(!realHit(c), 'co_convex.js: no real names'); }
 { const c = readFileSync(new URL('co_dougwing.js', dir), 'utf8'); for (const id of ['deltoid-2-heavy9','deltoid-2-light3']) ok(c.includes(`'${id}':`), 'co_dougwing id ' + id); ok(!realHit(c), 'co_dougwing.js: no real names'); }
+{ const c = readFileSync(new URL('co_dougwing_b.js', dir), 'utf8'); for (const id of ['thorin','thorin-agenta','thorin-capable','thorin-capablestar','thorin-toaster','deltoid','deltoid-3']) ok(c.includes(`'${id}':`), 'co_dougwing_b id ' + id); ok(!realHit(c), 'co_dougwing_b.js: no real names'); }
 { const c = readFileSync(new URL('co_jadelantern.js', dir), 'utf8'); for (const id of ['jade-lantern-5','jade-lantern-5b']) ok(c.includes(`'${id}':`), 'co_jadelantern id ' + id); ok(!realHit(c), 'co_jadelantern.js: no real names'); }
 { const c = readFileSync(new URL('co_jadelantern2.js', dir), 'utf8'); for (const id of ['jade-lantern-2f','jade-lantern-3b']) ok(c.includes(`'${id}':`), 'co_jadelantern2 id ' + id); ok(!realHit(c), 'co_jadelantern2.js: no real names'); }
 { const c = readFileSync(new URL('co_isra.js', dir), 'utf8'); for (const id of ['polar-slinger','monsoon-heavy']) ok(c.includes(`'${id}':`), 'co_isra id ' + id); ok(!realHit(c), 'co_isra.js: no real names'); }
@@ -57,7 +58,8 @@ print(json.dumps(out))`;
 { const c = readFileSync(new URL('co_taiga.js', dir), 'utf8'); for (const id of ['taiga-1','taiga-a5']) ok(c.includes(`'${id}':`), 'co_taiga id ' + id); ok(!realHit(c), 'co_taiga.js: no real names'); }
 { const c = readFileSync(new URL('co_lingvolt.js', dir), 'utf8'); for (const id of ['scoutling','scoutling-x1']) ok(c.includes(`'${id}':`), 'co_lingvolt id ' + id); ok(!realHit(c), 'co_lingvolt.js: no real names'); }
 { const c = readFileSync(new URL('co_vantguard.js', dir), 'utf8'); for (const id of ['vantguard']) ok(c.includes(`'${id}':`), 'co_vantguard id ' + id); ok(!realHit(c), 'co_vantguard.js: no real names'); }
-{ const c = readFileSync(new URL('co_ssb.js', dir), 'utf8'); for (const id of ['cosmokart-1', 'cosmokart-1b', 'cosmokart-2', 'cosmokart-3m', 'whirligig-2', 'whirligig-3', 'riverbend', 'kometa']) ok(c.includes(`'${id}':`), 'co_ssb id ' + id); ok(!realHit(c), 'co_ssb.js: no real names'); }
+{ const c = readFileSync(new URL('co_ssb.js', dir), 'utf8'); for (const id of ['cosmokart-1', 'cosmokart-1b', 'cosmokart-2', 'cosmokart-3m', 'whirligig-2', 'whirligig-3', 'riverbend']) ok(c.includes(`'${id}':`), 'co_ssb id ' + id); ok(!realHit(c), 'co_ssb.js: no real names'); }
+{ const c = readFileSync(new URL('co_kometa.js', dir), 'utf8'); for (const id of ['kometa']) ok(c.includes(`'${id}':`), 'co_kometa id ' + id); ok(!realHit(c), 'co_kometa.js: no real names'); }
 console.log(`vehicles_art: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
 // noses/fairings: every profile's narrowest point is its highest point (tips point +Y, away from the engines)
 const PR = await import('../gfx/vehicles/profiles.js');
