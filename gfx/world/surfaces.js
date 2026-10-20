@@ -8,6 +8,7 @@ import { uniform, texture, float, vec2, vec3, positionWorld, cameraPosition, nor
 import { WORLD_TIERS, CLOUD_LAYER } from './tiers.js?v=w1';
 import { dirUV, detailNormal, fbm } from './common.js?v=w1';
 export function surfaceUniforms(o = {}) { return { center: uniform(new THREE.Vector3()), sunDir: uniform(new THREE.Vector3(1, 0, 0)), R: uniform(o.R ?? 6371), time: uniform(0), cloudUV: o.cloudUV || uniform(new THREE.Vector2()), cloudShadow: uniform(o.cloudShadow ?? 0.6) }; }
+const wrapU = v => vec2(v.x.fract(), v.y);
 const toView = n => normalize(cameraViewMatrix.mul(vec4(n, 0.0)).xyz); // normalNode is view-space
 const camAlt = U => length(cameraPosition.sub(U.center)).sub(U.R);
 export function earthSurfaceMaterial(t, tier = 'high', U = surfaceUniforms()) {
@@ -33,14 +34,14 @@ export function earthSurfaceMaterial(t, tier = 'high', U = surfaceUniforms()) {
   m.metalnessNode = float(0);
   // cloud shadow: sample the weather map where the sun ray through this point crosses mid-layer height
   const hMid = (CLOUD_LAYER.base + CLOUD_LAYER.top) * 0.5;
-  const ps = pkm.add(L.mul(float(hMid).div(max(ndl, 0.12)))), cs = texture(t.clouds, dirUV(normalize(ps)).add(U.cloudUV)).r;
+  const ps = pkm.add(L.mul(float(hMid).div(max(ndl, 0.12)))), cs = texture(t.clouds, wrapU(dirUV(normalize(ps)).add(U.cloudUV))).r;
   const cshadow = T.shadows ? float(1).sub(saturate(cs.sub(0.18).mul(1.6)).mul(U.cloudShadow)) : float(1);
   m.colorNode = m.colorNode.mul(mix(float(1), cshadow, smoothstep(-0.1, 0.1, ndl)));
   // night lights: contrast curve (tight cores, faint suburbs), sodium/LED mix, dimmed under cloud, gone in daylight
   const nightK = smoothstep(0.08, -0.18, ndl), lum = dot(night, vec3(0.33));
   const cores = pow(saturate(lum.mul(1.4)), float(1.8)).mul(vec3(1.0, 0.78, 0.45)).mul(2.6);
   const glow = saturate(lum.sub(0.04)).mul(vec3(0.9, 0.6, 0.3)).mul(0.6);
-  const cloudOver = float(1).sub(saturate(texture(t.clouds, uv.add(U.cloudUV)).r.sub(0.18).mul(1.6)).mul(0.7));
+  const cloudOver = float(1).sub(saturate(texture(t.clouds, wrapU(uv.add(U.cloudUV))).r.sub(0.18).mul(1.6)).mul(0.7));
   m.emissiveNode = cores.add(glow).mul(nightK).mul(cloudOver).mul(float(1).sub(ocean.mul(0.9)));
   m.userData.U = U; return m;
 }

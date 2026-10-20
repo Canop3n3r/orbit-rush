@@ -10,6 +10,7 @@ import * as GX from '../gfx.js?v=f2';
 import { WORLD_TIERS, lonLatToDir } from './tiers.js?v=w1';
 import { createClouds, cloudUniforms } from './clouds.js?v=w1';
 import { surfaceUniforms, earthSurfaceMaterial, moonSurfaceMaterial, marsSurfaceMaterial, capGeometry } from './surfaces.js?v=w1';
+globalThis.W1VIEW = new URLSearchParams(location.search).has('view');
 const q = new URLSearchParams(location.search), shot = q.get('shot') || 'pad', tier = WORLD_TIERS[q.get('tier')] ? q.get('tier') : 'high';
 if (q.get('steps')) WORLD_TIERS[tier].steps = +q.get('steps'); if (q.get('light')) WORLD_TIERS[tier].light = +q.get('light');
 const renderer = new THREE.WebGPURenderer({ antialias: tier !== 'low', forceWebGL: q.has('webgl'), logarithmicDepthBuffer: true });

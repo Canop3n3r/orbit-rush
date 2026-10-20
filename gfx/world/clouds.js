@@ -4,7 +4,7 @@
 // Beer-Powder extinction and a dual-lobe Henyey-Greenstein phase, ambient sky term and Earth's shadow.
 // Phones (tier 'low') get a 2D cloud sphere with fake self-shadowing instead. Units: 1 = 1 km.
 import * as THREE from 'three/webgpu';
-import { Fn, If, uniform, texture, float, int, vec3, vec4, positionWorld, cameraPosition, normalize, dot, length, max, min, mix, exp, pow, saturate, smoothstep, mx_noise_float, normalWorld } from 'three/tsl';
+import { Fn, If, vec2, uniform, texture, float, int, vec3, vec4, positionWorld, cameraPosition, normalize, dot, length, max, min, mix, exp, pow, saturate, smoothstep, mx_noise_float, normalWorld } from 'three/tsl';
 import { WORLD_TIERS, CLOUD_LAYER } from './tiers.js?v=w1';
 import { dirUV, raySphere, fbm } from './common.js?v=w1';
 const hg = (c, g) => float(1 - g * g).div(pow(float(1 + g * g).sub(c.mul(2 * g)), 1.5)).mul(1 / (4 * Math.PI));
@@ -15,19 +15,20 @@ export function cloudUniforms(o = {}) {
 }
 // coverage 0..1 at unit direction d (weather map, contrast-boosted, wind-advected)
 function coverageAt(weather, U, d) {
-  const uv = dirUV(d).add(U.offset).add(U.wind.xy.mul(U.time)).toVar();
-  return saturate(texture(weather, uv).level(0).r.sub(0.18).mul(1.6).mul(U.coverage));
+  const uv0 = dirUV(d).add(U.offset).add(U.wind.xy.mul(U.time)), uv = vec2(uv0.x.fract(), uv0.y).toVar(); // wrap in u (textures clamp by default)
+  return saturate(texture(weather, uv).r.sub(0.08).mul(1.5).mul(U.coverage));
 }
 function densityAt(weather, U, p, oct) { // p relative to centre, km
   const r = length(p).toVar(), d = p.div(r).toVar(), h = saturate(r.sub(U.R).sub(U.base).div(U.top.sub(U.base))).toVar();
   const cov = coverageAt(weather, U, d).toVar();
-  const topH = mix(float(0.25), float(1.0), cov.mul(cov)).toVar(); // thick cover towers higher
-  const prof = smoothstep(0.0, 0.08, h).mul(smoothstep(topH, topH.mul(0.55), h));
+  const topH = mix(float(0.4), float(1.0), cov).toVar(); // thick cover towers higher
+  const prof = smoothstep(0.0, 0.08, h).mul(float(1).sub(smoothstep(topH.mul(0.5), topH, h)));
   if (oct === 0) return saturate(cov.mul(prof).sub(0.27).mul(3.0)); // cheap light-sample density (no noise)
-  const n = saturate(fbm(p.mul(0.09).toVar().add(vec3(U.time.mul(0.02), 0, 0)), oct).mul(1.6).add(0.5)); // billow 0..1
+  const n = saturate(fbm(p.mul(0.09).toVar().add(vec3(U.time.mul(0.02), 0, 0)), oct).mul(2.6).add(0.5)); // billow 0..1
   const fine = oct > 1 ? mx_noise_float(p.mul(0.55)).mul(0.5).add(0.5) : float(0.5);
   // coverage remap (Schneider 2015): noise survives where it exceeds (1 - coverage); fine noise erodes the edges
   const shape = saturate(n.sub(float(1).sub(cov)).div(max(cov, 0.05)));
+  if (globalThis.W1VIEW) return vec3(cov, n, shape);
   return saturate(shape.sub(fine.mul(0.25).mul(float(1).sub(shape))).mul(prof).mul(1.6));
 }
 export function volumetricCloudMaterial(weatherTex, tier = 'high', U = cloudUniforms()) {
@@ -46,6 +47,7 @@ export function volumetricCloudMaterial(weatherTex, tier = 'high', U = cloudUnif
     const sb = raySphere(ro, rd, Rb).toVar();
     If(alt.greaterThan(U.top).and(sb.x.greaterThan(0.0)).and(sb.y.greaterThan(sb.x)), () => { t1.assign(min(t1, sb.x)); });
     If(alt.lessThan(U.base).and(sb.y.greaterThan(0.0)), () => { t0.assign(max(t0, sb.y)); }); // below base: start at base
+    if (globalThis.W1VIEW) { const sm = raySphere(ro, rd, U.R.add(U.base.add(U.top).mul(0.5))); const pm = ro.add(rd.mul(max(sm.x, sm.y.mul(alt.lessThan(U.top).select(1.0, 0.0))))); return vec4(densityAt(weather, U, pm, 2), 1); }
     const span = max(t1.sub(t0), 0.0).toVar(), dt = span.div(N).toVar();
     const jitter = mx_noise_float(positionWorld.mul(37.1)).mul(0.5).add(0.5).toVar();
     const Tr = float(1).toVar(), acc = vec3(0).toVar();
