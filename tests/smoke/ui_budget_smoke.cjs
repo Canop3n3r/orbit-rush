@@ -67,7 +67,10 @@ async function runVp(br, vp) {
   const [W, H] = vp.split('x').map(Number), phone = Math.min(W, H) < 600, tag = phone ? (W < H ? 'pp' : 'pl') : 'd' + W;
   const ctx = await br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } });
   const pg = await ctx.newPage(); const ev = (f, a) => pg.evaluate(f, a), wait = ms => pg.waitForTimeout(ms); const M = {}, rows = [];
-  const m = async l => { try { M[l] = await ev(measure); M[l].x = await ev(extra); if (shots) await pg.screenshot({ path: `${shots}/uib_${tag}_${l}.png` }); } catch (e) { M[l] = { err: e.message.split('\n')[0] }; } };
+  // f5.1d: modals/end card fade in with CSS animations (fUp/fPop, 0.22-0.3 s) that take >1.5 s at software-GPU frame rates, so the
+  // evidence screenshot showed the screen underneath at opacity 0; finish those entry animations first (counts were already right).
+  const settle = () => ev(() => { for (const a of document.getAnimations()) if (/^(fUp|fPop)$/.test(a.animationName || '')) try { a.finish(); } catch (e) {} });
+  const m = async l => { try { await settle(); M[l] = await ev(measure); M[l].x = await ev(extra); if (shots) await pg.screenshot({ path: `${shots}/uib_${tag}_${l}.png` }); } catch (e) { M[l] = { err: e.message.split('\n')[0] }; } };
   const hide = () => ev(() => document.querySelectorAll('.modal').forEach(x => x.classList.add('hidden')));
   const step = async (l, f, ms) => { try { await f(); await wait(ms); await m(l); } catch (e) { M[l] = { err: e.message.split('\n')[0] }; } };
   const load = async () => { await pg.goto(base, { waitUntil: 'load' }); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await wait(2500); };
@@ -96,8 +99,12 @@ async function runVp(br, vp) {
   await step('settings', async () => { await ev(() => document.getElementById('hGear').click()); await wait(600); await ev(() => { const b = [...document.querySelectorAll('#hGearM button')].find(b => /settings/i.test(b.textContent)); b && b.click(); }); }, 1000);
   await step('missions_hub', async () => { await hide(); await ev(() => { const g = document.getElementById('hGearM'); g && g.offsetParent && document.getElementById('hGear').click(); document.getElementById('hnMis').click(); }); }, 1200);
   await step('build', async () => { await hide(); await ev(() => document.getElementById('hnBuild').click()); }, 2500);
-  await step('hud_auto', async () => { await hide(); await ev(() => document.getElementById('homeBack').click()); await wait(800); await ev(() => document.getElementById('hFly').click()); await wait(3000);
-    await ev(() => { const G = window.__game; G.press('Space'); }); await wait(300); await ev(() => { const F = window.__game.F; F.setAuto(true); for (let i = 0; i < 60 * 40; i++) F.advance(1 / 60); }); }, 2500);
+  // f5.1d: Home now opens on Pip (sounding rocket, can't orbit), so hud_auto → end_card measured a crash; pick the first orbital
+  // showroom rocket (Sparrow-1 'needle', else index 1) before FLY, and only press Space if FLY didn't already ignite (1-tap AUTO).
+  await step('hud_auto', async () => { await hide(); await ev(() => document.getElementById('homeBack').click()); await wait(800);
+    await ev(() => { const G = window.__game, L = G.home ? G.home().list : []; const i = L.findIndex(r => r.id === 'needle'); G.homeSet && G.homeSet(i >= 0 ? i : 1); }); await wait(800);
+    await ev(() => document.getElementById('hFly').click()); await wait(3000);
+    await ev(() => { const G = window.__game; if (!G.F.ignited) G.press('Space'); }); await wait(300); await ev(() => { const F = window.__game.F; F.setAuto(true); for (let i = 0; i < 60 * 40; i++) F.advance(1 / 60); }); }, 2500);
   await step('orbit_toast', () => ev(() => { const F = window.__game.F; for (let i = 0; i < 60 * 900 && !F.flags.orbit; i++) F.advance(1 / 60); }), 1500);
   await step('map', async () => { await wait(3000); await hide(); await ev(() => { const e = document.getElementById('end'); e && e.classList.add('hidden'); window.__game.press('KeyM'); }); }, 2500); // orbit popup may land late; the map budget is measured without it
   await step('photo', async () => { await ev(() => window.__game.press('KeyM')); await wait(400); await ev(() => window.__game.fun.photo.toggle()); }, 1500);
