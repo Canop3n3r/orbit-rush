@@ -2055,7 +2055,7 @@ function playRung(c) {
 addEventListener('career-change', () => { if (home) home.refresh(); });
 var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].id), onCareer: () => careerUI.show(true),
   onSelect: i => { try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(showDesign(i)); },
-  onFly: i => { if (lockedFly(i)) return; setDesign(showDesign(i)); home.show(false); launch(); },
+  onFly: i => { if (lockedFly(i)) return; setDesign(showDesign(i)); home.show(false); launch(); try { if (!F.ignited) F.stagePress(); F.setAuto(true, true); } catch (e) { } }, // QA f5b.3: home FLY = 1 tap to liftoff on AUTO
   onMission: i => { if (lockedFly(i)) return; const w = lockWhy('missions', SHOW[i].mission); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); return; } home.show(false); startMission(SHOW[i].mission); },
   onBuild: i => { if (lockedFly(i)) return; goBuild.toHome = false; setDesign(showDesign(i)); home.show(false); refreshBuild(); },
   onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => $('hGearM').classList.toggle('hidden') });

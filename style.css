@@ -770,3 +770,5 @@ body.touch #tilesAttr{top:calc(62px + env(safe-area-inset-top,0px))!important;bo
 /* QA f5a.2 P2: LAUNCH sits in its own bar under the build sheet on phones (never on top of the parts list) */
 body.touch:not(.home) #build.builder{bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;padding-bottom:8px!important;max-height:calc(100vh - 84px - env(safe-area-inset-bottom,0px))!important}
 @media (orientation:portrait){body.touch:not(.home) #build.builder{height:calc(58vh - 84px)!important;max-height:calc(58vh - 84px)!important}}
+body #hFly{min-height:64px;height:64px}
+body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #hNext{display:none!important}

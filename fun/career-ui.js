@@ -26,7 +26,8 @@ export function createCareerUI({ store, name, onPlay }) {
     const p = el.querySelector('.crPlay'); if (p) p.onclick = () => { show(false); onPlay(nx); };
     el.querySelector('.crSand input').onchange = e => { L.setSandbox(store, e.target.checked); render(); };
   }
-  function show(on = true) { if (on) render(); el.classList.toggle('hidden', !on); if (!on) dispatchEvent(new Event('career-change')); }
+  function show(on = true) { if (on) render(); el.classList.toggle('hidden', !on); document.body.classList.toggle('careerOn', !!on); // QA f5b.3: Career replaces the home card (one Fly button)
+    if (!on) dispatchEvent(new Event('career-change')); }
   // record a flight and return the results-card HTML + the next rung
   function record(r) { S = L.load(store); const out = L.record(S, r); L.save(store, S); return out; }
   function resultsHTML(out) {
