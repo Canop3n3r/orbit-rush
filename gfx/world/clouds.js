@@ -84,13 +84,13 @@ export function flatCloudMaterial(weatherTex, U = cloudUniforms()) {
   const sunUp = dot(normalWorld, U.sunDir), shade = smoothstep(-0.15, 0.35, sunUp);
   const thick = saturate(cov.mul(1.3)); // thicker -> greyer base when lit from low sun
   const lit = mix(vec3(1.0, 0.55, 0.32), vec3(0.98, 0.98, 1.0), smoothstep(0.0, 0.3, sunUp)).mul(mix(float(1), float(0.72), thick.mul(float(1).sub(shade))));
-  m.colorNode = vec4(lit.mul(shade.mul(0.95).add(0.03)), cov.mul(0.95));
+  m.colorNode = vec4(lit.mul(shade.mul(0.95).add(0.03)), smoothstep(0.3, 0.95, cov).mul(0.95));
   m.userData.U = U; return m;
 }
 // Build the cloud object. Returns { mesh, U, setSun(dirVec3), update(dt, camAltKm) }.
 export function createClouds({ weatherTex, tier = 'high', R = 6371, U = cloudUniforms({ R }) } = {}) {
   const T = WORLD_TIERS[tier];
-  const geo = T.volumetric ? new THREE.SphereGeometry(R + U.top.value, 96, 48) : new THREE.SphereGeometry(R + 3.0, 128, 64);
+  const geo = T.volumetric ? new THREE.SphereGeometry(R + U.top.value, 96, 48) : new THREE.SphereGeometry(R + 6.0, 192, 96) /* facet sag < 1 km so the shell never dips under the ground cap */;
   const mat = T.volumetric ? volumetricCloudMaterial(weatherTex, tier, U) : flatCloudMaterial(weatherTex, U);
   const mesh = new THREE.Mesh(geo, mat); mesh.renderOrder = 5; mesh.frustumCulled = false; mesh.name = 'clouds-' + (T.volumetric ? 'volumetric' : '2d');
   return { mesh, U, tier, setSun(v) { U.sunDir.value.copy(v).normalize(); }, // depth-tested against opaque scene: draw the shell's far side when the camera is inside the layer, near side from above
