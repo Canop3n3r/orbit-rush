@@ -24,7 +24,7 @@ export const ROSTER_ARION = [
     // GTO 250 × 35,786 km, 6° (orbit definition EST: standard for this site)
     modes: [{ variant: 'gto', payload: 10865, orbit: { hp: 250, ha: 35786, inc: 6 }, src: 'spec:arion-5#gto', est: ['orbit'] }], flights: 117 },
   { ...a6(2), modes: [{ variant: 'b2', payload: 10000, orbit: { hp: 250, ha: 250, inc: 51.6 }, src: 'spec:arion-6#iss (user manual)',
- knownGap: 'model −28 % (fine trajectory grid): low-T/W core + upper stage; deorbit reserve and adapter unsourced, and the trajectory family (gravity turn + linear tangent + one restart) is still narrower than a real optimised ascent' }] },
+ knownGap: 'model −45 % with the finite-burn coast-and-restart (was −28 % with an impulsive perigee raise): low-T/W core + upper stage; the coast starts as soon as the apogee reaches the target, and the second burn is flown prograde-horizontal, a narrower family than a real optimised ascent; deorbit reserve and adapter unsourced' }] },
   { ...a6(4), modes: [{ variant: 'b4', payload: 20000, orbit: { hp: 250, ha: 250, inc: 51.6 }, src: 'spec:arion-6#iss (user manual)',
  }], flights: 9 },
 ];
