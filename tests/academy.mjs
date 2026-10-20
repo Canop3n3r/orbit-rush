@@ -3,11 +3,11 @@
 // concept cards show match the physics modules (which they import — no duplicated constants).
 // Run: node tests/academy.mjs   (exits non-zero on failure)
 import { readFileSync } from 'node:fs';
-import * as P from '../physics.js?v=f4.2';
-import { designStats, cloneDesign } from '../parts.js?v=f4.2';
-import { Flight } from '../flight.js?v=f4.2';
-import * as A from '../academy.js?v=f4.2';
-import * as C from '../physics/patched.js?v=f4.2';
+import * as P from '../physics.js?v=f5b.3';
+import { designStats, cloneDesign } from '../parts.js?v=f5b.3';
+import { Flight } from '../flight.js?v=f5b.3';
+import * as A from '../academy.js?v=f5b.3';
+import * as C from '../physics/patched.js?v=f5b.3';
 const { V, R } = P;
 let pass = 0, fail = 0;
 const ok = (c, name, extra = '') => { if (c) { pass++; console.log('  ✔', name, extra); } else { fail++; console.log('  ✘', name, extra); } };
