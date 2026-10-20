@@ -109,3 +109,5 @@ export { ROSTER_NOSA, ENGINES_NOSA } from './roster/nosa.js';
 export { ROSTER_ROCKWELL, ENGINES_ROCKWELL } from './roster/rockwell.js';
 // Roster company 'redstar' (data only, neutral ids; spec:loss-model): see vehicles/roster/redstar.js
 export { ROSTER_REDSTAR, ENGINES_REDSTAR } from './roster/redstar.js';
+// Roster company 'ulx' (data only, neutral ids; spec:loss-model): see vehicles/roster/ulx.js
+export { ROSTER_ULX, ENGINES_ULX } from './roster/ulx.js';
