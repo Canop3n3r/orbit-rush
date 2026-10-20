@@ -1470,12 +1470,22 @@ renderer.setAnimationLoop(() => {
 // The booster pane renders the same scene a second time with its own camera (scissored, no bloom, flow
 // particles off = the Low look). Tap a pane to make it full screen; ⇄ switches control between the craft.
 const cam2 = new THREE.PerspectiveCamera(55, 1, 0.5, 2e9), SPLIT_KEY = 'orbitrush.split';
-const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: localStorage.getItem(SPLIT_KEY) !== '0', yaw: 0.9, frame: 0 };
+const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: localStorage.getItem(SPLIT_KEY) !== '0', yaw: 0.9, pitch: 0.25, dist: 90, userT: -1e9, frame: 0 };
 { const d = document.createElement('div'); d.id = 'split'; d.className = 'hidden';
-  d.innerHTML = '<div id="spPane"><div id="spHud"></div><div class="spBtns"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div id="spHud1"></div></div>';
+  d.innerHTML = '<div id="spPane"><div class="spCard" id="spCardB"><canvas class="spBall" id="spBallB" width="64" height="64"></canvas><div id="spHud"></div></div><div class="spBtns"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div class="spCard" id="spCardU"><canvas class="spBall" id="spBallU" width="64" height="64"></canvas><div id="spHud1"></div></div></div>';
   document.body.appendChild(d);
   $('spFull').onclick = e => { e.stopPropagation(); split.full = split.full === 'b' ? null : 'b'; camMode = split.full === 'b' ? 'booster' : 'chase'; };
-  $('spPane').onclick = () => { if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; } };
+  // f4: the booster pane has its own camera: drag orbits, pinch / wheel zooms, a tap (no drag) toggles full screen
+  const pp = $('spPane'), pts = new Map(); let moved = 0, pinch0 = 0, d0 = 90;
+  pp.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; pp.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0;
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); d0 = split.dist; } e.stopPropagation(); });
+  pp.addEventListener('pointermove', e => { const p = pts.get(e.pointerId); if (!p) return; const dx = e.clientX - p[0], dy = e.clientY - p[1]; pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) split.dist = Math.max(25, Math.min(1500, d0 * pinch0 / Math.max(d, 1))); moved = 99; }
+    else { moved += Math.abs(dx) + Math.abs(dy); split.yaw -= dx * 0.008; split.pitch = Math.max(-0.4, Math.min(1.3, split.pitch + dy * 0.006)); split.userT = performance.now(); } e.stopPropagation(); });
+  const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0;
+    if (!pts.size && moved < 8) { if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; } } e.stopPropagation(); };
+  pp.addEventListener('pointerup', up); pp.addEventListener('pointercancel', up);
+  pp.addEventListener('wheel', e => { split.dist = Math.max(25, Math.min(1500, split.dist * Math.exp(e.deltaY * 0.001))); e.preventDefault(); e.stopPropagation(); }, { passive: false });
   $('spMain').onclick = () => { if (split.full) { split.full = null; camMode = 'chase'; } };
   $('spCtl').onclick = e => { e.stopPropagation(); if (booster && booster.state === 'flying' && F.ship && booster.stages[0].fuel > 0) F.toggleBooster(); else toast('The booster is on autopilot', '#9cc3ff'); };
   $('spClose').onclick = e => { e.stopPropagation(); split.closed = true; };
@@ -1497,17 +1507,36 @@ function updateSplit(rdt) {
   const st = $('spPane').style; if (fb) { st.left = '0'; st.top = '0'; st.width = '100%'; st.height = '100%'; } else { st.left = R2.x + 'px'; st.top = R2.y + 'px'; st.width = R2.w + 'px'; st.height = R2.h + 'px'; }
   if ((split.frame++ % 6) === 0 && b) {
     const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
-    $('spHud').innerHTML = `<b>BOOSTER</b> ${b.manual ? '· YOU' : '· AUTO'}<br>${fmtD(bh)} · ${vs.toFixed(0)} m/s<br><span class="${b.phase === 'landing burn' || b.phase === 'entry burn' ? 'warn' : ''}">${split.replay ? '⟲ REPLAY' : b.state === 'flying' ? (b.phase || '').toUpperCase() : b.state === 'landed' ? '✔ LANDED' : '✘ LOST'}</span>`;
-    $('spHud1').innerHTML = `<b>UPPER STAGE</b> ${v.auto || F.autoOn ? '· AUTO' : '· YOU'}<br>${fmtD(P.altOf(v))} · ${fmtS(V.len(v.v))}`;
+    const bf = b.stages[0], bfp = bf && bf.fuelMax ? Math.round(100 * bf.fuel / bf.fuelMax) : 0, bs = V.len(bva);
+    const bPh = split.replay ? '⟲ REPLAY' : b.state === 'landed' ? '✔ LANDED' : b.state !== 'flying' ? '✘ LOST' : b.manual ? 'MANUAL' : apPill(b.phase);
+    $('spHud').innerHTML = `<div class="spT"><b>BOOSTER</b><span class="pill ${/BURN|LANDING/.test(bPh) ? 'hot' : ''}">${bPh}</span></div><div class="spG"><span>ALT</span><b>${fmtD(bh)}</b><span>SPD</span><b>${fmtS(bs)}</b><span>V/S</span><b>${vs >= 0 ? '+' : ''}${vs.toFixed(0)} m/s</b><span>FUEL</span><b>${bf ? bf.fuel.toFixed(1) : 0} t</b></div>`;
+    const uu = V.norm(v.r), uva = P.airVel(v, v.r, v.v), uvs = V.dot(v.v, uu), us = v.stages[v.cur], ufp = us && us.fuelMax ? Math.round(100 * us.fuel / us.fuelMax) : 0;
+    const uPh = v.auto || F.autoOn ? ({ ascent: 'ASCENT', coast: 'COAST TO AP', circ: 'ORBIT INSERTION', done: 'IN ORBIT' }[v.guid] || 'AUTO') : 'MANUAL';
+    $('spHud1').innerHTML = `<div class="spT"><b>UPPER STAGE</b><span class="pill ${v.thrust > 0 ? 'hot' : ''}">${uPh}</span></div><div class="spG"><span>ALT</span><b>${fmtD(P.altOf(v))}</b><span>SPD</span><b>${fmtS(V.len(v.v))}</b><span>V/S</span><b>${uvs >= 0 ? '+' : ''}${uvs.toFixed(0)} m/s</b><span>FUEL</span><b>${ufp}%</b></div>`;
+    miniBall($('spBallB'), b.dir, b.r, bva); miniBall($('spBallU'), P.noseOf(v), v.r, P.altOf(v) > 80000 ? v.v : uva);
   }
+}
+const apPill = ph => { const p = (ph || '').toLowerCase(); return /boost/.test(p) ? 'BOOSTBACK' : /entry/.test(p) ? 'ENTRY BURN' : /landing|controlled/.test(p) ? 'LANDING BURN' : /glide|fin/.test(p) ? 'GRID-FIN GLIDE' : /touch/.test(p) ? 'TOUCHDOWN' : /coast/.test(p) ? 'COAST' : (ph || 'AUTO').toUpperCase(); };
+// f4 mini navball: sky/ground split by the nose pitch, roll-free; prograde marker from the velocity
+function miniBall(cv, dir, r, vel) {
+  if (!cv) return; const c = cv.getContext('2d'), W = cv.width, H = cv.height, R0 = W / 2 - 2, up = V.norm(r), e = P.eastOf(r), n = V.cross(up, e);
+  const pit = Math.asin(Math.max(-1, Math.min(1, V.dot(dir, up)))), hy = Math.max(-1, Math.min(1, -pit / (Math.PI / 2))) * R0;
+  c.clearRect(0, 0, W, H); c.save(); c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.clip();
+  c.fillStyle = '#3d7bd6'; c.fillRect(0, 0, W, H); c.fillStyle = '#8a5a2b'; c.fillRect(0, H / 2 + hy, W, H);
+  c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(0, H / 2 + hy); c.lineTo(W, H / 2 + hy); c.stroke();
+  const sp = V.len(vel); if (sp > 5) { const vd = V.scale(vel, 1 / sp), vp = Math.asin(Math.max(-1, Math.min(1, V.dot(vd, up)))), hd = Math.atan2(V.dot(vd, e), V.dot(vd, n)), nd = Math.atan2(V.dot(dir, e), V.dot(dir, n));
+    const px = W / 2 + Math.max(-1, Math.min(1, (hd - nd) / 1.2)) * R0 * 0.8, py = H / 2 + (pit - vp) / (Math.PI / 2) * R0;
+    c.strokeStyle = '#ffe14d'; c.lineWidth = 2; c.beginPath(); c.arc(px, py, 5, 0, 7); c.stroke(); }
+  c.restore(); c.strokeStyle = '#ffd23a'; c.lineWidth = 2; c.beginPath(); c.moveTo(W / 2 - 12, H / 2); c.lineTo(W / 2 - 4, H / 2); c.moveTo(W / 2 + 4, H / 2); c.lineTo(W / 2 + 12, H / 2); c.stroke();
+  c.strokeStyle = '#9cc3ff88'; c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.stroke();
 }
 function renderSplit(O) {
   if (!split.on || split.full === 'b' || !booster) return;
   const R2 = paneRect(), b = booster; let br = b.r, bd = b.dir;
   if (split.replay) { const rp = split.replay; rp.k += 0.5; const f = split.rec[Math.min(split.rec.length - 1, rp.i + Math.floor(rp.k))]; if (f) { br = f.r; bd = f.dir; setRel(b.mesh, br, O); dirQ(b.mesh, bd); b.mesh.userData.plume.visible = f.thr > 0.01; } }
-  const up = V.norm(br), e = P.eastOf(br), n = V.cross(up, e); split.yaw += 0.002;
-  const tx = br[0] - O[0], ty = br[1] - O[1], tz = br[2] - O[2], d = 90;
-  const off = V.add(V.add(V.scale(n, Math.cos(split.yaw) * d), V.scale(e, Math.sin(split.yaw) * d)), V.scale(up, d * 0.25));
+  const up = V.norm(br), e = P.eastOf(br), n = V.cross(up, e); if (performance.now() - split.userT > 4000) split.yaw += 0.002;
+  const tx = br[0] - O[0], ty = br[1] - O[1], tz = br[2] - O[2], d = split.dist, cp = Math.cos(split.pitch);
+  const off = V.add(V.add(V.scale(n, Math.cos(split.yaw) * d * cp), V.scale(e, Math.sin(split.yaw) * d * cp)), V.scale(up, d * Math.sin(split.pitch)));
   cam2.position.set(tx + off[0], ty + off[1], tz + off[2]); cam2.up.set(up[0], up[1], up[2]); cam2.lookAt(tx + bd[0] * 15, ty + bd[1] * 15, tz + bd[2] * 15);
   cam2.aspect = R2.w / R2.h; cam2.updateProjectionMatrix();
   const fxV = fx.root ? fx.root.visible : null; if (fx.root) fx.root.visible = false; // Low look in the pane: no flow particles
