@@ -1165,7 +1165,7 @@ function showEnd() {
   // f3: compact result card: headline result, score and medal up top; the stats wall folds into "Details"
   const extra = fun.endExtras(out, true), sc = lines.pop(), head = [], rest = [];
   for (const l of lines) (/class="(bad|warn)"|^<b class=/.test(l) && head.length < 3 ? head : rest).push(l);
-  const stars = { gold: 3, silver: 2, bronze: 1 }[out && out.medal] || (ok || (director && director.ok) ? 1 : 0);
+  const stars = director && director.result && !director.ok ? 0 : { gold: 3, silver: 2, bronze: 1 }[out && out.medal] || (ok || (director && director.ok) ? 1 : 0); // a missed mission earns no stars
   $('endBody').innerHTML = `<div class="endStars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<i>${'★'.repeat(3 - stars)}</i></div>` + head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
     + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}${extra.more ? '<br>' + extra.more : ''}</details>`;
   if (out && out.ladder) { $('endBody').insertAdjacentHTML('afterbegin', careerUI.resultsHTML(out.ladder)); }
@@ -1176,7 +1176,7 @@ function showEnd() {
   $('shareBtn').textContent = 'Share score';
   // f5 lean end card (playtest ui_ideal_path #14 budget): ONE line + ↻ Retry + ▶ Next + ⋯; everything else lives in the ⋯ sheet
   { const L = out && out.ladder, starTxt = '★'.repeat(stars) + '☆'.repeat(3 - stars);
-    const what = flags.dead ? 'Crashed' : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : flags.orbit ? `Orbit · ${Math.round(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000)} km` : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
+    const what = flags.dead ? 'Crashed' : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${Math.round(apKm)} km` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
     const earn = L && (L.cash || L.sci) ? ` <span class="eLine">+$${L.cash}M${L.sci ? ' 🔬' + L.sci : ''}</span>` : '';
     $('endTitle').innerHTML = `<span class="eStars">${starTxt}</span> ${what}${earn}`;
     const nb = $('nextMisBtn'), n = careerUI.next(); if (nb) nb.innerHTML = n && !rungLocked(n) ? `▶ Next<small>${rungLabel(n)}</small>` : '▶ Home';
@@ -1467,6 +1467,8 @@ renderer.setAnimationLoop(() => {
   else if (state === 'flight' && !paused && !photoOn) {
     readControls(rdt);
     if (director && director.active) { director.tick(rdt); directorCam(rdt); }
+    if (director && !director.active && director.result && !director._carded && !F.ended) { director._carded = 1; const d0 = director; // QA f5a.2: every director ending (Mars/Venus capture, flyby, miss) stops warp and gets a result card
+      try { F.setWarp(0); } catch (e) { } later(() => { if (director === d0 && !F.ended) { try { F.setWarp(0); } catch (e) { } camMode = 'chase'; showEnd(); } }, 2500); }
     if (slowMo > 0) slowMo -= rdt;
     pdt = F.advance(rdt * (slowMo > 0 ? 0.22 : 1));
     if (!F.flags.dead) { recBuf.push({ r: v.r.slice(), q: v.q.slice(), vv: v.v.slice(), thr: v.thrust, cur: v.cur }); if (recBuf.length > 720) recBuf.shift(); }
