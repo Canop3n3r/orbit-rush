@@ -32,3 +32,9 @@ before building. Slots: booster.side, upper.side, fairing.side, capsule.side, sh
 - **Avoid `THREE.InstancedMesh` for per-model parts** in r172: each instance mesh leaves node-builder state behind (+5.5 MB/cycle measured). The leg arms are therefore one vertex-rewritten mesh.
 - **heron-9 family hi:** 27–28 meshes, 16.8–18.5k tris (was 40–41 / 15.9–17.6k), with a budget of 30 meshes / 20k tris. Phones should still use `buildLOD(id, {phone: true})` (mid near level: 18–19 meshes, 5.5–6.2k tris).
 - **Build cost:** titan hi takes 58–70 ms to build on the main thread (heron-heavy hi 25–49 ms). Build at the hangar or showroom, never mid-flight: `prewarm(['titan-ss-v3', ...], {phone})` builds during idle slices, and `await takeWarm(id, {phone})` hands one out (it builds on the spot if it wasn't prewarmed).
+
+### rockets-3 QA round 2 (2026-10-20)
+- mid/lo leg sets are ONE packed mesh (`legs:packed`); `setLegs` rewrites its vertices, so deploy is smooth on every LOD and `legs:0/1` no longer changes mesh counts.
+- heron-heavy: hi = mid-detail cores (28 meshes); mid = lo cores folded with `FOLD_HEAVY` (17); lo = same + bells folded (13).
+- `k.hi` is true on mid too: the lattice grid fin uses a coarse 0.8 m blade step on mid, and mid bells use 4 rows -> titan mid 13.3k -> 10.4k tris.
+- Budgets: titan hi ≤56k, mid ≤11.5k; heavy hi ≤30, mid ≤20, lo ≤14 meshes; every LOD is checked with legs unset/0/1 and the phone LOD near level must equal mid.
