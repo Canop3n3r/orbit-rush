@@ -10,7 +10,7 @@
 import * as THREE from 'three/webgpu';
 import { uniform, positionWorld, cameraPosition, smoothstep, float, texture, uv, vec4 } from 'three/tsl';
 import { TilesRenderer } from '3d-tiles-renderer';
-import { GoogleCloudAuthPlugin, TileCompressionPlugin } from '3d-tiles-renderer/plugins';
+import { GoogleCloudAuthPlugin } from '3d-tiles-renderer/plugins';
 
 export const SITES = {
   lc39a:    { name: 'LC-39A, Kennedy Space Center', lat: 28.60822, lon: -80.60420 },
@@ -34,7 +34,6 @@ export function createTiles({ earth, camera, renderer, onSurface, padEF, ground,
   const tiles = new TilesRenderer(location.origin + '/tiles/v1/3dtiles/root.json');
   // The proxy swaps this placeholder for the real key; the plugin still manages the session token + attributions.
   tiles.registerPlugin(new GoogleCloudAuthPlugin({ apiToken: 'via-proxy', autoRefreshToken: true, useRecommendedSettings: true }));
-  tiles.registerPlugin(new TileCompressionPlugin());
   const mask = new THREE.Sphere(new THREE.Vector3(), RADIUS);
   tiles.registerPlugin({ name: 'ORBIT_RADIUS_MASK', calculateTileViewError(tile, t) { // only tiles within 50 km of the camera
     if (tile.engineData.boundingVolume.intersectsSphere(mask)) return false; t.inView = false; return true; } });
@@ -55,7 +54,8 @@ export function createTiles({ earth, camera, renderer, onSurface, padEF, ground,
   // Fade: by camera altitude (20 -> 30 km) and by distance (35 -> 50 km), dithered so no transparency sorting.
   const uAlt = uniform(1), uLight = uniform(1);
   tiles.addEventListener('load-model', ({ scene }) => scene.traverse(o => {
-    if (!o.isMesh) return; const m0 = o.material, map = m0.map || null;
+    if (!o.isMesh) return; const m0 = o.material, map = m0.map || null, ix = o.geometry.index;
+    if (ix && ix.array instanceof Uint8Array) o.geometry.setIndex(new THREE.BufferAttribute(Uint16Array.from(ix.array), 1)); // WebGPU has no 8-bit indices
     const m = new THREE.MeshBasicNodeMaterial(); m.alphaHash = true; m.side = THREE.FrontSide;
     const base = map ? texture(map, uv()) : vec4(m0.color.r, m0.color.g, m0.color.b, 1);
     const d = positionWorld.sub(cameraPosition).length();
