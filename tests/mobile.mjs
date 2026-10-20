@@ -2,8 +2,8 @@
 // keyboard key; desktop wording is unchanged; Academy keycaps all have touch labels. (Layout/overlap and the
 // touch-only flight are covered by the headless browser smoke, /tmp/mob.cjs in the handoff note.)
 import { readFileSync } from 'node:fs';
-import { localize, KEY_LEAK, KEY_TOUCH, keyLabel } from '../wording.js?v=f4.1';
-import { LESSONS } from '../academy.js?v=f4.1';
+import { localize, KEY_LEAK, KEY_TOUCH, keyLabel } from '../wording.js?v=f4.2';
+import { LESSONS } from '../academy.js?v=f4.2';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log('FAIL', m); } };
 const lits = f => [...readFileSync(new URL('../' + f, import.meta.url), 'utf8').matchAll(/'([^'\n]{6,})'|`([^`\n]{6,})`/g)].map(m => m[1] || m[2]);
 const keyish = /\(([A-Z])\)|Shift|Ctrl|SPACE|Space (twice|again)|\b[Pp]ress [A-Z]\b|hold [WASDQE] |\bW\/S/;

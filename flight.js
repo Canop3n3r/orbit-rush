@@ -1,9 +1,9 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f4.1';
-import * as C from './physics/patched.js?v=f4.1';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f4.1';
+import * as P from './physics.js?v=f4.2';
+import * as C from './physics/patched.js?v=f4.2';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f4.2';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -42,6 +42,7 @@ export function chuteLimits(spec, tel, stage) {
   }
   return { ok: true, why: '' };
 }
+const LZ2_EF = (() => { const a = 1600 / 6371000, b = 420 / 6371000, n = Math.hypot(1, a, b); return [1 / n, b / n, a / n]; })(); // f4.2: LZ-2, 420 m east of LZ-1
 const DECK = 3, PAD_EF = [1, 0, 0], LZ_EF = (() => { const a = 1600 / 6371000; return [Math.cos(a), 0, Math.sin(a)]; })(); // f4.1: landing zone 1.6 km north of the pad, clear of the tower and slab         // launch site on the equator (Earth-fixed unit vector)
 const wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
 const fmtKm = m => (m / 1000).toFixed(0) + ' km';
@@ -160,7 +161,7 @@ export class Flight {
     const v = buildVehicle(design); v.earthRot = opts.earthRot !== false;
     v.site = { ef: PAD_EF, lift: (opts.padZ ?? 0.4) + P.massProps(v).ycom, q0: P.padAttitude(PAD_EF) }; // r is the centre of mass
     const s0 = P.siteAt(v, 0); v.r = s0.r; v.v = s0.v; v.q = s0.q; v.clock = 0; v.ut = 0; v.auto = false; v.sas = 'stab';
-    this.v = v; this.booster = null; this.ship = null; this.dvUsed = 0;
+    this.v = v; this.booster = null; this.boosters = []; this.ship = null; this.dvUsed = 0;
     this.met = 0; this.ignited = false; this.maxQ = 0; this.maxQEntry = 0; this.maxG = 0; this.autoThrottle = true; this.ascent = true; this.autoOn = false; this.warpI = 0; this.autoWarp = false;
     this.ended = false; this.finalScore = null; this.stageArm = -1; this.realT = 0; this.rails = false;
     P.stepVehicle(v, 0); // fill telemetry
@@ -310,7 +311,7 @@ export class Flight {
   loadSnapshot(s) {
     const v = JSON.parse(JSON.stringify(s.veh)); v._g = null; v.auto = false;
     this.v = v; Object.assign(this, JSON.parse(JSON.stringify(s.f)));
-    this.booster = null; this.ret = null; this.autoOn = false; this.exec = false; this.warpTarget = null; this.warpI = 0; this.autoWarp = false; this.rails = false; this.ended = false; this.finalScore = null; this._soiC = null;
+    this.booster = null; this.boosters = []; this.ret = null; this.autoOn = false; this.exec = false; this.warpTarget = null; this.warpI = 0; this.autoWarp = false; this.rails = false; this.ended = false; this.finalScore = null; this._soiC = null;
     for (const n of this.nodes) { n.started = false; delete n.done; }
     epochPhase(this.t0); P.stepVehicle(v, 0); return this;
   }
@@ -360,14 +361,27 @@ export class Flight {
     if (this._landKey !== key) { this._landKey = key; this._landOk = this.alt > 2000 && landsWith(v, v.stages[0].fuel); }
     return this._landOk;
   }
+  // f4.2: a heavy's side pair flies home as two independent boosters (half the stage each), A to LZ-1 and B to LZ-2.
+  // Each starts at its own side of the core (±lateral, the axis the side boosters sit on) with the core's velocity.
+  splitBoosters(d) {
+    const k = 1 / d.radial, st = d.stages[0], half = { ...st, parts: st.parts };
+    for (const key of ['fuel', 'fuelMax', 'dry']) half[key] *= k;
+    half.eng = { ...st.eng, tv: st.eng.tv * k }; // same engine-count steps as the pair (guidance lights 1 or 3 'engines'), half the thrust each: every booster keeps the pair's TWR at each step
+    const nose = d.dir, ref = Math.abs(nose[2]) < 0.9 ? [0, 0, 1] : [0, 1, 0], side = V.norm(V.cross(nose, ref)), off = (d.sideOff || 3.2);
+    const mk = (sgn, lz, ef) => { const b = { ...d, stages: [{ ...half }], r: V.addS(d.r, side, sgn * off), v: d.v.slice(), dir: d.dir.slice(), nMax: d.nMax, cdA: d.cdA * k, side: sgn, lzName: lz };
+      b.ship = lz === 'LZ-1' ? this.ship : { ef: ef.slice(), moved: true, lz: true, name: lz }; return b; };
+    const A = mk(-1, 'LZ-1', LZ_EF), B = mk(1, 'LZ-2', LZ2_EF); A.id = 'A'; B.id = 'B'; A.sideAxis = B.sideAxis = side; this.booster = A; return [A, B];
+  }
   stage() {
     const v = this.v, bh = this.alt;
     if (v.cur >= this.last) return;
     if (v.cur > 0 || v.stages[0].radial) {
       const d = P.makeBooster(v); d.stageIndex = v.cur; d.radial = v.stages[v.cur].radial || 0; this.shiftCom(() => { v.cur++; });
       if (d.radial && this.recovery === 'rtls' && !this.booster && d.stages[0].fuel > 0.3 && bh > 2000) { // f4: side boosters fly back to the landing zone
-        d.ut = 0; d.manual = false; d.maxH = bh; d.stagedAlt = bh; d.rtls = true; d.canLand = true; this.booster = d; this.ship = { ef: LZ_EF.slice(), moved: true, lz: true }; this.call('ship', this.ship); this.call('stage', d);
-        this.flags.stagedFuel = d.stages[0].fuel; this.flags.stagedAlt = bh; this.toast(`BOOSTER SEP — ${d.radial} side boosters boosting back to the landing zone`, '#fff'); return;
+        d.ut = 0; d.manual = false; d.maxH = bh; d.stagedAlt = bh; d.rtls = true; d.canLand = true; this.booster = d; this.ship = { ef: LZ_EF.slice(), moved: true, lz: true, name: 'LZ-1' }; d.ship = this.ship; d.lzName = 'LZ-1';
+        const parts = d.radial >= 2 ? this.splitBoosters(d) : [d]; this.boosters = parts;
+        this.call('ship', this.ship); if (parts[1]) this.call('ship', parts[1].ship); this.call('stage', parts[0], parts);
+        this.flags.stagedFuel = d.stages[0].fuel * parts.length; this.flags.stagedAlt = bh; this.toast(parts.length > 1 ? `BOOSTER SEP — side boosters A and B boosting back to LZ-1 and LZ-2` : `BOOSTER SEP — ${d.radial} side boosters boosting back to the landing zone`, '#fff'); return;
       }
       this.call('drop', d);
       if (d.radial) { this.flags.stagedFuel = d.stages[0].fuel; this.flags.stagedAlt = bh; this.toast(`BOOSTER SEP — ${d.radial} radial boosters away, core ignition`, '#fff'); return; }
@@ -586,7 +600,7 @@ export class Flight {
     return true;
   }
   // f1: while the booster is still flying (split-screen staging) warp stays low so both craft keep full physics
-  warpLimit() { const w = this._warpLimit(); return this.booster && this.booster.state === 'flying' && w[0] > BOOSTER_WARP ? [BOOSTER_WARP, 'booster in flight'] : w; }
+  warpLimit() { const w = this._warpLimit(); return ((this.booster && this.booster.state === 'flying') || this.boosters.some(x => x.state === 'flying')) && w[0] > BOOSTER_WARP ? [BOOSTER_WARP, 'booster in flight'] : w; }
   _warpLimit() {
     const v = this.v, h = this.alt;
     if (!this.ignited || this.flags.dead) return [1, ''];
@@ -717,11 +731,11 @@ export class Flight {
       }
     }
     const b = this.booster;
-    if (b && b.state === 'flying') {
+    for (const bb of this.boosters.length ? this.boosters : b ? [b] : []) if (bb.state === 'flying') { // f4.2: every booster has its own sim
       const n = Math.max(1, Math.ceil(dt / (1 / 50) - 1e-9));
-      for (let i = 0; i < n && b.state === 'flying'; i++) this.stepBooster(b, dt / n);
+      for (let i = 0; i < n && bb.state === 'flying'; i++) this.stepBooster(bb, dt / n);
     }
-    if (!this.ended && !f.dead && f.orbit && !this.deep && !this.nodes.length && this.body === 'earth' && v.thrust <= 0 && (!b || b.state !== 'flying') && !this.endQueued && !this.ret) {
+    if (!this.ended && !f.dead && f.orbit && !this.deep && !this.nodes.length && this.body === 'earth' && v.thrust <= 0 && !this.boosters.some(x => x.state === 'flying') && (!b || b.state !== 'flying') && !this.endQueued && !this.ret) {
       // a craft that can come home keeps flying: the mission ends at touchdown (or press R)
       if (this.rec.capsule && this.rec.shield && this.rec.chute) { if (!this.homeHint) { this.homeHint = 1; this.toast('Orbit! Press O to deorbit and bring the capsule home', '#ffd23a'); } }
       else { this.endQueued = true; this.call('end', 2500, () => !f.dead); }
@@ -755,12 +769,12 @@ export class Flight {
       if (inp.yaw) b.dir = V.norm(V.qrot(V.qAxisAngle(up, -inp.yaw * 0.7 * dt), b.dir));
       b.throttle = b.stages[0].fuel > 0 ? b.ut : 0; b.n = b.nSel ? Math.min(b.nSel, b.nMax) : bh0 > 12000 ? Math.min(3, b.nMax) : 1;
       b.phase = b.throttle > 0 ? 'burning' : 'falling';
-    } else { b.tgtR = this.ship ? shipPos(this.ship, b.clock, b.earthRot !== false) : null; b.tgtAt = this.ship ? (t => shipPos(this.ship, t, b.earthRot !== false)) : null; P.boosterAutopilot(b, dt); }
-    b.deck = this.ship && !this.ship.lz && surfDist(b.r, shipPos(this.ship, b.clock, b.earthRot !== false)) < 40 ? DECK : 0; // aim at the deck only when over it (same test as the contact check)
+    } else { b.tgtR = (b.ship || this.ship) ? shipPos((b.ship || this.ship), b.clock, b.earthRot !== false) : null; b.tgtAt = (b.ship || this.ship) ? (t => shipPos((b.ship || this.ship), t, b.earthRot !== false)) : null; P.boosterAutopilot(b, dt); }
+    b.deck = (b.ship || this.ship) && !(b.ship || this.ship).lz && surfDist(b.r, shipPos((b.ship || this.ship), b.clock, b.earthRot !== false)) < 40 ? DECK : 0; // aim at the deck only when over it (same test as the contact check)
     const e = P.stepPoint(b, dt);
     const bh = V.len(b.r) - R, sp = V.len(P.airVel(b, b.r, b.v)); b.maxH = Math.max(b.maxH, bh);
-    if (burnedUp(b, bh, sp)) { b.state = 'lost'; this.flags.booster = 'burned up on reentry (do an entry burn)'; this.call('boosterLost', b, true); this.toast('Booster burned up', '#ff6262'); return; }
-    const ship = this.ship;
+    if (burnedUp(b, bh, sp)) { b.state = 'lost'; this.flags.booster = 'burned up on reentry (do an entry burn)'; this.call('boosterLost', b, true); this.toast(`Booster${b.id ? ' ' + b.id : ''} burned up`, '#ff6262'); return; }
+    const ship = (b.ship || this.ship);
     if (ship && !b.manual && bh < 30000 && V.dot(b.v, b.r) < 0 && !ship.moved) { // the droneship holds station at the predicted impact; terminal guidance does the rest
       const im = P.predictImpact(b), at = im ? im.r : b.r, t = im ? im.t : b.clock;
       ship.ef = V.norm(V.rotZ(at, b.earthRot === false ? 0 : -P.OMEGA_E * t)); ship.moved = true; this.call('shipMoved', ship);
@@ -771,7 +785,7 @@ export class Flight {
     }
   }
   landBooster(b, sp) {
-    const f = this.flags, ship = this.ship, up = V.norm(b.r), tilt = Math.acos(Math.max(-1, Math.min(1, V.dot(b.dir, up))));
+    const f = b.id === 'B' ? (this.flagsB || (this.flagsB = {})) : this.flags, ship = (b.ship || this.ship), up = V.norm(b.r), tilt = Math.acos(Math.max(-1, Math.min(1, V.dot(b.dir, up))));
     const dist = ship ? surfDist(b.r, shipPos(ship, b.clock, b.earthRot !== false)) : 1e9;
     b.throttle = 0; b.thrust = 0; b.touchV = sp;
     let ok = false;
@@ -781,7 +795,7 @@ export class Flight {
         ok = true; f.boosterBonus = 2500 + Math.round((35 - dist) * 25) + Math.round((8 - sp) * 80);
         f.booster = `landed by hand — ${dist.toFixed(1)} m off center at ${sp.toFixed(1)} m/s`; this.toast(`🎯 YOU LANDED IT! +${f.boosterBonus}`, '#7dffa6');
       } else { f.booster = sp < 8 && dist >= 35 ? `missed the ${ship && ship.lz ? 'landing zone' : 'droneship'} by ${(dist - 35).toFixed(0)} m` : sp < 8 ? 'tipped over (too tilted)' : `crashed at ${sp.toFixed(0)} m/s`; this.toast('Booster lost — ' + f.booster, '#ff6262'); }
-    } else if (sp < 10) { ok = true; f.boosterBonus = 1000; f.booster = ship && ship.lz ? 'auto-landed at the landing zone (RTLS)' : 'auto-landed on the droneship'; this.toast('🎯 BOOSTER AUTO-LANDED +1000', '#7dffa6'); }
+    } else if (sp < 10) { ok = true; f.boosterBonus = 1000; f.booster = ship && ship.lz ? `auto-landed at ${b.lzName || 'the landing zone'} (RTLS)` : 'auto-landed on the droneship'; this.toast(`🎯 BOOSTER${b.id ? ' ' + b.id : ''} AUTO-LANDED${b.lzName ? ' AT ' + b.lzName : ''} +1000`, '#7dffa6'); }
     else { f.booster = `crashed at ${sp.toFixed(0)} m/s (needed more fuel: stage earlier)`; this.toast('Booster lost', '#ff6262'); }
     if (ok) { b.state = 'landed'; b.dir = up; this.call('boosterLanded', b); this.call('sound', 'landed'); }
     else { b.state = 'lost'; this.call('boosterLost', b, false); }
