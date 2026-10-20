@@ -151,3 +151,5 @@ export { ROSTER_CNFOLL, ENGINES_CNFOLL } from './roster/cnfoll.js';
 export { ROSTER_FIREFLY, ENGINES_FIREFLY } from './roster/firefly.js';
 // Roster company 'skyland' (data only, neutral ids; spec:loss-model): see vehicles/roster/skyland.js
 export { ROSTER_SKYLAND, ENGINES_SKYLAND } from './roster/skyland.js';
+// Roster company 'northp' (data only, neutral ids; spec:loss-model): see vehicles/roster/northp.js
+export { ROSTER_NORTHP, ENGINES_NORTHP } from './roster/northp.js';
