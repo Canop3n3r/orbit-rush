@@ -24,6 +24,6 @@ export const ROSTER_REDSTAR = [
       { engines: { 'ko-m21': 4 }, dry: 13700, prop: 175000, burn: 370, group: 2, recovery: 'expended' },
     ],
     modes: [{ variant: 'leo', payload: 95000, orbit: { hp: 225, ha: 225, inc: 51.6 }, src: 'spec:n-won#leo (design)',
- knownGap: 'model +24 % (2-D): design-stage masses vs design payload; never flew to orbit' }],
+ knownGap: 'model +30 % (fine grid): design-stage masses vs design payload; never flew to orbit' }],
     tli: 33000, flights: 4 },
 ];

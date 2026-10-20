@@ -9,7 +9,8 @@ export function checkRoster(name, VEH, E) {
     ok(v.stages.every(s => s.recovery && s.dry > 0 && s.prop > 0 && s.burn > 0 && Object.keys(s.engines).every(k => E[k])), `${v.id}: stages have engines, masses, burn, recovery`);
     for (const md of v.modes) {
       const r = modelPayload(v, E, md), err = r.payload / md.payload - 1, tag = `${v.id} [${md.variant}] ${(r.payload / 1000).toFixed(2)} t vs sourced ${(md.payload / 1000).toFixed(2)} t (${(err * 100).toFixed(0)}%)`;
-      if (md.knownGap) { gaps++; ok(Math.abs(err) > TOL, `KNOWN GAP ${tag}: ${md.knownGap}`); }
+      if (md.modeMismatch) { gaps++; ok(err >= -TOL, `MODE MISMATCH ${tag}: ${md.modeMismatch} (model flies the easier expendable case, so it must be ≥ sourced −${TOL * 100}%; not a full pass)`); }
+      else if (md.knownGap) { gaps++; ok(Math.abs(err) > TOL, `KNOWN GAP ${tag}: ${md.knownGap}`); }
       else ok(Math.abs(err) <= TOL, `${tag} within ±${TOL * 100}%`);
     }
   }
