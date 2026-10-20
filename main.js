@@ -303,7 +303,7 @@ function updateTile(ef) {
   for (let i = 0; i < TNR; i++) { const th = TILE_R / R * ((i + 1) / TNR) ** 1.8; for (let j = 0; j < TNS; j++) put(1 + i * TNS + j, th, 2 * Math.PI * j / TNS); }
   tileGeo.attributes.position.needsUpdate = true; tileGeo.attributes.color.needsUpdate = true; tileGeo.attributes.wat.needsUpdate = true; tileGeo.computeVertexNormals();
 }
-onSurface(buildLaunchComplex(), PAD_EF, 0);
+const padCx = onSurface(buildLaunchComplex(), PAD_EF, 0) || null; // f5.1: the showroom keeps the tower behind the rocket
 
 // ---------- rocket meshes: one THREE.Group per stage, sized from the same part geometry the physics uses ----------
 const M = {
@@ -889,7 +889,7 @@ function goBuild() {
   if (typeof home !== 'undefined' && home && goBuild.toHome !== false) home.show(true);
   refreshBuild();
 }
-let showFrame = null, showFrameT = 0, camUserT = -1e9, camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
+let showFrame = null, showFrameT = 0, showT = 0, camUserT = -1e9, camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
 $('earthRot').checked = earthRot;
 function showAz() { $('inclIn').value = launchIncl; $('azOut').textContent = `→ heading ${(launchAzimuth(launchIncl, 0, earthRot ? P.OMEGA_E * R : 0) * DEG).toFixed(1)}°`; }
 $('inclIn').onchange = e => { launchIncl = Math.max(0, Math.min(180, +e.target.value || 0)); try { localStorage.setItem(INC_KEY, String(launchIncl)); } catch (x) { } showAz(); reset(); refreshBuild(); };
@@ -1558,10 +1558,14 @@ renderer.setAnimationLoop(() => {
   if (padConcM && showOn !== padShow) { padShow = showOn; const P0 = showOn ? { color: SHOWROOM_PAD.color, roughness: SHOWROOM_PAD.roughness, env: SHOWROOM_PAD.envIntensity } : padConc0; // ui-icons: lighter showroom pad so the rocket reads as the hero
     padConcM.color.setHex(P0.color); padConcM.roughness = P0.roughness; padConcM.envMapIntensity = P0.env; }
   if (showOn) { // showroom: slow cinematic turn; ui-icons frameRocket sizes + centres the REAL model from its bounds (70% of the screen, tip below the 48 px safe line) above the card (portrait) or beside it (landscape)
-    camYaw += rdt * 0.22; const land = innerWidth > innerHeight;
+    const land = innerWidth > innerHeight; showT += rdt;
+    if (padCx && padCx.isObject3D && rocketG) { // f5.1: swing on an arc facing away from the tower (its legs never pass in front of the rocket)
+      const tw = padCx.localToWorld(new THREE.Vector3(-10, 40, 0)).sub(rocketG.position), ty = Math.atan2(tw.dot(E), tw.dot(N));
+      const want = ty + Math.PI + 0.9 * Math.sin(showT * 0.12); let d = ((want - camYaw) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI; camYaw += d * Math.min(1, rdt * 2); }
+    else camYaw += rdt * 0.22;
     if (rocketG && ((showFrameT -= rdt) <= 0 || !showFrame)) { showFrameT = 0.25;
-      const p0 = rocketG.position.clone(), q0 = rocketG.quaternion.clone(); rocketG.position.set(0, 0, 0); rocketG.quaternion.identity(); // rocket frame: base at 0, nose +Y
-      try { const bx = rocketBounds(); showFrame = bx ? frameRocket({ bounds: bx, fovDeg: camera.fov, aspect: camera.aspect, screenH: innerHeight, free: showFree(land), yaw: 0, elev: 0.08 }) : null; } catch (e) { showFrame = null; }
+      const p0 = rocketG.position.clone(), q0 = rocketG.quaternion.clone(); rocketG.position.set(0, 0, 0); rocketG.quaternion.identity(); rocketG.updateMatrixWorld(true); // rocket frame: base at 0, nose +Y (hero matrices must follow)
+      try { const bx = hero ? null : rocketBounds(); showFrame = (hero || bx) ? frameRocket({ ...(hero ? { object: hero } : { bounds: bx }), fovDeg: camera.fov, aspect: camera.aspect, screenH: innerHeight, free: showFree(land), yaw: 0, elev: 0.08 }) : null; } catch (e) { showFrame = null; }
       rocketG.position.copy(p0); rocketG.quaternion.copy(q0); rocketG.updateMatrixWorld(true); window.__showDbg = { f: showFrame, L: stackL() }; }
     if (showFrame) { const Lh = stackL() || 40, se = Math.sin(0.08); camDist = showFrame.dist * Math.hypot(1, se); camPitch = Math.atan(se); camAim = showFrame.aim[1] / Lh;
       camera.setViewOffset(innerWidth, innerHeight, showFrame.viewOffsetX * innerWidth, 0, innerWidth, innerHeight); }
