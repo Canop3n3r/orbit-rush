@@ -1,8 +1,8 @@
 // Geometry kit: every part is added with a local transform and baked into ONE merged mesh per material
 // (a whole vehicle stage = a handful of draw calls). Materials are shared across all vehicles.
 import * as THREE from 'three/webgpu';
-import * as T from './textures.js?v=f5.2.1';
-import { decalTexture } from './decals.js?v=f5.2.1';
+import * as T from './textures.js?v=f5.2';
+import { decalTexture } from './decals.js?v=f5.2';
 // own merge (all inputs are non-indexed with position/normal/uv), so the module needs no bare 'three' import
 export function mergeGeometries(gs) { const out = new THREE.BufferGeometry(); for (const [a, n] of [['position', 3], ['normal', 3], ['uv', 2]]) { let len = 0; for (const g of gs) len += g.attributes[a].array.length; const arr = new Float32Array(len); let o = 0; for (const g of gs) { arr.set(g.attributes[a].array, o); o += g.attributes[a].array.length; } out.setAttribute(a, new THREE.BufferAttribute(arr, n)); } return out; }
 const MATS = new Map();
@@ -82,8 +82,7 @@ export function compact(group, keep = ['legs'], fold = false) { const by = new M
 // dispose: free a vehicle's GPU/JS memory when it is swapped out. Cached (shared) materials/textures are kept; shared
 // geometries are refcounted and freed when the last user goes.
 export function dispose(group) { const seen = new Set(); group.traverse(o => { if (!o.isMesh && !o.isSprite) return; if (o.isInstancedMesh) o.dispose(); const g = o.geometry;
-  const k = g && g.userData.shared; // f5.2.1: shared geometries count one ref per mesh (shareGeometries refs++ per mesh), so release one per mesh too
-  if (k && GEO.has(k)) { const e = GEO.get(k); if (--e.refs <= 0) { GEO.delete(k); g.dispose(); } } else if (g && !seen.has(g)) { seen.add(g); g.dispose(); }
+  if (g && !seen.has(g)) { seen.add(g); const k = g.userData.shared; if (k) { const e = GEO.get(k); if (e && --e.refs <= 0) { GEO.delete(k); g.dispose(); } } else g.dispose(); }
   for (const m of [].concat(o.material || [])) if (!m.userData?.cached) { for (const v of Object.values(m)) if (v && v.isTexture && !v.userData?.cached) v.dispose(); m.dispose(); } });
   group.removeFromParent(); }
 // release(group, renderer?, scene?, camera?): leak-safe model swap. Detach first, render one frame without it (the renderer

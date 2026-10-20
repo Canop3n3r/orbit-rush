@@ -1,15 +1,15 @@
 // f5.1h (Aaron): every ladder mission flies the rocket the player picked (3 qualifying picker rockets each), never a swap,
 // AUTO only when asked. Flown headlessly on the real physics with the mission director (the AUTO path).
-import { Flight } from '../flight.js?v=f5.2.1';
-import { Director } from '../fun/director.js?v=f5.2.1';
-import { SHOWROOM } from '../fun/showroom.js?v=f5.2.1';
-import { LADDER } from '../fun/ladder.js?v=f5.2.1';
-import { qualifying, launchPlan, autoNote } from '../fun/mispick.js?v=f5.2.1';
-import { pickBase } from '../fun/stagemap.js?v=f5.2.1';
-import { specFor } from '../fun/specstack.js?v=f5.2.1';
-import { STAGE_KEYS, HEIGHTS } from '../gfx/vehicles/stage_keys.js?v=f5.2.1';
-import { cloneDesign } from '../parts.js?v=f5.2.1';
-import * as P from '../physics.js?v=f5.2.1';
+import { Flight } from '../flight.js?v=f5.2';
+import { Director } from '../fun/director.js?v=f5.2';
+import { SHOWROOM } from '../fun/showroom.js?v=f5.2';
+import { LADDER } from '../fun/ladder.js?v=f5.2';
+import { qualifying, launchPlan, autoNote } from '../fun/mispick.js?v=f5.2';
+import { pickBase } from '../fun/stagemap.js?v=f5.2';
+import { specFor } from '../fun/specstack.js?v=f5.2';
+import { STAGE_KEYS, HEIGHTS } from '../gfx/vehicles/stage_keys.js?v=f5.2';
+import { cloneDesign } from '../parts.js?v=f5.2';
+import * as P from '../physics.js?v=f5.2';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('FAIL', m); } };
 const houses = Object.keys(STAGE_KEYS).map(id => ({ model: id, name: id, base: pickBase(STAGE_KEYS[id], HEIGHTS[id] || 50) })).filter(h => SHOWROOM.some(r => r.id === h.base) && !specFor(h.model));
 const T0 = P.tFromDate(Date.UTC(2026, 9, 19, 15));
