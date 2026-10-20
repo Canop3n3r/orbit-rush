@@ -1,7 +1,7 @@
 // Payload lifecycle (f5.2.3): deployed payloads and debris persist in a saved world list and fly on rails (two-body Kepler
 // around Earth). Each record keeps the state vector at its epoch (r, v in the inertial Earth frame, t = Flight.tAbs).
-import { propagate, elements } from '../physics/kepler.js?v=f5.3b3';
-import { R_E, MU_E } from '../physics/constants.js?v=f5.3b3';
+import { propagate, elements } from '../physics/kepler.js?v=f5.3b4';
+import { R_E, MU_E } from '../physics/constants.js?v=f5.3b4';
 export const KEY = 'orbitrush.world.v1';
 export const DECAY_PE = 120000; // m: below this periapsis an object re-enters within a few orbits; dropped from the list
 const blank = () => ({ v: 1, seq: 0, objs: [] });

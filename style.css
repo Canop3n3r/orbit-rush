@@ -834,3 +834,7 @@ body.mcOn #hud,body.mcOn .pilot,body.mcOn #stageBtn{visibility:hidden}
 #split #spBtnsU{position:fixed;pointer-events:auto;display:flex;gap:6px}
 #split.fullU #spPane,#split.fullU #spPane2,#split.fullB #spPane2,#split.fullB #spMain{display:none!important}
 #split.fullU #spMain{width:100%!important;height:100%!important}
+#gcamBtn{position:fixed;z-index:26;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(40px + env(safe-area-inset-bottom,0px));font:700 12px system-ui;padding:8px 12px;border-radius:10px;background:#0b1424d9;color:#dfe9ff;border:1px solid #9cc3ff66;pointer-events:auto}
+#gcamBtn.on{background:#2d5fd0;border-color:#9cc3ff}
+body.touch #gcamBtn{bottom:auto;top:calc(110px + var(--sat,0px));min-height:var(--tap)}
+body.photo #gcamBtn{display:none!important}
