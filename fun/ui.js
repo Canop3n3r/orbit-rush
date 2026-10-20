@@ -107,12 +107,13 @@ export function createFunUI(ctx) {
     const ms = Object.entries(MISSIONS).map(([id, m]) => `<button class="mis" data-m="${id}"><span>${m.icon}</span><b>${m.name}</b><small>${m.blurb}</small>${s.medals[id] ? `<em class="medal ${s.medals[id]}">${s.medals[id]}</em>` : ''}<i>▶ ONE-TAP FLY</i></button>`).join('');
     const cs = CONTRACTS.map(c => `<li class="${s.contracts[c.id] ? 'done' : c === nx ? 'next' : ''}">${s.contracts[c.id] ? '✔' : c === nx ? '▶' : '•'} <b>${c.name}</b> — ${c.goal}${c.reward ? ` <small>🎁 ${c.reward.split(':')[1]}</small>` : ''}</li>`).join('');
     const ach = ACHIEVEMENTS.map(a => `<span class="ach ${s.ach[a.id] ? 'got' : ''}" title="${a.desc}">${a.icon}<small>${a.name}</small></span>`).join('');
-    $('hubBody').innerHTML = `<h2>🎯 Missions</h2><p class="sm">One tap: the mission director builds the rocket, flies the whole mission on real physics, and picks the camera. Steer anytime to take over.</p><div class="mgrid">${ms}</div>
+    const ops = (ctx.ops ? ctx.ops() : []).map(m => `<button class="mis op" data-op="${m.id}"><span>${m.icon || '🛰️'}</span><b>${esc(ctx.opName ? ctx.opName(m) : m.name)}</b><small>${esc(m.blurb || m.summary || '')}</small><i>▶ FLY</i></button>`).join('');
+    $('hubBody').innerHTML = `<h2>🎯 Missions</h2>${ops ? `<h3>🛰️ Operations</h3><div class="mgrid">${ops}</div>` : ''}<p class="sm">One tap: the mission director builds the rocket, flies the whole mission on real physics, and picks the camera. Steer anytime to take over.</p><div class="mgrid">${ms}</div>
       <div class="hcols"><div><h3>📜 Contracts</h3><ol class="cl">${cs}</ol></div>
       <div><h3>⭐ Daily challenge <small>${dc.day}</small></h3><p class="daily">${esc(dc.text)}</p><p class="sm">${best != null ? 'Your best today: ' + best.toLocaleString() : 'Not done yet today'} · 🔥 streak ${s.streak.n} day${s.streak.n === 1 ? '' : 's'} (best ${s.streak.best})</p>
       <h3>🏅 Achievements <small>${Object.keys(s.ach).length}/${ACHIEVEMENTS.length}</small></h3><div class="achs">${ach}</div>
       <p class="sm">Flights ${s.stats.flights} · explosions ${s.stats.booms} · best score ${s.stats.best.toLocaleString()} · worlds visited ${s.visited.length}</p></div></div>`;
-    hub.querySelectorAll('.mis').forEach(b => b.onclick = () => { hub.classList.add('hidden'); ctx.startMission(b.dataset.m); });
+    hub.querySelectorAll('.mis').forEach(b => b.onclick = () => { hub.classList.add('hidden'); if (b.dataset.op) ctx.startOp(b.dataset.op); else ctx.startMission(b.dataset.m); });
     hub.classList.remove('hidden');
   }
   // ---------- Planetary Atlas ----------

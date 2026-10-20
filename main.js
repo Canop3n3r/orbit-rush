@@ -3,6 +3,9 @@ import { uniform } from 'three/tsl';
 import * as P from './physics.js?v=f3';
 import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f3';
 import * as C from './physics/patched.js?v=f3';
+import { loadMissions } from './missions/catalog.js';
+import { missionDesign, applyMission, missionSession, evaluate as evalOp, missionName as opName } from './missions/runner.js';
+import { loadBrand, applyBrandDom, B as brandB } from './brand/index.js?v=f3';
 import { createSolarMap } from './solarmap.js?v=f3';
 import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f3';
 import { FX } from './fx.js?v=f3';
@@ -1324,7 +1327,7 @@ renderer.setAnimationLoop(() => {
     if (slowMo > 0) slowMo -= rdt;
     pdt = F.advance(rdt * (slowMo > 0 ? 0.22 : 1));
     if (!F.flags.dead) { recBuf.push({ r: v.r.slice(), q: v.q.slice(), vv: v.v.slice(), thr: v.thrust, cur: v.cur }); if (recBuf.length > 720) recBuf.shift(); }
-    funTick(rdt); navTick();
+    funTick(rdt); navTick(); opTick();
     if (swingArm && F.ignited && swingArm.rotation.y < 1.4) swingArm.rotation.y += rdt * 0.8;
   }
   const th = v.earthRot === false ? 0 : P.OMEGA_E * (v.clock || 0), wE = v.earthRot === false ? 0 : P.OMEGA_E;
@@ -1546,7 +1549,7 @@ fun = createFunUI({
   toast, press, audio: funAudio, canvas: renderer.domElement, bodies: () => P.BODIES, bodyColor: id => BODY_COL[id] || '#888',
   setSas: m => { F.setSAS(v.sas === m && m === 'radial' ? 'antiradial' : v.sas === m && m === 'normal' ? 'antinormal' : m); },
   progress: () => PROG, design: () => design, takeOver: () => { if (director && director.active) director.takeOver(); },
-  startMission: id => startMission(id), setPhoto: on => { photoOn = on; if (on) { camDist = Math.max(camDist, 60); } },
+  startMission: id => startMission(id), startOp: id => startOp(id), ops: () => opsList, opName: m => opName(m), setPhoto: on => { photoOn = on; if (on) { camDist = Math.max(camDist, 60); } },
   snap: filter => { snapReq = { filter }; },
   tunnelGeom: mach => { const ab = aeroBalance(design, mach); if (!ab) return null; const vv = buildVehicle(design), g = P.stackGeom(vv); const COL = { engine: '#ff9a3c', tank: '#e8e8e8', pod: '#9cc3ff', payload: '#e0b84a', fins: '#555', decoupler: '#333', fairing: '#f4f4f4', shield: '#7a4a2a', chute: '#ff7a3c', rcs: '#8a9099' };
     return { parts: g.list.map(e => ({ y: e.y, h: e.h, d: e.kind === 'fins' ? (e.d || 2) * 1.8 : e.d, col: COL[e.kind] || '#ccc' })), L: g.L, ycom: ab.ycom, ycp: ab.ycp, stable: ab.stable, margin: ab.margin }; },
@@ -1556,7 +1559,25 @@ const cx = createCompact({ touch: TOUCH, onSpeedTap: () => fun.cycleSpeed(), onM
 { // top-centre stack: callout, hint, toasts never overlap each other
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
   for (const id of ['hint', 'toasts', 'callout']) { const e = document.getElementById(id); if (e) st.appendChild(e); } }
+// f4: recovery missions (missions/*.js) run through the shared runner session; S.task drives a compact HUD prompt
+let opsList = [], opSess = null, opPlan = null;
+loadMissions().then(l => { opsList = l; }).catch(e => console.warn('[Orbit Rush] missions', e));
+loadBrand().then(() => applyBrandDom()).catch(() => {});
+function startOp(id) {
+  const m = opsList.find(x => x.id === id); if (!m) return;
+  setDesign(missionDesign(m)); launch(); applyMission(m, F); opSess = missionSession(m); opPlan = null;
+  try { const pl = planBuild(F.design || missionDesign(m)); opPlan = pl && pl.minReserve; } catch (e) {}
+  fun.call('🎯', opName(m) + ' — AUTO flies the ascent; follow the prompts on orbit', '#ffe9b0', true);
+}
+function opTick() {
+  const S = opSess, el = document.getElementById('opTask'); if (!S) { if (el) el.hidden = true; return; }
+  S.tick(F);
+  if (el) { const t = S.task; el.hidden = !t; if (t) el.innerHTML = `<b>▶ Burn ${t.burn}/${t.of}</b> ${t.label} <small>${F.nodes.length ? 'press X / ◆ Execute' : ''}</small>`; }
+  if (S.done && !S._shown) { S._shown = 1; const r = evalOp(S.m, F, S), ok = r.objectives.filter(o => o.pass).length;
+    fun.call(r.complete ? '🏆' : '⚠️', `${opName(S.m)}: ${ok}/${r.objectives.length} objectives · score ${r.score.toLocaleString()}`, r.complete ? '#7dffa6' : '#ffb35c', true); opSess = null; }
+}
 function startMission(id) {
+  opSess = null;
   const m = MISSIONS[id], t = TEMPLATES.find(x => x.name === m.tpl) || (SHOWROOM.find(x => x.name === m.tpl) || {}).design; if (!t) return;
   setDesign(cloneDesign(t)); launch(); director = new Director(F, id, { say: msg => fun.call(m.icon, msg, '#ffe9b0') });
   fun.call(m.icon, m.name + ' — mission director has the stick', '#ffe9b0', true); camDist = 120; camYaw = 0.9; camPitch = 0.08;
@@ -1574,7 +1595,7 @@ function funTick(rdt) {
   const once = (k, icon, txt, col, big) => { if (!seen[k]) { seen[k] = 1; fun.call(icon, txt, col, big); } };
   if (f.liftoff) once('lift', '🚀', 'LIFTOFF', '#fff', true);
   if ((tel.machShown || 0) >= 1 && P.altOf(v) < 40000) once('mach', '〰️', 'SUPERSONIC', '#9cc3ff');
-  if (tel.q > 15000) seen.qhi = Math.max(seen.qhi || 0, tel.q); if (seen.qhi && tel.q < seen.qhi * 0.9) once('maxq', '💨', 'MAX-Q — through the worst of it', '#ffd23a');
+  if (f.maxq) once('maxq', '💨', 'MAX-Q — through the worst of it', '#ffd23a');
   if (seen.cur !== undefined && cur > seen.cur) fun.call('⚡', 'STAGE ' + (cur + 1) + ' — SEPARATION', '#ffd23a'); seen.cur = cur;
   if (f.space) once('space', '🌌', 'SPACE!', '#c9a8ff', true);
   if (f.orbit) once('orbit', '🛰️', 'ORBIT ACHIEVED', '#7dffa6', true);

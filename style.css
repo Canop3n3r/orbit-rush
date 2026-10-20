@@ -602,3 +602,7 @@ body.touch .qKeys{display:none} /* f3: no key bindings on a phone */
 #hubBody .misGrid,#hubBody .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 body.touch #build #launchBtn{position:sticky;bottom:calc(8px + var(--sab,0px));z-index:5;box-shadow:0 -6px 24px #000a}
 #hub .mgrid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important;gap:8px}#hub .mgrid .mis{min-width:0}
+/* f4: operations mission task prompt (compact execute-burn chip) */
+#opTask{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 92px);z-index:30;background:rgba(10,20,36,.86);border:1px solid #ffd23a88;border-radius:22px;padding:8px 14px;min-height:44px;box-sizing:border-box;display:flex;gap:8px;align-items:center;font:600 13px system-ui;color:#ffe9b0;max-width:min(92vw,520px);pointer-events:none}
+#opTask[hidden]{display:none}#opTask small{opacity:.7;font-weight:400}
+.mis.op{border-color:#7dd3ff55}
