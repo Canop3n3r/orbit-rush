@@ -8,7 +8,7 @@ export const SPEC = {
 };
 // per-family tweak hooks (hand-edited): livery, bands, extra details
 export const HOOKS = {
-  'kometa': { lower: 0xa9b3a2, upper: 0xa9b3a2, olive: 3, ne: [4, 1], sideNe: 4, sideTop: 0.28, sideKey: 0xd8dbd4, r1: [1.3, 1.33], bands: [[[26.8, 0.6]], [[0, 0.5]]] },
+  'kometa': { step: 1, lower: 0xa9b3a2, upper: 0xa9b3a2, olive: 3, ne: [4, 1], sideNe: 4, sideTop: 0.28, sideKey: 0xd8dbd4, r1: [1.3, 1.33], bands: [[[26.8, 0.6]], [[0, 0.5]]] },
 };
 export const CO_KOMETA = {
   'kometa': { name: NAMES['kometa'], height: 44.0, build: o => buildB(o, 'kometa', SPEC['kometa'], { name: NAMES['kometa'], ...HOOKS['kometa'] }), src: 'rocketdb kometa stage table (tier-B generator)', est: ['fairing shape', 'engine layout'] },
