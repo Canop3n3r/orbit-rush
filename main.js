@@ -35,6 +35,9 @@ import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f4
 import { createFunUI } from './fun/ui.js?v=f4.2';
 import { buildLOD as heroLOD } from './gfx/vehicles/vehicles.js?v=f4.2';
 import { dispose as heroDispose } from './gfx/vehicles/kit.js?v=f4.2';
+import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
+import { worldTier } from './gfx/world/tiers.js?v=w1';
+import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -201,6 +204,17 @@ const planet = new THREE.Mesh(planetGeo, GX.earthMaterial(gfxQ, sunPos));
 earth.add(planet);
 const cloudGeo = new THREE.SphereGeometry(R + 7000, 192, 96); cloudGeo.rotateX(Math.PI / 2); cloudGeo.rotateZ(GX.EARTH_TEX_ROT);
 const clouds = new THREE.Mesh(cloudGeo, GX.cloudMaterial(gfxQ, sunPos));
+// f5: world-1 cloud layer (Art bot) behind the 'world1' quality setting (localStorage or_world1 / ?world1=0|1, default on).
+// Tier from worldTier(): phones and low gfx get the 2D layer, desktop med/high the volumetric one. Modules are km; the game is metres.
+const W1 = (() => { const q = params.get('world1'); let on = q != null ? q !== '0' : (() => { try { return localStorage.getItem('or_world1') !== '0'; } catch (e) { return true; } })();
+  if (!on) return null;
+  try { W1_WS.value = 0.001; const U = w1CU({ R: R / 1000 }), tier = worldTier(gfxQ, TOUCH);
+    const c = w1Clouds({ weatherTex: GX.tex('earth_clouds', gfxQ, false), tier, R: R / 1000, U });
+    const g = new THREE.Group(); g.scale.setScalar(1000); g.add(c.mesh); scene.add(g); clouds.visible = false; clouds.userData.w1 = true;
+    const ep = new THREE.Vector3(), cp = { position: new THREE.Vector3() };
+    c.mesh.onBeforeRender = (r, sc, cam) => { earth.getWorldPosition(ep); g.position.copy(ep); g.updateMatrixWorld(); U.center.value.copy(ep).multiplyScalar(0.001); };
+    return { c, g, U, tier, frame(dt, cam) { earth.getWorldPosition(ep); g.position.copy(ep); U.center.value.copy(ep).multiplyScalar(0.001); c.setSun(sunDirV); cp.position.copy(cam.position).multiplyScalar(0.001); c.update(dt, cp); g.visible = earth.visible; } };
+  } catch (e) { console.warn('world1 off', e); return null; } })();
 earth.add(clouds);
 // f1u2: the flight view only ever drew the Earth, at −O. Away from Earth, O is relative to the SOI body, so the
 // Earth sphere sat where the Moon should be (camera inside it in low lunar orbit). Now the current SOI body gets its
@@ -1413,6 +1427,7 @@ renderer.setAnimationLoop(() => {
   const tel = v.tel, nose = P.noseOf(v), base = V.sub(v.r, V.scale(nose, tel.ycom));
   const O = focus === v ? v.r : booster.r;
   if (!placeBodies(O, th)) { earth.position.set(-O[0], -O[1], -O[2]); earth.rotation.z = th; }
+  if (W1) { earth.updateMatrixWorld(); W1.frame(pdt, camera); }
   setRel(rocketG, base, O); toQ(v.q, rocketG.quaternion);
   worldVis(base, O, nose);
   if (state === 'flight' && !F.flags.dead && SG[v.cur]) emit(v, SG[v.cur], pdt, base, nose);

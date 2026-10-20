@@ -6,14 +6,14 @@
 import * as THREE from 'three/webgpu';
 import { uniform, texture, float, vec2, vec3, positionWorld, cameraPosition, normalWorld, normalize, dot, length, mix, pow, saturate, smoothstep, max, abs, exp, vec4, cameraViewMatrix } from 'three/tsl';
 import { WORLD_TIERS, CLOUD_LAYER } from './tiers.js?v=w1';
-import { dirUV, detailNormal, fbm } from './common.js?v=w1';
+import { dirUV, detailNormal, fbm, PW, CP } from './common.js?v=w1';
 export function surfaceUniforms(o = {}) { return { center: uniform(new THREE.Vector3()), sunDir: uniform(new THREE.Vector3(1, 0, 0)), R: uniform(o.R ?? 6371), time: uniform(0), cloudUV: o.cloudUV || uniform(new THREE.Vector2()), cloudShadow: uniform(o.cloudShadow ?? 0.6) }; }
 const wrapU = v => vec2(v.x.fract(), v.y);
 const toView = n => normalize(cameraViewMatrix.mul(vec4(n, 0.0)).xyz); // normalNode is view-space
-const camAlt = U => length(cameraPosition.sub(U.center)).sub(U.R);
+const camAlt = U => length(CP.sub(U.center)).sub(U.R);
 export function earthSurfaceMaterial(t, tier = 'high', U = surfaceUniforms()) {
   const T = WORLD_TIERS[tier], m = new THREE.MeshStandardNodeMaterial();
-  const d = normalize(positionWorld.sub(U.center)), uv = dirUV(d);
+  const d = normalize(PW.sub(U.center)), uv = dirUV(d);
   const day = texture(t.day, uv).rgb, spec = texture(t.spec, uv).r, night = texture(t.night, uv).rgb;
   // coastline mask: specular-map gradient over a few texels (sharp land/sea edge, 1k map)
   const px = 1 / 1024, sx = texture(t.spec, uv.add(vec2(px * 1.5, 0))).r, sy = texture(t.spec, uv.add(vec2(0, px * 1.5))).r;
@@ -26,7 +26,7 @@ export function earthSurfaceMaterial(t, tier = 'high', U = surfaceUniforms()) {
   m.colorNode = mix(land, mix(deep, shallow, coast.mul(0.8)), ocean);
   // detail normals: land relief + ocean waves, fading with altitude so orbit views stay clean
   const alt = camAlt(U), near = smoothstep(400.0, 5.0, alt);
-  const pkm = positionWorld.sub(U.center);
+  const pkm = PW.sub(U.center);
   const landN = detailNormal(n0, pkm, 0.35, near.mul(0.55), T.detail);
   const waveN = detailNormal(n0, pkm.add(vec3(U.time.mul(0.003), 0, 0)), 2.2, smoothstep(60.0, 2.0, alt).mul(0.1), Math.min(T.detail, 2));
   m.normalNode = toView(normalize(mix(landN, waveN, ocean)));
@@ -47,8 +47,8 @@ export function earthSurfaceMaterial(t, tier = 'high', U = surfaceUniforms()) {
 }
 export function moonSurfaceMaterial(t, tier = 'high', U = surfaceUniforms({ R: 1737.4 })) {
   const T = WORLD_TIERS[tier], m = new THREE.MeshStandardNodeMaterial();
-  const d = normalize(positionWorld.sub(U.center)), uv = dirUV(d), base = texture(t.moon, uv).rgb;
-  const pkm = positionWorld.sub(U.center), alt = camAlt(U), near = smoothstep(300.0, 2.0, alt);
+  const d = normalize(PW.sub(U.center)), uv = dirUV(d), base = texture(t.moon, uv).rgb;
+  const pkm = PW.sub(U.center), alt = camAlt(U), near = smoothstep(300.0, 2.0, alt);
   // regolith: fine fbm albedo grain + small crater-ish pits; mid-scale ejecta brightening
   const grain = fbm(pkm.mul(40.0), T.detail).mul(0.5).add(0.5), ejecta = fbm(pkm.mul(0.6), 2).mul(0.5).add(0.5);
   m.colorNode = base.mul(mix(float(1), grain.mul(0.16).add(0.92), near)).mul(ejecta.mul(0.1).add(0.95)).mul(vec3(1.0, 0.985, 0.96));
@@ -58,14 +58,14 @@ export function moonSurfaceMaterial(t, tier = 'high', U = surfaceUniforms({ R: 1
 }
 export function marsSurfaceMaterial(t, tier = 'high', U = surfaceUniforms({ R: 3389.5 })) {
   const T = WORLD_TIERS[tier], m = new THREE.MeshStandardNodeMaterial();
-  const d = normalize(positionWorld.sub(U.center)), uv = dirUV(d), base = texture(t.mars, uv).rgb;
-  const pkm = positionWorld.sub(U.center), alt = camAlt(U), near = smoothstep(300.0, 3.0, alt);
+  const d = normalize(PW.sub(U.center)), uv = dirUV(d), base = texture(t.mars, uv).rgb;
+  const pkm = PW.sub(U.center), alt = camAlt(U), near = smoothstep(300.0, 3.0, alt);
   const dunes = fbm(pkm.mul(9.0), T.detail).mul(0.5).add(0.5);
   m.colorNode = base.mul(mix(float(1), dunes.mul(0.14).add(0.93), near)).mul(vec3(1.05, 0.97, 0.9));
   m.normalNode = toView(detailNormal(normalWorld, pkm, 4.0, near.mul(0.25).add(0.04), T.detail));
   m.roughnessNode = float(0.95); m.metalnessNode = float(0);
   // dust haze: butterscotch aerial perspective by view grazing angle and path length, blue-ish at the terminator
-  const V = normalize(cameraPosition.sub(positionWorld)), mu = saturate(dot(normalWorld, V)), dist = length(cameraPosition.sub(positionWorld));
+  const V = normalize(CP.sub(PW)), mu = saturate(dot(normalWorld, V)), dist = length(CP.sub(PW));
   const ndl = dot(normalWorld, U.sunDir), lit = smoothstep(-0.15, 0.3, ndl);
   const path = float(1).sub(exp(dist.div(max(mu, 0.08)).mul(-0.0045)));
   const hazeCol = mix(vec3(0.35, 0.42, 0.55), vec3(0.82, 0.58, 0.38), smoothstep(0.0, 0.25, ndl));

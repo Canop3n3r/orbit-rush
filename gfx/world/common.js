@@ -1,5 +1,5 @@
 // Shared TSL helpers for gfx/world (equirect lookup, ray/sphere, noise detail normals).
-import { float, vec2, vec3, normalize, dot, sqrt, max, min, atan, acos, clamp, mx_noise_float, length } from 'three/tsl';
+import { uniform, positionWorld as PW0, cameraPosition as CP0, float, vec2, vec3, normalize, dot, sqrt, max, min, atan, acos, clamp, mx_noise_float, length } from 'three/tsl';
 export const PI = Math.PI;
 // unit direction -> equirect uv (SphereGeometry convention)
 export const dirUV = d => vec2(atan(d.z, d.x.negate()).div(2 * PI).fract(), float(1).sub(acos(clamp(d.y, -1, 1)).div(PI)));
@@ -20,3 +20,7 @@ export function detailNormal(n, p, freq, amp, oct) {
   return normalize(n.sub(gt.mul(amp)));
 }
 export { min, max };
+
+// f5 game integration: the game's world units are metres (floating origin); these modules work in km.
+// WS = km per world unit (1 in world.html, 0.001 in the game). PW/CP are the scaled world position / camera.
+export const WS = uniform(1); export const PW = PW0.mul(WS), CP = CP0.mul(WS);

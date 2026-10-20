@@ -6,7 +6,7 @@
 import * as THREE from 'three/webgpu';
 import { Fn, If, vec2, uniform, texture, float, int, vec3, vec4, positionWorld, cameraPosition, normalize, dot, length, max, min, mix, exp, pow, saturate, smoothstep, mx_noise_float, normalWorld } from 'three/tsl';
 import { WORLD_TIERS, CLOUD_LAYER } from './tiers.js?v=w1';
-import { dirUV, raySphere, fbm } from './common.js?v=w1';
+import { dirUV, raySphere, fbm, PW, CP } from './common.js?v=w1';
 const hg = (c, g) => float(1 - g * g).div(pow(float(1 + g * g).sub(c.mul(2 * g)), 1.5)).mul(1 / (4 * Math.PI));
 export function cloudUniforms(o = {}) {
   return { center: uniform(new THREE.Vector3()), sunDir: uniform(new THREE.Vector3(1, 0, 0)), R: uniform(o.R ?? 6371),
@@ -28,7 +28,7 @@ function densityAt(weather, U, p, oct) { // p relative to centre, km
   const fine = oct > 1 ? mx_noise_float(p.mul(0.55)).mul(0.5).add(0.5) : float(0.5);
   // coverage remap (Schneider 2015): noise survives where it exceeds (1 - coverage); fine noise erodes the edges
   // far away (orbit) the billow noise aliases into speckle: blend to the smooth weather-map shape
-  const nearK = smoothstep(260.0, 40.0, length(cameraPosition.sub(U.center)).sub(U.R));
+  const nearK = smoothstep(260.0, 40.0, length(CP.sub(U.center)).sub(U.R));
   const shape = mix(smoothstep(0.4, 0.95, cov), saturate(n.sub(float(1).sub(cov)).div(max(cov, 0.05))), nearK);
   if (globalThis.W1VIEW) return vec3(cov, n, shape);
   return saturate(shape.sub(fine.mul(0.25).mul(nearK).mul(float(1).sub(shape))).mul(prof).mul(1.6));
@@ -39,7 +39,7 @@ export function volumetricCloudMaterial(weatherTex, tier = 'high', U = cloudUnif
   m.blending = THREE.CustomBlending; m.blendSrc = THREE.OneFactor; m.blendDst = THREE.OneMinusSrcAlphaFactor;
   const weather = weatherTex;
   m.colorNode = Fn(() => {
-    const ro = cameraPosition.sub(U.center).toVar(), rd = normalize(positionWorld.sub(cameraPosition)).toVar();
+    const ro = CP.sub(U.center).toVar(), rd = normalize(PW.sub(CP)).toVar();
     const Rt = U.R.add(U.top), Rb = U.R.add(U.base);
     const so = raySphere(ro, rd, Rt).toVar(), sg = raySphere(ro, rd, U.R.sub(0.05)).toVar();
     const t0 = max(so.x, 0.0).toVar(), t1 = so.y.toVar();
@@ -51,7 +51,7 @@ export function volumetricCloudMaterial(weatherTex, tier = 'high', U = cloudUnif
     If(alt.lessThan(U.base).and(sb.y.greaterThan(0.0)), () => { t0.assign(max(t0, sb.y)); }); // below base: start at base
     if (globalThis.W1VIEW) { const sm = raySphere(ro, rd, U.R.add(U.base.add(U.top).mul(0.5))); const pm = ro.add(rd.mul(max(sm.x, sm.y.mul(alt.lessThan(U.top).select(1.0, 0.0))))); return vec4(densityAt(weather, U, pm, 2), 1); }
     const span = max(t1.sub(t0), 0.0).toVar(), dt = span.div(N).toVar();
-    const jitter = mx_noise_float(positionWorld.mul(37.1)).mul(0.5).add(0.5).toVar();
+    const jitter = mx_noise_float(PW.mul(37.1)).mul(0.5).add(0.5).toVar();
     const Tr = float(1).toVar(), acc = vec3(0).toVar();
     const cth = dot(rd, U.sunDir), phase = mix(hg(cth, -0.25), hg(cth, 0.75), 0.6).mul(4 * Math.PI).toVar();
     // unrolled at build time (N is a tier constant): straight-line code is much faster on mobile/software GPUs than a dynamic loop
@@ -80,7 +80,7 @@ export function volumetricCloudMaterial(weatherTex, tier = 'high', U = cloudUnif
 // 2D fallback (phones, and from far orbit when volumetric is off): lit cloud sphere with fake thickness.
 export function flatCloudMaterial(weatherTex, U = cloudUniforms()) {
   const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false });
-  const d = normalize(positionWorld.sub(U.center)), cov = coverageAt(weatherTex, U, d);
+  const d = normalize(PW.sub(U.center)), cov = coverageAt(weatherTex, U, d);
   const sunUp = dot(normalWorld, U.sunDir), shade = smoothstep(-0.15, 0.35, sunUp);
   const thick = saturate(cov.mul(1.3)); // thicker -> greyer base when lit from low sun
   const lit = mix(vec3(1.0, 0.55, 0.32), vec3(0.98, 0.98, 1.0), smoothstep(0.0, 0.3, sunUp)).mul(mix(float(1), float(0.72), thick.mul(float(1).sub(shade))));
