@@ -144,6 +144,17 @@ export function boosterAutopilot(b, dtHint = 0.02) {
   const up = norm(b.r), h = len(b.r) - R_E, va = airVel(b, b.r, b.v), sp = len(va), vr = dot(va, up);
   const s = b.stages[0], g = muOf(b) / dot(b.r, b.r), deck = b.deck ?? 0;
   if (!b.manual) b.dir = sp > 2 ? scale(va, -1 / sp) : up;
+  // f4 RTLS boostback: burn back along the ground track until the ballistic impact sits on the landing zone
+  if (b.rtls && !b.bbDone && !b.manual && b.tgtR && s.fuel > 0 && h > 15000) {
+    const keep = s.dry * (Math.exp(1300 / (s.eng.ispVac * 9.80665)) - 1); // entry + landing budget
+    b._bT = (b._bT ?? 0) - dtHint;
+    if (b._bT <= 0) { b._bT = 0.3; const im = predictImpact(b);
+      if (im) { const e = sub(b.tgtAt ? b.tgtAt(im.t) : b.tgtR, im.r), u2 = norm(im.r), eh = sub(e, scale(u2, dot(e, u2))), E = len(eh);
+        b._bbV = E > 1 ? scale(eh, 1 / E) : b._bbV; b.impErr = E;
+        if (E < 300 || (b._bbE != null && E > b._bbE + 30)) b.bbDone = true; b._bbE = E; } }
+    if (s.fuel <= keep) b.bbDone = true;
+    if (!b.bbDone && b._bbV) { b.n = Math.min(3, b.nMax); b.throttle = Math.min(1, Math.max(0.25, (b._bbE ?? 1e4) / 8000)); b.dir = norm(add(b._bbV, scale(up, 0.08))); b.phase = 'boostback'; b.boostback = (b.boostback || 0) + dtHint; return; }
+  }
   if (vr > 0 || s.fuel <= 0) { b.throttle = 0; if (b.tgtR) b.fin = null; b.phase = s.fuel <= 0 ? 'no fuel' : 'coast'; return; }
   // f4 terminal guidance toward b.tgtR (ECI point on the surface/deck, set by flight.js every step)
   const tg = b.tgtR ? horizErr(b, up) : null; b.tgtErr = tg ? len(tg.d) : null;
@@ -153,13 +164,18 @@ export function boosterAutopilot(b, dtHint = 0.02) {
     b.fin = b._finV || null;
   } else if (b.tgtR) b.fin = null;
   // (1) entry burn, decided from the live predicted peaks
-  if (!b.entryDone && h < 90000 && h > 25000 && vr < -150) {
+  if (!b.entryDone && h < 90000 && h > 25000 && vr < (b.rtls ? -500 : -150)) { // f4: an RTLS booster falls almost straight down; start once it is really falling (no hover chatter)
     b._eT = (b._eT ?? 0) - dtHint;
     if (b._eT <= 0) { b._eT = 0.5; const pk = predictEntryPeaks(b); b.entryPeak = pk;
       b._eNeed = pk.q > ENTRY_Q_MAX * 0.9 || pk.qdot > ENTRY_QDOT_MAX * 0.9; }
     const sE = b.stages[0], mE = (sE.dry + sE.fuel) * 1000, aE = sE.eng.tv * 1000 / mE, gE = muOf(b) / dot(b.r, b.r);
     const keep = sE.dry * (Math.exp(Math.max(0, 1.6 * Math.sqrt(2 * gE * 0) + 600) / (sE.eng.ispSl * 9.80665)) - 1); // ~600 m/s landing-burn budget
-    if (b._eNeed && sE.fuel > keep * 1.1) { b.n = Math.min(3, b.nMax); b.throttle = 1; b.phase = 'entry burn'; b.entryBurned = (b.entryBurned || 0) + dtHint; return; }
+    if (b._eNeed && sE.fuel > keep * (b.rtls ? 1.8 : 1.1) && b.rtls && b.tgtR && !b.manual) { // f4 RTLS: steer the entry burn so the impact stays on the landing zone
+      b._ieT = (b._ieT ?? 0) - dtHint;
+      if (b._ieT <= 0) { b._ieT = 0.5; const im = predictImpact(b); if (im) { const e = sub(b.tgtAt ? b.tgtAt(im.t) : b.tgtR, im.r), u2 = norm(im.r), eh = sub(e, scale(u2, dot(e, u2))), E = len(eh); b.impErr = E; b._ieV = E > 1 ? scale(eh, Math.min(0.4, E / 4000) / E) : null; } }
+      if (b._ieV) b.dir = norm(add(b.dir, b._ieV));
+    }
+    if (b._eNeed && sE.fuel > keep * (b.rtls ? 1.8 : 1.1)) { b.n = Math.min(3, b.nMax); b.throttle = 1; b.phase = 'entry burn'; b.entryBurned = (b.entryBurned || 0) + dtHint; return; }
     if (b.entryBurned) b.entryDone = true;
   }
   if (h <= 25000) b.entryDone = true;
@@ -178,8 +194,8 @@ export function boosterAutopilot(b, dtHint = 0.02) {
     if (!b._hs) { b._hs = true; if (b.ignAlt == null) { b.ignAlt = hp; b.ignV = vDown; } }
     b.landing = true; b.n = n; b.throttle = sol.throttle; b.phase = sol.lowTWR ? 'controlled descent (low TWR)' : 'landing burn';
     if (tg && !b.manual && sp > 2) { // divert: ZEM/ZEV lateral acceleration, folded into the thrust direction (tilt ≤ 20°)
-      const tgo = Math.max(1.5, 2 * Math.max(hp, 1) / Math.max(vDown, 3)), vh = sub(va, scale(up, dot(va, up)));
-      const aH = sub(scale(tg.d, 6 / (tgo * tgo)), scale(vh, 4 / tgo)), aT = Math.max(1, T1 * n * b.throttle / m), k = Math.min(len(aH) / aT, 0.36);
+      const tgo = Math.max(1.5, (b.rtls ? 1.3 : 2) * Math.max(hp, 1) / Math.max(vDown, 3)), vh = sub(va, scale(up, dot(va, up)));
+      const aH = sub(scale(tg.d, 6 / (tgo * tgo)), scale(vh, 4 / tgo)), aT = Math.max(1, T1 * n * b.throttle / m), k = Math.min(len(aH) / aT, hp < 400 ? 0.12 : b.rtls ? 0.5 : 0.36);
       const retro = scale(va, -1 / sp), hd = len(aH) > 1e-6 ? scale(aH, k / len(aH)) : [0, 0, 0]; b.dir = norm(add(retro, hd)); }
   } else { b._hs = false; b.n = 1; b.throttle = 0; b.phase = b.ignAlt != null && hp < 5 ? 'touchdown' : (h > 25000 ? 'coast' : 'grid-fin glide'); }
 }

@@ -695,9 +695,9 @@ function siteVel(b) { const w = b.earthRot === false ? 0 : P.OMEGA_E; return [-w
 const hooks = {
   toast: (m, c) => toast(m, c),
   sound: (k, f) => { if (k === 'ignite') { burst(0.6, 1.2, 500); if (F.alt < 200) ignitionClouds(v); } else if (k === 'beep') beep(f); else if (k === 'orbit') { beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); } },
-  stage: b => { b.mesh = detachStage(0); booster = b; stagingDrama(v.r, v.v, P.noseOf(v)); },
+  stage: b => { b.mesh = detachStage(b.stageIndex ?? 0); booster = b; stagingDrama(v.r, v.v, P.noseOf(v)); },
   drop: d => { if (opHooks) try { opHooks.drop(d); } catch (e) {} d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
-  ship: s => { shipVis = makeShip(s); },
+  ship: s => { if (s.lz) return; shipVis = makeShip(s); }, // RTLS: the landing zone is the pad area, no droneship
   shipMoved: s => shipVis && onSurface(shipVis, s.ef, 0),
   jettison: () => { heroFairing(false); const f = SG[SG.length - 1].userData.fair; if (f) { f.visible = false; const p = V.sub(v.r, V.scale(P.noseOf(v), -10)); for (let k = 0; k < 12; k++) smoke.spawn(p, jit(v.v, 15), 1.5, 1, 3, 0xffffff, null, 0.1); } beep(990); },
   // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
@@ -1119,8 +1119,9 @@ function emit(veh, group, dt, bottom, dir) {
   const applyTo = P0 => { const u = P0.userData; setL(u.glow, pl.glowW * 1.4 * (0.95 + 0.1 * Math.random()), 0.85); setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.1 * Math.random());
     u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW, len * 0.45, pl.bellW); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl); };
   applyTo(plume); if (ex) for (const e of ex) applyTo(e);
-  M.plume.opacity = (0.55 + 0.35 * Math.random()) * pl.bright * (1 - 0.45 * pl.vac); M.plumeGlow.opacity = 0.42 * pl.bright * fl; M.plumeCore.opacity = 0.75 + 0.25 * Math.random();
-  M.plumeBell.opacity = 0.5 * pl.bell * fl; M.plumeSprite.opacity = 0.9 * pl.bright;
+  const hiF = 1 - 0.92 * Math.min(1, Math.max(0, (h - 25000) / 15000)); // f4: above ~40 km the vacuum plume is just a faint glow
+  M.plume.opacity = (0.55 + 0.35 * Math.random()) * pl.bright * (1 - 0.45 * pl.vac) * hiF; M.plumeGlow.opacity = 0.42 * pl.bright * fl * hiF; M.plumeCore.opacity = (0.75 + 0.25 * Math.random()) * (0.35 + 0.65 * hiF);
+  M.plumeBell.opacity = 0.5 * pl.bell * fl * hiF; M.plumeSprite.opacity = 0.9 * pl.bright * (0.4 + 0.6 * hiF);
   const dia = ud.dia; dia.visible = QUALITY[fx.q].diamonds && ps.diamonds > 0.02;
   if (dia.visible) { M.diamond.opacity = ps.diamonds * (0.55 + 0.3 * Math.random());
     dia.children.forEach((m, i) => { m.position.y = -(1.1 + i * 1.35) * w0 * (1 + 0.2 * thr); m.scale.set(1 - i * 0.12, 0.6, 1 - i * 0.12); }); }

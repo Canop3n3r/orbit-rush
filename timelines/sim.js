@@ -20,7 +20,7 @@ export function makeFlight(id, opts = {}) {
   const cat = vehicle(id), mode = cat.modes.find(m => m.mode === opts.mode) || cat.modes[0];
   const S = cat.stages.filter(s => !s.parallel), side = cat.stages.find(s => s.parallel);
   const design = { name: id, parts: side ? STAND_IN.radial : STAND_IN[2] };
-  const F = new Flight(design, opts.hooks || {}, { earthRot: true, t0: opts.t0 });
+  const F = new Flight(design, opts.hooks || {}, { earthRot: true, t0: opts.t0, recovery: opts.recovery }); // f4: recovery 'rtls' flies boostback to the launch site
   const v = F.v, game = side ? [side, ...S] : S;
   if (v.stages.length !== game.length) throw new Error(`${id}: stand-in has ${v.stages.length} stages, catalog ${game.length}`);
   const payloadT = (opts.payload ?? mode.payloadLEO) / 1000;
@@ -53,6 +53,7 @@ export function flyAuto(id, opts = {}) {
     F.realT += dt; F.step(dt);
     const q = F.v.tel ? F.v.tel.q : 0; if (F.v.cur === s0 && q > peak.q) Object.assign(peak, { q, t: +F.met.toFixed(1), alt: Math.round(F.alt) });
     if (F.flags.maxq) mark('maxq'); // the game's Max-Q call (q fell 20 % below its peak)
+    if (s0 === 1 && opts.recovery === 'rtls' && reserveT > 0 && F.v.cur === 0 && F.v.stages[0].fuel <= reserveT * (opts.sideReserveK ?? 2) && F.alt > 2000) F.stage(); // f4: side boosters keep a boostback reserve (pair)
     if (reserveT > 0 && F.v.cur === s0 && F.v.stages[s0].fuel <= reserveT && F.canStage() && F.alt > 2000) { meco = { t: +F.met.toFixed(1), alt: Math.round(F.alt), v: Math.round(F.v.tel?.vAir ?? 0), vIn: Math.round(Math.hypot(...F.v.v)) }; F.stage(); }
     if (F.v.cur !== cur) { mark(cur === 0 ? 'stage1Sep' : 'stage2Sep'); cur = F.v.cur; }
     if (F.flags.fairing) mark('fairing');

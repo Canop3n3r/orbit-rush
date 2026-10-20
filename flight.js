@@ -154,6 +154,7 @@ export const fmtDur = s => { s = Math.max(0, s); const d = Math.floor(s / 86400)
 
 export class Flight {
   constructor(design, hooks = {}, opts = {}) {
+    this.recovery = opts.recovery || design.recovery || 'ship'; // f4: 'rtls' = boostback to the landing zone at the launch site
     if (typeof opts === 'number') opts = { padZ: opts };
     this.design = cloneDesign(design); this.h = hooks; this.stats = designStats(design);
     const v = buildVehicle(design); v.earthRot = opts.earthRot !== false;
@@ -364,6 +365,10 @@ export class Flight {
     if (v.cur >= this.last) return;
     if (v.cur > 0 || v.stages[0].radial) {
       const d = P.makeBooster(v); d.stageIndex = v.cur; d.radial = v.stages[v.cur].radial || 0; this.shiftCom(() => { v.cur++; });
+      if (d.radial && this.recovery === 'rtls' && !this.booster && d.stages[0].fuel > 0.3 && bh > 2000) { // f4: side boosters fly back to the landing zone
+        d.ut = 0; d.manual = false; d.maxH = bh; d.stagedAlt = bh; d.rtls = true; d.canLand = true; this.booster = d; this.ship = { ef: PAD_EF.slice(), moved: true, lz: true }; this.call('ship', this.ship); this.call('stage', d);
+        this.flags.stagedFuel = d.stages[0].fuel; this.flags.stagedAlt = bh; this.toast(`BOOSTER SEP — ${d.radial} side boosters boosting back to the landing zone`, '#fff'); return;
+      }
       this.call('drop', d);
       if (d.radial) { this.flags.stagedFuel = d.stages[0].fuel; this.flags.stagedAlt = bh; this.toast(`BOOSTER SEP — ${d.radial} radial boosters away, core ignition`, '#fff'); return; }
       if (v.cur > this.lastPow) { v.throttle = v.ut = 0; this.toast('CAPSULE SEPARATION — heat shield first: SAS retrograde (3)', '#fff'); if (this.ret) this.ret.sepAt = this.met; }
@@ -374,7 +379,8 @@ export class Flight {
     this.shiftCom(() => { v.cur = 1; }); this.flags.stagedFuel = b.stages[0].fuel; this.flags.stagedAlt = bh;
     this.call('stage', b);
     const fuel = b.stages[0].fuel;
-    if (fuel > 0.3 && bh > 2000) {
+    if (fuel > 0.3 && bh > 2000 && this.recovery === 'rtls') { b.rtls = true; b.canLand = true; this.ship = { ef: PAD_EF.slice(), moved: true, lz: true }; this.call('ship', this.ship); this.toast(`STAGE SEP — booster boosting back to the landing zone (${fuel.toFixed(1)} t)`, '#fff'); }
+    else if (fuel > 0.3 && bh > 2000) {
       // the droneship waits where the auto-land profile (entry burn + landing burn) touches down
       const lc = landingCheck(b), ok = lc.lands; b.canLand = ok;
       const pi = lc.r ? null : P.predictImpact(b), imp = lc.r ? { r: lc.r, t: lc.clock - b.clock } : pi && { r: pi.r, t: pi.t - b.clock };
@@ -661,7 +667,11 @@ export class Flight {
         if (gd.phase === 'done' && v.ut > 0) { v.ut = 0; if (!f.cutoff) { f.cutoff = 1; this.toast('AUTO cutoff — orbit reached', '#7dffa6'); } }
         v.throttle = v.auto ? gd.throttle : this.autoThrottle ? Math.min(v.ut, gd.throttle) : v.ut;
         // f3 auto-staging: AUTO stages the booster itself while it still has the fuel to fly home and land (15 % margin)
-        if (v.cur === 0 && this.last > 0 && !v.stages[0].radial && this.autoStage !== false && this.alt > 2000 && this.canStage()) {
+        if (v.cur === 0 && this.last > 0 && this.recovery === 'rtls' && this.autoStage !== false && this.alt > 2000 && this.canStage() && this.met > 30) { // f4 RTLS: keep enough for boostback + entry + landing
+          const s0 = v.stages[0], up0 = V.norm(v.r), va0 = v.tel && v.tel.va ? v.tel.va : v.v, vh0 = V.len(V.sub(va0, V.scale(up0, V.dot(va0, up0))));
+          const need = s0.dry * (Math.exp((1.4 * vh0 + 1900) / (s0.eng.ispVac * 9.80665)) - 1);
+          if (s0.fuel <= need && (!s0.radial || this.alt > 30000 || s0.fuel < 0.5 * need)) { /* side boosters: not inside the Max-Q region (the lone core would over-pressure) */ this.toast(`AUTO: ${s0.radial ? 'side boosters' : 'booster'} away with ${s0.fuel.toFixed(1)} t for the flight home`, '#9cc3ff'); this.stage(); }
+        } else if (v.cur === 0 && this.last > 0 && !v.stages[0].radial && this.autoStage !== false && this.alt > 2000 && this.canStage()) {
           if (this._plan === undefined) { try { this._plan = this.design ? planBuild(this.design, { earthRot: v.earthRot !== false }) : null; } catch (e) { this._plan = null; } }
           const pl = this._plan; if (pl && pl.orbit && pl.landed && v.stages[0].fuel <= pl.minReserve) { this.toast(`AUTO: staging — booster keeps ${v.stages[0].fuel.toFixed(1)} t to fly home`, '#9cc3ff'); this.stage(); }
         }
@@ -746,7 +756,7 @@ export class Flight {
       b.throttle = b.stages[0].fuel > 0 ? b.ut : 0; b.n = b.nSel ? Math.min(b.nSel, b.nMax) : bh0 > 12000 ? Math.min(3, b.nMax) : 1;
       b.phase = b.throttle > 0 ? 'burning' : 'falling';
     } else { b.tgtR = this.ship ? shipPos(this.ship, b.clock, b.earthRot !== false) : null; b.tgtAt = this.ship ? (t => shipPos(this.ship, t, b.earthRot !== false)) : null; P.boosterAutopilot(b, dt); }
-    b.deck = this.ship && surfDist(b.r, shipPos(this.ship, b.clock, b.earthRot !== false)) < 40 ? DECK : 0; // aim at the deck only when over it (same test as the contact check)
+    b.deck = this.ship && !this.ship.lz && surfDist(b.r, shipPos(this.ship, b.clock, b.earthRot !== false)) < 40 ? DECK : 0; // aim at the deck only when over it (same test as the contact check)
     const e = P.stepPoint(b, dt);
     const bh = V.len(b.r) - R, sp = V.len(P.airVel(b, b.r, b.v)); b.maxH = Math.max(b.maxH, bh);
     if (burnedUp(b, bh, sp)) { b.state = 'lost'; this.flags.booster = 'burned up on reentry (do an entry burn)'; this.call('boosterLost', b, true); this.toast('Booster burned up', '#ff6262'); return; }
@@ -770,8 +780,8 @@ export class Flight {
       if (sp < 8 && tilt < 0.25 && dist < 35) {
         ok = true; f.boosterBonus = 2500 + Math.round((35 - dist) * 25) + Math.round((8 - sp) * 80);
         f.booster = `landed by hand — ${dist.toFixed(1)} m off center at ${sp.toFixed(1)} m/s`; this.toast(`🎯 YOU LANDED IT! +${f.boosterBonus}`, '#7dffa6');
-      } else { f.booster = sp < 8 && dist >= 35 ? `missed the droneship by ${(dist - 35).toFixed(0)} m` : sp < 8 ? 'tipped over (too tilted)' : `crashed at ${sp.toFixed(0)} m/s`; this.toast('Booster lost — ' + f.booster, '#ff6262'); }
-    } else if (sp < 10) { ok = true; f.boosterBonus = 1000; f.booster = 'auto-landed on the droneship'; this.toast('🎯 BOOSTER AUTO-LANDED +1000', '#7dffa6'); }
+      } else { f.booster = sp < 8 && dist >= 35 ? `missed the ${ship && ship.lz ? 'landing zone' : 'droneship'} by ${(dist - 35).toFixed(0)} m` : sp < 8 ? 'tipped over (too tilted)' : `crashed at ${sp.toFixed(0)} m/s`; this.toast('Booster lost — ' + f.booster, '#ff6262'); }
+    } else if (sp < 10) { ok = true; f.boosterBonus = 1000; f.booster = ship && ship.lz ? 'auto-landed at the landing zone (RTLS)' : 'auto-landed on the droneship'; this.toast('🎯 BOOSTER AUTO-LANDED +1000', '#7dffa6'); }
     else { f.booster = `crashed at ${sp.toFixed(0)} m/s (needed more fuel: stage earlier)`; this.toast('Booster lost', '#ff6262'); }
     if (ok) { b.state = 'landed'; b.dir = up; this.call('boosterLanded', b); this.call('sound', 'landed'); }
     else { b.state = 'lost'; this.call('boosterLost', b, false); }
