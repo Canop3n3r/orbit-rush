@@ -13,7 +13,7 @@ export const ENGINES_MARTELL = {
   'mm-e10': { tSl: 0, tVac: 0.2, ispSl: 0, ispVac: 236.0, src: 'spec:engines#mm-e10' },
 };
 export const ROSTER_MARTELL = [
-  { id: 'titanus-2', name: "Titanus II (Gem-Lifter)", company: 'martell', src: 'spec:titanus-2', area: 7.3, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'titanus-2', name: "Titanus II", company: 'martell', src: 'spec:titanus-2', area: 7.3, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'mm-e1': 2}, dry: 4000, prop: 118000, burn: 147.0, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'mm-e2': 1}, dry: 2400, prop: 26500, burn: 182.0, group: 1, recovery: 'expended', src: 'GCAT' },
