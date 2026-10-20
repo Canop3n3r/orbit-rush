@@ -135,3 +135,5 @@ export { ROSTER_JAXO, ENGINES_JAXO } from './roster/jaxo.js';
 export { ROSTER_ISRA, ENGINES_ISRA } from './roster/isra.js';
 // Roster company 'orbitron' (data only, neutral ids; spec:loss-model): see vehicles/roster/orbitron.js
 export { ROSTER_ORBITRON, ENGINES_ORBITRON } from './roster/orbitron.js';
+// Roster company 'albion' (data only, neutral ids; spec:loss-model): see vehicles/roster/albion.js
+export { ROSTER_ALBION, ENGINES_ALBION } from './roster/albion.js';
