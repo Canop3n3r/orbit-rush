@@ -18,7 +18,7 @@ export const LADDER = [
     reward: { cash: 20, sci: 8 }, unlock: { sites: ['slc40'] } },
   { id: 'orbit', name: 'First orbit', goal: 'Reach a stable orbit', how: 'fly', vehicle: 'needle', test: r => r.orbit,
     reward: { cash: 40, sci: 12 }, unlock: { vehicles: ['kestrel'] } },
-  { id: 'booster', name: 'Booster landing', goal: 'Fly the booster back and land it', how: 'fly', vehicle: 'kestrel', test: r => r.boosterLanded,
+  { id: 'booster', name: 'Booster landing', goal: 'Fly the booster back and land it', how: 'fly', vehicle: 'kestrel', test: r => r.boosterLanded && ['kestrel', 'heron', 'atlas', 'titan'].includes(r.vehicle),
     reward: { cash: 60, sci: 10 }, unlock: { sites: ['lz1'], missions: ['constellation-batch'] } },
   { id: 'starlink', name: 'Constellation deploy', brandKey: 'constellation-batch', goal: 'Loft a satellite stack and dispense it', how: 'op', op: 'constellation-batch', vehicle: 'kestrel',
     test: r => r.op === 'constellation-batch' && r.opOk, reward: { cash: 90, sci: 15 }, unlock: { vehicles: ['heron'], sites: ['lc39a'], missions: ['crew-dock'] } },

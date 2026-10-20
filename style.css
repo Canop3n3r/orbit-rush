@@ -719,3 +719,26 @@ body.cx #nav{gap:2px}
 #nav #navSas button{position:static!important;transform:none!important;margin:0!important;width:44px!important;height:44px!important;border-radius:11px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:700 16px/1 var(--ui)!important}
 #nav #navSas button small{font:800 8.5px/1 var(--ui,system-ui);letter-spacing:.3px;opacity:.85}
 @media (orientation:landscape) and (max-height:500px){body.cx.touch #nav #navSas{left:auto;right:0;transform:none}}
+body.touch #navRd{flex-direction:column;gap:0;padding:2px 7px;border-radius:8px;font-size:10px;line-height:1.25;align-items:flex-start}
+/* f5: end card with the career block: phones */
+@media (orientation:portrait) and (max-width:600px){#end{max-height:48dvh!important}#endBody{max-height:26dvh}#endBody .endCareer{font:600 12px/1.4 var(--ui,system-ui);padding:6px 8px;margin:0 0 6px}#endBody .ecWal{display:none}}
+@media (orientation:landscape) and (max-height:500px){
+  #end{left:190px!important;right:190px!important;width:auto!important;transform:none!important}
+  #end .endMain{flex-wrap:wrap!important}#end .endMain button{flex:1 1 auto!important;padding:4px 10px}
+  #endBody .endCareer{font:600 12px/1.35 var(--ui,system-ui);padding:5px 8px;margin:0 0 4px}#endBody .ecWal{display:none}
+}
+/* f5 lean end card: one line + Retry + Next + ⋯ (details sheet); flight HUD hidden under it */
+#end.lean #endBody,#end.lean .endShare,#end.lean #againBtn,#end.lean #contBtn,#end.lean #replayBtn{display:none!important}
+#end.lean.more #endBody{display:block!important}#end.lean.more .endShare{display:flex!important}#end.lean.more #againBtn{display:inline-flex!important}
+#end.lean{width:min(420px,94vw)!important}
+#end.lean h2{font-size:19px!important;margin:0 0 4px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#end.lean .eStars{color:#ffd23a;letter-spacing:1px}#end.lean .eLine{color:#9df0b8;font-size:15px}
+#end.lean .endMain{flex-wrap:nowrap!important;gap:8px}#end.lean .endMain button{flex:1 1 0!important;min-height:48px}
+#end.lean #endMoreBtn{flex:0 0 48px!important;font-size:20px}
+#nextMisBtn small{display:block;font-size:10.5px;font-weight:600;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#nextMisBtn{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+body.endOn #pilot,body.endOn #nav,body.endOn #mleft,body.endOn #mright,body.endOn #mhud,body.endOn #topStack,body.endOn #bars,body.endOn #warpBar,body.endOn #hintS,body.endOn #toasts{display:none!important}
+@media (orientation:landscape) and (max-height:500px){#end.lean{left:calc(12px + var(--sal,0px))!important;right:auto!important;width:min(420px,60vw)!important}}
+/* f5 (ui_ideal_path #13): manual controls + navball hide while AUTO is on; they return the moment AUTO is off */
+body.autoOn #mStick,body.autoOn #mRoll,body.autoOn #mThr,body.autoOn #nav,body.autoOn #mleft{display:none!important}
+@media (orientation:landscape) and (max-height:500px){body.touch #nav #navSas{left:auto!important;right:calc(100% + 6px)!important;bottom:0!important;transform:none!important;margin-bottom:0!important}}

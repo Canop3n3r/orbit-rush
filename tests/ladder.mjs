@@ -7,7 +7,7 @@ let o = L.record(s, { maxAlt: 5000 }); ok(o.earned.length === 0, 'low hop earns 
 o = L.record(s, { maxAlt: 200000, space: true, orbit: true }); ok(o.earned.map(c => c.id).join() === 'hop,karman,orbit', 'orbit earns 3 rungs');
 ok(o.cash === 70 && o.sci === 22, 'rewards summed'); ok(L.isUnlocked(s, 'vehicles', 'kestrel'), 'F9 unlocked'); ok(o.next.id === 'booster', 'next booster');
 o = L.record(s, { orbit: true, op: 'crew-dock', opOk: true }); ok(o.earned.length === 0, 'out of order rung not earned');
-o = L.record(s, { boosterLanded: true, op: 'constellation-batch', opOk: true }); ok(o.earned.map(c => c.id).join() === 'booster,starlink', 'booster + starlink');
+o = L.record(s, { boosterLanded: true, vehicle: 'kestrel', op: 'constellation-batch', opOk: true }); ok(o.earned.map(c => c.id).join() === 'booster,starlink', 'booster + starlink');
 L.save(st, s); const s2 = L.load(st); ok(s2.cash === s.cash && s2.done.starlink, 'persisted'); ok(L.isUnlocked(s2, 'vehicles', 'heron'), 'crew unlocked');
 st.setItem(L.KEY, '{bad'); ok(L.load(st).cash === 0, 'corrupt -> blank');
 ok(L.LADDER.every(c => L.ALL.vehicles.includes(c.vehicle)), 'vehicles known');

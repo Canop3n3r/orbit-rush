@@ -40,7 +40,13 @@ export function createFunUI(ctx) {
   $('navMode').onclick = e => { e.currentTarget.blur(); const ms = ['surface', 'orbit', 'target'], curM = navMode === 'auto' ? lastAuto : navMode; navMode = ms[(ms.indexOf(curM) + 1) % 3]; ctx.audio.ui('tick'); };
   navEl.querySelectorAll('#navSas button').forEach(b => b.onclick = e => { e.currentTarget.blur(); ctx.setSas(b.dataset.sas); ctx.audio.ui('tick'); setFan(false); });
   const SAS_IC = Object.fromEntries(SAS_RING.map(([m, ic]) => [m, ic])); Object.assign(SAS_IC, { antiradial: '▣', antinormal: '▽', off: '○' });
-  function setFan(on) { navEl.classList.toggle('fan', on); $('navSasT').setAttribute('aria-expanded', on ? 'true' : 'false'); }
+  function setFan(on) { navEl.classList.toggle('fan', on); $('navSasT').setAttribute('aria-expanded', on ? 'true' : 'false'); if (on) liftFan(); }
+  // f5: the SAS grid opens above the ball; lift it clear of any on-screen control it would cover (touch stick / AUTO / ROLL)
+  function liftFan() { const g = $('navSas'); if (matchMedia('(orientation:landscape) and (max-height:500px)').matches && document.body.classList.contains('touch')) { g.style.marginBottom = ''; return; } g.style.marginBottom = '0px'; let lift = 0;
+    const ctl = [...document.querySelectorAll('#mleft *, #mright *, #mtop *, #pilot button, #navRd')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && getComputedStyle(e).visibility !== 'hidden' && !g.contains(e); });
+    for (let k = 0; k < 3; k++) { const gr = g.getBoundingClientRect(); let need = 0;
+      for (const e of ctl) { const r = e.getBoundingClientRect(); if (r.left < gr.right - 1 && gr.left < r.right - 1 && r.top < gr.bottom - 1 && gr.top < r.bottom - 1) need = Math.max(need, gr.bottom - r.top + 6); }
+      if (!need) break; lift += need; g.style.marginBottom = lift + 'px'; } }
   $('navSasT').onclick = e => { e.currentTarget.blur(); setFan(!navEl.classList.contains('fan')); ctx.audio.ui('tick'); };
   document.addEventListener('pointerdown', e => { if (navEl.classList.contains('fan') && !e.target.closest('#nav')) setFan(false); }, true);
   let navOut = { mode: 'surface', sp: 0 };
@@ -54,8 +60,9 @@ export function createFunUI(ctx) {
     $('navMode').firstChild.textContent = mode.toUpperCase() + ' '; $('navSpd').textContent = sp < 1e4 ? Math.round(sp) + ' m/s' : (sp / 1000).toFixed(2) + ' km/s';
     navOut.sp = sp; { const t = SAS_IC[st.sas] || '⊙'; const bt = $('navSasT'); if (bt.textContent !== t) bt.textContent = t; }
     const pg = sp > 0.5 ? vv.map(x => x / sp) : null, m = { ...st.markers }; if (pg) { m.pro = pg; m.retro = pg.map(x => -x); }
+    { const cv = $('navBall'), want = Math.min(256, Math.max(96, Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1)))); if (cv.clientWidth && Math.abs(cv.width - want) > 4) { cv.width = cv.height = want; } } // f5: crisp ticks/labels at the shown size
     const att = navball.draw({ nose: st.nose, top: st.top, r: st.r, markers: m });
-    if (att) { const sg = x => (x >= 0 ? '+' : '−') + String(Math.round(Math.abs(x))).padStart(2, '0'), hT = String(Math.round(att.heading) % 360).padStart(3, '0');
+    if (att) { const sg = x => (x >= 0 || Math.round(-x) === 0 ? '+' : '−') + String(Math.round(Math.abs(x))).padStart(2, '0'), hT = String(Math.round(att.heading) % 360).padStart(3, '0');
       if ($('nrH').textContent !== hT) $('nrH').textContent = hT; $('nrP').textContent = sg(att.pitch); $('nrR').textContent = sg(att.roll); navOut.att = att; }
     $('navThr').style.strokeDashoffset = THR_LEN * (1 - st.throttle); $('navThrT').textContent = Math.round(st.throttle * 100) + '%';
     $('navFuel').style.strokeDashoffset = THR_LEN * (1 - st.fuel); $('navFuelT').textContent = 'S' + st.stage; $('navFuel').classList.toggle('low', st.fuel < 0.15);
