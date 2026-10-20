@@ -60,7 +60,7 @@ export class Kit {
 // shared-geometry cache: identical merged geometries (e.g. titan v3/v4 boosters) are stored once, refcounted
 const GEO = new Map(); let _gid = 0;
 function geoKey(g) { const p = g.attributes.position.array, n = p.length; let h = n; for (let i = 0; i < n; i += Math.max(1, (n / 512) | 0)) h = (h * 31 + Math.round(p[i] * 1000)) | 0; return n + ':' + h + ':' + p[n - 1]; }
-export function shareGeometries(group) { group.traverse(m => { if (!m.isMesh || m.geometry.userData.shared) return; const k = geoKey(m.geometry) + (m.geometry.attributes.tangent ? 't' : ''), e = GEO.get(k);
+export function shareGeometries(group) { group.traverse(m => { if (!m.isMesh || m.geometry.userData.shared || m.geometry.userData.noShare) return; const k = geoKey(m.geometry) + (m.geometry.attributes.tangent ? 't' : ''), e = GEO.get(k);
   if (e) { m.geometry.dispose(); m.geometry = e.g; e.refs++; } else { m.geometry.userData.shared = k; GEO.set(k, { g: m.geometry, refs: 1 }); } }); return group; }
 export const geometryCacheSize = () => GEO.size;
 // compactStages: compact each stage group (direct child) separately so stages still detach on every LOD

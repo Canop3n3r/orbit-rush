@@ -55,8 +55,8 @@ export function legs(KitC, detail, r, len, y, n = 4, a0 = PI / 4) {
     k.add(new THREE.CylinderGeometry(0.62, 0.72, 0.26, k.hi ? 16 : 8), K('dark'), xf([0.2, len + 0.02, 0], [0, 0, PI / 2])); // foot pad (crush core)
     k.add(new THREE.BoxGeometry(0.3, 0.5, 1.2), K('dark'), xf([0.1, 0.25, 0])); // hinge clevis
     piv.add(k.build('leg')); g.add(piv); g.userData.pivots.push(piv);
-    if (lean) continue; if (!g.userData.armMesh) { const geo = mergeGeometries(Array.from({ length: 2 * n }, () => unit.clone())); const am = new THREE.Mesh(geo, mat('grey')); am.frustumCulled = false; am.name = 'arms'; g.add(am);
-      g.userData.armMesh = am; g.userData.armBase = { pos: unit.attributes.position.array.slice(), nor: unit.attributes.normal.array.slice(), nv: unit.attributes.position.count }; }
+    if (lean) continue; if (!g.userData.armMesh) { const uni = unit.toNonIndexed(), geo = mergeGeometries(Array.from({ length: 2 * n }, () => uni.clone())); geo.userData.noShare = true; const am = new THREE.Mesh(geo, mat('grey')); am.frustumCulled = false; am.name = 'arms'; g.add(am);
+      g.userData.armMesh = am; g.userData.armBase = { pos: uni.attributes.position.array.slice(), nor: uni.attributes.normal.array.slice(), nv: uni.attributes.position.count }; uni.dispose(); }
     g.userData.arms.push({ piv, idx: i, A: new THREE.Vector3(Math.cos(a) * (r - 0.1), y + len * 0.42, Math.sin(a) * (r - 0.1)), tipL: new THREE.Vector3(0.24, len * 0.86, 0) }); }
   setLegs(g, 0); if (detail === 'lo') bakeLegs(g); return g;
 }
