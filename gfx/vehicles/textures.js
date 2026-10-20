@@ -54,9 +54,11 @@ export function bell(ext = false) { return once('bell' + ext, () => { const [c, 
 export function solarCells() { return once('solar', () => { const [c, x] = canvas(256, 128); x.fillStyle = '#0d1630'; x.fillRect(0, 0, 256, 128); x.strokeStyle = '#2a3c6a'; x.lineWidth = 1;
   for (let i = 0; i <= 256; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 128); x.stroke(); } for (let j = 0; j <= 128; j += 16) { x.beginPath(); x.moveTo(0, j); x.lineTo(256, j); x.stroke(); } return fin(c); }); }
 // frost bands (alpha) for a cryogenic tank barrel: v = 0 bottom .. 1 top; bands = [[v0, v1], ...]
-export function frost(bands = [[0.04, 0.5], [0.56, 0.86]]) { return once('frost' + bands, () => { const [c, x] = canvas(64, 512), r = rng(11); x.fillStyle = '#000'; x.fillRect(0, 0, 64, 512);
-  for (const [a, b] of bands) { const y0 = 512 * (1 - b), y1 = 512 * (1 - a), g = x.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.08, 'rgba(255,255,255,0.32)'); g.addColorStop(0.92, 'rgba(255,255,255,0.38)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, y0, 64, y1 - y0); }
-  for (let i = 0; i < 400; i++) { x.fillStyle = `rgba(0,0,0,${r() * 0.35})`; x.fillRect(r() * 64, r() * 512, 1 + r() * 3, 2 + r() * 14); } // runs and thin patches
+export function frost(bands = [[0.04, 0.5], [0.56, 0.86]]) { return once('frost' + bands, () => { const [c, x] = canvas(256, 1024), r = rng(11); x.fillStyle = '#000'; x.fillRect(0, 0, 256, 1024);
+  // fine, even cryo frost: soft-edged bands, many thin vertical runs (no coarse dark blotches)
+  for (const [a, b] of bands) { const y0 = 1024 * (1 - b), y1 = 1024 * (1 - a), g = x.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.06, 'rgba(255,255,255,0.62)'); g.addColorStop(0.94, 'rgba(255,255,255,0.7)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, y0, 256, y1 - y0); }
+  for (let i = 0; i < 1600; i++) { x.fillStyle = `rgba(0,0,0,${0.05 + r() * 0.12})`; x.fillRect(r() * 256, r() * 1024, 1, 4 + r() * 20); }
+  for (let i = 0; i < 1200; i++) { x.fillStyle = `rgba(255,255,255,${r() * 0.15})`; x.fillRect(r() * 256, r() * 1024, 1, 1 + r() * 3); }
   const t = fin(c, { srgb: false }); t.wrapT = THREE.ClampToEdgeWrapping; return t; }); }
 // engine skirt: dark grey with soot streaks and panel bolts
 export function skirt() { return once('skirt', () => { const [c, x] = canvas(256, 128), r = rng(4); const g = x.createLinearGradient(0, 128, 0, 0); g.addColorStop(0, '#1a1816'); g.addColorStop(1, '#4a4a4c'); x.fillStyle = g; x.fillRect(0, 0, 256, 128);
