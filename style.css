@@ -767,3 +767,6 @@ body.touch #build{background:#0b1220f2}
 /* f5b: Google tiles attribution (must stay visible) sits under the top HUD on touch, clear of the navball and sticks */
 body.touch #tilesAttr{top:calc(62px + env(safe-area-inset-top,0px))!important;bottom:auto!important;left:auto!important;right:6px!important;max-width:40vw!important;text-align:right;font-size:10px!important}
 .cr.soon{opacity:.6}.cr.soon .crR{color:#ffb35c}
+/* QA f5a.2 P2: LAUNCH sits in its own bar under the build sheet on phones (never on top of the parts list) */
+body.touch:not(.home) #build.builder{bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;padding-bottom:8px!important;max-height:calc(100vh - 84px - env(safe-area-inset-bottom,0px))!important}
+@media (orientation:portrait){body.touch:not(.home) #build.builder{height:calc(58vh - 84px)!important;max-height:calc(58vh - 84px)!important}}
