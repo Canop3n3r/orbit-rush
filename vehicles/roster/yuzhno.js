@@ -58,13 +58,13 @@ export const ROSTER_YUZHNO = [
       { engines: {'yz-e13': 1}, dry: 840, prop: 7760, burn: 250.0, group: 1, recovery: 'expended', src: 'GCAT' },
     ],
     modes: [{ variant: 'leo', payload: 500, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:cosmokart-1#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] }] },
-  { id: 'riverbend', name: "Riverbend Silo-Hopper", company: 'yuzhno', src: 'spec:riverbend', area: 7.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'riverbend', name: "Riverbend Silo-Hopper", company: 'yuzhno', src: 'spec:riverbend', masses: "spec:riverbend#masses (user's guide table 4.1-1: usable propellant 147,900 / 36,740 / 1,910 kg; masses at stage ignition 208,900 / 47,380 / 6,266 kg with a 2,000 kg spacecraft; burn = usable x Isp x g0 / guide vacuum thrust 461.2 / 77.5 / 1.9 t; stage-3 dry includes the space head module and its fairing, carried to burnout ESTIMATE)", area: 7.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
-      { engines: {'yz-e14': 3}, dry: 15000, prop: 195800, burn: 130.0, group: 0, recovery: 'expended', src: 'GCAT' },
-      { engines: {'yz-e15': 1}, dry: 3000, prop: 46300, burn: 190.0, group: 1, recovery: 'expended', src: 'GCAT' },
-      { engines: {'yz-e16': 1}, dry: 900, prop: 7300, burn: 1000.0, group: 2, recovery: 'expended', src: 'GCAT' },
+      { engines: {'yz-e14': 3}, dry: 13620, prop: 147900, burn: 102.0, group: 0, recovery: 'expended', src: 'GCAT' },
+      { engines: {'yz-e15': 1}, dry: 4374, prop: 36740, burn: 161.2, group: 1, recovery: 'expended', src: 'GCAT' },
+      { engines: {'yz-e16': 1}, dry: 2356, prop: 1910, burn: 310.6, group: 2, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 3700, orbit: { hp: 300, ha: 300, inc: 50.6 }, src: "spec:riverbend#ref (user's guide: 300 km circular, 50.6 deg)", est: [] , knownGap: "model +178 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 3700, orbit: { hp: 300, ha: 300, inc: 50.6 }, src: "spec:riverbend#ref (user's guide: 300 km circular, 50.6 deg)", est: [] , knownGap: "model +31 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'cosmokart-2', name: "Cosmo-Kart 2", company: 'yuzhno', src: 'spec:cosmokart-2', area: 4.5, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'yz-e17': 1}, dry: 5300, prop: 81900, burn: 130.0, group: 0, recovery: 'expended', src: 'GCAT' },
