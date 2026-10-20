@@ -39,3 +39,8 @@ export function crewCone(r = 1.96, y0 = 0, h = 3.23) { return [[0, y0], [r * 0.9
 export function escapeNose(r = 0.33, L = 1.6, y0 = 0) { return ogive(r, L, y0, 12, 0.18); }
 NOSES['saturnine-v.cm'] = () => crewCone();
 NOSES['saturnine-v.les'] = () => escapeNose();
+// Space Truck Stack (orbiter + tank + twin boosters): tank ogive 8.4 m, booster nose, orbiter nose (all tips +Y)
+export const TRUCK = { etR: 4.2, etNose: 12.0, srbR: 1.86, srbNose: 6.0, orbR: 2.6, orbNose: 6.5 };
+NOSES['space-truck.et'] = () => ogive(TRUCK.etR, TRUCK.etNose, 0, 18, 0.03);
+NOSES['space-truck.srb'] = () => ogive(TRUCK.srbR, TRUCK.srbNose, 0, 18, 0.1);
+NOSES['space-truck.orbiter'] = () => ogive(TRUCK.orbR, TRUCK.orbNose, 0, 18, 0.12);
