@@ -16,7 +16,10 @@ const cam = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 5000)
 addEventListener('resize', () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); r.setSize(innerWidth, innerHeight); });
 const sel = document.getElementById('sel'); for (const [id, v] of Object.entries(VEHICLES)) sel.add(new Option(id, id));
 let cur = null;
-function show(id, o = {}) { if (cur) dispose(cur); // frees geometry (shared ones refcounted) so cycling models doesn't leak sel.value = id; const lo = o.lo ?? document.getElementById('lo').checked, lg = o.legs ?? +document.getElementById('legs').value;
+function show(id, o = {}) {
+  // frees geometry (shared ones refcounted) so cycling models doesn't leak
+  if (cur) dispose(cur);
+  sel.value = id; const lo = o.lo ?? document.getElementById('lo').checked, lg = o.legs ?? +document.getElementById('legs').value;
   const t0 = performance.now(); cur = build(id, { detail: lo ? 'lo' : 'hi', legs: lg, fins: o.fins }); const ms = performance.now() - t0; scene.add(cur);
   const h = VEHICLES[id].height, d = o.dist ?? h * 1.75 + 6, yaw = o.yaw ?? 0.7; cam.position.set(Math.cos(yaw) * d, h * (o.camY ?? 0.5), Math.sin(yaw) * d); ctl.target.set(0, h * (o.aim ?? 0.5), 0); ctl.update();
   let calls = 0; cur.traverse(m => { if (m.isMesh) calls++; }); document.getElementById('info').textContent = `${Math.round(cur.userData.tris)} tris · ${calls} meshes · ${ms.toFixed(0)} ms`; return { tris: Math.round(cur.userData.tris), meshes: calls, ms }; }

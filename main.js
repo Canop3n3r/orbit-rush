@@ -35,8 +35,8 @@ import { createCompact } from './fun/compact.js?v=f5';
 import { createHome } from './fun/home.js?v=f5';
 import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f5';
 import { createFunUI } from './fun/ui.js?v=f5';
-import { buildLOD as heroLOD } from './gfx/vehicles/vehicles.js?v=f5';
-import { dispose as heroDispose } from './gfx/vehicles/kit.js?v=f5';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm } from './gfx/vehicles/vehicles.js?v=f5';
+import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
@@ -788,10 +788,16 @@ function showPreview() {
 }
 // f4 model swap: the hero model stands in for the part meshes (same stack height); part groups keep plumes/staging logic
 let hero = null;
+const HERO_READY = new Map(), HERO_WARM = new Set();
+function prewarmHeavy() { // rockets-3: build the heavy hero LODs in idle slices while the player sits in the home/hangar
+  const ids = ['heron-heavy', 'titan-ss-v3', 'titan-ss-v4'].filter(id => !HERO_READY.has(id + (TOUCH ? ':p' : '')));
+  const W = heroPrewarm(ids, { phone: TOUCH });
+  for (const id of ids) { const k = id + (TOUCH ? ':p' : ''), p = W.get(k); if (!p || HERO_WARM.has(k)) continue; HERO_WARM.add(k); p.then(l => { if (HERO_WARM.has(k)) { HERO_READY.set(k, l); HERO_WARM.delete(k); W.delete(k); } }).catch(() => HERO_WARM.delete(k)); } }
 function attachHero() {
-  if (hero) { heroDispose(hero); hero = null; }
+  if (hero) { const old = hero; hero = null; heroRelease(old, renderer, scene, camera).catch(() => heroDispose(old)); } // rockets-3: leak-safe swap
   if (!design.model || !SG.length) return;
-  try { hero = heroLOD(design.model, { phone: TOUCH }); } catch (e) { console.warn('[Orbit Rush] hero model', e); hero = null; return; }
+  const wk = design.model + (TOUCH ? ':p' : ''); // rockets-3: heavy models are prewarmed at the hangar; take a finished one if ready
+  try { hero = HERO_READY.get(wk) || heroLOD(design.model, { phone: TOUCH }); HERO_READY.delete(wk); if (HERO_WARM.has(wk)) { takeWarm(design.model, { phone: TOUCH }); HERO_WARM.delete(wk); } } catch (e) { console.warn('[Orbit Rush] hero model', e); hero = null; return; }
   let L = 0; try { L = P.stackGeom(v).L; } catch (e) {} if (!(L > 0)) for (const g of SG) L += g.userData.h; const hH = new THREE.Box3().setFromObject(hero.userData.hi || hero).getSize(new THREE.Vector3()).y || L;
   hero.scale.setScalar(L / hH); rocketG.add(hero);
   for (const g of SG) g.traverse(o => { if (o.isMesh && !isPlumeChild(o, g)) o.visible = false; });
@@ -2019,6 +2025,7 @@ var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].i
   document.addEventListener('pointerdown', e => { if (!g.classList.contains('hidden') && !e.target.closest('#hGearM,#hGear')) g.classList.add('hidden'); }, true);
   const back = document.createElement('button'); back.id = 'homeBack'; back.className = 'acad'; back.textContent = '‹ Home'; back.title = 'Back to the rocket showroom';
   back.onclick = () => { goBuild.toHome = true; home.show(true); home.set(home.index); }; const bh = document.querySelector('#build .bhead'); if (bh) bh.prepend(back); }
+setTimeout(prewarmHeavy, 1500);
 if (!params.has('hangar')) { let i0 = 0; try { i0 = +localStorage.getItem(HOME_KEY) || 0; } catch (e) { } home.set(Math.min(SHOW.length - 1, Math.max(0, i0))); home.show(true); }
 $('standBtn').onclick = () => testStand(); $('tunnelBtn').onclick = () => fun.openTunnel(); $('dropBtn').onclick = () => dropTest();
 addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e.preventDefault(); }, true);
