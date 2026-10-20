@@ -32,18 +32,18 @@ export const CONTRACTS = [
       { company: 'other', vehicle: 'spacecraft-uno', note: 'first privately built crewed craft past 100 km, twice in two weeks (2004)' }] },
   { id: 'first-orbit', rung: 'orbit', mission: 'first-orbit', vehicle: 'needle', site: 'atoll',
     goal: { text: 'Reach a stable orbit', kind: 'orbit' },
-    cost: 10, reward: { cash: 40, sci: 12, rep: 10 }, unlock: { vehicles: ['kestrel'], missions: ['booster-landing'] },
+    cost: 10, reward: { cash: 40, sci: 12, rep: 10 }, unlock: { vehicles: ['swift'], missions: ['booster-landing'] },
     inspiration: [
       { company: 'spacey', vehicle: 'sparrow-1', note: 'first privately developed liquid rocket to orbit, on the 4th try (2008-09-28, spec:sparrow-1)' },
       { company: 'redstar', vehicle: 'soyuzny', note: 'lineage of the first artificial satellite launcher (1957)' }] },
-  { id: 'booster-landing', rung: 'booster', mission: null, vehicle: 'kestrel', site: 'cape-north',
+  { id: 'booster-landing', rung: 'booster', mission: null, vehicle: 'swift', site: 'cape-north',
     goal: { text: 'Fly the booster back and land it upright', kind: 'booster-landed' },
     cost: 15, reward: { cash: 60, sci: 10, rep: 10 }, unlock: { sites: ['lz1'], missions: ['constellation-batch'] },
     inspiration: [
       { company: 'spacey', vehicle: 'heron-9', note: 'first orbital-class booster landed back at the launch site (2015)' },
       { company: 'spacey', vehicle: 'heron-heavy', note: 'two side boosters landing side by side (2018-02-06, spec:heron-heavy)' },
       { company: 'blueh', vehicle: 'new-glendale', note: 'heavy booster landed at sea on its 2nd flight (2025)' }] },
-  { id: 'constellation-batch', rung: 'constellation-batch', mission: 'constellation-batch', vehicle: 'kestrel', site: 'cape-north',
+  { id: 'constellation-batch', rung: 'constellation-batch', mission: 'constellation-batch', vehicle: 'swift', site: 'cape-north',
     goal: { text: 'Loft a satellite stack and dispense it', kind: 'mission-complete' },
     cost: 10, reward: { cash: 90, sci: 15, rep: 10 }, unlock: { vehicles: ['heron'], sites: ['cape-heritage'], missions: ['crew-dock'] },
     inspiration: [

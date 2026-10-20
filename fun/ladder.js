@@ -7,7 +7,7 @@
 export const KEY = 'orbitrush.ladder.v1', VERSION = 2, SANDBOX_KEY = 'orbitrush.sandbox';
 export const START = { vehicles: ['pip', 'hopper', 'needle'], sites: ['atoll'], parts: [], missions: ['hop'] };
 // every lockable thing, for sandbox and the progress screen
-export const ALL = { vehicles: ['pip', 'hopper', 'needle', 'kestrel', 'heron', 'atlas', 'selene', 'titan', 'ares'],
+export const ALL = { vehicles: ['pip', 'hopper', 'needle', 'swift', 'heron', 'atlas', 'selene', 'titan', 'ares'],
   sites: ['atoll', 'cape-north', 'lz1', 'cape-heritage', 'gulf-port'], parts: ['ion', 'xenon'], missions: ['hop', 'constellation-batch', 'crew-dock', 'moon', 'mars', 'venus'] };
 // Vehicles without a model yet (Rocket Art Bot): shown with a placeholder model, and rungs flown on them stay locked.
 export const PLACEHOLDER_VEHICLES = { selene: 'titan-ss-v3', ares: 'titan-ss-v3' };
@@ -15,6 +15,7 @@ export const rungLocked = c => Object.hasOwn(PLACEHOLDER_VEHICLES, c.vehicle);
 // v1 -> v2 id rename. Old ids are stored ROT13 so the neutrality scan stays clean.
 const rot13 = t => t.replace(/[a-z]/g, ch => String.fromCharCode(97 + (ch.charCodeAt(0) - 84) % 26));
 export const RENAMES = { rungs: { [rot13('fgneyvax')]: 'constellation-batch', [rot13('vff')]: 'crew-dock' },
+  vehicles: { [rot13('xrfgery')]: 'swift' }, // showroom id (a real engine name) -> neutral
   sites: { [rot13('fyp40')]: 'cape-north', [rot13('yp39n')]: 'cape-heritage', [rot13('fgneonfr')]: 'gulf-port' } };
 export function migrate(s) {
   if (!s || typeof s !== 'object') return s;
@@ -25,6 +26,8 @@ export function migrate(s) {
     const last = s.last && Array.isArray(s.last.earned) ? { ...s.last, earned: s.last.earned.map(x => RENAMES.rungs[x] || x) } : s.last;
     s = { ...s, v: 2, done, unlocked: u, last };
   }
+  if (s.v === 2 && s.unlocked && Array.isArray(s.unlocked.vehicles) && s.unlocked.vehicles.some(x => RENAMES.vehicles[x])) // vehicle alias (old v1/v2 saves)
+    s = { ...s, unlocked: { ...s.unlocked, vehicles: [...new Set(s.unlocked.vehicles.map(x => RENAMES.vehicles[x] || x))] } };
   return s;
 }
 export const SITE_NAMES = { atoll: 'Atoll pad', 'cape-north': 'Cape north pad', lz1: 'Landing zone 1', 'cape-heritage': 'Cape heritage pad', 'gulf-port': 'Gulf starport' };
@@ -35,10 +38,10 @@ export const LADDER = [
   { id: 'karman', name: 'Kármán line', goal: 'Cross 100 km: you are in space', how: 'fly', vehicle: 'needle', test: r => r.space,
     reward: { cash: 20, sci: 8 }, unlock: { sites: ['cape-north'] } },
   { id: 'orbit', name: 'First orbit', goal: 'Reach a stable orbit', how: 'fly', vehicle: 'needle', test: r => r.orbit,
-    reward: { cash: 40, sci: 12 }, unlock: { vehicles: ['kestrel'] } },
-  { id: 'booster', name: 'Booster landing', goal: 'Fly the booster back and land it', how: 'fly', vehicle: 'kestrel', test: r => r.boosterLanded && ['kestrel', 'heron', 'atlas', 'titan'].includes(r.vehicle),
+    reward: { cash: 40, sci: 12 }, unlock: { vehicles: ['swift'] } },
+  { id: 'booster', name: 'Booster landing', goal: 'Fly the booster back and land it', how: 'fly', vehicle: 'swift', test: r => r.boosterLanded && ['swift', 'heron', 'atlas', 'titan'].includes(r.vehicle),
     reward: { cash: 60, sci: 10 }, unlock: { sites: ['lz1'], missions: ['constellation-batch'] } },
-  { id: 'constellation-batch', name: 'Constellation deploy', brandKey: 'constellation-batch', goal: 'Loft a satellite stack and dispense it', how: 'op', op: 'constellation-batch', vehicle: 'kestrel',
+  { id: 'constellation-batch', name: 'Constellation deploy', brandKey: 'constellation-batch', goal: 'Loft a satellite stack and dispense it', how: 'op', op: 'constellation-batch', vehicle: 'swift',
     test: r => r.op === 'constellation-batch' && r.opOk, reward: { cash: 90, sci: 15 }, unlock: { vehicles: ['heron'], sites: ['cape-heritage'], missions: ['crew-dock'] } },
   { id: 'crew-dock', name: 'Crew to station', brandKey: 'crew-dock', goal: 'Take a crew to the station orbit and dock', how: 'op', op: 'crew-dock', vehicle: 'heron',
     test: r => r.op === 'crew-dock' && r.opOk, reward: { cash: 140, sci: 25 }, unlock: { vehicles: ['atlas', 'selene'], missions: ['moon'] } },

@@ -11,7 +11,7 @@ export const SHOWROOM = [
     design: { name: 'Pip', parts: [P('chute'), P('probe'), P('tank-n'), P('tank-n'), P('tank-n'), P('mule'), P('fins')] } },
   { id: 'needle', name: 'Needle', role: 'Slim two-stage orbiter', check: 'orbit', difficulty: 0.3, mission: null,
     design: { name: 'Needle', parts: [P('fairing'), P('probe'), P('tank-n'), P('tank-n'), P('lark'), P('dec'), P('tank-n'), P('tank-n'), P('tank-n'), P('tank-n'), P('tank-n'), P('tank-n'), P('tank-n'), P('tank-n'), P('thumper'), P('fins')] } },
-  { id: 'kestrel', name: 'Kestrel', role: 'Reusable booster · lands itself', check: 'booster', difficulty: 0.35, mission: null, tpl: 'Light & fast' },
+  { id: 'swift', name: 'Swift', role: 'Reusable booster · lands itself', check: 'booster', difficulty: 0.35, mission: null, tpl: 'Light & fast' },
   { id: 'heron', name: 'Heron', role: 'Crew capsule · orbit and splash down', check: 'mission:orbit', difficulty: 0.45, mission: 'orbit', tpl: 'Orbit & home' },
   { id: 'atlas', name: 'Bulwark', role: 'Heavy lifter · 2 side boosters', check: 'orbit', difficulty: 0.5, mission: null,
     design: { name: 'Bulwark', parts: [P('fairing'), P('sat'), P('sat'), P('probe'), P('tank-m'), P('tank-s'), P('lark', 2), P('dec'), P('tank-xl'), P('tank-l'), P('mule', 3), P('fins'), P('rdec', 2), P('tank-r'), P('tank-r'), P('thumper', 3)] } },
@@ -24,9 +24,9 @@ export const SHOWROOM = [
 ];
 for (const r of SHOWROOM) if (r.tpl) { const t = T(r.tpl); r.design = { ...cloneDesign(t), name: r.name }; r.tplName = r.tpl; }
 // f4: hero models (gfx/vehicles, Rocket Art Bot) for the catalog-inspired rockets; physics still flies the part stack
-export const MODEL_OF = { needle: 'sparrow-1', kestrel: 'heron-9', heron: 'heron-9-crew', atlas: 'heron-heavy', titan: 'titan-ss-v3' };
+export const MODEL_OF = { needle: 'sparrow-1', swift: 'heron-9', heron: 'heron-9-crew', atlas: 'heron-heavy', titan: 'titan-ss-v3' };
 for (const r of SHOWROOM) if (MODEL_OF[r.id]) { r.model = MODEL_OF[r.id]; r.design.model = r.model; }
-export const RTLS = new Set(['kestrel', 'atlas']); // f4: these fly back to the landing zone (boostback + RTLS) instead of a droneship
+export const RTLS = new Set(['swift', 'atlas']); // f4: these fly back to the landing zone (boostback + RTLS) instead of a droneship
 for (const r of SHOWROOM) if (RTLS.has(r.id)) r.design.recovery = 'rtls';
 const clamp = x => Math.max(0.06, Math.min(1, x));
 // three card bars, 0..1: power = liftoff thrust (log scale), range = total Δv, difficulty = hand-rated piloting skill

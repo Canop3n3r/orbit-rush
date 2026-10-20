@@ -40,7 +40,7 @@ for (const c of C) { ok(L.LADDER.some(r => r.id === c.rung), `${c.id}: rung ${c.
   ok(typeof c.goal.text === 'string' && c.goal.kind, `${c.id}: goal`);
   ok(c.inspiration.length && c.inspiration.every(i => D.INSPIRATION_COMPANIES.includes(i.company) && D.INSPIRATION_VEHICLES.includes(i.vehicle) && i.note), `${c.id}: inspiration uses listed parody companies / neutral ids`); }
 for (const id of L.ALL.sites) ok(D.SITES[id] && D.SITES[id].name, `site ${id} has a neutral name`);
-ok(MODEL_OF.needle === 'sparrow-1' && MODEL_OF.kestrel === 'heron-9', 'showroom → catalog mapping as documented');
+ok(MODEL_OF.needle === 'sparrow-1' && MODEL_OF.swift === 'heron-9', 'showroom → catalog mapping as documented');
 // neutrality scan (same ROT13 list as tests/missions.mjs)
 const rot = s => s.replace(/[a-z]/gi, c => String.fromCharCode((c <= 'Z' ? 65 : 97) + ((c.toLowerCase().charCodeAt(0) - 97 + 13) % 26)));
 const BAD = ['fcnprk', 'fgneyvaxf?', 'snypbaf?', 'qentbaf?', 'fgnefuvcf?', 'fhcre ?urnil', 'zrpunmvyyn', 'pubcfgvpxf?', 'encgbef?', 'zreyvaf?', 'SU', 'nfqf', 'zhfx', 'S9'].map(rot);
