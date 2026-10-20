@@ -31,7 +31,7 @@ export function specStages(v) {
     out.push({ dry: core.dry / 1000, fuel: (core.prop - coreUsed) / 1000, n: ce.n, tv: ce.tv, ispSl: ce.ispSl, ispVac: ce.ispVac }); }
   else out.push({ dry: core.dry / 1000, fuel: core.prop / 1000, n: ce.n, tv: ce.tv, ispSl: ce.ispSl, ispVac: ce.ispVac });
   for (const s of rest) { const e = engOf(s.engines); out.push({ dry: s.dry / 1000, fuel: s.prop / 1000, n: e.n, tv: e.tv, ispSl: e.ispSl, ispVac: e.ispVac }); }
-  const mode = (v.modes || [])[0]; out[out.length - 1].payload = (mode && mode.payload || 0) / 1000 * (LOAD[v.id + ':' + String(v.variant || '').split(' ')[0]] || LOAD[v.id] || 1);
+  const mode = (v.modes || [])[0]; out[out.length - 1].payload = (mode && mode.payload || 0) / 1000 * (LOAD[v.id + ':' + String(v.variant || '').split(' ')[0]] || LOAD[v.id] || 0.75);
   return out;
 }
 const P = (id, n) => (n ? { id, n } : { id }), SYM = [2, 3, 4, 6];
@@ -47,9 +47,13 @@ export function specDesign(v, name, model) {
 // house rockets verified by the f5.2 audit (tests/specstack.mjs): the roster stack reaches orbit on AUTO and its stages match the model.
 // The others keep the matched showroom stack: AUTO can't fly their roster numbers to orbit yet, or the model's stage groups differ.
 // f5.3: payload carried, as a fraction of the roster's max LEO payload. Pitch/turn and direct-insertion tunes were tried and gave
-// 0 extra orbits (these stacks run out of Δv against the game's losses), so each flies a lighter payload; masses, thrust, Isp stay real.
-export const LOAD = { 'space-truck': 0.75, 'saturnine-v': 0.75, 'new-glendale': 0.75, 'pegacorn': 0.75, 'atlantean-v': 0.75, 'cosmokart-1': 0.5, 'cosmokart-1b': 0.5, 'electrino': 0.5, 'titanus-4': 0.5, 'arion-6:b4': 0.5, 'atlantean-v:v5': 0.5 };
-export const SPEC_OK = ['arion-5', 'jade-lantern-5b', 'polar-slinger', 'tsubame', 'rodnik', 'titanus-2', 'antarion', 'steppe-arrow-2', 'deltoid-4-heavy',
-  'cosmokart-2', 'cosmokart-3m', 'whirligig-2', 'whirligig-3', 'riverbend', // f5.3 art (all fly the roster stack to orbit as is)
-  'space-truck', 'saturnine-v', 'cosmokart-1', 'cosmokart-1b', 'arion-62', 'arion-64', 'new-glendale', 'electrino', 'titanus-4', 'pegacorn', 'atlantean-v-401', 'atlantean-v-501', 'atlantean-v-551'];
+// 0 extra orbits (these stacks run out of Δv against the game's losses). Lead decision: every real-spec rocket flies a realistic mission
+// payload, 75% of max by default and 50% where listed; masses, thrust and Isp stay real.
+export const LOAD = { 'thorin': 0.5, 'thorin-toaster': 0.5, 'cosmokart-1': 0.5, 'cosmokart-1b': 0.5, 'electrino': 0.5, 'titanus-4': 0.5, 'arion-6:b4': 0.5, 'atlantean-v:v5': 0.5 };
+// f5.3: every roster-matched model whose stack reaches orbit on AUTO and matches the model's stages (tests/specstack.mjs).
+// dark-dart and scoutling (and the three shape mismatches: jade-lantern-5, moonhammer, gorynych-m) keep the matched showroom stack.
+export const SPEC_OK = ['space-truck", "saturnine-v", "thorin", "thorin-toaster", "thorin-agenta", "thorin-capable", "thorin-capablestar", "deltoid", "deltoid-3", "cosmokart-1", "cosmokart-1b", "cosmokart-2", "cosmokart-3m", "whirligig-2", "whirligig-3", "riverbend", "arion-5", "arion-62", "arion-64", "new-glendale", "electrino", "titanus-4", "jade-lantern-5b", "polar-slinger", "tsubame", "rodnik", "titanus-2", "pegacorn", "antarion", "steppe-arrow-2", "atlantean-v-401", "atlantean-v-501", "atlantean-v-551", "deltoid-4-heavy'];
 export const specFor = id => (SPEC_OK.includes(id) ? rosterFor(id) : null);
+
+// the payload a real-spec rocket carries, in tonnes (shown on its cards)
+export const payloadT = id => { const v = specFor(id); if (!v) return null; const S = specStages(v); return S[S.length - 1].payload; };

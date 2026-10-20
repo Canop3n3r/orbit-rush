@@ -39,7 +39,7 @@ import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHI
 import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.2.1';
 import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.2.1';
 import { EXTRA_STACKS } from './fun/showroom.js?v=f5.2.1';
-import { specFor, specDesign } from './fun/specstack.js?v=f5.2.1';
+import { specFor, specDesign, specStages, payloadT } from './fun/specstack.js?v=f5.2.1';
 import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.2.1';
 import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.2.1';
 import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5.2.1';
@@ -1860,6 +1860,7 @@ function startMission(id, plan) { // f5.1h: no plan -> the mission card (choose 
   if (!plan.auto) { try { F.setAuto(false, true); } catch (e) { } }
   fun.call(m.icon, m.name + ' — ' + autoNote(plan.auto, plan.design.name || 'rocket'), '#ffe9b0', true); camDist = 120; camYaw = 0.9; camPitch = 0.08;
 }
+const fmtPay = t => !(t > 0) ? '—' : t < 1 ? Math.round(t * 1000) + ' kg' : (t < 10 ? t.toFixed(1).replace(/\.0$/, '') : Math.round(t)) + ' t'; // f5.3: real-spec mission payload label
 function houseRows() { const houses = []; for (const [h, ids] of Object.entries(HOUSE_SETS)) if (h !== 'originals') for (const mid of ids) { const b = pickBase(STAGE_KEYS[mid] || [], (ART[mid] && ART[mid].height) || 50); if (SHOW.some(x => x.id === b) && !specFor(mid)) houses.push({ model: mid, name: houseName(mid), base: b }); } return houses; }
 const rowLocked = r => !!lockWhy('vehicles', r.base === 'booster-2' ? 'atlas' : r.base);
 const curRocket = () => ({ name: design.name || 'Your rocket', model: pickModel || design.model || null, ok: validate(design).ok, sub: !!design.sub });
@@ -2137,7 +2138,7 @@ var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].i
   const SBK = 'orbitrush.sandbox', sbOn = () => { try { return localStorage.getItem(SBK) === '1'; } catch (e) { return false; } };
   const pk = document.createElement('div'); pk.id = 'picker'; pk.className = 'hidden'; document.body.appendChild(pk);
   const nav = () => { const b = $('hnBuild'); if (b) b.classList.toggle('hidden', !sbOn()); };
-  const render = () => { pk.innerHTML = pickerHTML({ sandbox: sbOn(), sets: HOUSE_SETS, name: houseName, role: id => (CLASS_OF[baseOf(id)] || 'Super-heavy') + (specFor(id) ? ' · real specs' : ' · ' + Math.round((ART[id] && ART[id].height) || 50) + ' m'), locked: id => !!lockWhy('vehicles', SHOW[baseIdx(id)].id),
+  const render = () => { pk.innerHTML = pickerHTML({ sandbox: sbOn(), sets: HOUSE_SETS, name: houseName, role: id => (CLASS_OF[baseOf(id)] || 'Super-heavy') + (specFor(id) ? ' · Payload ' + fmtPay(payloadT(id)) : ' · ' + Math.round((ART[id] && ART[id].height) || 50) + ' m'), locked: id => !!lockWhy('vehicles', SHOW[baseIdx(id)].id),
     originals: SHOW.map((r, i) => ({ i, name: r.name, role: r.role, locked: !!lockWhy('vehicles', r.id) })) }); };
   const close = () => pk.classList.add('hidden');
   const keysOf = id => { try { const st = (ART[id] && STAGE_KEYS[id]) || null; return st || []; } catch (e) { return []; } };
@@ -2151,7 +2152,7 @@ var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].i
     const c = t.closest('.pkC'); if (!c) return;
     if (c.dataset.i != null) { close(); home.set(+c.dataset.i); return; }
     if (c.dataset.m) { const id = c.dataset.m, i = baseIdx(id), b = baseOf(id);
-      close(); home.set(i, true); pickModel = id; pickStack = EXTRA_STACKS[b] ? b : null; $('hName').textContent = houseName(id); $('hRole').textContent = (specFor(id) ? 'Real specs · ' + specFor(id).stages.length + ' stages · ' + specFor(id).name : 'Flies on the ' + (pickStack ? EXTRA_STACKS[pickStack].name : SHOW[i].name) + ' stack'); setDesign(pickDesign(i)); } });
+      close(); home.set(i, true); pickModel = id; pickStack = EXTRA_STACKS[b] ? b : null; $('hName').textContent = houseName(id); $('hRole').textContent = (specFor(id) ? 'Real specs · ' + specStages(specFor(id)).length + ' stages · Payload ' + fmtPay(payloadT(id)) : 'Flies on the ' + (pickStack ? EXTRA_STACKS[pickStack].name : SHOW[i].name) + ' stack'); setDesign(pickDesign(i)); } });
   const top = document.querySelector('#hTop .hTopR'); if (top) { const b = document.createElement('button'); b.id = 'hPick'; b.textContent = '▦'; b.title = b.ariaLabel = 'All rockets'; b.onclick = () => window.openPicker(); top.prepend(b); }
   const hn = $('hName'); if (hn) { hn.style.cursor = 'pointer'; hn.onclick = () => window.openPicker(); }
   nav(); addEventListener('career-change', nav);
