@@ -1,42 +1,42 @@
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f4.2';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f4.2';
-import * as C from './physics/patched.js?v=f4.2';
+import * as P from './physics.js?v=f5';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5';
+import * as C from './physics/patched.js?v=f5';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 import { newCareer, canFly, applyFlight } from './missions/campaign/state.js';
 import { saveTo, loadFrom } from './missions/campaign/save.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f4.2';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5';
 import { createCareerUI } from './fun/career-ui.js?v=f5';
 import { SITE_NAMES } from './fun/ladder.js?v=f5';
-import { createSolarMap } from './solarmap.js?v=f4.2';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f4.2';
-import { FX } from './fx.js?v=f4.2';
-import { createAcademy } from './academy-ui.js?v=f4.2';
-import { createMobile, isTouch } from './mobile.js?v=f4.2';
-import { localize } from './wording.js?v=f4.2';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f4.2';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f4.2';
+import { createSolarMap } from './solarmap.js?v=f5';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5';
+import { FX } from './fx.js?v=f5';
+import { createAcademy } from './academy-ui.js?v=f5';
+import { createMobile, isTouch } from './mobile.js?v=f5';
+import { localize } from './wording.js?v=f5';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f4.2';
-import * as GX from './gfx/gfx.js?v=f4.2';
-import { Director, MISSIONS } from './fun/director.js?v=f4.2';
-import * as PR from './fun/progress.js?v=f4.2';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f4.2';
-import { createAudio } from './fun/audio.js?v=f4.2';
-import { createCompact } from './fun/compact.js?v=f4.2';
-import { createHome } from './fun/home.js?v=f4.2';
-import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f4.2';
-import { createFunUI } from './fun/ui.js?v=f4.2';
-import { buildLOD as heroLOD } from './gfx/vehicles/vehicles.js?v=f4.2';
-import { dispose as heroDispose } from './gfx/vehicles/kit.js?v=f4.2';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5';
+import * as GX from './gfx/gfx.js?v=f5';
+import { Director, MISSIONS } from './fun/director.js?v=f5';
+import * as PR from './fun/progress.js?v=f5';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5';
+import { createAudio } from './fun/audio.js?v=f5';
+import { createCompact } from './fun/compact.js?v=f5';
+import { createHome } from './fun/home.js?v=f5';
+import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f5';
+import { createFunUI } from './fun/ui.js?v=f5';
+import { buildLOD as heroLOD } from './gfx/vehicles/vehicles.js?v=f5';
+import { dispose as heroDispose } from './gfx/vehicles/kit.js?v=f5';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
@@ -667,7 +667,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f4.2', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };

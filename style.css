@@ -710,3 +710,12 @@ body.splitOn #sL{display:none!important}
 #endBody .endCareer{margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:rgba(80,140,255,.13);border:1px solid rgba(120,170,255,.3);font-size:13.5px}
 #endBody .ecEarn{color:#9df0b8}#endBody .ecUnl{color:#bfe9c8;font-size:12.5px}#endBody .ecRw{color:#ffe7a8;white-space:nowrap}#endBody .ecWal{opacity:.75;font-size:12px;font-variant-numeric:tabular-nums}
 #hFly.locked{filter:grayscale(.7);opacity:.85}
+/* f5 navball: numeric HDG/PIT/ROLL readout + compact SAS grid (opens from the ⊙ button, 44 px targets) */
+#navRd{display:flex;gap:8px;padding:3px 9px;border-radius:999px;background:#0b1424c8;border:1px solid var(--line);font:700 11px/1.2 var(--mono,monospace);color:var(--dim,#9fb0cc);pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+#navRd b{color:#fff;font-weight:800}
+body.cx #nav{gap:2px}
+#nav #navSas{position:absolute;left:50%;bottom:calc(100% + 4px);width:auto;height:auto;transform:translateX(-50%);display:none;grid-template-columns:repeat(4,44px);gap:5px;padding:6px;background:#0b1424e8;border:1px solid var(--line-hi,#ffffff40);border-radius:14px;z-index:5}
+#nav.fan #navSas,body.cx #nav.fan #navSas{display:grid}
+#nav #navSas button{position:static!important;transform:none!important;margin:0!important;width:44px!important;height:44px!important;border-radius:11px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:700 16px/1 var(--ui)!important}
+#nav #navSas button small{font:800 8.5px/1 var(--ui,system-ui);letter-spacing:.3px;opacity:.85}
+@media (orientation:landscape) and (max-height:500px){body.cx.touch #nav #navSas{left:auto;right:0;transform:none}}

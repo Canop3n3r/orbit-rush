@@ -2,12 +2,12 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import { MISSIONS } from './director.js?v=f4.2';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f4.2';
-import { ATLAS, poisOf } from './lore.js?v=f4.2';
+import { MISSIONS } from './director.js?v=f5';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5';
+import { ATLAS, poisOf } from './lore.js?v=f5';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f4.2';
+import { createNavball } from './navball.js?v=f5';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();
@@ -22,17 +22,18 @@ export function createFunUI(ctx) {
     <div class="pBtns"><button id="pEng" title="Engineer view: every number (Tab)" aria-label="Engineer view">📊</button><button id="pPhoto" title="Photo mode (')" aria-label="Photo mode">📸</button><button id="pMute" title="Sound on/off" aria-label="Sound on or off">🔊</button></div>`);
   document.body.appendChild(hud);
   // ---------- Navball (centre of the Pilot HUD) ----------
-  const SAS_RING = [['stab', '⊙', 'Stability: hold this attitude'], ['prograde', '◇', 'Prograde'], ['retrograde', '✕', 'Retrograde'], ['normal', '△', 'Normal (orbit-plane up)'], ['radial', '⊞', 'Radial out'], ['node', '✛', 'Maneuver node'], ['target', '◎', 'Target']];
+  const SAS_RING = [['stab', '⊙', 'Stability: hold this attitude', 'HOLD'], ['prograde', '◇', 'Prograde', 'PRO'], ['retrograde', '✕', 'Retrograde', 'RETRO'], ['normal', '△', 'Normal (orbit-plane up)', 'NRM'], ['radial', '⊞', 'Radial out', 'RAD'], ['node', '✛', 'Maneuver node', 'NODE'], ['target', '◎', 'Target', 'TGT'], ['off', '○', 'SAS off', 'OFF']];
   const navEl = el('div', { id: 'nav', className: 'hidden' }, `
     <button id="navMode" class="glass" title="Speed reference: surface / orbit / target">SURFACE <b id="navSpd">0 m/s</b></button>
     <div id="navCue" class="hidden"></div>
+    <div id="navRd" aria-label="Attitude readout"><span>HDG <b id="nrH">000</b>°</span><span>PIT <b id="nrP">+00</b>°</span><span>ROLL <b id="nrR">+00</b>°</span></div>
     <div class="navWrap"><svg class="navArcs" viewBox="0 0 200 200" aria-hidden="true">
       <path class="trk" d="M 38 160 A 85 85 0 0 1 38 40"/><path id="navThr" class="thr" d="M 38 160 A 85 85 0 0 1 38 40"/>
       <path class="trk" d="M 162 40 A 85 85 0 0 1 162 160"/><path id="navFuel" class="fuel" d="M 162 160 A 85 85 0 0 0 162 40"/></svg>
       <canvas id="navBall" width="128" height="128" aria-label="Navball attitude indicator"></canvas>
       <span id="navThrT" class="navLab l">0%</span><span id="navFuelT" class="navLab r">S1</span>
       <button id="navSasT" title="SAS modes" aria-label="SAS modes" aria-expanded="false">⊙</button>
-      <div id="navSas">${SAS_RING.map(([m, ic, t], i) => `<button data-sas="${m}" title="${t}" aria-label="SAS ${t}" style="--i:${i}">${ic}</button>`).join('')}</div></div>`);
+      <div id="navSas">${SAS_RING.map(([m, ic, t, sh], i) => `<button data-sas="${m}" title="${t}" aria-label="SAS ${t}" style="--i:${i}">${ic}<small>${sh}</small></button>`).join('')}</div></div>`);
   document.body.appendChild(navEl);
   const navball = createNavball($('navBall')); let navMode = 'auto';
   function cycleSpeed() { const ms = ['surface', 'orbit', 'target'], curM = navMode === 'auto' ? lastAuto : navMode; navMode = ms[(ms.indexOf(curM) + 1) % 3]; ctx.audio.ui('tick'); }
@@ -53,7 +54,9 @@ export function createFunUI(ctx) {
     $('navMode').firstChild.textContent = mode.toUpperCase() + ' '; $('navSpd').textContent = sp < 1e4 ? Math.round(sp) + ' m/s' : (sp / 1000).toFixed(2) + ' km/s';
     navOut.sp = sp; { const t = SAS_IC[st.sas] || '⊙'; const bt = $('navSasT'); if (bt.textContent !== t) bt.textContent = t; }
     const pg = sp > 0.5 ? vv.map(x => x / sp) : null, m = { ...st.markers }; if (pg) { m.pro = pg; m.retro = pg.map(x => -x); }
-    navball.draw({ nose: st.nose, top: st.top, r: st.r, markers: m });
+    const att = navball.draw({ nose: st.nose, top: st.top, r: st.r, markers: m });
+    if (att) { const sg = x => (x >= 0 ? '+' : '−') + String(Math.round(Math.abs(x))).padStart(2, '0'), hT = String(Math.round(att.heading) % 360).padStart(3, '0');
+      if ($('nrH').textContent !== hT) $('nrH').textContent = hT; $('nrP').textContent = sg(att.pitch); $('nrR').textContent = sg(att.roll); navOut.att = att; }
     $('navThr').style.strokeDashoffset = THR_LEN * (1 - st.throttle); $('navThrT').textContent = Math.round(st.throttle * 100) + '%';
     $('navFuel').style.strokeDashoffset = THR_LEN * (1 - st.fuel); $('navFuelT').textContent = 'S' + st.stage; $('navFuel').classList.toggle('low', st.fuel < 0.15);
     navEl.querySelectorAll('#navSas button').forEach(b => { const k = b.dataset.sas; b.classList.toggle('on', st.sas === k || (k === 'radial' && st.sas === 'antiradial') || (k === 'normal' && st.sas === 'antinormal'));
