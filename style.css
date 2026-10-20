@@ -766,3 +766,4 @@ body.touch #build{background:#0b1220f2}
 @media (orientation:landscape) and (max-height:500px){#hub .mbox{width:min(640px,92vw)!important;max-width:none}#hub .mgrid{grid-template-columns:repeat(3,1fr)}#hub .mgrid .mis{min-height:48px;flex-direction:row!important;gap:6px;padding:6px 8px}#hub .mgrid .mis span{font-size:20px}}
 /* f5b: Google tiles attribution (must stay visible) sits under the top HUD on touch, clear of the navball and sticks */
 body.touch #tilesAttr{top:calc(62px + env(safe-area-inset-top,0px))!important;bottom:auto!important;left:auto!important;right:6px!important;max-width:40vw!important;text-align:right;font-size:10px!important}
+.cr.soon{opacity:.6}.cr.soon .crR{color:#ffb35c}

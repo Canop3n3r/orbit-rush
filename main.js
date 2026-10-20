@@ -9,7 +9,7 @@ import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
 import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5b.2';
 import { createCareerUI } from './fun/career-ui.js?v=f5b.2';
-import { SITE_NAMES, LADDER } from './fun/ladder.js?v=f5b.2';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5b.2';
 import { createSolarMap } from './solarmap.js?v=f5b.2';
 import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5b.2';
 import { FX } from './fx.js?v=f5b.2';
@@ -1169,7 +1169,7 @@ function showEnd() {
   $('endBody').innerHTML = `<div class="endStars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<i>${'★'.repeat(3 - stars)}</i></div>` + head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
     + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}${extra.more ? '<br>' + extra.more : ''}</details>`;
   if (out && out.ladder) { $('endBody').insertAdjacentHTML('afterbegin', careerUI.resultsHTML(out.ladder)); }
-  { let nb = $('nextMisBtn'); if (!nb) { nb = document.createElement('button'); nb.id = 'nextMisBtn'; nb.className = 'big'; $('relaunchBtn').after(nb); nb.onclick = () => { const n = careerUI.next(); $('end').classList.add('hidden'); if (n) playRung(n); else $('againBtn').click(); }; }
+  { let nb = $('nextMisBtn'); if (!nb) { nb = document.createElement('button'); nb.id = 'nextMisBtn'; nb.className = 'big'; $('relaunchBtn').after(nb); nb.onclick = () => { const n = careerUI.next(); $('end').classList.add('hidden'); if (n && !rungLocked(n)) playRung(n); else $('againBtn').click(); }; }
     const n = careerUI.next(); nb.textContent = n ? 'Next mission ▸' : 'Career ▸'; nb.title = n ? 'Next contract: ' + rungLabel(n) : 'Career progress'; }
   $('replayBtn').classList.toggle('hidden', !(flags.dead && recBuf.length > 30));
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
@@ -1179,7 +1179,7 @@ function showEnd() {
     const what = flags.dead ? 'Crashed' : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : flags.orbit ? `Orbit · ${Math.round(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000)} km` : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
     const earn = L && (L.cash || L.sci) ? ` <span class="eLine">+$${L.cash}M${L.sci ? ' 🔬' + L.sci : ''}</span>` : '';
     $('endTitle').innerHTML = `<span class="eStars">${starTxt}</span> ${what}${earn}`;
-    const nb = $('nextMisBtn'), n = careerUI.next(); if (nb) nb.innerHTML = n ? `▶ Next<small>${rungLabel(n)}</small>` : '▶ Home';
+    const nb = $('nextMisBtn'), n = careerUI.next(); if (nb) nb.innerHTML = n && !rungLocked(n) ? `▶ Next<small>${rungLabel(n)}</small>` : '▶ Home';
     let mb = $('endMoreBtn'); if (!mb) { mb = document.createElement('button'); mb.id = 'endMoreBtn'; mb.textContent = '⋯'; mb.title = 'Details: score, Share, Home'; mb.setAttribute('aria-label', 'Flight details'); nb.after(mb); mb.onclick = () => $('end').classList.toggle('more'); }
     $('relaunchBtn').textContent = '↻ Retry'; $('end').classList.add('lean'); $('end').classList.remove('more'); }
   document.body.classList.add('endOn');
