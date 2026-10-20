@@ -8,9 +8,9 @@ export const ENGINES_LEVANT = {
 export const ROSTER_LEVANT = [
   { id: 'negev-dart', name: "Negev Dart", company: 'levant', src: 'spec:negev-dart', area: 1.4, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
-      { engines: {'lv-e1': 1}, dry: 1200, prop: 11800, burn: 55.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
-      { engines: {'lv-e2': 1}, dry: 1200, prop: 11800, burn: 55.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
-      { engines: {'lv-e3': 1}, dry: 170, prop: 1830, burn: 92.0, group: 2, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
+      { engines: {'lv-e1': 1}, engineCount: 1, engineName: 'lv-e1', propellant: 'solid', nozzleLayout: { type: 'single' }, reusable: false, dry: 1200, prop: 11800, burn: 55.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
+      { engines: {'lv-e2': 1}, engineCount: 1, engineName: 'lv-e2', propellant: 'solid', nozzleLayout: { type: 'single' }, reusable: false, dry: 1200, prop: 11800, burn: 55.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
+      { engines: {'lv-e3': 1}, engineCount: 1, engineName: 'lv-e3', propellant: 'solid', nozzleLayout: { type: 'single' }, reusable: false, dry: 170, prop: 1830, burn: 92.0, group: 2, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
     ],
     modes: [{ variant: 'leo', payload: 350, orbit: { hp: 250, ha: 1400, inc: 143.0 }, src: "spec:negev-dart#ref (secondary aircraft/launcher reference site: about 350 kg to 250 x 1,400 km retrograde; no user's guide found)", est: ['inclination 143 deg (westward from the coastal site) ESTIMATE', 'secondary source only ESTIMATE'] , knownGap: "model -45 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
 ];

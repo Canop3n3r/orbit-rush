@@ -21,8 +21,8 @@ export const gameTVac = (e, anchor) => (anchor === 'sl' && e.tSl > 0 ? e.tSl * e
 export const VEHICLES = [
   { id: 'sparrow-1', src: 'spec:sparrow-1', lat: 9, liftoff: 33230,
     stages: [
-      { engines: { 'kero-c': 1 }, dry: 2300, prop: 27150, recovery: 'parachute (planned, never achieved)', est: ['dry', 'prop'] },
-      { engines: { 'kero-p': 1 }, dry: 800, prop: 3600, recovery: 'expended', est: ['dry', 'prop'] },
+      { engines: { 'kero-c': 1 }, engineCount: 1, engineName: 'kero-c', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 2300, prop: 27150, recovery: 'parachute (planned, never achieved)', est: ['dry', 'prop'] },
+      { engines: { 'kero-p': 1 }, engineCount: 1, engineName: 'kero-p', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 800, prop: 3600, recovery: 'expended', est: ['dry', 'prop'] },
     ], fairing: 0,
     modes: [{ mode: 'expendable', payloadLEO: 470, src: 'spec:sparrow-1#payload (185 km)' }] },
   { id: 'heron-9', src: 'spec:heron-9', lat: 28.5, liftoff: 549000, payloadGTO: 8300, payloadGTOReuse: 5500,
@@ -31,16 +31,16 @@ export const VEHICLES = [
     stages: [
       // Block 5 mass set (spec:heron-9#b5-tanks): empty mass + LOX/RP-1 tank capacities from one source; the older
       // web-table set (S1 25.6 / 395.7 t, S2 3.9 / 92.67 t, fairing 1.9 t) is kept only for derived vehicles below.
-      { engines: { 'kero-d': 9 }, dry: 22200, prop: 410900, recovery: 'propulsive: drone ship / return to site, or expended' },
-      { engines: { 'kero-dv': 1 }, dry: 4000, prop: 107500, recovery: 'expended' },
+      { engines: { 'kero-d': 9 }, engineCount: 9, engineName: 'kero-d', propellant: 'kerolox', nozzleLayout: { type: 'ring' }, reusable: true, dry: 22200, prop: 410900, recovery: 'propulsive: drone ship / return to site, or expended' },
+      { engines: { 'kero-dv': 1 }, engineCount: 1, engineName: 'kero-dv', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 4000, prop: 107500, recovery: 'expended' },
     ], fairing: 1700, fairingRecovery: 'parachute + water',
     // S2 reserve 2.5 t (EST, spec:heron-9#s2-reserve): unusable residuals (~1 %) + deorbit/passivation burn (~100-150 m/s).
     modes: [{ mode: 'expendable', payloadLEO: 22800, reserve: [0, 2500], src: 'spec:heron-9#leo-expendable', est: ['reserve'] },
             { mode: 'drone-ship', payloadLEO: 17400, reserve: [42000, 2500], src: 'spec:heron-9#leo-reusable', est: ['reserve'] }] },
   { id: 'heron-9-v11', src: 'spec:heron-9#v1.1', lat: 28.5, liftoff: 506000, payloadGTO: 4850,
     stages: [
-      { engines: { 'kero-d': 9 }, dry: 28000, prop: 400000, ispOverride: [282, 311], recovery: 'expended (landing tests)', est: ['dry', 'prop'] },
-      { engines: { 'kero-dv': 1 }, dry: 4500, prop: 55000, tVacOverride: 801, ispOverride: [0, 340], recovery: 'expended', est: ['dry', 'prop'] },
+      { engines: { 'kero-d': 9 }, engineCount: 9, engineName: 'kero-d', propellant: 'kerolox', nozzleLayout: { type: 'ring' }, reusable: false, dry: 28000, prop: 400000, ispOverride: [282, 311], recovery: 'expended (landing tests)', est: ['dry', 'prop'] },
+      { engines: { 'kero-dv': 1 }, engineCount: 1, engineName: 'kero-dv', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 4500, prop: 55000, tVacOverride: 801, ispOverride: [0, 340], recovery: 'expended', est: ['dry', 'prop'] },
     ], fairing: 1750, est: ['fairing'],
     // Published v1.1 figure withheld ~30 % for powered-return tests (spec:heron-9#v1.1-margin), so pair it with a stage-1 reserve.
     modes: [{ mode: 'published (stage-1 return-test reserve)', payloadLEO: 13150, reserve: [19000, 0], src: 'spec:heron-9#v1.1-leo', est: ['reserve'] }] },
@@ -48,17 +48,17 @@ export const VEHICLES = [
     capsule: { id: 'capsule-2', dry: 7700, launch: 12519, crew: 4, recovery: 'parachute splashdown', src: 'spec:capsule-2' },
     stages: [
       // Block 5 mass set (spec:heron-9#b5-tanks), same as heron-9; S2 reserve 2.5 t EST (spec:heron-9#s2-reserve)
-      { engines: { 'kero-d': 9 }, dry: 22200, prop: 410900, recovery: 'propulsive landing (drone ship / landing zone)' },
-      { engines: { 'kero-dv': 1 }, dry: 4000, prop: 107500, recovery: 'expended' },
+      { engines: { 'kero-d': 9 }, engineCount: 9, engineName: 'kero-d', propellant: 'kerolox', nozzleLayout: { type: 'ring' }, reusable: true, dry: 22200, prop: 410900, recovery: 'propulsive landing (drone ship / landing zone)' },
+      { engines: { 'kero-dv': 1 }, engineCount: 1, engineName: 'kero-dv', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 4000, prop: 107500, recovery: 'expended' },
     ], fairing: 0,
     modes: [{ mode: 'drone-ship', payloadLEO: 17400, reserve: [42000, 2500], src: 'spec:heron-9#leo-reusable (capacity; capsule 12.5 t)', est: ['reserve'] }] },
   { id: 'heron-heavy', src: 'spec:heron-heavy', lat: 28.5, liftoff: 1420000, payloadGTO: 26700,
     stages: [
       // Block 5 S1 base (spec:heron-9#b5-tanks: 22.2 t / 410.9 t per core). EST deltas (spec:heron-heavy#core-deltas):
       // side booster +1.0 t nosecone/attach; center core +10 % structure (22.2 -> 24.4 t) for side-booster loads.
-      { engines: { 'kero-d': 18 }, dry: 2 * 23200, prop: 2 * 410900, parallel: true, coreFrac: 0.825, recovery: 'side boosters: return to site / drone ship', est: ['dry', 'coreFrac'] }, // coreFrac = side burn 154.3 s / core burn 187 s (spec:heron-heavy), constant-flow assumption
-      { engines: { 'kero-d': 9 }, dry: 24400, prop: 410900, recovery: 'center core: drone ship, or expended', est: ['dry'] },
-      { engines: { 'kero-dv': 1 }, dry: 4000, prop: 107500, recovery: 'expended' },
+      { engines: { 'kero-d': 18 }, engineCount: 18, engineName: 'kero-d', propellant: 'kerolox', nozzleLayout: { type: 'ring' }, reusable: true, dry: 2 * 23200, prop: 2 * 410900, parallel: true, coreFrac: 0.825, recovery: 'side boosters: return to site / drone ship', est: ['dry', 'coreFrac'] }, // coreFrac = side burn 154.3 s / core burn 187 s (spec:heron-heavy), constant-flow assumption
+      { engines: { 'kero-d': 9 }, engineCount: 9, engineName: 'kero-d', propellant: 'kerolox', nozzleLayout: { type: 'ring' }, reusable: true, dry: 24400, prop: 410900, recovery: 'center core: drone ship, or expended', est: ['dry'] },
+      { engines: { 'kero-dv': 1 }, engineCount: 1, engineName: 'kero-dv', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 4000, prop: 107500, recovery: 'expended' },
     ], fairing: 1700,
     // Reusable LEO figures (57 t / <50 t) are unsourced in spec:heron-heavy, so only the expendable figure is tested.
     // Documented exception (owner decision): 63.8 t is an advertised theoretical max, structurally limited and never flown (spec:heron-heavy),
@@ -66,14 +66,14 @@ export const VEHICLES = [
     modes: [{ mode: 'expendable', payloadLEO: 63800, payloadBand: [50000, 64000], reserve: [0, 0, 2500], src: 'spec:heron-heavy#leo-expendable', est: ['reserve'] }] },
   { id: 'colossus-v3', src: 'spec:colossus#v3', lat: 26, est: ['lat'],
     stages: [
-      { engines: { 'meth-3': 33 }, dry: 275000, prop: 3650000, recovery: 'boostback + tower catch' },
-      { engines: { 'meth-3': 3, 'meth-3v': 3 }, dry: 170000, prop: 1600000, recovery: 'belly-flop entry, flip, catch / landing', est: ['dry'] },
+      { engines: { 'meth-3': 33 }, engineCount: 33, engineName: 'meth-3', propellant: 'methalox', nozzleLayout: { type: 'ring' }, reusable: true, dry: 275000, prop: 3650000, recovery: 'boostback + tower catch' },
+      { engines: { 'meth-3': 3, 'meth-3v': 3 }, engineCount: 6, engineName: 'meth-3+meth-3v', propellant: 'methalox', nozzleLayout: { type: 'ring' }, reusable: true, dry: 170000, prop: 1600000, recovery: 'belly-flop entry, flip, catch / landing', est: ['dry'] },
     ], fairing: 0,
     modes: [{ mode: 'fully-reusable', payloadLEO: 100000, reserve: [450000, 60000], src: 'spec:colossus#v3-payload', est: ['reserve'] }] },
   { id: 'colossus-v4', src: 'spec:colossus#v4 (planned)', lat: 26, est: ['lat'],
     stages: [
-      { engines: { 'meth-3': 33 }, dry: 320000, prop: 4050000, recovery: 'boostback + tower catch', est: ['dry'] },
-      { engines: { 'meth-3': 3, 'meth-3v': 6 }, dry: 185000, prop: 2300000, recovery: 'belly-flop entry, flip, catch', est: ['dry'] },
+      { engines: { 'meth-3': 33 }, engineCount: 33, engineName: 'meth-3', propellant: 'methalox', nozzleLayout: { type: 'ring' }, reusable: true, dry: 320000, prop: 4050000, recovery: 'boostback + tower catch', est: ['dry'] },
+      { engines: { 'meth-3': 3, 'meth-3v': 6 }, engineCount: 9, engineName: 'meth-3+meth-3v', propellant: 'methalox', nozzleLayout: { type: 'cluster' }, reusable: true, estimated: true, estimatedFields: ['nozzleLayout'], dry: 185000, prop: 2300000, recovery: 'belly-flop entry, flip, catch', est: ['dry'] },
     ], fairing: 0,
     modes: [{ mode: 'fully-reusable', payloadLEO: 200000, reserve: [450000, 70000], src: 'spec:colossus#v4-payload', est: ['reserve'] }] },
 ];

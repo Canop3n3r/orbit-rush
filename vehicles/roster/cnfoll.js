@@ -7,8 +7,8 @@ export const ENGINES_CNFOLL = {
 export const ROSTER_CNFOLL = [
   { id: 'granite-2', name: "Granite-2", company: 'cnfoll', src: 'spec:granite-2', area: 8.8, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
-      { engines: {'cf-e1': 9}, dry: 51000, prop: 459000, burn: 1, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT + rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)', est: ['burn'] },
-      { engines: {'cf-e2': 1}, dry: 10000, prop: 80000, burn: 1, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)', est: ['burn'] },
+      { engines: {'cf-e1': 9}, engineCount: 9, engineName: 'cf-e1', propellant: 'kerolox', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 51000, prop: 459000, burn: 1, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT + rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)', est: ['burn'] },
+      { engines: {'cf-e2': 1}, engineCount: 1, engineName: 'cf-e2', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 10000, prop: 80000, burn: 1, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)', est: ['burn'] },
     ],
     modes: [{ variant: 'leo', payload: 12000, orbit: { hp: 185, ha: 185, inc: 41.0 }, src: "spec:granite-2#ref (12,000 kg LEO; launcher-comparison table, no user's guide found)", est: ['orbit 185 km / 41 deg (orbit unstated) ESTIMATE', 'secondary source only ESTIMATE']  , knownGap: "UNMODELLED: rocketdb has no vacuum Isp for cf-e1, cf-e2 (no invented figure); data request" }] },
 ];

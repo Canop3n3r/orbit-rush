@@ -9,9 +9,9 @@ export const ROSTER_NOSA = [
     // published ascent losses: gravity 1534, drag 40 m/s (spec:loss-model#published)
     publishedLoss: { grav: 1534, drag: 40, steer: 243 }, // spec:loss-model#published (steering from the same table)
     stages: [
-      { engines: { 'nosa-k1': 5 }, dry: 137439, prop: 2076600, burn: 150, group: 0, recovery: 'expended' },
-      { engines: { 'nosa-h1': 5 }, dry: 43091, prop: 427285, burn: 395, group: 1, recovery: 'expended', note: 'dry incl. interstage' },
-      { engines: { 'nosa-h1': 1 }, dry: 15241, prop: 105233, burn: 477, group: 2, recovery: 'expended', note: 'dry incl. instrument unit; burn = both burns' },
+      { engines: { 'nosa-k1': 5 }, engineCount: 5, engineName: 'nosa-k1', propellant: 'kerolox', nozzleLayout: { type: 'cluster', positions: [[0,0],[1,1],[1,-1],[-1,1],[-1,-1]] }, reusable: false, dry: 137439, prop: 2076600, burn: 150, group: 0, recovery: 'expended' },
+      { engines: { 'nosa-h1': 5 }, engineCount: 5, engineName: 'nosa-h1', propellant: 'hydrolox', nozzleLayout: { type: 'cluster', positions: [[0,0],[1,1],[1,-1],[-1,1],[-1,-1]] }, reusable: false, dry: 43091, prop: 427285, burn: 395, group: 1, recovery: 'expended', note: 'dry incl. interstage' },
+      { engines: { 'nosa-h1': 1 }, engineCount: 1, engineName: 'nosa-h1', propellant: 'hydrolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 15241, prop: 105233, burn: 477, group: 2, recovery: 'expended', note: 'dry incl. instrument unit; burn = both burns' },
     ],
     // sourced 140 t = total mass in orbit (spacecraft + third stage + its remaining propellant), so compared as orbitMass
     modes: [{ variant: 'leo', payload: 140000, orbitMass: true, orbit: { hp: 185, ha: 185, inc: 32.5 }, src: 'spec:saturnine-v#leo', est: ['orbit.inc'],
