@@ -9,6 +9,14 @@ export const NEUTRAL_NAMES = {
   'titan-ss-tanker': 'Colossus Tanker', 'titan-ss-depot': 'Colossus Depot', 'titan-ss-lunar': 'Colossus Lunar Lander', 'titan-ss-mars': 'Colossus Mars Ship',
   'roadster-payload': 'Demo Car Payload',
 };
+// One-word showroom names (UI step #6). Neutral, distinct, invented flavour names (not sourced figures).
+// A brand pack overrides them with keys 'short:<id>'.
+export const SHORT_NAMES = {
+  'sparrow-1': 'Sparrow', 'heron-9': 'Heron', 'heron-9-v11': 'Egret', 'heron-9-crew': 'Crane', 'heron-heavy': 'Condor',
+  'titan-ss-v3': 'Titan', 'titan-ss-v4': 'Colossus',
+  'titan-ss-tanker': 'Tanker', 'titan-ss-depot': 'Depot', 'titan-ss-lunar': 'Selene', 'titan-ss-mars': 'Ares',
+};
 let pack = {};
 export function setBrandPack(map) { pack = { ...(map || {}) }; }
 export const displayName = id => pack[id] || NEUTRAL_NAMES[id] || id;
+export const shortName = id => pack['short:' + id] || SHORT_NAMES[id] || displayName(id);

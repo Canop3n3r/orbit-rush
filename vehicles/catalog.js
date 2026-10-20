@@ -19,13 +19,13 @@ export const ENGINES = {
 // thrust implied by its sourced SL thrust (EST, spec:ascent-heron-9#mdot): exact liftoff thrust and mass flow.
 export const gameTVac = (e, anchor) => (anchor === 'sl' && e.tSl > 0 ? e.tSl * e.ispVac / e.ispSl : e.tVac);
 export const VEHICLES = [
-  { id: 'sparrow-1', src: 'spec:sparrow-1', lat: 9, liftoff: 33230,
+  { id: 'sparrow-1', reach: ['LEO'], src: 'spec:sparrow-1', lat: 9, liftoff: 33230,
     stages: [
       { engines: { 'kero-c': 1 }, dry: 2300, prop: 27150, recovery: 'parachute (planned, never achieved)', est: ['dry', 'prop'] },
       { engines: { 'kero-p': 1 }, dry: 800, prop: 3600, recovery: 'expended', est: ['dry', 'prop'] },
     ], fairing: 0,
     modes: [{ mode: 'expendable', payloadLEO: 470, src: 'spec:sparrow-1#payload (185 km)' }] },
-  { id: 'heron-9', src: 'spec:heron-9', lat: 28.5, liftoff: 549000, payloadGTO: 8300, payloadGTOReuse: 5500,
+  { id: 'heron-9', reach: ['LEO', 'GTO', 'Mars'], src: 'spec:heron-9', lat: 28.5, liftoff: 549000, payloadGTO: 8300, payloadGTOReuse: 5500,
     // game-flight data (spec:ascent-heron-9#game): body/fairing diameters sourced; AUTO throttle-bucket floor 0.8 EST
     diam: 3.7, fairingDiam: 5.2, thrustAnchor: 'sl', qFloor: 0.8, burnTime: 162,
     stages: [
@@ -37,14 +37,14 @@ export const VEHICLES = [
     // S2 reserve 2.5 t (EST, spec:heron-9#s2-reserve): unusable residuals (~1 %) + deorbit/passivation burn (~100-150 m/s).
     modes: [{ mode: 'expendable', payloadLEO: 22800, reserve: [0, 2500], src: 'spec:heron-9#leo-expendable', est: ['reserve'] },
             { mode: 'drone-ship', payloadLEO: 17400, reserve: [42000, 2500], src: 'spec:heron-9#leo-reusable', est: ['reserve'] }] },
-  { id: 'heron-9-v11', src: 'spec:heron-9#v1.1', lat: 28.5, liftoff: 506000, payloadGTO: 4850,
+  { id: 'heron-9-v11', reach: ['LEO', 'GTO'], src: 'spec:heron-9#v1.1', lat: 28.5, liftoff: 506000, payloadGTO: 4850,
     stages: [
       { engines: { 'kero-d': 9 }, dry: 28000, prop: 400000, ispOverride: [282, 311], recovery: 'expended (landing tests)', est: ['dry', 'prop'] },
       { engines: { 'kero-dv': 1 }, dry: 4500, prop: 55000, tVacOverride: 801, ispOverride: [0, 340], recovery: 'expended', est: ['dry', 'prop'] },
     ], fairing: 1750, est: ['fairing'],
     // Published v1.1 figure withheld ~30 % for powered-return tests (spec:heron-9#v1.1-margin), so pair it with a stage-1 reserve.
     modes: [{ mode: 'published (stage-1 return-test reserve)', payloadLEO: 13150, reserve: [19000, 0], src: 'spec:heron-9#v1.1-leo', est: ['reserve'] }] },
-  { id: 'heron-9-crew', src: 'spec:heron-9-crew', lat: 28.5, liftoff: 549000,
+  { id: 'heron-9-crew', reach: ['LEO'], src: 'spec:heron-9-crew', lat: 28.5, liftoff: 549000,
     capsule: { id: 'capsule-2', dry: 7700, launch: 12519, crew: 4, recovery: 'parachute splashdown', src: 'spec:capsule-2' },
     stages: [
       // Block 5 mass set (spec:heron-9#b5-tanks), same as heron-9; S2 reserve 2.5 t EST (spec:heron-9#s2-reserve)
@@ -52,7 +52,7 @@ export const VEHICLES = [
       { engines: { 'kero-dv': 1 }, dry: 4000, prop: 107500, recovery: 'expended' },
     ], fairing: 0,
     modes: [{ mode: 'drone-ship', payloadLEO: 17400, reserve: [42000, 2500], src: 'spec:heron-9#leo-reusable (capacity; capsule 12.5 t)', est: ['reserve'] }] },
-  { id: 'heron-heavy', src: 'spec:heron-heavy', lat: 28.5, liftoff: 1420000, payloadGTO: 26700,
+  { id: 'heron-heavy', reach: ['LEO', 'GTO', 'Mars'], src: 'spec:heron-heavy', lat: 28.5, liftoff: 1420000, payloadGTO: 26700,
     stages: [
       // Block 5 S1 base (spec:heron-9#b5-tanks: 22.2 t / 410.9 t per core). EST deltas (spec:heron-heavy#core-deltas):
       // side booster +1.0 t nosecone/attach; center core +10 % structure (22.2 -> 24.4 t) for side-booster loads.
@@ -64,13 +64,13 @@ export const VEHICLES = [
     // Documented exception (owner decision): 63.8 t is an advertised theoretical max, structurally limited and never flown (spec:heron-heavy),
     // so payload is checked against a 50-64 t band instead of +/-8 %.
     modes: [{ mode: 'expendable', payloadLEO: 63800, payloadBand: [50000, 64000], reserve: [0, 0, 2500], src: 'spec:heron-heavy#leo-expendable', est: ['reserve'] }] },
-  { id: 'titan-ss-v3', src: 'spec:titan-ss#v3', lat: 26, est: ['lat'],
+  { id: 'titan-ss-v3', reach: ['LEO', 'GTO'], src: 'spec:titan-ss#v3', lat: 26, est: ['lat'],
     stages: [
       { engines: { 'meth-3': 33 }, dry: 275000, prop: 3650000, recovery: 'boostback + tower catch' },
       { engines: { 'meth-3': 3, 'meth-3v': 3 }, dry: 170000, prop: 1600000, recovery: 'belly-flop entry, flip, catch / landing', est: ['dry'] },
     ], fairing: 0,
     modes: [{ mode: 'fully-reusable', payloadLEO: 100000, reserve: [450000, 60000], src: 'spec:titan-ss#v3-payload', est: ['reserve'] }] },
-  { id: 'titan-ss-v4', src: 'spec:titan-ss#v4 (planned)', lat: 26, est: ['lat'],
+  { id: 'titan-ss-v4', reach: ['LEO'], src: 'spec:titan-ss#v4 (planned)', lat: 26, est: ['lat'],
     stages: [
       { engines: { 'meth-3': 33 }, dry: 320000, prop: 4050000, recovery: 'boostback + tower catch', est: ['dry'] },
       { engines: { 'meth-3': 3, 'meth-3v': 6 }, dry: 185000, prop: 2300000, recovery: 'belly-flop entry, flip, catch', est: ['dry'] },
@@ -84,19 +84,24 @@ export const VEHICLES = [
 const V3 = VEHICLES.find(v => v.id === 'titan-ss-v3');
 const variant = (id, src, ship, extra) => ({ id, base: 'titan-ss-v3', src, lat: V3.lat, est: ['lat'], fairing: 0,
   stages: [{ ...V3.stages[0] }, { ...V3.stages[1], ...ship }], ...extra });
+// Reach keys (UI step #6): icon-only capability tags, each backed by a sourced payload figure in specs/
+// (LEO: modes[].payloadLEO; GTO: payloadGTO or spec GTO row; Mars: spec Mars/TMI payload row; Moon: lunar variant).
+// heron-9 Mars 4,020 kg (spec:heron-9#mars), heron-heavy Mars 16,800 kg (spec:heron-heavy#mars), titan-ss-v3 GTO 21 t
+// (spec:titan-ss#gto, user's guide). titan-ss-v4 has no sourced GTO/Moon/Mars figure -> LEO only.
+export const REACH_ICONS = { LEO: '🌍', GTO: '🛰', Moon: '🌙', Mars: '🔴' };
 export const MISSION_VARIANTS = [
   // Propellant carrier: cargo is transferable propellant. ~150 t per flight sourced (spec:titan-ss-missions#tanker); dry EST.
   variant('titan-ss-tanker', 'spec:titan-ss-missions#tanker', { recovery: 'belly-flop entry, flip, catch' },
-    { role: 'tanker', cargoProp: 150000, cargoPropRange: [100000, 150000], reserve: V3.modes[0].reserve, est: ['lat', 'reserve'] }),
+    { reach: ['LEO'], role: 'tanker', cargoProp: 150000, cargoPropRange: [100000, 150000], reserve: V3.modes[0].reserve, est: ['lat', 'reserve'] }),
   // Orbital depot: stays in LEO, stores transferred propellant; capacity and dry mass unsourced (EST: ~ship tank capacity).
   variant('titan-ss-depot', 'spec:titan-ss-missions#depot', { recovery: 'none (stays in orbit)', dry: 150000, est: ['dry'] },
-    { role: 'depot', storageCap: 1600000, tankersPerFill: [4, 16], est: ['lat', 'storageCap'] }),
-  // Lunar lander: no heat shield/flaps; refilled in LEO. Tank ~1,200 t sourced; dry ~85–100 t EST; surface payload ~100 t EST.
+    { reach: ['LEO'], role: 'depot', storageCap: 1600000, tankersPerFill: [4, 16], est: ['lat', 'storageCap'] }),
+  // Lunar lander (reach Moon: sourced lunar-lander architecture; surface payload EST): no heat shield/flaps; refilled in LEO. Tank ~1,200 t sourced; dry ~85–100 t EST; surface payload ~100 t EST.
   variant('titan-ss-lunar', 'spec:titan-ss-missions#lunar', { recovery: 'none (stays in lunar space)', dry: 100000, dryRange: [85000, 100000], prop: 1200000, est: ['dry'] },
-    { role: 'lunar-lander', payloadSurface: 100000, dvNeed: 5900, tankersPerFill: [4, 16], est: ['lat', 'payloadSurface', 'dvNeed'] }),
+    { reach: ['LEO', 'Moon'], role: 'lunar-lander', payloadSurface: 100000, dvNeed: 5900, tankersPerFill: [4, 16], est: ['lat', 'payloadSurface', 'dvNeed'] }),
   // Mars ship: >100 t to Mars surface after orbital refill (sourced architecture figure); ship dry EST from Mk III.
   variant('titan-ss-mars', 'spec:titan-ss-missions#mars', { recovery: 'aerobraked entry, propulsive landing on Mars' },
-    { role: 'mars-transport', payloadSurface: 100000, dvNeed: 4200, est: ['lat', 'dvNeed'] }),
+    { reach: ['LEO', 'Mars'], role: 'mars-transport', payloadSurface: 100000, dvNeed: 4200, est: ['lat', 'dvNeed'] }),
 ];
 // Payload items (not vehicles): mass carried by a vehicle mode; the catalog has no payload registry, so this is a plain list.
 export const PAYLOADS = [
