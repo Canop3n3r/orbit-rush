@@ -606,3 +606,25 @@ body.touch #build #launchBtn{position:sticky;bottom:calc(8px + var(--sab,0px));z
 #opTask{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 92px);z-index:30;background:rgba(10,20,36,.86);border:1px solid #ffd23a88;border-radius:22px;padding:8px 14px;min-height:44px;box-sizing:border-box;display:flex;gap:8px;align-items:center;font:600 13px system-ui;color:#ffe9b0;max-width:min(92vw,520px);pointer-events:none}
 #opTask[hidden]{display:none}#opTask small{opacity:.7;font-weight:400}
 .mis.op{border-color:#7dd3ff55}
+/* f4: 44px minimum tap targets on touch screens (and the gear selects everywhere) */
+#gfxSel,#fxSel{min-height:44px!important;height:44px!important;min-width:70px}
+@media (pointer:coarse){
+  button,select,.btn,[role=button],input[type=text],input[type=number],input:not([type]){min-height:44px!important;min-width:44px!important;box-sizing:border-box}
+  button.tipBtn{min-width:44px!important}
+  input[type=checkbox],input[type=radio]{width:44px!important;height:44px!important;margin:0}
+  button.sw{width:44px;height:44px}
+  #dvMapLink,a[href]{display:inline-flex;align-items:center;min-height:44px}
+}
+/* f4: hangar categories collapse; phone portrait builder is a bottom sheet with the rocket visible above */
+.palH{display:flex;width:100%;align-items:center;justify-content:space-between;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:6px 4px}
+.palH::after{content:'▾';opacity:.6}.palH.shut::after{content:'▸'}
+.palG.shut{display:none}
+details.bset{display:contents}details.bset[open]>summary{display:none}
+@media (max-width:600px) and (orientation:portrait){
+  details.bset{display:block;width:100%}details.bset>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;opacity:.85}
+  details.bset[open]>summary{display:flex}
+  body:not(.home) #build.builder{top:auto!important;bottom:0!important;height:58vh!important;max-height:58vh!important;overflow-y:auto;border-radius:18px 18px 0 0}
+  #build .bhead p.sub{display:none}
+  #build #presets{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:8px}
+  #build #presets>*{flex:0 0 auto}
+}

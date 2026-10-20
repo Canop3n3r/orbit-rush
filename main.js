@@ -473,15 +473,26 @@ function partTip(id, p) {
   else { kv('Mass', `${d.m} t`); if (d.mult) kv('Score', `×${d.mult}`); if (d.rw) kv('Reaction wheels', `${d.rw} kN·m`); }
   return L.join('');
 }
+const BUILD_OPEN = {};
+{ // f4: hangar launch settings fold into one row (phones) so the rocket stays visible above the sheet
+  const tr = document.querySelector('#build .trow'), labs = tr ? [...tr.querySelectorAll(':scope > label.chk')] : [];
+  if (labs.length) { const d = document.createElement('details'); d.className = 'bset'; d.innerHTML = '<summary>⚙ Launch &amp; graphics settings</summary>'; labs.forEach(l => d.appendChild(l)); tr.insertBefore(d, tr.querySelector('.saved')); if (!(TOUCH && innerWidth < 600)) d.open = true; } }
+// f4: camera distance that fits a stack of length L into `frac` of the screen height (fov-aware, slim rockets fill the frame)
+function fitDist(L, frac) { const vf = (camera.fov || 50) * Math.PI / 180; return Math.max(18, L / frac / (2 * Math.tan(vf / 2))); }
 function buildPalette() {
   const el = $('palette'); el.innerHTML = ''; let lastH = '';
+  const phoneB = TOUCH && innerWidth < 600; let grp = el, gi = 0; // f4: collapsible categories (phones start with only the first open)
   for (const [type, head] of TYPE_ORDER) {
-    if (head !== lastH) { const h = document.createElement('div'); h.className = 'palH'; h.textContent = head; el.appendChild(h); lastH = head; }
+    if (head !== lastH) { const h = document.createElement('button'); h.className = 'palH'; h.type = 'button'; h.textContent = head; el.appendChild(h); lastH = head;
+      grp = document.createElement('div'); grp.className = 'palG'; el.appendChild(grp);
+      const shut = BUILD_OPEN[head] !== undefined ? !BUILD_OPEN[head] : (phoneB && gi > 0); gi++;
+      h.classList.toggle('shut', shut); grp.classList.toggle('shut', shut);
+      h.onclick = (g => () => { const now = !g.classList.contains('shut'); g.classList.toggle('shut', now); h.classList.toggle('shut', now); BUILD_OPEN[head] = !now; })(grp); }
     for (const [id, d] of Object.entries(PARTS)) if (d.type === type) {
       const t = document.createElement('div'); t.className = 'tile'; t.draggable = true;
       t.innerHTML = `<i style="background:${TYPE_COL[type]}"></i><b>${d.name}</b><small>${partStat(id)}</small>`; qol.attachTip(t, () => partTip(id) + '<div class="sm">Click to add above the selected part, or drag into the stack.</div>', TOUCH);
       t.onclick = () => { if (!dragEaten()) addPart(id); }; touchDrag(t, 'new:' + id); t.ondragstart = e => { e.dataTransfer.setData('text/plain', 'new:' + id); e.dataTransfer.effectAllowed = 'copy'; };
-      t.dataset.id = id; if (PR.partLocked(PROG, id)) { t.classList.add('locked'); t.title = 'Locked — earn it with contracts'; } el.appendChild(t);
+      t.dataset.id = id; if (PR.partLocked(PROG, id)) { t.classList.add('locked'); t.title = 'Locked — earn it with contracts'; } grp.appendChild(t);
     }
   }
 }
@@ -739,7 +750,7 @@ function reset() {
   if (shipVis) earth.remove(shipVis);
   shipVis = null; booster = null; camMode = 'chase'; try { director = null; replay = null; slowMo = 0; recBuf.length = 0; for (const k in seen) delete seen[k]; dirPhase = ''; } catch (e) { }
   try { split.rec.length = 0; split.done = 0; split.closed = false; split.replay = null; split.full = null; } catch (e) { } if (typeof smap !== 'undefined') smap.reset();
-  camDist = 90; camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8; camAim = 0.45;
+  camDist = Math.min(fitDist(stackL(), 0.62), 140); camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8; camAim = 0.5; // f4 pad framing
   fire.clear(); smoke.clear(); for (const k in keys) keys[k] = false;
   if (swingArm) swingArm.rotation.y = 0;
   $('end').classList.add('hidden'); $('toasts').innerHTML = '';
@@ -755,7 +766,7 @@ function launch() {
     if (sc === 'reentry') F.deorbit();
   }
   if (academy && academy.active) { // lesson start states (on the pad, mid-air, or in orbit)
-    academy.onLaunch(F); syncStages(); const L = stackL(); if (F.v.cur > 0 || L < 25) camDist = Math.max(30, Math.min(90, L * 2.6 + 20));
+    academy.onLaunch(F); syncStages(); const L = stackL(); camDist = F.v.cur > 0 ? Math.max(30, Math.min(90, L * 2.6 + 20)) : Math.min(fitDist(L, 0.62), Math.max(30, L * 2.6 + 20)); camAim = 0.5; // f4 pad framing: whole stack ~62% of the screen
   }
   document.activeElement && document.activeElement.blur();
   $('build').classList.add('hidden'); $('hud').classList.remove('hidden');
@@ -1405,7 +1416,9 @@ renderer.setAnimationLoop(() => {
     camYaw += rdt * 0.22; camPitch += (0.05 - camPitch) * Math.min(1, rdt); const land = innerWidth > innerHeight, wide = innerWidth >= 900 && innerHeight >= 600;
     const Lh = v ? P.stackGeom(v).L : 40; camDist = Math.max(40, Lh * (land && !wide ? 1.6 : wide ? 1.95 : 1.75)); camAim = 0.5;
     camera.setViewOffset(innerWidth, innerHeight, land && !wide ? innerWidth * 0.2 : 0, land && !wide ? 0 : innerHeight * (wide ? 0.15 : 0.17), innerWidth, innerHeight); }
-  else if (state === 'build') { camYaw += rdt * 0.15; camDist = Math.max(70, stackL() * 1.9); camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.36, 0, innerWidth, innerHeight); }
+  else if (state === 'build') { camYaw += rdt * 0.15; const sheet = innerWidth < 600 && innerHeight > innerWidth; // f4: phone portrait: rocket fills the strip above the bottom sheet
+    if (sheet) { camAim = 0.5; camDist = fitDist(stackL(), 0.36); camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.29, innerWidth, innerHeight); }
+    else { camDist = Math.max(70, stackL() * 1.9); camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.36, 0, innerWidth, innerHeight); } }
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   const mapOn = state === 'flight' && camMode === 'map';
   if (smap.state.on !== mapOn) { // f3: any modal steps aside while the map is open (the result card comes back after)
