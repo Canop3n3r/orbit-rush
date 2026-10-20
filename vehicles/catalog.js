@@ -14,6 +14,10 @@ export const ENGINES = {
 // stage: { engines:{id:n}, dry, prop, parallel? (burns alongside the next stage), coreFrac? (share of the next stage's prop burned meanwhile, EST), recovery }
 // modes: payload figures paired with the recovery mode they were quoted for. reserve[i] = prop kept by stage i for its own recovery (EST).
 // lat: launch-site latitude / quoted inclination in degrees (eastward Earth-rotation credit).
+// Game engines use one mass flow per engine (mdot = Tvac / (IspVac·g0), SL thrust = Tvac·IspSl/IspVac). Sourced SL/vac
+// thrust and SL/vac Isp pairs are not exactly consistent with that, so a vehicle with thrustAnchor 'sl' gets the vac
+// thrust implied by its sourced SL thrust (EST, spec:ascent-heron-9#mdot): exact liftoff thrust and mass flow.
+export const gameTVac = (e, anchor) => (anchor === 'sl' && e.tSl > 0 ? e.tSl * e.ispVac / e.ispSl : e.tVac);
 export const VEHICLES = [
   { id: 'sparrow-1', src: 'spec:sparrow-1', lat: 9, liftoff: 33230,
     stages: [
@@ -22,6 +26,8 @@ export const VEHICLES = [
     ], fairing: 0,
     modes: [{ mode: 'expendable', payloadLEO: 470, src: 'spec:sparrow-1#payload (185 km)' }] },
   { id: 'heron-9', src: 'spec:heron-9', lat: 28.5, liftoff: 549000, payloadGTO: 8300, payloadGTOReuse: 5500,
+    // game-flight data (spec:ascent-heron-9#game): body/fairing diameters sourced; AUTO throttle-bucket floor 0.8 EST
+    diam: 3.7, fairingDiam: 5.2, thrustAnchor: 'sl', qFloor: 0.8, burnTime: 162,
     stages: [
       { engines: { 'kero-d': 9 }, dry: 25600, prop: 395700, recovery: 'propulsive: drone ship / return to site, or expended' },
       { engines: { 'kero-dv': 1 }, dry: 3900, prop: 92670, recovery: 'expended' },

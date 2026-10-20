@@ -49,7 +49,7 @@ export function burnTimeFor(v, dv) {
   }
   return left > 0 ? t * 1.5 + 300 : t;
 }
-export const qCap = qPa => clamp(1 - (qPa - 28000) / 8000, 0.4, 1);
+export const qCap = (qPa, floor = 0.4) => clamp(1 - (qPa - 28000) / 8000, floor, 1); // floor: optional per-vehicle v.qFloor (additive)
 // Returns { dir (world unit vector), throttle, phase }.
 // Launch heading for a target inclination (v.incl, deg): rotating-frame azimuth from the current latitude.
 export function azimuthHd(v) {
@@ -105,7 +105,7 @@ export function autoGuide(v) {
       }
     }
     const tMax = s && s.eng ? s.eng.tv * 1000 * s.n : 0;
-    thr = Math.max(qCap(qPa), tMax > 0 ? Math.min(1, 1.3 * g * m / tMax) : 1);
+    thr = Math.max(qCap(qPa, v.qFloor ?? 0.4), tMax > 0 ? Math.min(1, 1.3 * g * m / tMax) : 1);
     if (tMax > 0) thr = Math.min(thr, G_LIMIT * 9.80665 * m / tMax); // g-limit: throttle back near burnout
     // optional data table (timelines/ascent.js): stage-1 pitch/throttle vs time since liftoff (v.ascentMet), additive
     const tab = v.ascentTable && v.cur === 0 && v.ascentMet != null ? sampleAscent(v.ascentTable, v.ascentMet) : null;
