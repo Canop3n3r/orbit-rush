@@ -74,9 +74,7 @@ function clutter(padR) { const s = padR / 18, add = (m, x, y, z, ry = 0) => { m.
   for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.78, l = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * s, 0.3 * s, 14 * s, 6), steelM); l.position.set(Math.cos(a) * 2 * s, 7 * s, Math.sin(a) * 2 * s); wt.add(l); }
   add(wt, Math.cos(3.1) * padR * 3, 0, Math.sin(3.1) * padR * 3); }
 function clearStage() { for (const c of stage.children.slice()) dispose(c); }
-const TABLE = /^(baltic-hammer|redrock|junebug|pegacorn|dark-dart|diamantine|scoutling|vantguard)/; // ids that stand on a launch table instead of a tower (one list: merged copies)
-const TABLE = /^(negev-dart|baltic-hammer|redrock|junebug|pegacorn|dark-dart|diamantine|scoutling|vantguard)/; // ids that stand on a launch table instead of a tower (one list: merged copies)
->>>>>>> origin/gamebot-art/co-skyland-1
+const TABLE = /^(baltic-hammer|redrock|junebug|pegacorn|dark-dart|diamantine|scoutling|vantguard|negev-dart)/; // ids that stand on a launch table instead of a tower (one list: merged copies)
 function setStage(id, h, rV) { clearStage(); let lift = 0; const small = h < 10;
   const padR = small ? 4 : Math.max(18, rV * 6);
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(padR, padR * 1.06, small ? 0.4 : 1.2, 48), concM); pad.position.y = small ? 0.2 : 0.6; stage.add(pad); lift = small ? 0.4 : 1.2;
