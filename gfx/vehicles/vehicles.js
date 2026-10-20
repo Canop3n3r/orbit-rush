@@ -20,7 +20,7 @@ function core9(detail, o = {}) {
   k.add(new THREE.CircleGeometry(r * 0.99, k.hi ? 32 : 8), 'shield', xf([0, 1.3, 0], [-PI / 2, 0, 0]));
   tube(k, r, r, 0.95, 1.3, 'skirt', { seg: k.hi ? 32 : 8 });
   if (k.hi && !o.v11) for (const [x, z] of ringPos([[8, 1.22, PI / 8]])) k.add(new THREE.CylinderGeometry(0.52, 0.6, 0.35, 14, 1, true), 'shield', xf([x, 1.12, z])); // aft thermal boots
-  const soot = Math.round((o.soot ?? 0.6) * 4) / 4; tube(k, r, r, H - 2.25, 2.25, `paint:${soot},0`, { hs: 1 }); // post-flight soot rising from the base (o.soot 0 fresh .. 1 heavily reflown)
+  const soot = Math.round((o.soot ?? 0.75) * 4) / 4; tube(k, r, r, H - 2.25, 2.25, `paint:${soot},0`, { hs: 1 }); // post-flight soot rising from the base (o.soot 0 fresh .. 1 heavily reflown)
   ring(k, r, H * 0.42, 0.02); raceway(k, r, 2.4, H - 0.4, PI / 2, 'dark');
   decal(k, 'booster.side', r, H * 0.35, 4.2, 0, 1.3);
   if (o.nose) { ogive(k, r, 6.2, H, 'paint:0,0.6'); gridFins(k, r + 0.05, H - 1.6, 1.15, 1.4, 4, PI / 4, o.fins ?? 0.15); }
@@ -32,10 +32,10 @@ function upper(detail, o = {}) { const k = new Kit(detail), r = 1.83, y0 = o.y0,
   bell(k, 1.3, 3.2, 0, y0 - 3.4, 0, { ext: true, rt: 0.3, head: 0.8 }); // vacuum engine with heat-tinted extension (mostly inside the interstage)
   tube(k, r, r, h, y0, 'paint:0,0.25'); ring(k, r, y0 + h * 0.55, 0.02); decal(k, 'upper.side', r, y0 + 3, 2.6, 0, 1.0); raceway(k, r, y0 + 0.3, y0 + h - 0.3);
   tube(k, r, 1.6, 0.6, y0 + h, 'dark'); const g = k.build('upper'); g.userData.top = y0 + h + 0.6; return g; }
-function fairing(detail, y0, r = 2.6, cyl = 6.7, nose = 6.4, rBase) { const k = new Kit(detail), prof = PR.fairing(r, cyl, nose, y0, rBase ?? Math.min(1.6, r * 0.88), k.hi ? 22 : 8);
+function fairing(detail, y0, r = PR.HERON_FAIRING.r, cyl = PR.HERON_FAIRING.cyl, nose = PR.HERON_FAIRING.nose, rBase = PR.HERON_FAIRING.rBase, bt = PR.HERON_FAIRING.bt) { const k = new Kit(detail), prof = PR.fairing(r, cyl, nose, y0, rBase, k.hi ? 22 : 8, bt);
   lathe(k, prof, 'paint:0,0'); // ONE continuous profile: boattail, barrel, tangent ogive (tip +Y)
   if (k.hi) { for (const ph of [0, PI]) lathe(k, prof.slice(1), 'dark', { s: 1.003, seg: 1, p0: ph - 0.004, pl: 0.008 }); // the two half seams
-    lathe(k, prof.slice(1, 3), 'carbon', { s: 1.002 }); decal(k, 'fairing.side', r, y0 + 2.2, 2.2, PI / 2, 1.0); }
+    lathe(k, prof.slice(1, 4), 'carbon', { s: 1.002 }); decal(k, 'fairing.side', r, y0 + 2.2, 2.2, PI / 2, 1.0); }
   const g = k.build('payload'); g.userData.top = prof[prof.length - 1][1]; return g; }
 function capsule(detail, y0) { const k = new Kit(detail), r = 1.85;
   tube(k, r, r, 3.7, y0, 'paint:0,0'); // trunk
@@ -54,7 +54,7 @@ function sparrow(o) { const d = o.detail, k = new Kit(d), r = 0.835;
   bell(k, 0.55, 1.3, 0, 0, 0, { head: 0.5 }); tube(k, r, r, 0.6, 1.25, 'dark'); tube(k, r, r, 13.9, 1.85, 'silver'); ring(k, r, 9, 0.015); decal(k, 'booster.side', r, 6, 2.0, 0, 1.4);
   tube(k, r, r, 1.2, 15.75, 'carbon'); const b = k.build('booster');
   const u = new Kit(d); bell(u, 0.42, 1.0, 0, 16.0, 0, { ext: true, rt: 0.12, head: 0.3 }); tube(u, r, r, 2.4, 16.95, 'silver'); decal(u, 'upper.side', r, 17.2, 1.4, 0, 1.2); const U = u.build('upper');
-  const f = fairing(d, 18.85, 0.75, 0.6, 1.85, 0.66); return group('sparrow', [b, U, f], 21.3); }
+  const f = fairing(d, 18.85, 0.75, 0.6, 1.85, 0.66, 0.6); return group('sparrow', [b, U, f], 21.3); }
 function heronHeavy(o) { const d = o.detail, c = core9(d, o), u = upper(d, { y0: 46.0 }), f = fairing(d, u.userData.top), kids = [c, u, f];
   for (const s of [-1, 1]) { const b = core9(d, { ...o, nose: true, H: 40.9 }); b.name = s < 0 ? 'side0' : 'side1'; b.position.x = s * 3.86; b.rotation.y = s < 0 ? PI : 0; kids.push(b); }
   const k = new Kit(d); for (const s of [-1, 1]) { for (const y of [4.5, 38.5]) strut(k, [s * 1.8, y, 0], [s * 2.05, y, 0], 0.3, 'dark'); if (k.hi) strut(k, [s * 1.8, 37, 0.6], [s * 2.05, 39, 0.6], 0.12, 'grey'); }
@@ -89,18 +89,18 @@ function ship(detail, y0, L = 52.1) { const k = new Kit(detail), r = 4.5, nose =
   const g = k.build('upper'); g.userData.top = y0 + 2 + cyl + nose; return g; }
 function titan(o) { const b = titanBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1); return group('titan', [b, s], s.userData.top); }
 // ---- ground systems: catch tower with chopsticks + orbital launch mount ----
-function catchTower(o) { const k = new Kit(o.detail), W = 9.5, H = 146, TX = -22, lv = 6, n = Math.floor(H / lv);
+function catchTower(o) { const k = new Kit(o.detail), W = 12, H = 146, TX = -24, lv = 7, n = Math.floor(H / lv);
   tube(k, 30, 32, 2, -2, 'concrete', { seg: 48 });
-  for (const [dx, dz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) k.add(new THREE.BoxGeometry(1.1, H, 1.1), 'tower', xf([TX + dx * W / 2, H / 2, dz * W / 2]));
+  for (const [dx, dz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) k.add(new THREE.BoxGeometry(1.8, H, 1.8), 'tower', xf([TX + dx * W / 2, H / 2, dz * W / 2]));
   for (let i = 0; i < n; i++) for (let f = 0; f < 4; f++) { const ry = f * PI / 2, cx = Math.sin(ry) * W / 2, cz = Math.cos(ry) * W / 2;
-    k.add(new THREE.BoxGeometry(W, 0.45, 0.45), 'tower', xf([TX + cx, (i + 1) * lv, cz], [0, ry + PI / 2, 0]));
-    if (k.hi || i % 2) k.add(new THREE.BoxGeometry(Math.hypot(W, lv), 0.3, 0.3), 'tower', xf([TX + cx, i * lv + lv / 2, cz], [(i % 2 ? 1 : -1) * Math.atan2(lv, W), ry + PI / 2, 0])); }
+    k.add(new THREE.BoxGeometry(W, 0.7, 0.7), 'tower', xf([TX + cx, (i + 1) * lv, cz], [0, ry + PI / 2, 0]));
+    if (k.hi || i % 2) k.add(new THREE.BoxGeometry(Math.hypot(W, lv), 0.45, 0.45), 'tower', xf([TX + cx, i * lv + lv / 2, cz], [(i % 2 ? 1 : -1) * Math.atan2(lv, W), ry + PI / 2, 0])); }
   tube(k, 0.25, 0.6, 18, H, 'grey', { x: TX, seg: 8 }); // lightning mast
   // chopsticks: carriage + two arms (open), at the vehicle-catch height
   const cy = o.catchY ?? 104, open = o.open ?? 0.55; k.push(xf([TX + W / 2 + 1, cy, 0]));
-  k.add(new THREE.BoxGeometry(2.4, 8, W + 2), 'tower');
-  for (const s of [-1, 1]) { k.push(xf([0.5, 0, s * 4], [0, -s * open, 0]));
-    k.add(new THREE.BoxGeometry(36, 3.2, 1.6), 'tower', xf([18, 0, 0])); if (k.hi) { k.add(new THREE.BoxGeometry(34, 0.6, 2.2), 'dark', xf([18, 1.9, 0])); for (let j = 1; j < 9; j++) k.add(new THREE.BoxGeometry(0.3, 3.2, 1.7), 'grey', xf([j * 4, 0, 0])); k.add(new THREE.BoxGeometry(3, 1.2, 2.4), 'paint:0,0', xf([30, 2.2, -s * 0.4])); }
+  k.add(new THREE.BoxGeometry(4, 12, W + 3), 'tower');
+  for (const s of [-1, 1]) { k.push(xf([1, 0, s * 5.5], [0, -s * open, 0]));
+    k.add(new THREE.BoxGeometry(38, 5, 2.6), 'tower', xf([19, 0, 0])); k.add(new THREE.BoxGeometry(30, 2.2, 1.4), 'tower', xf([19, -3.4, 0])); if (k.hi) { k.add(new THREE.BoxGeometry(34, 0.6, 2.2), 'dark', xf([18, 1.9, 0])); for (let j = 1; j < 9; j++) k.add(new THREE.BoxGeometry(0.3, 3.2, 1.7), 'grey', xf([j * 4, 0, 0])); k.add(new THREE.BoxGeometry(3, 1.2, 2.4), 'paint:0,0', xf([30, 2.2, -s * 0.4])); }
     k.pop(); }
   k.pop();
   // ship quick-disconnect arm
