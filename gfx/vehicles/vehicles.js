@@ -25,6 +25,7 @@ import { CO_CNFOLL } from './co_cnfoll.js?v=art1';
 import { CO_ORBITRON_B } from './co_orbitron_b.js?v=art1';
 import { CO_ISRA_B } from './co_isra_b.js?v=art1';
 import { CO_LEVANT } from './co_levant.js?v=art1';
+import { CO_SKYLAND } from './co_skyland.js?v=art1';
 import { CO_GAULOIS } from './co_gaulois.js?v=art1';
 import { CO_JADELANTERN2 } from './co_jadelantern2.js?v=art1';
 import { CO_JADELANTERN } from './co_jadelantern.js?v=art1';
@@ -194,7 +195,7 @@ export const VEHICLES = {
   'colossus-v4': { height: 142, build: o => colossus({ ...o, boosterH: 81, shipH: 61, gridFins: 3 }), src: 'specs sheet (colossus) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
   'catch-tower': { height: 164, build: catchTower, src: 'public ~146 m tower (art estimate)', est: ['all'] },
   'payload-roadster': { height: 3.2, build: roadster, src: 'generic roadster-style car (art)', est: ['all'] },
-  ...CO_CIVSPACE, ...CO_ORBITRON_B, ...CO_ALBION, ...CO_EUROPIA, ...CO_VEGARA, ...CO_ARION, ...CO_BLUEHZ, ...CO_BOLT, ...CO_CONVEX, ...CO_DOUGWING, ...CO_CNFOLL, ...CO_GAULOIS, ...CO_JADELANTERN2, ...CO_JADELANTERN, ...CO_IRG, ...CO_ISRA, ...CO_TSURUGI, ...CO_JAXO, ...CO_KRASNAYA, ...CO_MOGUTNY, ...CO_MOONHAMMER, ...CO_TAIGA, ...CO_KRUNOV, ...CO_LINGVOLT, ...CO_MARTELL, ...CO_VANTGUARD, ...CO_CIVSPACE2, ...CO_ORBITRON, ...CO_ORIGINALS, ...CO_ROCKETWELL, ...CO_SOUTHSTAR, ...CO_VULC, ...CO_ULX, ...CO_BALTIC, ...CO_ISRA_B, ...CO_LEVANT,
+  ...CO_CIVSPACE, ...CO_ORBITRON_B, ...CO_ALBION, ...CO_EUROPIA, ...CO_VEGARA, ...CO_ARION, ...CO_BLUEHZ, ...CO_BOLT, ...CO_CONVEX, ...CO_DOUGWING, ...CO_CNFOLL, ...CO_GAULOIS, ...CO_JADELANTERN2, ...CO_JADELANTERN, ...CO_IRG, ...CO_ISRA, ...CO_TSURUGI, ...CO_JAXO, ...CO_KRASNAYA, ...CO_MOGUTNY, ...CO_MOONHAMMER, ...CO_TAIGA, ...CO_KRUNOV, ...CO_LINGVOLT, ...CO_MARTELL, ...CO_VANTGUARD, ...CO_CIVSPACE2, ...CO_ORBITRON, ...CO_ORIGINALS, ...CO_ROCKETWELL, ...CO_SOUTHSTAR, ...CO_VULC, ...CO_ULX, ...CO_BALTIC, ...CO_ISRA_B, ...CO_LEVANT, ...CO_SKYLAND,
   'payload-flatsat-stack': { height: 5.6, build: satStack, src: 'specs sheet flatsat-style flat-pack stack (art)', est: ['plate size'] },
 };
 // f5.1h: the grouped rocket picker (fun/picker.js) lists the art sets per house; keys match fun/picker.js HOUSES
@@ -222,6 +223,7 @@ export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail
   else if (/^heron-9|^kite-1$|^kite-3$|^ballast-1$|^granite-2$|^lifttop-1$|^onestep-m1$|^parabolica-1$|^dark-dart$|^conestogo$|^minotaurus-1$|^minotaurus-4$|^taurox$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^geo-slinger$|^slinger-mini$|^slinger-mk3$|^dark-dart$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^negev-dart$|^dark-dart$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^ember-finch-2$|^ember-finch-2e$|^ember-finch-3$|^dark-dart$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^europia$|^vegara$|^vegara-c$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^new-glendale/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^titanus-4$|^atlantean-crew$|^atlantean-upper$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
