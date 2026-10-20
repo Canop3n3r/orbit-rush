@@ -26,3 +26,6 @@ procedural maps, particle effects, sounds, the physics and the lessons are origi
 
 ## Vehicle models (art1)
 All vehicle models, the catch tower and their textures in `gfx/vehicles/` are original procedural work for Orbit Rush (canvas-generated; no third-party textures, no logos). Proportions follow public dimensions collected in the team specs sheet.
+
+## Launch vehicle data (GCAT)
+Some stage masses in `vehicles/roster/` come from Jonathan McDowell's General Catalog of Artificial Space Objects (GCAT), https://planet4589.org/space/gcat/ , licensed CC BY 4.0.
