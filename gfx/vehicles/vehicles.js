@@ -211,10 +211,10 @@ import { NAMES as N_VANTGUARD } from './co_vantguard.js?v=art1';
 export const ART_NAMES = { ...N_EUROPIA, ...N_GAULOIS, ...N_IRG, ...N_JADELANTERN, ...N_JADELANTERN2, ...N_JAXO, ...N_LINGVOLT, ...N_MOONHAMMER, ...N_TAIGA, ...N_TSURUGI, ...N_VANTGUARD };
 const K = (...o) => o.flatMap(x => Object.keys(x));
 export const HOUSE_SETS = { originals: K(CO_ORIGINALS), spacey: ['sparrow-1', 'heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'colossus-v3', 'colossus-v4'],
-  civspace: K(CO_CIVSPACE, CO_CIVSPACE2, CO_VANTGUARD), arion: K(CO_EUROPIA, CO_VEGARA, CO_ARION), albion: K(CO_ALBION), baltic: K(CO_BALTIC), bluehz: K(CO_BLUEHZ), bolt: K(CO_BOLT),
+  civspace: K(CO_CIVSPACE, CO_CIVSPACE2, CO_VANTGUARD).filter(id => !(id in CO_ROCKETWELL)) /* f5.3: Space Truck lives under RocketWell only */, arion: K(CO_EUROPIA, CO_VEGARA, CO_ARION), albion: K(CO_ALBION), baltic: K(CO_BALTIC), bluehz: K(CO_BLUEHZ), bolt: K(CO_BOLT),
   convex: K(CO_CONVEX), dougwing: K(CO_DOUGWING, CO_DOUGWING_B), gaulois: K(CO_GAULOIS), irg: K(CO_IRG), isra: K(CO_ISRA), jade: K(CO_JADELANTERN, CO_JADELANTERN2), jaxo: K(CO_JAXO, CO_TSURUGI),
-  krasnaya: K(CO_KRASNAYA, CO_MOGUTNY, CO_MOONHAMMER), krunov: K(CO_KRUNOV, CO_TAIGA), lingvolt: K(CO_LINGVOLT), martell: K(CO_MARTELL), orbitron: K(CO_ORBITRON),
-  rocketwell: K(CO_ROCKETWELL), southstar: K(CO_SOUTHSTAR), unilift: K(CO_ULX, CO_VULC) };
+  krasnaya: K(CO_KRASNAYA, CO_MOGUTNY, CO_MOONHAMMER, CO_KOMETA), krunov: K(CO_KRUNOV, CO_TAIGA), lingvolt: K(CO_LINGVOLT), martell: K(CO_MARTELL), orbitron: K(CO_ORBITRON),
+  rocketwell: K(CO_ROCKETWELL), southstar: K(CO_SOUTHSTAR, CO_SOUTHSTAR_B), unilift: K(CO_ULX, CO_VULC) };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
   if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
