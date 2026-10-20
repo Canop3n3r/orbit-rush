@@ -44,3 +44,8 @@ export const TRUCK = { etR: 4.2, etNose: 12.0, srbR: 1.86, srbNose: 6.0, orbR: 2
 NOSES['space-truck.et'] = () => ogive(TRUCK.etR, TRUCK.etNose, 0, 18, 0.03);
 NOSES['space-truck.srb'] = () => ogive(TRUCK.srbR, TRUCK.srbNose, 0, 18, 0.1);
 NOSES['space-truck.orbiter'] = () => ogive(TRUCK.orbR, TRUCK.orbNose, 0, 18, 0.12);
+// ---- co-arion (Arion Space parody): 5.4 m fairings, solid-booster noses (tips +Y)
+export const ARION = { r: 2.7, srb5: 1.53, srb6: 1.7 };
+NOSES['arion-5.fairing'] = () => fairing(2.7, 9.5, 7.0, 0, 2.69, 18, 0.05);
+NOSES['arion-5.srbnose'] = () => ogive(1.53, 4.2, 0, 14, 0.12);
+NOSES['arion-6.srbnose'] = () => ogive(1.7, 3.2, 0, 14, 0.12);
