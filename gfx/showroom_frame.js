@@ -13,13 +13,17 @@ export function projectY(cam, aim, p, fovDeg) { // screen y as a fraction from t
   const f = norm(sub(aim, cam)), r = norm(cross(f, [0, 1, 0])), u = cross(r, f), v = sub(p, cam);
   return (1 - dot(v, u) / dot(v, f) / Math.tan(fovDeg * Math.PI / 360)) / 2; }
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], norm = a => { const l = Math.hypot(...a); return a.map(x => x / l); };
-export function frameRocket({ h: hIn, fovDeg = 40, aspect = 1, free = {}, fill = 0.7, of = 'screen', yaw = 0.6, elev = 0.08, safeTop = 48, padPx = 6, radius, topRadius, bounds, object, profile, screenH = (typeof innerHeight !== 'undefined' ? innerHeight : 844) }) {
+export function frameRocket({ h: hIn, fovDeg = 40, aspect = 1, free = {}, fill = 0.7, of = 'screen', yaw = 0.6, elev = 0.08, safeTop = 48, padPx = 6, radius, topRadius, bounds, object, rocket, profile, screenH = (typeof innerHeight !== 'undefined' ? innerHeight : 844) }) {
   // Real-silhouette projection (QA perf_rockets-3d): never project bbox corners (they sit r*sqrt2 off-axis, outside a round body).
   // object (Object3D): its visible meshes' WORLD-space vertices (sampled, <= ~4000 total) are projected; base = lowest vertex y.
   // bounds (Box3/{min,max}) only: 16 points on the ellipse inscribed in the box at the top and base planes.
   // profile: [[y, r], ...] silhouette rings (m, y from the base), e.g. a blunt/ogive nose; else rings at y=0 (radius) and y=h (topRadius, default = radius, 0 = needle).
-  const N = 16, ring = (y, rx, rz = rx, cx = 0, cz = 0) => rx > 0 || rz > 0 ? Array.from({ length: N }, (_, i) => [cx + rx * Math.cos(2 * Math.PI * i / N), y, cz + rz * Math.sin(2 * Math.PI * i / N)]) : [[cx, y, cz]];
+  const N = 64, ring = (y, rx, rz = rx, cx = 0, cz = 0) => rx > 0 || rz > 0 ? Array.from({ length: N }, (_, i) => [cx + rx * Math.cos(2 * Math.PI * i / N), y, cz + rz * Math.sin(2 * Math.PI * i / N)]) : [[cx, y, cz]];
   let PTS = null, h = hIn;
+  // h/radius-only fallback is exact ONLY for a round body of exactly `radius` (default 0.09 h) with a flat top of `topRadius` (default = radius).
+  // Thin bodies must pass radius; blunt tops need topRadius (flat cap radius) or profile; pointed noses need topRadius: 0 (or profile).
+  // Otherwise they land conservatively low (QA 3e: h-only blunt +4.5 px, cone +11 px, r=h/24 cylinder +6 px). Prefer object: it is always exact.
+  object ??= rocket; if (!object?.isObject3D && rocket?.userData?.group?.isObject3D) object = rocket.userData.group;
   if (object && object.isObject3D) {
     object.updateMatrixWorld(true); const meshes = []; let total = 0;
     object.traverse(o => { if (o.isMesh && o.visible && o.geometry?.attributes?.position) { meshes.push(o); total += o.geometry.attributes.position.count; } });
@@ -55,5 +59,5 @@ export function frameRocket({ h: hIn, fovDeg = 40, aspect = 1, free = {}, fill =
 // Lighter showroom pad: light concrete, low roughness contrast, no dark slab, so the rocket reads as the hero.
 export const SHOWROOM_PAD = { color: 0xc9c4ba, roughness: 0.82, metalness: 0.0, ringColor: 0xdedad2, radiusPerHeight: 0.35, envIntensity: 0.6 };
 // usage (main.js, Game bot):
-//   const f = frameRocket({ h: VEHICLES[id].height, fovDeg: cam.fov, aspect: cam.aspect, free: portrait ? { bottom: 0.24 } : { right: 0.38 }, screenH: innerHeight }); // safeTop defaults to 48 px / env(safe-area-inset-top)
+//   const f = frameRocket({ object: rocket /* the built rocket Group: exact from real vertices; h-only is a fallback */, fovDeg: cam.fov, aspect: cam.aspect, free: portrait ? { bottom: 0.24 } : { right: 0.38 }, screenH: innerHeight }); // safeTop defaults to 48 px / env(safe-area-inset-top)
 //   cam.position.set(...f.cam); ctl.target.set(...f.aim); padMat.color.setHex(SHOWROOM_PAD.color); padMat.roughness = SHOWROOM_PAD.roughness;

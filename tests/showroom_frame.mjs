@@ -41,5 +41,25 @@ for (const [W, H, free] of [[390, 844, { bottom: 0.3 }], [390, 844, { bottom: 0.
   ok(tip >= 48 - 0.5, `${tag}: tip ${tip.toFixed(2)} >= 47.5`); ok(gap >= 0.5, `${tag}: base clears sheet (${gap.toFixed(2)})`); ok(fill > 0.55, `${tag}: fills > 55%`);
   if (W === 390 && mode !== 'bounds') { ok(Math.abs(tip - 48) <= 0.5, `${tag}: tip ${tip.toFixed(2)} = 48 +-0.5`); ok(Math.abs(gap - 6) <= 0.5, `${tag}: base gap ${gap.toFixed(2)} = 6 +-0.5`); }
 }
+// QA perf_rockets-3e harness shapes, exact call args (frame.html): Group of 24-seg CylinderGeometry/ConeGeometry meshes, fov 40.
+// object / rocket modes and default-with-hints must be exact (48 +-0.5 top, 6 +-0.5 base); QA's h-only call is safe-only (documented fallback).
+const qa = { cyl: [1 / 24, null], flat: [0.09, null], blunt: [0.09, 'blunt'], cone: [0.09, 'cone'] };
+const qaRows = [];
+for (const fb of [0.3, 0.24]) for (const h of [30, 70, 120]) for (const [sh, [rf]] of Object.entries(qa)) for (const mode of ['object', 'rocket', 'hints', 'h-only']) {
+  const W = 390, H = 844, free = { bottom: fb }, rad = rf * h, g = new THREE.Group(), add = (geo, y) => { const m = new THREE.Mesh(geo); m.position.y = y; g.add(m); };
+  if (sh === 'cyl' || sh === 'flat') add(new THREE.CylinderGeometry(rad, rad, h, 24), h / 2);
+  else if (sh === 'blunt') { const bh = h * 0.85; add(new THREE.CylinderGeometry(rad, rad, bh, 24), bh / 2); add(new THREE.CylinderGeometry(rad * 0.6, rad, h - bh, 24), bh + (h - bh) / 2); }
+  else { const bh = h * 0.8; add(new THREE.CylinderGeometry(rad, rad, bh, 24), bh / 2); add(new THREE.ConeGeometry(rad, h - bh, 24), bh + (h - bh) / 2); }
+  g.updateMatrixWorld(true);
+  const o = { fovDeg: 40, aspect: W / H, free, screenH: H };
+  if (mode === 'object') o.object = g; else if (mode === 'rocket') o.rocket = { userData: { group: g } }; else { o.h = h; if (mode === 'hints') Object.assign(o, { radius: rad, topRadius: sh === 'blunt' ? 0.6 * rad : sh === 'cone' ? 0 : rad }); }
+  const f = frameRocket(o), cam = new THREE.PerspectiveCamera(40, W / H, 0.1, 1e5); cam.position.set(...f.cam); cam.lookAt(...f.aim); cam.updateMatrixWorld();
+  let tip = Infinity, base = -Infinity; const v = new THREE.Vector3();
+  g.traverse(m => { if (!m.isMesh) return; const pa = m.geometry.attributes.position; for (let i = 0; i < pa.count; i++) { const y = (1 - v.fromBufferAttribute(pa, i).applyMatrix4(m.matrixWorld).project(cam).y) / 2 * H; tip = Math.min(tip, y); base = Math.max(base, y); } });
+  const gap = H * (1 - fb) - base, tag = `QA ${sh}/${mode} fb${fb} h${h}`; qaRows.push({ shape: sh, mode, fb, h, tip: +tip.toFixed(2), gap: +gap.toFixed(2), fill: +((base - tip) / H * 100).toFixed(1) });
+  ok(tip >= 47.5 && gap >= 0.5, `${tag}: safe (tip ${tip.toFixed(2)}, gap ${gap.toFixed(2)})`);
+  if (mode !== 'h-only' || sh === 'flat') { ok(Math.abs(tip - 48) <= 0.5, `${tag}: tip ${tip.toFixed(2)} = 48 +-0.5`); ok(Math.abs(gap - 6) <= 0.5, `${tag}: gap ${gap.toFixed(2)} = 6 +-0.5`); }
+}
+if (process.env.SHOWROOM_TABLE) console.table(qaRows.filter(r => r.h === 70));
 if (process.env.SHOWROOM_TABLE) console.table(rows.map(([s, m, b, h, t, g, f]) => ({ shape: s, mode: m, sheet: b, h, tip: +t.toFixed(2), gap: +g.toFixed(2), fill: +(f * 100).toFixed(1) })));
 console.log(`showroom_frame: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
