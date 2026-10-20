@@ -31,15 +31,15 @@ export const ROSTER_JAXO = [
     stages: [
       { engines: {'jx-e1': 2}, dry: 21000, prop: 132000, burn: 120.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)'] },
       { engines: {'jx-e2': 1}, dry: 13000, prop: 101000, burn: 390.0, group: 0, recovery: 'expended', src: 'GCAT' },
-      { engines: {'jx-e3': 1}, dry: 4000, prop: 16000, burn: 600.0, group: 1, recovery: 'expended', src: 'GCAT' },
+      { engines: {'jx-e3': 1}, dry: 4000, prop: 16000, burn: 600.0, group: 1, restart: true, restartSrc: 'spec:h-too#restart (rocketdb per-stage restartable, cited)', recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 10000, orbit: { hp: 300, ha: 300, inc: 30.4 }, src: "spec:h-too#ref (user's manual fig. 2.5-1: ~10 t, 300 km circular, 30.4 deg, 5S fairing)", est: ['payload read off a figure (~10 t) ESTIMATE'] /*GAP_h-too*/ }] },
+    modes: [{ variant: 'leo', payload: 10000, orbit: { hp: 300, ha: 300, inc: 30.4 }, src: "spec:h-too#ref (user's manual fig. 2.5-1: ~10 t, 300 km circular, 30.4 deg, 5S fairing)", est: ['payload read off a figure (~10 t) ESTIMATE'] }] },
   { id: 'h-tree', name: "H-Tree", company: 'jaxo', src: 'spec:h-tree', area: 21.2, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'jx-e4': 3}, dry: 15000, prop: 225000, burn: 300.0, group: 0, recovery: 'expended', src: 'GCAT' },
-      { engines: {'jx-e5': 1}, dry: 2500, prop: 24500, burn: 686.0, group: 1, recovery: 'expended', src: 'GCAT' },
+      { engines: {'jx-e5': 1}, dry: 2500, prop: 24500, burn: 686.0, group: 1, restart: true, restartSrc: 'spec:h-tree#restart (rocketdb per-stage restartable, cited)', recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 4000, orbit: { hp: 500, ha: 500, inc: 97.4 }, src: "spec:h-tree#ref (agency press kit: >= 4 t to 500 km circular sun-synchronous)", est: ["inclination 97.4 deg (500 km sun-synchronous, from the predecessor's manual) ESTIMATE"] , knownGap: "model no orbit to the sourced 500 km sun-synchronous figure: second-stage restart not flagged in GCAT stage data, so no coast-and-circularize; SL thrust/Isp 0.88 x vac ESTIMATE; fairing mass unsourced (0)" }] },
+    modes: [{ variant: 'leo', payload: 4000, orbit: { hp: 500, ha: 500, inc: 97.4 }, src: "spec:h-tree#ref (agency press kit: >= 4 t to 500 km circular sun-synchronous)", est: ["inclination 97.4 deg (500 km sun-synchronous, from the predecessor's manual) ESTIMATE"] , knownGap: "model no orbit: fairing mass unsourced (0); final stage restartable: coast-and-restart flown; SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'myu', name: "Myu", company: 'jaxo', src: 'spec:myu', area: 2.4, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'jx-e6': 2}, dry: 2200, prop: 8000, burn: 38.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)'] },
@@ -47,15 +47,15 @@ export const ROSTER_JAXO = [
       { engines: {'jx-e8': 1}, dry: 2742, prop: 10258, burn: 73.0, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'jx-e9': 1}, dry: 310, prop: 3290, burn: 87.0, group: 2, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 800, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:myu#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model no orbit: all-solid stack with GCAT stage data only, no kick-stage restart/coast; GCAT LEO orbit undefined (185 km ESTIMATE); SL thrust/Isp 0.88 x vac ESTIMATE; fairing mass unsourced (0)" }] },
+    modes: [{ variant: 'leo', payload: 800, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:myu#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model no orbit: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); strap-on light sequence not in the data (all lit at liftoff); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'h-won', name: "H-Won", company: 'jaxo', src: 'spec:h-won', area: 9.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'jx-e10': 9}, dry: 5085, prop: 30915, burn: 37.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)'] },
       { engines: {'jx-e11': 1}, dry: 4400, prop: 81400, burn: 270.0, group: 0, recovery: 'expended', src: 'GCAT' },
-      { engines: {'jx-e12': 1}, dry: 1800, prop: 8800, burn: 370.0, group: 1, recovery: 'expended', src: 'GCAT' },
+      { engines: {'jx-e12': 1}, dry: 1800, prop: 8800, burn: 370.0, group: 1, restart: true, restartSrc: 'spec:h-won#restart (rocketdb per-stage restartable, cited)', recovery: 'expended', src: 'GCAT' },
       { engines: {'jx-e13': 1}, dry: 360, prop: 1840, burn: 68.0, group: 2, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 3200, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:h-won#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +34 %: GCAT LEO figure has no reference orbit (185 km ESTIMATE); air-lit strap-ons flown ground-lit; SL thrust/Isp 0.88 x vac ESTIMATE; fairing mass unsourced (0)" }] },
+    modes: [{ variant: 'leo', payload: 3200, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:h-won#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +34 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); strap-on light sequence not in the data (all lit at liftoff); fairing mass unsourced (0); final stage restartable: coast-and-restart flown; SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'n-too', name: "N-Too", company: 'jaxo', src: 'spec:n-too', area: 9.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'jx-e14': 9}, dry: 5085, prop: 30915, burn: 37.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)'] },
@@ -63,14 +63,14 @@ export const ROSTER_JAXO = [
       { engines: {'jx-e16': 1}, dry: 780, prop: 5220, burn: 430.0, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'jx-e17': 1}, dry: 83, prop: 1017, burn: 42.0, group: 2, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 2000, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:n-too#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +55 %: GCAT LEO figure has no reference orbit (185 km ESTIMATE); air-lit strap-ons flown ground-lit; SL thrust/Isp 0.88 x vac ESTIMATE; fairing mass unsourced (0)" }] },
+    modes: [{ variant: 'leo', payload: 2000, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:n-too#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +55 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); strap-on light sequence not in the data (all lit at liftoff); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'myu-v', name: "Myu-V", company: 'jaxo', src: 'spec:myu-v', area: 4.9, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'jx-e18': 1}, dry: 12070, prop: 74930, burn: 49.0, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'jx-e19': 1}, dry: 3410, prop: 34590, burn: 71.0, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'jx-e20': 1}, dry: 1000, prop: 10600, burn: 102.0, group: 2, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 1800, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:myu-v#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model no orbit: all-solid stack with GCAT stage data only, no coast; GCAT LEO orbit undefined (185 km ESTIMATE); SL thrust/Isp 0.88 x vac ESTIMATE; fairing mass unsourced (0)" }] },
+    modes: [{ variant: 'leo', payload: 1800, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:myu-v#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model no orbit: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'n-ichiban', name: "N-Ichiban", company: 'jaxo', src: 'spec:n-ichiban', area: 6.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'jx-e21': 3}, dry: 1695, prop: 10305, burn: 37.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)'] },
@@ -78,5 +78,5 @@ export const ROSTER_JAXO = [
       { engines: {'jx-e23': 1}, dry: 500, prop: 5300, burn: 250.0, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'jx-e24': 1}, dry: 64, prop: 536, burn: 33.9, group: 2, recovery: 'expended', src: 'GCAT', est: ['burn'] },
     ],
-    modes: [{ variant: 'leo', payload: 1200, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:n-ichiban#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +71 %: GCAT LEO figure has no reference orbit (185 km ESTIMATE); air-lit strap-ons flown ground-lit; SL thrust/Isp 0.88 x vac ESTIMATE; fairing mass unsourced (0)" }] },
+    modes: [{ variant: 'leo', payload: 1200, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:n-ichiban#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +71 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); strap-on light sequence not in the data (all lit at liftoff); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
 ];
