@@ -7,7 +7,7 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=art1';
+import { Kit, xf, mat, compact, compactStages, FOLD_HEAVY, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=art1';
 export { dispose, release, geometryCacheSize };
 import * as PR from './profiles.js?v=art1';
 import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
@@ -57,11 +57,12 @@ function sparrow(o) { const d = o.detail, k = new Kit(d), r = 0.835;
   tube(k, r, r, 1.2, 15.75, 'carbon'); const b = k.build('booster');
   const u = new Kit(d); bell(u, 0.42, 1.0, 0, 16.0, 0, { ext: true, rt: 0.12, head: 0.3 }); tube(u, r, r, 2.4, 16.95, 'silver'); decal(u, 'upper.side', r, 17.2, 1.4, 0, 1.2); const U = u.build('upper');
   const f = fairing(d, 18.85, 0.75, 0.6, 1.85, 0.66, 0.6); return group('sparrow', [b, U, f], 21.3); }
-function heronHeavy(o) { const d = o.detail === 'hi' ? 'mid' : o.detail, // phone budget: hi = mid-detail cores (≤20k tris, ≤30 meshes)
+function heronHeavy(o) { const d = o.detail === 'hi' ? 'mid' : 'lo', // hi = mid-detail cores (≤20k tris, ≤30 meshes); mid/lo = lo cores, folded harder in build()
    c = core9(d, o), u = upper(d, { y0: 46.0 }), f = fairing(d, u.userData.top), kids = [c, u, f];
   for (const s of [-1, 1]) { const b = core9(d, { ...o, nose: true, H: 40.9 }); b.name = s < 0 ? 'side0' : 'side1'; b.position.x = s * 3.86; b.rotation.y = s < 0 ? PI : 0; kids.push(b); }
   const k = new Kit(d); for (const s of [-1, 1]) { for (const y of [4.5, 38.5]) strut(k, [s * 1.8, y, 0], [s * 2.05, y, 0], 0.3, 'dark'); if (k.hi) strut(k, [s * 1.8, 37, 0.6], [s * 2.05, 39, 0.6], 0.12, 'grey'); }
-  kids.push(k.build('struts')); return group('heron-heavy', kids, f.userData.top); }
+  kids.push(k.build('struts')); // struts stay their own stage (staging detaches them)
+  return group('heron-heavy', kids, f.userData.top); }
 function titanBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.boosterH || 72.3;
   const pos = ringPos([[3, 0.95, PI / 6], [10, 2.55], [20, 3.85, PI / 20]]);
   for (const [x, z] of pos) bell(k, 0.62, 1.55, x, 0, z, { rt: 0.26, head: k.hi ? 0.9 : 0 });
@@ -162,7 +163,8 @@ export const VEHICLES = {
 };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
-  if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
+  if (id === 'heron-heavy' && det !== 'hi') compactStages(g, ['legs'], det === 'lo' ? { ...FOLD_HEAVY, bell: 'dark', bellx: 'dark' } : FOLD_HEAVY);
+  else if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
   else if (/^heron-9/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }

@@ -11,7 +11,7 @@ export function tube(k, r0, r1, h, y, key, o = {}) { const g = new THREE.Cylinde
 export function ogive(k, r, L, y, key, tip = 0.06) { lathe(k, PR.ogive(r, L, y, k.hi ? 18 : 7, tip), key); }
 // rocket bell: exit radius re at y, throat rt, length L, regen look; ext = radiative extension fraction (vacuum)
 export function bell(k, re, L, x, y, z, o = {}) {
-  const rt = o.rt || re * 0.38, pts = [], n = k.mid ? 6 : k.hi ? 12 : 5;
+  const rt = o.rt || re * 0.38, pts = [], n = k.mid ? 4 : k.hi ? 12 : 5; // mid 4 rows (titan: 33 bells -> -1.6k tris)
   for (let i = 0; i <= n; i++) { const t = i / n; pts.push(new THREE.Vector2(rt + (re - rt) * Math.pow(1 - t, 1.7), t * L)); }
   k.add(new THREE.LatheGeometry(pts, k.mid ? 12 : k.hi ? 28 : 10), o.ext ? 'bellx' : 'bell', xf([x, y, z]));
   if (!k.hi) return;
@@ -30,7 +30,7 @@ export function gridFins(k, r, y, w, h, n = 4, a0 = PI / 4, deploy = 1) {
   for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI; k.push(xf([Math.cos(a) * r, y, Math.sin(a) * r], [0, -a, 0]));
     k.push(xf([0, 0, 0], [0, 0, -deploy * PI / 2 * 0.98])); // hinged at the hull: stowed points up, deployed sticks out
     if (k.hi) { // real lattice: +-45 deg blades with depth, so the fin reads as open cells from any angle (edge-on included)
-      const d = 0.38, t = 0.045, step = 0.26, y0 = 0.1;
+      const d = 0.38, t = 0.045, step = k.mid ? 0.8 : 0.26, y0 = 0.1; // mid: coarse lattice (same silhouette, ~1/3 the blades)
       for (const sg of [1, -1]) for (let c = -(w + h); c <= w + h; c += step) { // blade line: v = sg*u + c, clipped to |u|<=w/2, 0<=v<=h
         let u0 = -w / 2, u1 = w / 2; const vAt = u => sg * u + c;
         const lo = sg > 0 ? (0 - c) : (c - h), hi = sg > 0 ? (h - c) : (c - 0); u0 = Math.max(u0, Math.min(lo, hi)); u1 = Math.min(u1, Math.max(lo, hi));
@@ -58,17 +58,23 @@ export function legs(KitC, detail, r, len, y, n = 4, a0 = PI / 4) {
     if (lean) continue; if (!g.userData.armMesh) { const uni = unit.toNonIndexed(), geo = mergeGeometries(Array.from({ length: 2 * n }, () => uni.clone())); geo.userData.noShare = true; const am = new THREE.Mesh(geo, mat('grey')); am.frustumCulled = false; am.name = 'arms'; g.add(am);
       g.userData.armMesh = am; g.userData.armBase = { pos: uni.attributes.position.array.slice(), nor: uni.attributes.normal.array.slice(), nv: uni.attributes.position.count }; uni.dispose(); }
     g.userData.arms.push({ piv, idx: i, A: new THREE.Vector3(Math.cos(a) * (r - 0.1), y + len * 0.42, Math.sin(a) * (r - 0.1)), tipL: new THREE.Vector3(0.24, len * 0.86, 0) }); }
-  setLegs(g, 0); if (detail === 'lo') bakeLegs(g); return g;
+  setLegs(g, 0); if (detail !== 'hi') packLegs(g); return g;
 }
-// lo LOD: the 4 legs become two merged meshes (stowed / deployed); setLegs toggles them (1 draw call per stage)
-function bakeLegs(g) { const meshes = {}; for (const [t, nm] of [[0, 'stowed'], [1, 'deployed']]) { setLegs(g, t); g.updateMatrixWorld(true); const inv = g.matrixWorld.clone().invert(), gs = [];
-    g.traverse(o => { if (o.isMesh) { const x = o.geometry.clone(); for (const a of Object.keys(x.attributes)) if (!['position', 'normal', 'uv'].includes(a)) x.deleteAttribute(a); if (x.index) { const y = x.toNonIndexed(); x.dispose(); gs.push(y.applyMatrix4(inv.clone().multiply(o.matrixWorld))); } else gs.push(x.applyMatrix4(inv.clone().multiply(o.matrixWorld))); } });
-    const m = new THREE.Mesh(mergeGeometries(gs), mat('carbon')); m.geometry.computeBoundingSphere(); m.name = 'legs:' + nm; meshes[nm] = m; for (const x of gs) x.dispose(); }
-  for (const p of g.userData.pivots) { p.traverse(o => o.isMesh && o.geometry.dispose()); g.remove(p); }
-  g.userData.pivots = []; g.userData.arms = []; g.userData.baked = meshes; g.add(meshes.stowed, meshes.deployed); setLegs(g, 0); }
-const _B = new THREE.Vector3(), _d = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
-// stowed: leg up along the hull; deployed: swings out and down ~115° so the pad sits below the engines
-export function setLegs(g, t) { if (g.userData.baked) { g.userData.baked.stowed.visible = t < 0.5; g.userData.baked.deployed.visible = t >= 0.5; g.userData.t = t; return; } for (const p of g.userData.pivots) p.rotation.z = -t * 2.0; g.userData.t = t;
+// mid/lo LOD: all legs of a set live in ONE mesh (1 draw call, was 4 on mid / 2 on lo). Each leg's pivot-local geometry is
+// kept as a base copy; setLegs rotates the pivots and rewrites the vertices, so deployment stays smooth on every LOD.
+function packLegs(g) { const parts = [];
+  for (const piv of g.userData.pivots) { piv.updateMatrixWorld(true); const inv = piv.matrixWorld.clone().invert(), gs = [];
+    piv.traverse(o => { if (!o.isMesh) return; let x = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); for (const k of Object.keys(x.attributes)) if (!['position', 'normal'].includes(k)) x.deleteAttribute(k); gs.push(x.applyMatrix4(inv.clone().multiply(o.matrixWorld))); });
+    const one = gs.length > 1 ? mergeGeometries(gs) : gs[0]; parts.push({ piv, pos: one.attributes.position.array.slice(), nor: one.attributes.normal.array.slice(), nv: one.attributes.position.count });
+    for (const x of gs) x.dispose(); if (one !== gs[0]) one.dispose(); piv.traverse(o => { if (o.isMesh && !o.geometry.userData.shared) o.geometry.dispose(); }); piv.clear(); }
+  const tot = parts.reduce((s, p) => s + p.nv, 0), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tot * 3), 3)); geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tot * 3), 3));
+  geo.userData.noShare = true; let off = 0; for (const p of parts) { p.off = off; off += p.nv; }
+  const m = new THREE.Mesh(geo, mat('carbon')); m.name = 'legs:packed'; m.frustumCulled = false; g.add(m); g.userData.pack = { mesh: m, parts }; setLegs(g, g.userData.t || 0); }
+function packWrite(g) { const { mesh, parts } = g.userData.pack, a = mesh.geometry.attributes, P = a.position.array, N = a.normal.array;
+  for (const p of parts) { p.piv.updateMatrix(); const M = p.piv.matrix, nm = _NM.getNormalMatrix(M);
+    for (let v = 0; v < p.nv; v++) { const j = v * 3, o = (p.off + v) * 3; _P.fromArray(p.pos, j).applyMatrix4(M).toArray(P, o); _S2.fromArray(p.nor, j).applyMatrix3(nm).normalize().toArray(N, o); } }
+  a.position.needsUpdate = a.normal.needsUpdate = true; mesh.geometry.computeBoundingSphere(); }
+export function setLegs(g, t) { for (const p of g.userData.pivots) p.rotation.z = -t * 2.0; g.userData.t = t; if (g.userData.pack) packWrite(g);
   for (const m of g.userData.arms || []) { m.piv.updateMatrix(); _B.copy(m.tipL).applyMatrix4(m.piv.matrix); _d.subVectors(_B, m.A); const L = _d.length(); _d.normalize();
     const q = new THREE.Quaternion().setFromUnitVectors(_up, _d);
     // rockets-3: arms are 2 InstancedMeshes per leg set (was 2 meshes per leg) -> -6 draw calls on hi
@@ -78,6 +84,7 @@ export function setLegs(g, t) { if (g.userData.baked) { g.userData.baked.stowed.
 function armWrite(g, copy, M) { const B = g.userData.armBase, a = g.userData.armMesh.geometry.attributes, P = a.position.array, N = a.normal.array, o = copy * B.nv * 3, nm = _NM.getNormalMatrix(M);
   for (let v = 0; v < B.nv; v++) { const j = v * 3; _P.fromArray(B.pos, j).applyMatrix4(M).toArray(P, o + j); _S2.fromArray(B.nor, j).applyMatrix3(nm).normalize().toArray(N, o + j); } }
 const _NM = new THREE.Matrix3(), _S2 = new THREE.Vector3();
+const _B = new THREE.Vector3(), _d = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
 const _M = new THREE.Matrix4(), _S = new THREE.Vector3(), _P = new THREE.Vector3();
 // decal strip: a cylinder section just outside radius r, height h, centred on angle ac, arc width (radians)
 export function decal(k, slot, r, y, h, ac = 0, arc = 1.1) { if (!k.hi) return; k.add(new THREE.CylinderGeometry(r * 1.004, r * 1.004, h, 24, 1, true, ac - arc / 2 + PI / 2, arc), 'decal:' + slot, xf([0, y + h / 2, 0])); }
