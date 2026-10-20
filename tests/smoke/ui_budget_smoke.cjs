@@ -3,7 +3,7 @@
 // Per screen it measures controls / words / UI coverage (and taps open→liftoff) and compares them with the spec budgets.
 // Counting rules = playtest/ui_audit_menus.cjs: only controls/text that are topmost at their centre count; UI% = 8 px grid
 // of points whose topmost element has an opaque-ish surface (or is a control). Default = report-only (always exit 0,
-// prints PASS/FAIL per budget). --strict exits 1 if any budget fails. Needs playwright-core (PW_CORE=) + Chrome (CHROME=).
+// prints PASS/FAIL per budget). f5.1h: picker_group_words + builder_gated measured on the grouped picker (#picker, Sandbox switch). --strict exits 1 if any budget fails. Needs playwright-core (PW_CORE=) + Chrome (CHROME=).
 const PW = process.env.PW_CORE || (() => { try { return require.resolve('playwright-core'); } catch (e) { return '/workspace/pwt/node_modules/playwright-core'; } })();
 const { chromium } = require(PW);
 const args = process.argv.slice(2), flag = k => { const i = args.indexOf(k); return i >= 0 ? (args.splice(i, 1), true) : false; };
@@ -56,11 +56,15 @@ function extra() {
   const hudVis = [...new Set(document.querySelectorAll(hudSel))].filter(e => vis(e) && shown(e)).map(e => (e.id || e.textContent.trim().split(/\s+/)[0] || e.tagName).slice(0, 10));
   const L = ['hLaunch', 'launch', 'hFly', 'launchBtn'].map(i => document.getElementById(i)).find(vis); let launch = null;
   if (L) { const r = L.getBoundingClientRect(); launch = { id: L.id, h: Math.round(r.height), cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; }
-  const groups = [...document.querySelectorAll('[data-company],.co-chip,.company-chip')].filter(vis).map(e => ({ t: (e.getAttribute('aria-label') || e.textContent || '').trim(), w: ((e.textContent || '').match(/[A-Za-z0-9][\w'.:%/-]*/g) || []).length }));
-  const builder = ['hnBuild', 'buildBtn', 'builder'].map(i => document.getElementById(i)).filter(vis).map(e => e.id);
+  // f5.1h: the grouped rocket picker (#picker, f5.1f) labels each launch house with a section heading (<h4>) — that is the company group label
+  const groups = [...document.querySelectorAll('[data-company],.co-chip,.company-chip,#picker section > h4')].filter(vis).map(e => ({ t: (e.getAttribute('aria-label') || e.textContent || '').trim(), w: ((e.textContent || '').match(/[A-Za-z0-9][\w'.:%/-]*/g) || []).length }));
+  const builder = ['hnBuild', 'buildBtn', 'builder', 'pkBuild'].map(i => document.getElementById(i)).filter(vis).map(e => e.id); // pkBuild = the picker's '🔧 Build your own' (Sandbox only)
   const st = G && G.settings || {}; const sbKey = Object.keys(st).find(k => /sandbox/i.test(k));
   const sbUi = [...document.querySelectorAll('label,[role=switch],input[type=checkbox]')].some(e => vis(e) && /sandbox/i.test(e.textContent || e.getAttribute('aria-label') || e.name || e.id || '')); // a settings toggle, not the welcome modal's "Sandbox — just let me fly" button
-  return { endUp, endCover, hudVis, rocketSrc: rocket.src, launch, W: innerWidth, H: innerHeight, groups, builder, sandbox: sbKey ? { key: sbKey, on: !!st[sbKey] } : (sbUi ? { key: 'ui', on: null } : null) };
+  // f5.1g: Sandbox is a switch in the picker header (#pkSandbox, role=switch) stored in localStorage 'orbitrush.sandbox', not a settings key
+  const sw = document.getElementById('pkSandbox'); let ls = null; try { ls = localStorage.getItem('orbitrush.sandbox'); } catch (e) {}
+  const sbPk = sw ? { key: 'pkSandbox', on: sw.getAttribute('aria-checked') === 'true' } : null;
+  return { endUp, endCover, hudVis, rocketSrc: rocket.src, launch, W: innerWidth, H: innerHeight, groups, builder, sandbox: sbKey ? { key: sbKey, on: !!st[sbKey] } : sbPk || (sbUi ? { key: 'ui', on: null } : null), sandboxLS: ls };
 }
 
 async function runVp(br, vp) {
@@ -96,9 +100,15 @@ async function runVp(br, vp) {
   await m('first_run');
   // f5.1c: the welcome's #frSb is "🚀 Fly now" (launches), so close the welcome without launching to measure Home; taps_to_liftoff above still taps #frSb for real
   await step('home', async () => { await ev(() => { const fr = document.getElementById('firstRun'); if (fr) fr.classList.add('hidden'); const b = document.getElementById('frSb'); if (b && b.offsetParent && !/fly now/i.test(b.textContent)) b.click(); for (const s of ['#acClose', '#lessonSkip']) { const c = document.querySelector(s); c && c.offsetParent && c.click(); } }); await hide(); }, 1000);
+  // f5.1f: the grouped rocket picker (▦ #hPick on Home). Measured for the picker_group_words + builder_gated checks (no budget row of its own yet)
+  await step('picker', async () => { await ev(() => { const b = document.getElementById('hPick'); if (b) b.click(); }); }, 1200);
+  await ev(() => { const c = document.getElementById('pkClose'); c && c.offsetParent && c.click(); });
   await step('settings', async () => { await ev(() => document.getElementById('hGear').click()); await wait(600); await ev(() => { const b = [...document.querySelectorAll('#hGearM button')].find(b => /settings/i.test(b.textContent)); b && b.click(); }); }, 1000);
   await step('missions_hub', async () => { await hide(); await ev(() => { const g = document.getElementById('hGearM'); g && g.offsetParent && document.getElementById('hGear').click(); document.getElementById('hnMis').click(); }); }, 1200);
-  await step('build', async () => { await hide(); await ev(() => document.getElementById('hnBuild').click()); }, 2500);
+  // f5.1f: the Build tab only shows with Sandbox on; otherwise go the real way: ▦ picker → Sandbox switch → 🔧 Build your own
+  await step('build', async () => { await hide(); const tab = await ev(() => { const b = document.getElementById('hnBuild'); return !!(b && b.offsetParent); });
+    if (tab) await ev(() => document.getElementById('hnBuild').click());
+    else { await ev(() => document.getElementById('hPick').click()); await wait(800); await ev(() => document.getElementById('pkSandbox').click()); await wait(800); await ev(() => document.getElementById('pkBuild').click()); } }, 2500);
   // f5.1d: Home now opens on Pip (sounding rocket, can't orbit), so hud_auto → end_card measured a crash; pick the first orbital
   // showroom rocket (Sparrow-1 'needle', else index 1) before FLY, and only press Space if FLY didn't already ignite (1-tap AUTO).
   await step('hud_auto', async () => { await hide(); await ev(() => document.getElementById('homeBack').click()); await wait(800);
@@ -129,12 +139,13 @@ async function runVp(br, vp) {
     const portrait = h.H > h.W, inZone = portrait ? h.launch.cy >= h.H * 0.75 : (h.launch.cy >= h.H * 0.5 && h.launch.cx >= h.W * 0.5);
     rows.push({ vp, screen: 'home', metric: 'launch_h', val: h.launch.h, max: '≥64', ok: h.launch.h >= 64, info: '#' + h.launch.id });
     rows.push({ vp, screen: 'home', metric: 'thumb_zone', val: inZone ? 'in' : 'out', max: 'in', ok: inZone, info: portrait ? 'bottom 25%' : 'bottom-right quadrant' }); }
-  const gs = ['home', 'missions_hub', 'build'].flatMap(s => (X(s) && X(s).groups || []).map(g => ({ s, ...g })));
+  const gs = ['home', 'picker', 'missions_hub', 'build'].flatMap(s => (X(s) && X(s).groups || []).map(g => ({ s, ...g })));
   if (!gs.length) skip('picker', 'group_words', 'no company groups in UI yet ([data-company]/.co-chip)');
   else { const worst = gs.reduce((a, b) => (b.w > a.w ? b : a)); rows.push({ vp, screen: 'picker', metric: 'group_words', val: worst.w, max: 2, ok: worst.w <= 2, info: `${gs.length} groups; worst "${worst.t.slice(0, 24)}" on ${worst.s}` }); }
-  const sb = X('settings') && X('settings').sandbox, hb = X('home');
+  const sb = ['settings', 'picker'].map(s => X(s) && X(s).sandbox).find(Boolean), hb = X('home'), pb = X('picker');
+  const gated = [...(hb ? hb.builder : []), ...(pb ? pb.builder : [])];
   if (!sb) skip('home', 'builder_gated', 'no Sandbox setting yet' + (hb && hb.builder.length ? ` (builder open on home: ${hb.builder.join(',')})` : ''));
-  else if (sb.on === false || sb.on === null) rows.push({ vp, screen: 'home', metric: 'builder_gated', val: hb.builder.length, max: 0, ok: hb.builder.length === 0, info: 'Sandbox off; visible: ' + hb.builder.join(',') });
+  else if (sb.on === false || sb.on === null) rows.push({ vp, screen: 'home', metric: 'builder_gated', val: gated.length, max: 0, ok: gated.length === 0, info: `Sandbox off (${sb.key}); visible on home+picker: ${gated.join(',') || 'none'}` });
   else skip('home', 'builder_gated', 'Sandbox is on in this profile');
   rows.push({ vp, screen: 'taps_to_liftoff', metric: 'taps(fresh)', val: lifted ? taps : `>${taps}`, max: 2, ok: lifted && taps <= 2, info: path.join(' → ') });
   return { vp, metrics: M, taps: { taps, lifted, path }, rows };

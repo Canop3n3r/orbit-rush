@@ -81,13 +81,16 @@ async function audio(br) {
   await pg.ctx.close(); return pg.errs;
 }
 async function endCard(br) {
-  const pg = await page(br); await pg.evaluate(() => { document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden')); window.__game.startMission('hop'); }); await pg.waitForTimeout(2000);
+  const pg = await page(br); await pg.evaluate(() => { document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden')); window.__game.startMission('hop'); }); await pg.waitForTimeout(1200);
+  // f5.1h: startMission(id) opens the mission card (choose a rocket, AUTO opt-in) instead of launching: take the mission's own rocket + 🤖 AUTO
+  const mc = await pg.evaluate(() => { const c = document.getElementById('misCard'); if (!c || c.classList.contains('hidden')) return null; const b = c.querySelector('.mcList button[data-k^="o:"]'); if (b) b.click(); const a = document.getElementById('mcAuto'); if (a) a.click(); return b ? b.dataset.k : 'default'; });
+  await pg.waitForTimeout(2000);
   for (let k = 0; k < 40; k++) { const done = await pg.evaluate(() => { const F = window.__game.F; for (let i = 0; i < 60 * 15; i++) F.advance(1 / 60); const e = document.getElementById('end'); return e && !e.classList.contains('hidden'); }); await pg.waitForTimeout(400); if (done) break; }
   await pg.waitForTimeout(1500); await shot(pg, 'endcard');
-  const r = await pg.evaluate(() => { const e = document.getElementById('end'); if (!e || e.classList.contains('hidden')) return { shown: false }; const r = e.getBoundingClientRect(), b = window.__game.rocketBox ? window.__game.rocketBox() : null;
+  const r = await pg.evaluate(MC => { const e = document.getElementById('end'); if (!e || e.classList.contains('hidden')) return { shown: false, card: MC }; const r = e.getBoundingClientRect(), b = window.__game.rocketBox ? window.__game.rocketBox() : null;
     const lines = (document.getElementById('endBody').innerText.match(/\n/g) || []).length + 1;
     const ix = b ? Math.max(0, Math.min(r.right, b.x + b.w) - Math.max(r.left, b.x)) * Math.max(0, Math.min(r.bottom, b.y + b.h) - Math.max(r.top, b.y)) : null;
-    return { shown: true, cardPct: +(100 * r.width * r.height / innerWidth / innerHeight).toFixed(1), cardH: Math.round(r.height), lines, rocket: b && [b.x, b.y, b.w, b.h].map(Math.round), rocketHiddenPct: b && b.w * b.h > 0 ? +(100 * ix / (b.w * b.h)).toFixed(0) : null }; });
+    return { shown: true, card: MC, cardPct: +(100 * r.width * r.height / innerWidth / innerHeight).toFixed(1), cardH: Math.round(r.height), lines, rocket: b && [b.x, b.y, b.w, b.h].map(Math.round), rocketHiddenPct: b && b.w * b.h > 0 ? +(100 * ix / (b.w * b.h)).toFixed(0) : null }; }, mc);
   rec('end_card_compact', r.shown && r.cardPct <= 45 && r.lines <= 8 && (r.rocketHiddenPct === null ? true : r.rocketHiddenPct <= 20), r); // no rocketBox hook (f2): judged on size alone
   await pg.ctx.close(); return pg.errs;
 }
