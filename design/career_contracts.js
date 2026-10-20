@@ -35,7 +35,7 @@ export const CONTRACTS = [
     cost: 10, reward: { cash: 40, sci: 12, rep: 10 }, unlock: { vehicles: ['swift'], missions: ['booster-landing'] },
     inspiration: [
       { company: 'spacey', vehicle: 'sparrow-1', note: 'first privately developed liquid rocket to orbit, on the 4th try (2008-09-28, spec:sparrow-1)' },
-      { company: 'redstar', vehicle: 'soyuzny', note: 'lineage of the first artificial satellite launcher (1957)' }] },
+      { company: 'redstar', vehicle: 'rodnik', note: 'lineage of the first artificial satellite launcher (1957)' }] },
   { id: 'booster-landing', rung: 'booster', mission: null, vehicle: 'swift', site: 'cape-north',
     goal: { text: 'Fly the booster back and land it upright', kind: 'booster-landed' },
     cost: 15, reward: { cash: 60, sci: 10, rep: 10 }, unlock: { sites: ['lz1'], missions: ['constellation-batch'] },
@@ -53,7 +53,7 @@ export const CONTRACTS = [
     cost: 50, reward: { cash: 140, sci: 25, rep: 12 }, unlock: { vehicles: ['atlas', 'selene'], missions: ['lunar-landing'] },
     inspiration: [
       { company: 'spacey', vehicle: 'heron-9-crew', note: 'first commercial crew flight to the station (2020-05-30, spec:heron-9-crew)' },
-      { company: 'redstar', vehicle: 'soyuzny', note: 'decades of crew ferry flights to stations' },
+      { company: 'redstar', vehicle: 'rodnik', note: 'decades of crew ferry flights to stations' },
       { company: 'rockwell', vehicle: 'space-truck', note: 'winged orbiter that assembled the station (1998-2011)' },
       { company: 'calt', vehicle: 'long-stride-2f', note: 'crew launches to a national station (from 2003)' }] },
   { id: 'lunar-landing', rung: 'moon', mission: 'lunar-landing', vehicle: 'selene', locked: 'placeholder model (Rocket Art Bot)', site: 'cape-heritage',
@@ -76,5 +76,5 @@ export const CONTRACTS = [
 
 // Inspiration ids above (neutral, from the studio roster plan; tier-S rows land with roster PRs #15-#25).
 export const INSPIRATION_COMPANIES = ['spacey', 'baltic', 'nosa', 'other', 'redstar', 'blueh', 'rockwell', 'calt', 'ulx'];
-export const INSPIRATION_VEHICLES = ['hopper-h', 'a-four', 'redrock', 'spacecraft-uno', 'sparrow-1', 'soyuzny', 'heron-9', 'heron-heavy',
+export const INSPIRATION_VEHICLES = ['hopper-h', 'a-four', 'redrock', 'spacecraft-uno', 'sparrow-1', 'rodnik', 'heron-9', 'heron-heavy',
   'new-glendale', 'heron-9-crew', 'space-truck', 'long-stride-2f', 'saturnine-v', 'long-stride-5', 'super-lift', 'n-won', 'atlantean-v', 'titan-ss'];

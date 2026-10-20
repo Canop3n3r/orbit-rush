@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.1c';
 import { uniform } from 'three/tsl';
 import * as P from './physics.js?v=f5.1c';
 import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.1c';
@@ -698,7 +699,7 @@ TEMPLATES.forEach((t, i) => {
   const b = document.createElement('button'); b.innerHTML = i === 0 ? '<span class="rec">★ RECOMMENDED</span>' : t.name; b.title = t.note; b.dataset.p = i;
   b.onclick = () => setDesign(cloneDesign(TEMPLATES[i])); $('presets').appendChild(b);
 });
-const loadSaved = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; } };
+const loadSaved = () => { try { return (JSON.parse(localStorage.getItem(LS_KEY)) || []).map(migrateSave); } catch (e) { return []; } };
 function renderSaved() {
   const sel = $('savedSel'), list = loadSaved(), cur = sel.value; sel.innerHTML = '<option value="">Saved designs…</option>' + list.map((d, i) => `<option value="${i}">${d.name.replace(/</g, '&lt;')}</option>`).join('');
   if (cur && +cur < list.length) sel.value = cur;
@@ -947,7 +948,7 @@ function quicksave() {
 }
 function quickInfo() { try { const s = JSON.parse(localStorage.getItem(QS_KEY)); if (!s) return ''; return `${s.design.name || 'rocket'} · ${P.BODIES[s.body].name} · ${new Date(s.at).toLocaleTimeString()}`; } catch (e) { return ''; } }
 function quickload() {
-  let s = null; try { s = JSON.parse(localStorage.getItem(QS_KEY)); } catch (e) { s = null; }
+  let s = null; try { s = migrateSave(JSON.parse(localStorage.getItem(QS_KEY))); } catch (e) { s = null; }
   if (!s) { toast('No quicksave (F5 saves)', '#ffb35c'); return false; }
   setPause(false); design = cloneDesign(s.design); selected = -1; reset(); state = 'flight';
   F.loadSnapshot(s); v = F.v; syncStages();
