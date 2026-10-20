@@ -808,3 +808,5 @@ body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #h
 #picker .pkSw i{position:relative;width:44px;height:26px;border-radius:13px;background:#3a4560;transition:background .15s}
 #picker .pkSw i::after{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
 #picker .pkSw[aria-checked="true"] i{background:#2fb36b}#picker .pkSw[aria-checked="true"] i::after{left:21px}
+/* f5.1g Build nav dedupe: Missions / Atlas / Academy live on Home's nav (and ⚙); Build keeps ‹ Home */
+#build #academyBtn,#build #missionsBtn,#build #atlasBtn{display:none}

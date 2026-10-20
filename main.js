@@ -675,7 +675,7 @@ function refreshBuild() {
     if (JSON.stringify(design.parts) !== key || !$('verdict')) return;
     requestVerdict(design, (a, p) => {
     if (JSON.stringify(design.parts) !== key || !$('verdict')) return;
-    $('verdict').innerHTML = design.sub && !a.orbit && a.level === 'bad' ? '<span class="good">✔ Suborbital rocket: AUTO flies it up to space and back down (orbit not needed)</span>' : `<span class="${a.level}">${a.text}</span>`; // f5.1f
+    $('verdict').innerHTML = design.sub && !a.orbit && a.level === 'bad' ? '<span class="good">✔ Suborbital: AUTO reaches space and comes back</span>' : `<span class="${a.level}">${a.text}</span>`; // f5.1f
     if ($('ghost') && fun && fun.drawGhost) { fun.drawGhost.t0 = performance.now(); fun.drawGhost($('ghost'), a.track, a.level); }
     const el = $('landPlan'); const s1 = design && stats.analysis.stages[0];
     if (p.reason === 'single') el.innerHTML = '<span class="small">Single-stage rocket: no booster to land.</span>';
