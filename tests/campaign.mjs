@@ -69,4 +69,17 @@ ok(!loadFrom({ getItem() { throw new Error('denied'); } }).ok && !saveTo({ setIt
   const big = JSON.parse(serialize(s)); big.career.junk = 'x'.repeat(600 * 1024); ok(!load(JSON.stringify(big)).ok, 'load caps the save size');
   const t2 = JSON.parse(serialize(s)); t2.career.flights[0].mission = 'toString'; ok(!load(JSON.stringify(t2)).ok, 'flight mission toString rejected via Object.hasOwn');
   const t3 = JSON.parse(serialize(broke)); t3.career.flights.forEach(f => { delete f.stipend; }); ok(!load(JSON.stringify(t3)).ok, 'stipend entries must match the replay'); }
+// ---- UI tiles (ui_ideal_path step 7) ----
+{ const T = await import('../missions/campaign/tiles.js'); const all = Object.keys(CONTRACTS), c0 = newCareer(), tl = T.missionTiles(c0);
+  ok(all.every(id => tl.some(t => t.id === id)) && tl.length === all.length, `every contract incl. practice has a tile (${tl.length})`);
+  for (const t of tl) { ok(t.icon && t.title.trim().split(/\s+/).length <= 2, `${t.id}: icon ${t.icon}, title "${t.title}" ≤ 2 words`);
+    ok(/^[^.!?]+[.!?]$/.test(t.detail) && t.detail.length <= 90, `${t.id}: detail is one short sentence (${t.detail.length} ch)`); }
+  const byId = (c, id) => T.missionTiles(c).find(t => t.id === id);
+  ok(byId(c0, 'practice').lock === 'open' && byId(c0, 'first-orbit').lock === 'open' && byId(c0, 'gto-comsat').lock === 'vehicle' && byId(c0, 'mars-ship').lock === 'vehicle', 'fresh career: tier 1 open, later tiers vehicle-locked');
+  ok(byId({ ...c0, money: 0 }, 'first-orbit').lock === 'money' && byId({ ...c0, money: 0 }, 'practice').lock === 'open', 'broke: paid contract money-locked, practice still open');
+  ok(T.STAR_FRACTIONS.length === 3 && [0, 1, 2, 3].every(n => T.starsFor('first-orbit', n ? T.STAR_FRACTIONS[n - 1] * T.TILES['first-orbit'].par : 0) === n), 'stars follow the threshold data exactly at each boundary');
+  ok(T.starsFor('first-orbit', T.STAR_FRACTIONS[0] * T.TILES['first-orbit'].par - 1) === 0, 'just below 1-star threshold = 0 stars');
+  let c = applyFlight(c0, 'first-orbit', { complete: true, score: 8000 }); c = applyFlight(c, 'first-orbit', { complete: true, score: 3000 }); c = applyFlight(c, 'practice', { complete: true, score: 6000 });
+  ok(byId(c, 'first-orbit').stars === 3 && byId(c, 'first-orbit').best === 8000 && byId(c, 'practice').stars === 2 && byId(c0, 'first-orbit').stars === 0, 'stars come from the BEST score (incl. practice via its flight log)');
+  ok(JSON.stringify(T.missionTiles(c)) === JSON.stringify(T.missionTiles(structuredClone(c))) && JSON.stringify(c) === JSON.stringify(applyFlight(applyFlight(applyFlight(c0, 'first-orbit', { complete: true, score: 8000 }), 'first-orbit', { complete: true, score: 3000 }), 'practice', { complete: true, score: 6000 })), 'missionTiles is pure (no career mutation, deterministic)'); }
 console.log(`campaign: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);

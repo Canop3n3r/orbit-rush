@@ -51,4 +51,5 @@ for (const id of ['station-rendezvous', 'gto-comsat']) { const a = runMission(ms
 for (const id of ['lunar-landing', 'mars-ship']) { const v = validateMission({ ...ms[id], vehicle: { ...ms[id].vehicle, gameMassT: 2 } }); ok(!v.ok && v.err.some(e => /no 'sat' payload part/.test(e)), `${id}: schema rejects gameMassT without a payload part: ${v.err.join('; ')}`); }
 { const v = validateMission({ ...ms['crew-dock'], vehicle: { ...ms['crew-dock'].vehicle, template: 'Heavy lift', payloadPart: 'probe', gameMassT: 2 } }); ok(!v.ok && v.err.some(e => /'probe'/.test(e)), 'schema error names the actual payload part'); }
 ok(ms['ship-transfer'].real.tankerLoadT === 100, 'tanker cargo is 100 t');
+{ const T = await import('../missions/campaign/tiles.js'); for (const id of Object.keys(best)) ok(T.starsFor(id, best[id]) === 3, `${id}: autopilot clean run earns 3 stars (${best[id]} vs par ${T.TILES[id].par})`); }
 console.log(`missions_campaign: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
