@@ -1,9 +1,9 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f4.2';
-import * as C from './physics/patched.js?v=f4.2';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f4.2';
+import * as P from './physics.js?v=f5b.1';
+import * as C from './physics/patched.js?v=f5b.1';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5b.1';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -242,7 +242,7 @@ export class Flight {
       const f = C.nodeFrame(v.r, v.v), a = V.scale(P.noseOf(v), v.thrust / m0 * dt);
       n.done.pro += V.dot(a, f.pro); n.done.nrm += V.dot(a, f.nrm); n.done.rad += V.dot(a, f.rad);
     }
-    const rem = this.nodeRemaining(n); v.nodeDir = rem && V.len(rem) > 1e-6 ? V.norm(rem) : null; if (!rem) return;
+    const rem = this.nodeRemaining(n); v.nodeDir = rem && V.len(rem) > 1e-6 ? V.norm(rem) : null; if (!rem) { if (this.exec && this.tAbs > n.t + 600) { this.exec = false; v.ut = 0; this.removeNode(n); } return; } // f5a.2: an unexecutable past node no longer stalls AUTO
     const L = this.nodeLeft(n), left = Math.hypot(L.pro, L.nrm, L.rad), along = L.pro * n.pro + L.nrm * n.nrm + L.rad * n.rad;
     if (n.started && (left < 0.3 || along <= 0)) {
       this.toast(`Maneuver complete (${left.toFixed(1)} m/s left)`, '#7dffa6'); if (this.exec) { v.ut = 0; v.throttle = 0; }
@@ -263,6 +263,7 @@ export class Flight {
     if (!go) { v.ut = 0; if (!this.warpTarget && this.tAbs < n.t - this.nodeBurnTime(n) / 2 - NODE_LEAD - 5 && ang < 0.1) this.warpToNode(true); return; }
     if (this.warpTarget) this.warpTarget = null;
     v.ut = ang < 0.05 || (n.started && ang < 0.3) ? (a > 0 ? Math.max(0.05, Math.min(1, dv / (a * 2))) : 1) : 0;
+    if (!v.ut && this.rails && this.warpI > 0) this.setWarp(0, true); // f5a.2 (QA P1): on rails the attitude is frozen, so SAS could never line up and the burn never started (Venus correction stall)
     if (a <= 0 && v.stages[v.cur].fuel <= 0) { if (v.cur < this.lastPow && this.canStage()) this.stage(); else { this.toast('Out of fuel during the burn', '#ff6262'); this.exec = false; v.ut = 0; } }
     void bt;
   }
@@ -836,7 +837,7 @@ export class Flight {
     if (f.space) s += 1000;
     if (f.orbit) { s += 3000; if (isFinite(o.ap)) s += Math.max(0, 1500 - Math.abs(o.ap - o.pe) / 100); s += fuelLeft * 800; }
     if (f.recovered) s += 4000;
-    s *= mult; s += f.boosterBonus + this.goalScore(); if (f.dead) s *= 0.5;
+    s *= mult; s += f.boosterBonus + ((this.flagsB && this.flagsB.boosterBonus) || 0) + this.goalScore(); // f5: Heavy side booster B scores too if (f.dead) s *= 0.5;
     return Math.round(s);
   }
   finish() { if (!this.ended) { this.finalScore = this.score(); this.ended = true; this.autoWarp = false; this.warpI = 0; } return this.finalScore; }

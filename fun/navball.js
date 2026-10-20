@@ -14,12 +14,19 @@ export function horizonFrame(r) { const up = nrm(r); let e = cross([0, 0, 1], up
 // pitch (deg, + above horizon) and heading (deg from north, clockwise) of a world direction
 export function pitchHeading(H, d) { const u = dot(d, H.up), p = Math.asin(Math.max(-1, Math.min(1, u))) * 180 / Math.PI;
   const hd = (Math.atan2(dot(d, H.east), dot(d, H.north)) * 180 / Math.PI + 360) % 360; return { pitch: p, heading: hd }; }
+// f5: nose attitude for the numeric readouts: heading (0-360, from north), pitch (+ above the horizon) and roll
+// (deg, 0 = ship top toward the sky, + = rolled right) of the frame F in the horizon frame H
+export function attitude(F, H) {
+  const { pitch, heading } = pitchHeading(H, F.n), un = dot(H.up, F.n), u = [H.up[0] - F.n[0] * un, H.up[1] - F.n[1] * un, H.up[2] - F.n[2] * un];
+  const roll = Math.hypot(...u) < 1e-4 ? 0 : Math.atan2(dot(u, F.r), dot(u, F.t)) * 180 / Math.PI;
+  return { heading, pitch, roll };
+}
 export const MARKERS = { pro: '#7dffa6', retro: '#7dffa6', nrm: '#d58cff', anti: '#d58cff', radOut: '#4ad6ff', radIn: '#4ad6ff', node: '#5aa0ff', tgt: '#ff6ad5', antiTgt: '#ff6ad5' };
 export function createNavball(canvas) {
-  const g = canvas.getContext('2d'); let W = 0, img = null, last = 0;
+  const g = canvas.getContext('2d'); let W = 0, img = null, last = 0, lastAtt = null;
   function size() { const w = canvas.width; if (w !== W) { W = w; img = g.createImageData(W, W); } }
   function draw(st, now = performance.now()) { // st: { nose, top, r, markers: {key: dir}, }
-    if (now - last < 33) return; last = now; size();
+    if (now - last < 33) return lastAtt; last = now; size();
     const F = shipFrame(st.nose, st.top), H = horizonFrame(st.r), d = img.data, R = W / 2 - 1, R2 = R * R;
     // per pixel: direction on the front hemisphere = x·right + y·top + z·nose
     for (let j = 0; j < W; j++) { const y = (R - j) / R;
@@ -35,16 +42,29 @@ export function createNavball(canvas) {
           const m = Math.abs(hd - Math.round(hd / 15) * 15); if (m < (Math.round(hd / 45) * 45 === Math.round(hd / 15) * 15 ? 1.1 : 0.6) && Math.abs(el) < (Math.round(hd / 45) * 45 === Math.round(hd / 15) * 15 ? 5 : 3)) { cr = cg = cb = 235; } }
         d[o] = cr * sh; d[o + 1] = cg * sh; d[o + 2] = cb * sh; d[o + 3] = 255; } }
     g.putImageData(img, 0, 0);
-    // heading labels on the horizon
-    g.font = `700 ${Math.max(8, W / 14)}px system-ui`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    for (const [lab, a] of [['N', 0], ['E', 90], ['S', 180], ['W', 270]]) { const rad = a * Math.PI / 180, dir = [0, 1, 2].map(k => H.north[k] * Math.cos(rad) + H.east[k] * Math.sin(rad));
-      const p = navballProject(F, dir); if (p.z > 0.15) { g.fillStyle = '#0b1424'; g.fillText(lab, R + p.x * R, R - p.y * R - W / 16); } }
+    // f5 labels: heading numbers every 30° on the horizon (N/E/S/W at the cardinals), pitch numbers on the ladder
+    const fs = Math.max(8, W / 15); g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    const lab = (t, x, y, f, col = '#0b1424', halo = '#ffffffb0') => { g.font = `800 ${f}px system-ui`; g.lineWidth = Math.max(2, f / 4); g.strokeStyle = halo; g.strokeText(t, x, y); g.fillStyle = col; g.fillText(t, x, y); };
+    for (let a = 0; a < 360; a += 30) { const rad = a * Math.PI / 180, dir = [0, 1, 2].map(k => H.north[k] * Math.cos(rad) + H.east[k] * Math.sin(rad));
+      const p = navballProject(F, dir); if (p.z > 0.2) lab(a % 90 ? String(a / 10).padStart(2, '0') : 'NESW'[a / 90], R + p.x * R, R - p.y * R - W / 16, a % 90 ? fs * 0.8 : fs); }
+    { const nh = pitchHeading(H, F.n).heading * Math.PI / 180; // ladder numbers along the meridian under the nose
+      for (const el of [-60, -30, -20, -10, 10, 20, 30, 60]) { const e = el * Math.PI / 180, c = Math.cos(e), sE = Math.sin(e);
+        const dir = [0, 1, 2].map(k => (H.north[k] * Math.cos(nh) + H.east[k] * Math.sin(nh)) * c + H.up[k] * sE), p = navballProject(F, dir);
+        if (p.z > 0.25) lab(String(Math.abs(el)), R + p.x * R + W / 7, R - p.y * R, fs * 0.72, '#ffffff', '#0b1424c0'); } }
+    // roll bezel: fixed ticks at 0/±10/±20/±30/±45/±60 along the top edge, a pointer at the current roll
+    const att = attitude(F, H); g.strokeStyle = '#ffffffc0'; g.lineWidth = Math.max(1.2, W / 90);
+    for (const a of [0, 10, 20, 30, 45, 60, -10, -20, -30, -45, -60]) { const t = (a - 90) * Math.PI / 180, l = a % 30 === 0 ? W / 14 : W / 24;
+      g.beginPath(); g.moveTo(R + Math.cos(t) * R, R + Math.sin(t) * R); g.lineTo(R + Math.cos(t) * (R - l), R + Math.sin(t) * (R - l)); g.stroke(); }
+    { const t = (Math.max(-75, Math.min(75, att.roll)) - 90) * Math.PI / 180, rr = R - W / 12, s2 = W / 22; g.save(); g.translate(R + Math.cos(t) * rr, R + Math.sin(t) * rr); g.rotate(t + Math.PI / 2);
+      g.beginPath(); g.moveTo(0, -s2); g.lineTo(s2 * 0.8, s2 * 0.6); g.lineTo(-s2 * 0.8, s2 * 0.6); g.closePath(); g.fillStyle = '#ffcf4a'; g.fill(); g.restore(); }
+    lastAtt = att;
     for (const [k, dir] of Object.entries(st.markers || {})) { if (!dir) continue; const p = navballProject(F, dir); if (!p.front) continue; mark(k, R + p.x * R, R - p.y * R, Math.max(5, W / 13)); }
     // fixed ship reticle (original: a winged chevron)
     g.strokeStyle = '#ffcf4a'; g.lineWidth = Math.max(2, W / 50); g.lineCap = 'round'; g.beginPath();
     const s = W / 9; g.moveTo(R - s * 1.6, R); g.lineTo(R - s * 0.6, R); g.lineTo(R, R + s * 0.5); g.lineTo(R + s * 0.6, R); g.lineTo(R + s * 1.6, R); g.stroke();
     g.beginPath(); g.arc(R, R, W / 50, 0, 7); g.fillStyle = '#ffcf4a'; g.fill();
     g.beginPath(); g.arc(R, R, R, 0, 7); g.strokeStyle = '#ffffff40'; g.lineWidth = 1.5; g.stroke();
+    return att;
   }
   function mark(k, x, y, s) { // original iconography
     g.save(); g.translate(x, y); g.strokeStyle = MARKERS[k]; g.fillStyle = MARKERS[k]; g.lineWidth = Math.max(1.6, s / 4); g.beginPath();

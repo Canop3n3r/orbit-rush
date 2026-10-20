@@ -81,10 +81,10 @@ export function missionSession(m) {
       if (dockO) { if (x.range <= dockO.rangeM && x.relV <= dockO.relV) R.dockS += dt; else if (R.dockedT == null) R.dockS = 0; } }
     const d = m.deploy[S.idx]; if (!d) { S.done = true; S.task = null; return S; }
     const el = now - S.stepT0; let next = false;
-    const twoBurn = (mk, label) => { // generic "player executes planned nodes" step; mk(k) returns node k or null when finished
+    const twoBurn = (mk, label, of) => { // generic "player executes planned nodes" step; mk(k) returns node k or null when finished
       if (F.nodes.length || F.exec) return false;
       const n = mk((S._k || 0) + 1); if (!n) { S._k = 0; S.task = null; return true; }
-      S._k = (S._k || 0) + 1; F.addNode(n); R.burns++; S.task = { kind: 'execute-node', burn: S._k, label }; ev('node', F, { burn: S._k, dv: C.nodeDv(n) }); return false; };
+      S._k = (S._k || 0) + 1; F.addNode(n); R.burns++; S.task = { kind: 'execute-node', burn: S._k, of, label }; ev('node', F, { burn: S._k, dv: C.nodeDv(n) }); return false; };
     switch (d.kind) {
       case 'fairing-sep': if (F.flags.fairing) { ev('fairing-sep', F); next = true; } else if (el > 600) { ev('fairing-stuck', F); next = true; } break;
       case 'stack-release': // only in the target orbit (when the mission has one): off-target, the deploy waits
@@ -94,10 +94,10 @@ export function missionSession(m) {
         S._dBase ??= R.dispensed; const want = Math.min(d.count, Math.floor(el / d.intervalS) + 1);
         while (R.dispensed - S._dBase < want) { R.dispensed++; ev('dispense', F, { n: R.dispensed, label: d.label }); }
         if (R.dispensed - S._dBase >= d.count) { S._dBase = undefined; next = true; } break; }
-      case 'transfer': next = twoBurn(k => k <= 2 ? transferNode(F, k, d) : null, d.label || 'Reach the target orbit'); break;
+      case 'transfer': next = twoBurn(k => k <= 2 ? transferNode(F, k, d) : null, d.label || 'Reach the target orbit', 2); break;
       case 'raise-ap': next = twoBurn(k => k === 1 ? (() => { const tp = C.timeToPe(F.v.r, F.v.v, P.MU), s = P.propagate(F.v.r, F.v.v, tp, P.MU), r1 = V.len(s.r), r2 = P.R + d.apM;
-        return { t: F.tAbs + tp, pro: Math.sqrt(P.MU * (2 / r1 - 2 / (r1 + r2))) - V.len(s.v) }; })() : null, d.label || 'Raise apoapsis'); break;
-      case 'plane-change': next = twoBurn(k => { const nb = d.burns || 1, gap = d.inclDeg - inclDeg(F); if (k > nb + 1 || Math.abs(gap) < 0.05) return null; return planeNode(F, inclDeg(F) + gap / Math.max(1, nb + 1 - k)); }, d.label || 'Plane change'); break;
+        return { t: F.tAbs + tp, pro: Math.sqrt(P.MU * (2 / r1 - 2 / (r1 + r2))) - V.len(s.v) }; })() : null, d.label || 'Raise apoapsis', 1); break;
+      case 'plane-change': next = twoBurn(k => { const nb = d.burns || 1, gap = d.inclDeg - inclDeg(F); if (k > nb + 1 || Math.abs(gap) < 0.05) return null; return planeNode(F, inclDeg(F) + gap / Math.max(1, nb + 1 - k)); }, d.label || 'Plane change', (d.burns || 1) + 1); break;
       case 'rendezvous': { // phasing (Lambert search), velocity match, then closing approaches until inside the dock gate
         if (!R.target) { R.target = TG.makeTarget(F, { altM: d.altM, leadDeg: d.leadDeg ?? 8, id: d.target || 'station' }); R.targetFuel = d.targetFuelT || 0; ev('target', F, { id: R.target.id }); }
         next = twoBurn(k => {
@@ -121,7 +121,7 @@ export function missionSession(m) {
           const pl = C.planFull('earth', F.v.r, F.v.v, F.tAbs, d.target, { minWait: 1200, burn: F.burnModel() });
           if (!pl || !pl.reaches) { ev('no-window', F); next = true; break; }
           const node = pl.exact && pl.exactDv < pl.tunedDv * 1.05 ? pl.exact : pl.tuned;
-          F.addNode(node); R.burns++; S._ip = 1; S.task = { kind: 'execute-node', burn: 1, label: 'Ejection burn' }; ev('node', F, { dv: C.nodeDv(node), exactDv: pl.exactDv, wait: pl.wait }); break; }
+          F.addNode(node); R.burns++; S._ip = 1; S.task = { kind: 'execute-node', burn: 1, of: 1, label: 'Ejection burn' }; ev('node', F, { dv: C.nodeDv(node), exactDv: pl.exactDv, wait: pl.wait }); break; }
         if (!F.nodes.length && !F.exec) { S.task = null; if (F.body === 'sun') { ev('heliocentric', F); next = true; } else if (!F.warpTarget) S.task = { kind: 'warp-soi' }; }
         break; }
       case 'coast': if (el >= d.s) next = true; break;

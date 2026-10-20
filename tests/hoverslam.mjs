@@ -2,10 +2,10 @@
 // return (live entry burn → grid-fin coast → landing burn) including an off-nominal steep/fast entry, the low-TWR
 // fallback, and a one-tap Moon landing (airless: deorbit + hoverslam, no entry burn).
 // Run: node tests/hoverslam.mjs
-import * as P from '../physics.js?v=f4.2';
-import { Flight, PRESETS, simulateAuto, landingCheck } from '../flight.js?v=f4.2';
-import { TEMPLATES } from '../parts.js?v=f4.2';
-import { Director, MISSIONS } from '../fun/director.js?v=f4.2';
+import * as P from '../physics.js?v=f5b.1';
+import { Flight, PRESETS, simulateAuto, landingCheck } from '../flight.js?v=f5b.1';
+import { TEMPLATES } from '../parts.js?v=f5b.1';
+import { Director, MISSIONS } from '../fun/director.js?v=f5b.1';
 const { V } = P;
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
 // 1-D drop: mass m (kg) with fuel mf, thrust T, isp, from h0 at v0 down, gravity g, simple drag k·v²/m
@@ -52,7 +52,8 @@ const DEF = PRESETS[0];
   const b = r.F.booster;
   ok(r.boosterLanded, 'nominal: booster auto-lands on the droneship: ' + r.F.flags.booster);
   ok(b.touchV < 2, `nominal: touchdown ${b.touchV.toFixed(2)} m/s`);
-  ok(b.stages[0].fuel < 3, `nominal: little fuel left (${b.stages[0].fuel.toFixed(2)} t)`);
+  ok(b.stages[0].fuel < 5, // f5 guidance: later, chatter-free entry burn leaves ~4 t of the 20 t reserve
+  `nominal: little fuel left (${b.stages[0].fuel.toFixed(2)} t)`);
   ok(first && first.h < 3000, `hoverslam lights late (${first && first.h.toFixed(0)} m)`);
   ok(legsAt != null && legsAt < 2000, `legs deploy on time (${legsAt && legsAt.toFixed(0)} m)`);
   ok(track.includes('grid-fin glide') && !track.slice(track.indexOf('grid-fin glide')).includes('entry burn'), 'coast on grid fins between entry and landing burns');

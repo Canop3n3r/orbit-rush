@@ -1,40 +1,44 @@
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f4.2';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f4.2';
-import * as C from './physics/patched.js?v=f4.2';
+import * as P from './physics.js?v=f5b.1';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5b.1';
+import * as C from './physics/patched.js?v=f5b.1';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
-import { newCareer, canFly, applyFlight } from './missions/campaign/state.js';
-import { saveTo, loadFrom } from './missions/campaign/save.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName } from './brand/index.js?v=f4.2';
-import { createSolarMap } from './solarmap.js?v=f4.2';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f4.2';
-import { FX } from './fx.js?v=f4.2';
-import { createAcademy } from './academy-ui.js?v=f4.2';
-import { createMobile, isTouch } from './mobile.js?v=f4.2';
-import { localize } from './wording.js?v=f4.2';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f4.2';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f4.2';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5b.1';
+import { createCareerUI } from './fun/career-ui.js?v=f5b.1';
+import { SITE_NAMES, LADDER } from './fun/ladder.js?v=f5b.1';
+import { createSolarMap } from './solarmap.js?v=f5b.1';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5b.1';
+import { FX } from './fx.js?v=f5b.1';
+import { createAcademy } from './academy-ui.js?v=f5b.1';
+import { createMobile, isTouch } from './mobile.js?v=f5b.1';
+import { localize } from './wording.js?v=f5b.1';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5b.1';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5b.1';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f4.2';
-import * as GX from './gfx/gfx.js?v=f4.2';
-import { Director, MISSIONS } from './fun/director.js?v=f4.2';
-import * as PR from './fun/progress.js?v=f4.2';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f4.2';
-import { createAudio } from './fun/audio.js?v=f4.2';
-import { createCompact } from './fun/compact.js?v=f4.2';
-import { createHome } from './fun/home.js?v=f4.2';
-import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f4.2';
-import { createFunUI } from './fun/ui.js?v=f4.2';
-import { buildLOD as heroLOD } from './gfx/vehicles/vehicles.js?v=f4.2';
-import { dispose as heroDispose } from './gfx/vehicles/kit.js?v=f4.2';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5b.1';
+import * as GX from './gfx/gfx.js?v=f5b.1';
+import { Director, MISSIONS } from './fun/director.js?v=f5b.1';
+import * as PR from './fun/progress.js?v=f5b.1';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5b.1';
+import { createAudio } from './fun/audio.js?v=f5b.1';
+import { createCompact } from './fun/compact.js?v=f5b.1';
+import { createHome } from './fun/home.js?v=f5b.1';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5b.1';
+import { createFunUI } from './fun/ui.js?v=f5b.1';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm } from './gfx/vehicles/vehicles.js?v=f5b.1';
+import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5b.1';
+import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
+import { worldTier } from './gfx/world/tiers.js?v=w1';
+import { WS as W1_WS } from './gfx/world/common.js?v=w1';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5b.1';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -157,7 +161,7 @@ function starTexture() {
   for (let i = 0; i < 3000; i++) { const b = Math.random() ** 3; c.fillStyle = `rgba(${200 + 55 * Math.random()},${210 + 45 * Math.random()},255,${0.3 + b * 0.7})`; const s = b > 0.9 ? 2 : 1; c.fillRect(Math.random() * 2048, Math.random() * 1024, s, s); }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }// ---------- planet colours (shared by the globe texture and the high-res ground tile) ----------
-const PAD_EF = [1, 0, 0], PAD_Z = 0.4, DECK = 3;
+const PAD_EF = [1, 0, 0], PAD_Z = 0.4, DECK = 3, PAD_LAND_COS = Math.cos(2500 / 6378137);
 function planetColor(d, out, fine) { // d: Earth-fixed unit vector → [r,g,b] 0..255
   let n = fbm(d[0] * 2.2 + 5, d[1] * 2.2, d[2] * 2.2);
   if (d[0] > 0.9) { // around the launch site: land to the west, open ocean downrange (boosters land at sea)
@@ -196,11 +200,36 @@ function cloudTexture() {
 
 // ---------- world: an Earth group in Earth-fixed coordinates, rotated by ω·t and offset by −focus ----------
 const earth = new THREE.Group(); scene.add(earth);
-const planetGeo = new THREE.SphereGeometry(R - 600, 384, 192); planetGeo.rotateX(Math.PI / 2); planetGeo.rotateZ(GX.EARTH_TEX_ROT); // pad at a real equatorial coast
+const planetGeo = new THREE.SphereGeometry(R - 600, 8, 4); /* f5: placeholder, the planetLOD draws the Earth */ planetGeo.rotateX(Math.PI / 2); planetGeo.applyMatrix4(GX.earthTexMatrix()); // f5: map LC-39A at the pad (+x)
 const planet = new THREE.Mesh(planetGeo, GX.earthMaterial(gfxQ, sunPos));
-earth.add(planet);
-const cloudGeo = new THREE.SphereGeometry(R + 7000, 192, 96); cloudGeo.rotateX(Math.PI / 2); cloudGeo.rotateZ(GX.EARTH_TEX_ROT);
+// f5 (B): chunked quadtree terrain replaces the 147k-triangle sphere (same material + map mapping; single cheap sphere from high orbit)
+const LOD_TIER = worldTier(gfxQ, TOUCH) === 'low' ? 'low' : gfxQ === 'high' ? 'high' : 'med';
+const earthLOD = (() => { const m = GX.earthTexMatrix().multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2)); return createPlanetLOD({ radius: R - 600, material: planet.material, tier: LOD_TIER, uvM: new THREE.Matrix3().setFromMatrix4(m).invert() }); })();
+earth.add(earthLOD.group); planet.visible = false; planet.geometry.dispose();
+const bodyLODs = {}, _camL = new THREE.Vector3();
+function lodFrame() { // camera position in each visible body's frame -> pick chunks
+  if (earth.visible) { earth.updateMatrixWorld(); earthLOD.update(earth.worldToLocal(_camL.copy(camera.position))); }
+  if (bodyG.visible && bodyCur && bodyCur !== 'sun') { let L = bodyLODs[bodyCur]; if (!L) { L = bodyLODs[bodyCur] = createPlanetLOD({ radius: P.BODIES[bodyCur].R - 60, material: bodyMat, tier: LOD_TIER, uvM: new THREE.Matrix3().setFromMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2)).invert() }); bodyG.add(L.group); }
+    for (const k in bodyLODs) bodyLODs[k].group.visible = k === bodyCur; bodySph.visible = false; bodyG.updateMatrixWorld(); L.update(bodyG.worldToLocal(_camL.copy(camera.position))); }
+  else if (bodyCur === 'sun') { bodySph.visible = true; for (const k in bodyLODs) bodyLODs[k].group.visible = false; } }
+const cloudGeo = new THREE.SphereGeometry(R + 7000, 192, 96); cloudGeo.rotateX(Math.PI / 2); cloudGeo.applyMatrix4(GX.earthTexMatrix());
 const clouds = new THREE.Mesh(cloudGeo, GX.cloudMaterial(gfxQ, sunPos));
+// f5: world-1 cloud layer (Art bot) behind the 'world1' quality setting (localStorage or_world1 / ?world1=0|1, default on).
+// Tier from worldTier(): phones and low gfx get the 2D layer, desktop med/high the volumetric one. Modules are km; the game is metres.
+const W1 = (() => { const q = params.get('world1'); let on = q != null ? q !== '0' : (() => { try { return localStorage.getItem('or_world1') !== '0'; } catch (e) { return true; } })();
+  if (!on) return null;
+  try { W1_WS.value = 0.001; const U = w1CU({ R: R / 1000 }), tier = worldTier(gfxQ, TOUCH);
+    const c = w1Clouds({ weatherTex: GX.tex('earth_clouds', gfxQ, false), tier, R: R / 1000, U });
+    const g = new THREE.Group(); g.scale.setScalar(1000); g.add(c.mesh); scene.add(g); clouds.visible = false; clouds.userData.w1 = true;
+    const ep = new THREE.Vector3(), cp = { position: new THREE.Vector3(), cam: null, getWorldDirection(v) { return this.cam ? this.cam.getWorldDirection(v) : v.set(0, 0, -1); } }, geoM = GX.earthTexMatrix().multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2)), fm = new THREE.Matrix4();
+    c.mesh.onBeforeRender = (r, sc, cam) => { earth.getWorldPosition(ep); g.position.copy(ep); g.updateMatrixWorld(); U.center.value.copy(ep).multiplyScalar(0.001); };
+    return { c, g, U, tier, frame(dt, cam) { earth.getWorldPosition(ep); g.position.copy(ep); U.center.value.copy(ep).multiplyScalar(0.001); c.setSun(sunDirV); fm.extractRotation(earth.matrixWorld).multiply(geoM).invert(); U.frame.value.setFromMatrix4(fm); cp.cam = cam; cp.position.copy(cam.position).multiplyScalar(0.001); c.update(dt, cp);
+      // world-2: the rocket punches a hole in the cloud deck during ascent (capsule in km: the module works in km, the game in metres)
+      if (c.setOccluder && (W1.occT = (W1.occT || 0) + 1) % 8 === 0) { const low = typeof v !== 'undefined' && v && state === 'flight' && P.altOf(v) < 15000;
+        if (low && rocketG) { c.setOccluder(rocketG, rocketG.up); U.capA.value.multiplyScalar(0.001); U.capB.value.multiplyScalar(0.001); } else c.setOccluder(null); }
+      // below 50 km the game's own cloud layer (near-camera cloud cells, tuned ground variation) stays; world-1 takes over for high/orbit views
+      const hi = cp.position.distanceTo(U.center.value) - U.R.value > 50; g.visible = earth.visible && hi; clouds.visible = !hi; } };
+  } catch (e) { console.warn('world1 off', e); return null; } })();
 earth.add(clouds);
 // f1u2: the flight view only ever drew the Earth, at −O. Away from Earth, O is relative to the SOI body, so the
 // Earth sphere sat where the Moon should be (camera inside it in low lunar orbit). Now the current SOI body gets its
@@ -248,6 +277,7 @@ const tileGeo = new THREE.BufferGeometry();
 { const n = TNR * TNS + 1, idx = [];
   tileGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
   tileGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  tileGeo.setAttribute('wat', new THREE.BufferAttribute(new Float32Array(n), 1)); // f5: water mask (0 land .. 1 sea) drives colour + specular
   for (let j = 0; j < TNS; j++) idx.push(0, 1 + j, 1 + (j + 1) % TNS);
   for (let i = 0; i < TNR - 1; i++) for (let j = 0; j < TNS; j++) { const a = 1 + i * TNS + j, b = 1 + i * TNS + (j + 1) % TNS, c = a + TNS, d = b + TNS; idx.push(a, c, b, b, c, d); }
   tileGeo.setIndex(idx);
@@ -257,20 +287,20 @@ let tileC = null, earthPx = null; GX.earthPixels(gfxQ).then(px => { earthPx = px
 const tileRGBA = [0, 0, 0, 0];
 function updateTile(ef) {
   if (tileC && V.dot(tileC, ef) > Math.cos(25000 / R)) return;
-  const c = V.norm(ef), e = P.eastOf(c), nn = V.cross(c, e), pos = tileGeo.attributes.position.array, col = tileGeo.attributes.color.array, rgb = [0, 0, 0];
+  const c = V.norm(ef), e = P.eastOf(c), nn = V.cross(c, e), pos = tileGeo.attributes.position.array, col = tileGeo.attributes.color.array, wat = tileGeo.attributes.wat.array, rgb = [0, 0, 0];
   tileC = c; tile.position.set(c[0] * R, c[1] * R, c[2] * R);
   const put = (k, th, ph) => {
     const s = Math.sin(th), cm1 = -2 * Math.sin(th / 2) ** 2, dx = Math.cos(ph) * s, dy = Math.sin(ph) * s;
     const off = [c[0] * cm1 + e[0] * dx + nn[0] * dy, c[1] * cm1 + e[1] * dx + nn[1] * dy, c[2] * cm1 + e[2] * dx + nn[2] * dy];
     pos[k * 3] = off[0] * R; pos[k * 3 + 1] = off[1] * R; pos[k * 3 + 2] = off[2] * R;
     const dd = V.norm(V.add(c, off));
-    if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
-      col[k * 3] = tileRGBA[0] * (w > 0.5 ? 1 : f); col[k * 3 + 1] = tileRGBA[1] * (w > 0.5 ? 1 : f); col[k * 3 + 2] = tileRGBA[2] * (w > 0.5 ? 1 : f); }
+    if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); if (dd[0] > PAD_LAND_COS) tileRGBA[3] = Math.min(tileRGBA[3], 0.3); /* f5: the 1k mask's coastal texel at LC-39A is mixed; the pad complex is land */ const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
+      col[k * 3] = tileRGBA[0] * (w > 0.5 ? 1 : f); col[k * 3 + 1] = tileRGBA[1] * (w > 0.5 ? 1 : f); col[k * 3 + 2] = tileRGBA[2] * (w > 0.5 ? 1 : f); wat[k] = w; }
     else { planetColor(dd, rgb, true); col[k * 3] = (rgb[0] / 255) ** 2.2; col[k * 3 + 1] = (rgb[1] / 255) ** 2.2; col[k * 3 + 2] = (rgb[2] / 255) ** 2.2; }
   };
   put(0, 0, 0);
   for (let i = 0; i < TNR; i++) { const th = TILE_R / R * ((i + 1) / TNR) ** 1.8; for (let j = 0; j < TNS; j++) put(1 + i * TNS + j, th, 2 * Math.PI * j / TNS); }
-  tileGeo.attributes.position.needsUpdate = true; tileGeo.attributes.color.needsUpdate = true; tileGeo.computeVertexNormals();
+  tileGeo.attributes.position.needsUpdate = true; tileGeo.attributes.color.needsUpdate = true; tileGeo.attributes.wat.needsUpdate = true; tileGeo.computeVertexNormals();
 }
 onSurface(buildLaunchComplex(), PAD_EF, 0);
 
@@ -499,7 +529,7 @@ function buildPalette() {
       const t = document.createElement('div'); t.className = 'tile'; t.draggable = true;
       t.innerHTML = `<i style="background:${TYPE_COL[type]}"></i><b>${d.name}</b><small>${partStat(id)}</small>`; qol.attachTip(t, () => partTip(id) + '<div class="sm">Click to add above the selected part, or drag into the stack.</div>', TOUCH);
       t.onclick = () => { if (!dragEaten()) addPart(id); }; touchDrag(t, 'new:' + id); t.ondragstart = e => { e.dataTransfer.setData('text/plain', 'new:' + id); e.dataTransfer.effectAllowed = 'copy'; };
-      t.dataset.id = id; if (PR.partLocked(PROG, id)) { t.classList.add('locked'); t.title = 'Locked — earn it with contracts'; } grp.appendChild(t);
+      t.dataset.id = id; if (partLock(id)) { t.classList.add('locked'); t.title = 'Locked — earn it with contracts'; } grp.appendChild(t);
     }
   }
 }
@@ -535,8 +565,10 @@ const endDrag = e => {
 addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
 function setDesign(d, keepSel) { design = d; if (!keepSel) selected = -1; selected = Math.min(selected, design.parts.length - 1); refreshBuild(); }
 // click: append at the bottom, or insert above the highlighted part (which stays highlighted)
-function addPart(id) { if (PR.partLocked(PROG, id)) { toast('🔒 Locked — complete contracts in 🎯 Missions to unlock this part', '#ffb35c'); return; } snapAnim = 1; funAudio.ui('snap'); lastAdded = selected < 0 ? design.parts.length : selected; if (selected < 0) setDesign(insertPart(design, id, design.parts.length), true); else { const at = selected; selected = -1; design = insertPart(design, id, at); selected = at + 1; refreshBuild(); } }
-function dropAt(data, at) { if (data.startsWith('new:') && PR.partLocked(PROG, data.slice(4))) { toast('🔒 Locked part', '#ffb35c'); return; } snapAnim = 1; funAudio.ui('snap'); lastAdded = at;
+// f5: a part is open once either the old contract chain or the career ladder unlocked it (sandbox: all)
+function partLock(id) { return PR.partLocked(PROG, id) && (!careerUI || careerUI.locked('parts', id)); }
+function addPart(id) { if (partLock(id)) { toast('🔒 Locked — complete contracts in 🎯 Missions to unlock this part', '#ffb35c'); return; } snapAnim = 1; funAudio.ui('snap'); lastAdded = selected < 0 ? design.parts.length : selected; if (selected < 0) setDesign(insertPart(design, id, design.parts.length), true); else { const at = selected; selected = -1; design = insertPart(design, id, at); selected = at + 1; refreshBuild(); } }
+function dropAt(data, at) { if (data.startsWith('new:') && partLock(data.slice(4))) { toast('🔒 Locked part', '#ffb35c'); return; } snapAnim = 1; funAudio.ui('snap'); lastAdded = at;
   if (data.startsWith('new:')) { design = insertPart(design, data.slice(4), at); if (selected >= at) selected++; }
   else if (data.startsWith('move:')) { const from = +data.slice(5); const to = from < at ? at - 1 : at; design = movePart(design, from, to); selected = -1; }
   refreshBuild();
@@ -647,7 +679,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f4.2', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5b.1', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -754,10 +786,16 @@ function showPreview() {
 }
 // f4 model swap: the hero model stands in for the part meshes (same stack height); part groups keep plumes/staging logic
 let hero = null;
+const HERO_READY = new Map(), HERO_WARM = new Set();
+function prewarmHeavy() { // rockets-3: build the heavy hero LODs in idle slices while the player sits in the home/hangar
+  const ids = ['heron-heavy', 'titan-ss-v3', 'titan-ss-v4'].filter(id => !HERO_READY.has(id + (TOUCH ? ':p' : '')));
+  const W = heroPrewarm(ids, { phone: TOUCH });
+  for (const id of ids) { const k = id + (TOUCH ? ':p' : ''), p = W.get(k); if (!p || HERO_WARM.has(k)) continue; HERO_WARM.add(k); p.then(l => { if (HERO_WARM.has(k)) { HERO_READY.set(k, l); HERO_WARM.delete(k); W.delete(k); } }).catch(() => HERO_WARM.delete(k)); } }
 function attachHero() {
-  if (hero) { heroDispose(hero); hero = null; }
+  if (hero) { const old = hero; hero = null; heroRelease(old, renderer, scene, camera).catch(() => heroDispose(old)); } // rockets-3: leak-safe swap
   if (!design.model || !SG.length) return;
-  try { hero = heroLOD(design.model, { phone: TOUCH }); } catch (e) { console.warn('[Orbit Rush] hero model', e); hero = null; return; }
+  const wk = design.model + (TOUCH ? ':p' : ''); // rockets-3: heavy models are prewarmed at the hangar; take a finished one if ready
+  try { hero = HERO_READY.get(wk) || heroLOD(design.model, { phone: TOUCH }); HERO_READY.delete(wk); if (HERO_WARM.has(wk)) { takeWarm(design.model, { phone: TOUCH }); HERO_WARM.delete(wk); } } catch (e) { console.warn('[Orbit Rush] hero model', e); hero = null; return; }
   let L = 0; try { L = P.stackGeom(v).L; } catch (e) {} if (!(L > 0)) for (const g of SG) L += g.userData.h; const hH = new THREE.Box3().setFromObject(hero.userData.hi || hero).getSize(new THREE.Vector3()).y || L;
   hero.scale.setScalar(L / hH); rocketG.add(hero);
   for (const g of SG) g.traverse(o => { if (o.isMesh && !isPlumeChild(o, g)) o.visible = false; });
@@ -874,7 +912,8 @@ reset(); refreshBuild();
 $('launchBtn').onclick = e => { e.currentTarget.blur(); launch(); };
 $('againBtn').onclick = () => { goBuild(); const hb = $('homeBack'); if (hb) hb.click(); }; // f3: the result card's Home goes back to the showroom
 $('relaunchBtn').onclick = () => launch();
-$('contBtn').onclick = () => { $('end').classList.add('hidden'); F.unfinish(); F.endQueued = true; };
+new MutationObserver(() => { if ($('end').classList.contains('hidden')) document.body.classList.remove('endOn'); }).observe($('end'), { attributes: true, attributeFilter: ['class'] });
+$('contBtn').onclick = () => { $('end').classList.add('hidden'); document.body.classList.remove('endOn'); F.unfinish(); F.endQueued = true; };
 function shareText() { const sc = F.score(); return `🚀 I scored ${sc.toLocaleString()} in Orbit Rush${F.flags.orbit ? ' — reached a full-scale orbit' : ''}${F.flags.boosterBonus ? ' and landed the booster' : ''}${F.flags.recovered ? ' and brought the capsule home' : ''}! Can you beat it?`; }
 $('shareBtn').onclick = async () => { const t = shareText(), url = location.href.split('?')[0]; try { if (navigator.share) await navigator.share({ text: t, url }); else { await navigator.clipboard.writeText(t + ' ' + url); $('shareBtn').textContent = 'Copied!'; } } catch (e) { } };
 $('xBtn').onclick = () => open('https://x.com/intent/post?text=' + encodeURIComponent(shareText()) + '&url=' + encodeURIComponent(location.href.split('?')[0]), '_blank');
@@ -1105,6 +1144,7 @@ function showEnd() {
   if (flags.orbit && !landedOn) lines.push(`<span class="good">✔ Orbit — Ap ${isFinite(o.ap) ? (o.ap / 1000).toFixed(0) + ' km' : 'escape'} / Pe ${(o.pe / 1000).toFixed(0)} km · period ${isFinite(o.T) ? (o.T / 60).toFixed(1) + ' min' : '—'}</span>`);
   if (flags.booster) lines.push(flags.boosterBonus ? `<span class="good">✔ Booster ${flags.booster} (+${flags.boosterBonus})</span>` : `<span class="warn">✘ Booster ${flags.booster}</span>`);
   else if (booster && booster.state === 'flying') lines.push('Booster still descending…');
+  { const fb = F.flagsB; if (fb && fb.booster) lines.push(fb.boosterBonus ? `<span class="good">✔ Booster B ${fb.booster} (+${fb.boosterBonus})</span>` : `<span class="warn">✘ Booster B ${fb.booster}</span>`); }
   lines.push(`Rocket: ${design.name || 'Custom'} — ${v.stages.length} stages, ${F.stats.total.toFixed(0)} m/s · payload ×${v.mult}`, `<b style="font-size:20px">SCORE ${score.toLocaleString()}</b>`);
   if (director && director.result) lines.unshift(`<b class="${director.ok ? 'good' : 'warn'}">${MISSIONS[director.id].icon} ${director.result}</b>`);
   // f3: compact result card: headline result, score and medal up top; the stats wall folds into "Details"
@@ -1113,9 +1153,21 @@ function showEnd() {
   const stars = { gold: 3, silver: 2, bronze: 1 }[out && out.medal] || (ok || (director && director.ok) ? 1 : 0);
   $('endBody').innerHTML = `<div class="endStars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<i>${'★'.repeat(3 - stars)}</i></div>` + head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
     + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}${extra.more ? '<br>' + extra.more : ''}</details>`;
+  if (out && out.ladder) { $('endBody').insertAdjacentHTML('afterbegin', careerUI.resultsHTML(out.ladder)); }
+  { let nb = $('nextMisBtn'); if (!nb) { nb = document.createElement('button'); nb.id = 'nextMisBtn'; nb.className = 'big'; $('relaunchBtn').after(nb); nb.onclick = () => { const n = careerUI.next(); $('end').classList.add('hidden'); if (n) playRung(n); else $('againBtn').click(); }; }
+    const n = careerUI.next(); nb.textContent = n ? 'Next mission ▸' : 'Career ▸'; nb.title = n ? 'Next contract: ' + rungLabel(n) : 'Career progress'; }
   $('replayBtn').classList.toggle('hidden', !(flags.dead && recBuf.length > 30));
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
   $('shareBtn').textContent = 'Share score';
+  // f5 lean end card (playtest ui_ideal_path #14 budget): ONE line + ↻ Retry + ▶ Next + ⋯; everything else lives in the ⋯ sheet
+  { const L = out && out.ladder, starTxt = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+    const what = flags.dead ? 'Crashed' : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : flags.orbit ? `Orbit · ${Math.round(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000)} km` : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
+    const earn = L && (L.cash || L.sci) ? ` <span class="eLine">+$${L.cash}M${L.sci ? ' 🔬' + L.sci : ''}</span>` : '';
+    $('endTitle').innerHTML = `<span class="eStars">${starTxt}</span> ${what}${earn}`;
+    const nb = $('nextMisBtn'), n = careerUI.next(); if (nb) nb.innerHTML = n ? `▶ Next<small>${rungLabel(n)}</small>` : '▶ Home';
+    let mb = $('endMoreBtn'); if (!mb) { mb = document.createElement('button'); mb.id = 'endMoreBtn'; mb.textContent = '⋯'; mb.title = 'Details: score, Share, Home'; mb.setAttribute('aria-label', 'Flight details'); nb.after(mb); mb.onclick = () => $('end').classList.toggle('more'); }
+    $('relaunchBtn').textContent = '↻ Retry'; $('end').classList.add('lean'); $('end').classList.remove('more'); }
+  document.body.classList.add('endOn');
   $('end').classList.remove('hidden');
 }
 function makeLZ(s) { // f4.1 RTLS landing zone: a concrete disc with a ring and cross, 1.6 km from the pad
@@ -1413,6 +1465,10 @@ renderer.setAnimationLoop(() => {
   const tel = v.tel, nose = P.noseOf(v), base = V.sub(v.r, V.scale(nose, tel.ycom));
   const O = focus === v ? v.r : booster.r;
   if (!placeBodies(O, th)) { earth.position.set(-O[0], -O[1], -O[2]); earth.rotation.z = th; }
+  if (W1) { earth.updateMatrixWorld(); W1.frame(rdt > 0 && pdt > rdt * 4.01 ? 0 : pdt, camera); } // clouds drift on sim time, frozen above 4x warp
+  const tilesOn = !!(window.__tiles && window.__tiles.stats && window.__tiles.stats.on); // private Google tiles own the ground while they show (the LOD globe hid them)
+  if (tilesOn) earthLOD.group.visible = false; else { if (window.__tiles) earthLOD.group.visible = true; lodFrame(); }
+  { const ao = state === 'flight' && !!(F && F.autoOn) && !(director && director.active === false && false); if (ao !== document.body.classList.contains('autoOn')) document.body.classList.toggle('autoOn', ao); } // f5: manual controls hide while AUTO flies
   setRel(rocketG, base, O); toQ(v.q, rocketG.quaternion);
   worldVis(base, O, nose);
   if (state === 'flight' && !F.flags.dead && SG[v.cur]) emit(v, SG[v.cur], pdt, base, nose);
@@ -1495,7 +1551,7 @@ renderer.setAnimationLoop(() => {
     if (mapOn) document.querySelectorAll('.modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
     smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
   updateSplit(rdt);
-  if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * (booster2 ? 1 / 3 : 0.25), innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
+  if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, booster2 ? innerHeight / 2 - ctlTop() / 6 : innerHeight * 0.25, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
   if (mapOn) { smap.update(rdt); mapPost.render(); }
   else { post.render(); renderSplit(O); }
   if (snapReq) { const f = snapReq; snapReq = null; savePhoto(f); }
@@ -1535,9 +1591,14 @@ function placeTopStack(on) { // f4.1b: in split, toasts/hints (#topStack, compac
   for (const id of ['topStack', 'hintS']) { const ts = $(id); if (!ts) continue;
     if (!land) { if (ts.dataset.sp) { ts.style.removeProperty('left'); ts.style.removeProperty('top'); ts.style.removeProperty('max-width'); delete ts.dataset.sp; } continue; }
     ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * (por ? 0.5 : 0.25)) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(por ? W - 24 : W * 0.5 - 32) + 'px', 'important'); } }
-function paneRect(i = 0, nb = 1) { const W = innerWidth, H = innerHeight; // f4.2: a heavy's two boosters: stacked on the right (landscape) or rows 2-3 (portrait)
-  if (nb > 1) return splitPortrait() ? { x: 0, y: H / 3 * (i + 1), w: W, h: H / 3 } : { x: W * 0.5, y: H * 0.5 * i, w: W * 0.5, h: H * 0.5 };
-  return splitPortrait() ? { x: 0, y: H * 0.5, w: W, h: H * 0.5 } : { x: W * 0.5, y: 0, w: W * 0.5, h: H }; }
+// f5: portrait touch: the panes end above the stick / throttle / STAGE cluster so the lowest booster pane is never under them
+let ctlTopC = { t: 0, v: 0 };
+function ctlTop() { const H = innerHeight; if (!TOUCH || !splitPortrait()) return H; const now = performance.now(); if (now - ctlTopC.t < 500) return ctlTopC.v;
+  let top = H; for (const id of ['mleft', 'mright']) { const e = document.getElementById(id); if (!e || getComputedStyle(e).display === 'none') continue; const r = e.getBoundingClientRect(); if (r.height > 0) top = Math.min(top, r.top); }
+  ctlTopC = { t: now, v: Math.max(H * 0.6, top - 6) }; return ctlTopC.v; }
+function paneRect(i = 0, nb = 1) { const W = innerWidth, H = innerHeight, Hc = ctlTop(); // f4.2: a heavy's two boosters: stacked on the right (landscape) or rows 2-3 (portrait)
+  if (nb > 1) return splitPortrait() ? { x: 0, y: Hc / 3 * (i + 1), w: W, h: Hc / 3 } : { x: W * 0.5, y: H * 0.5 * i, w: W * 0.5, h: H * 0.5 };
+  return splitPortrait() ? { x: 0, y: H * 0.5, w: W, h: Hc - H * 0.5 } : { x: W * 0.5, y: 0, w: W * 0.5, h: H }; }
 function updateSplit(rdt) {
   const b = booster, flyA = b && b.state === 'flying' && b.mesh && b.mesh.visible !== false, flying = flyA || !!(booster2 && booster2.state === 'flying');
   if (flyA) { split.rec.push({ r: b.r.slice(), dir: b.dir.slice(), thr: b.thrust, n: b.n }); if (split.rec.length > 900) split.rec.shift(); split.done = 0; }
@@ -1552,6 +1613,7 @@ function updateSplit(rdt) {
   const nb = booster2 ? 2 : 1, R2 = paneRect(0, nb), fb = split.full === 'b';
   $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('fullB', fb); $('split').classList.toggle('tri', nb > 1);
   { const p2 = $('spPane2'), on2 = nb > 1 && !fb; p2.classList.toggle('hidden', !on2); if (on2) { const r3 = paneRect(1, nb), s2 = p2.style; s2.left = r3.x + 'px'; s2.top = r3.y + 'px'; s2.width = r3.w + 'px'; s2.height = r3.h + 'px'; } }
+  { const cu = $('spCardU'); if (cu) cu.style.setProperty('bottom', nb > 1 && splitPortrait() && !fb ? (innerHeight - ctlTop() / 3 + 10) + 'px' : '', 'important'); }
   const st = $('spPane').style; if (fb) { st.left = '0'; st.top = '0'; st.width = '100%'; st.height = '100%'; } else { st.left = R2.x + 'px'; st.top = R2.y + 'px'; st.width = R2.w + 'px'; st.height = R2.h + 'px'; }
   split.frame++; if (b) { // f4.1b: every frame (was every 6th — at low fps the cards lagged by seconds)
     const card = (b, label, hud, ball, rp) => { const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
@@ -1686,7 +1748,10 @@ fun = createFunUI({
   toast, press, audio: funAudio, canvas: renderer.domElement, bodies: () => P.BODIES, bodyColor: id => BODY_COL[id] || '#888',
   setSas: m => { F.setSAS(v.sas === m && m === 'radial' ? 'antiradial' : v.sas === m && m === 'normal' ? 'antinormal' : m); },
   progress: () => PROG, design: () => design, takeOver: () => { if (director && director.active) director.takeOver(); },
-  startMission: id => startMission(id), startOp: id => startOp(id), ops: () => opsList, opName: m => opName(m), vname: id => brandVName(id), career: () => { const c = career(); return { c, CAREER, CONTRACTS, canFly, missionOf }; }, setPhoto: on => { photoOn = on; if (on) { camDist = Math.max(camDist, 60); } },
+  startMission: id => startMission(id), startOp: id => startOp(id), missionOf: id => missionOf(id), ops: () => opsList, opName: m => opName(m), vname: id => brandVName(id), career: () => { const st = careerUI.state, n = careerUI.next(), inLadder = new Set(LADDER_OPS());
+    const extra = CAREER.flatMap(t => t.contracts.filter(id => id !== 'practice' && !inLadder.has(id)).map(id => ({ id, model: t.vehicleId })));
+    return { cash: st.cash, sci: st.sci, done: Object.keys(st.done).length, of: LADDER.length, next: n ? rungLabel(n) : null, open: () => careerUI.show(true),
+      extra, opLock: id => { const e = extra.find(x => x.id === id), sid = e && Object.keys(MODEL_OF).find(k => MODEL_OF[k] === e.model); return sid ? lockWhy('vehicles', sid) : null; } }; }, setPhoto: on => { photoOn = on; if (on) { camDist = Math.max(camDist, 60); } },
   snap: filter => { snapReq = { filter }; },
   tunnelGeom: mach => { const ab = aeroBalance(design, mach); if (!ab) return null; const vv = buildVehicle(design), g = P.stackGeom(vv); const COL = { engine: '#ff9a3c', tank: '#e8e8e8', pod: '#9cc3ff', payload: '#e0b84a', fins: '#555', decoupler: '#333', fairing: '#f4f4f4', shield: '#7a4a2a', chute: '#ff7a3c', rcs: '#8a9099' };
     return { parts: g.list.map(e => ({ y: e.y, h: e.h, d: e.kind === 'fins' ? (e.d || 2) * 1.8 : e.d, col: COL[e.kind] || '#ccc' })), L: g.L, ycom: ab.ycom, ycp: ab.ycp, stable: ab.stable, margin: ab.margin }; },
@@ -1700,25 +1765,28 @@ const cx = createCompact({ touch: TOUCH, onSpeedTap: () => fun.cycleSpeed(), onM
 loadMissions().then(l => { opsList = l; }).catch(e => console.warn('[Orbit Rush] missions', e));
 loadBrand().then(() => applyBrandDom()).catch(() => {});
 // career (PR #9): money / reputation / unlocks, saved in localStorage via the campaign save module
-function career() { const r = loadFrom(localStorage); return r && r.ok && r.career ? r.career : newCareer(); }
-function startOp(contractId) {
+let lastOp = null;
+const LADDER_OPS = () => LADDER.filter(c => c.how === 'op').map(c => c.op);
+function ctxCareerLock(id) { if (LADDER_OPS().includes(id)) { const c = LADDER.find(x => x.op === id); return careerUI.state.done[c.id] || !careerUI.locked('missions', id) ? null : lockWhy('missions', id); }
+  const t = CAREER.find(x => x.contracts.includes(id)), sid = t && Object.keys(MODEL_OF).find(k => MODEL_OF[k] === t.vehicleId); return sid ? lockWhy('vehicles', sid) : null; }
+function startOp(contractId, viaLadder) {
   const mid = missionOf(contractId), m = opsList.find(x => x.id === mid); if (!m) return;
-  const c = career(), g = canFly(c, contractId); if (!g.ok) { fun.call('🔒', g.why, '#ffb35c'); return; }
+  if (!viaLadder) { const why = ctxCareerLock(contractId); if (why) { fun.call('🔒', why, '#ffb35c'); return; } } // f5b: one career, gated by the ladder
   opContract = contractId; opHooks = missionHooks(m, () => F); opFlightOpts = missionFlightOpts(m);
   setDesign(missionDesign(m)); launch(); opFlightOpts = null; applyMission(m, F); opSess = missionSession(m).attach(F);
+  try { if (!F.ignited) F.stagePress(); F.setAuto(true, true); } catch (e) { } // f5a.2: the toast promises AUTO, so ignite on AUTO like the fly rungs
   fun.call('🎯', opName(m) + ' — AUTO flies the ascent; follow the prompts on orbit', '#ffe9b0', true);
 }
 function opEnd(why) {
   const S = opSess; if (!S || S._shown) return; S._shown = 1;
-  const r = evalOp(S.m, F, S), ok = r.objectives.filter(o => o.pass).length;
+  const r = evalOp(S.m, F, S), ok = r.objectives.filter(o => o.pass).length; lastOp = { id: S.m.id, ok: !!r.complete };
   let line = `${opName(S.m)}: ${ok}/${r.objectives.length} objectives · score ${r.score.toLocaleString()}`;
-  try { const c1 = applyFlight(career(), opContract, r); saveTo(localStorage, c1); line += ` · 💰 ${c1.money} · ⭐ ${c1.rep}`; } catch (e) { console.warn('[Orbit Rush] career', e); }
   fun.call(r.complete ? '🏆' : '⚠️', line, r.complete ? '#7dffa6' : '#ffb35c', true); opSess = null; opHooks = null;
 }
 function opTick() {
   const S = opSess, el = document.getElementById('opTask'); if (!S) { if (el) el.hidden = true; return; }
   S.tick(F);
-  if (el) { const t = S.task; el.hidden = !t; if (t) el.innerHTML = t.kind === 'execute-node' ? `<b>▶ Burn ${t.burn}/${t.of}</b> ${t.label} <small>${F.nodes.length ? 'X / ◆ Execute' : ''}</small>` : `<b>▶</b> ${t.label || t.kind}`; }
+  if (el) { const t = S.task; el.hidden = !t; if (t) el.innerHTML = t.kind === 'execute-node' ? `<b>▶ Burn ${t.burn}${t.of ? '/' + t.of : ''}</b> ${t.label} <small>${F.nodes.length ? 'X / ◆ Execute' : ''}</small>` : `<b>▶</b> ${t.label || t.kind}`; }
   if (S.done || S.failed || F.flags.dead) opEnd();
 }
 function startMission(id) {
@@ -1866,7 +1934,7 @@ function stripTick() {
   const sp = no.sp, b = F.booster, lc = F.landCue; let evL = 'AP · PE km', ev = '—';
   if (F.flyingBooster() && b && isFinite(b.burnIn) && b.burnIn > 0.5) { evL = 'BURN T−'; ev = b.burnIn.toFixed(1) + ' s'; }
   else if (lc && !F.flags.landed && lc.burnIn > 0.5 && lc.burnIn < 600 && V.dot(P.airVel(v), V.norm(v.r)) < 0) { evL = 'BURN T−'; ev = lc.burnIn.toFixed(1) + ' s'; }
-  else if (F.nodes.length) { evL = 'NODE T−'; ev = fmtDur(Math.max(0, F.nodes[0].t - (v.clock || 0))); }
+  else if (F.nodes.length) { evL = 'NODE T−'; ev = fmtDur(Math.max(0, F.nodes[0].t - F.tAbs)); }
   else if (F.ignited || F.flags.orbit || P.altOf(v) > 1000) { const o = P.orbitOf(v); const ea = evAp(o); evL = ea[0]; ev = ea[1]; }
   cx.update({ alt: fmtKm(P.altOf(v)), spd: sp < 1e5 ? Math.round(sp).toLocaleString() : (sp / 1000).toFixed(0) + 'k', spdL: lab, evL, ev, hint: $('hint').style.display === 'none' ? '' : $('hint').textContent });
   cx.updateEng(engCells());
@@ -1902,9 +1970,14 @@ $('replayBtn').onclick = () => startReplay();
 function recordFlight(score) {
   const f = F.flags, top = v.stages[Math.min(F.lastPow, v.stages.length - 1)], visited = ['earth', ...Object.keys(F.goals || {})];
   const landed = Object.entries(F.goals || {}).find(([, g]) => g.landed);
-  const r = { maxAlt: f.maxAlt || 0, space: !!f.space, orbit: !!f.orbit, boosterLanded: !!(booster && booster.state === 'landed'), recovered: !!f.recovered, visited, landed: landed ? landed[0] : null,
+  const r = { maxAlt: f.maxAlt || 0, space: !!f.space, orbit: !!f.orbit, boosterLanded: !!(booster && booster.state === 'landed') || !!(F.flagsB && F.flagsB.boosterBonus), recovered: !!f.recovered, visited, landed: landed ? landed[0] : null,
     dead: f.dead || null, maxMach: seen.maxMach || 0, maxHeat: F.maxHeat || 0, stages: v.stages.length, mass: F.stats ? F.stats.mass : 0, fuelLeft: F.orbitSnap ? F.orbitSnap.fuel : top && top.fuelMax ? top.fuel / top.fuelMax : 0, score, mission: director ? director.id : null };
-  const out = PR.record(PROG, r); PR.save(localStorage, PROG); return out;
+  const out = PR.record(PROG, r); PR.save(localStorage, PROG);
+  // f5 career ladder: the flown showroom vehicle and any ops contract result ride along
+  let op = lastOp; if (opSess) { try { const e = evalOp(opSess.m, F, opSess); op = { id: opSess.m.id, ok: !!e.complete }; } catch (e) { } }
+  const sh = SHOW.find(x => x.name === design.name);
+  try { out.ladder = careerUI.record({ ...r, vehicle: sh ? sh.id : null, op: op ? op.id : null, opOk: !!(op && op.ok) }); } catch (e) { console.warn('[Orbit Rush] ladder', e); }
+  return out;
 }
 function savePhoto(req) {
   const cv = renderer.domElement, w = cv.width, h = cv.height, c2 = document.createElement('canvas'); c2.width = w; c2.height = h; const g = c2.getContext('2d'); g.filter = req.filter || 'none'; g.drawImage(cv, 0, 0);
@@ -1926,11 +1999,26 @@ $('missionsBtn').onclick = () => fun.openHub(); $('atlasBtn').onclick = () => fu
 // ---------- f2h: home = rocket showroom; the hangar is its own "Build" mode ----------
 const showDesign = i => ({ ...cloneDesign(SHOW[i].design), name: SHOW[i].name }); // f4: hero rockets carry their brand name into the hangar/flight
 const HOME_KEY = 'orbitrush.homeIdx', SHOW = SHOWROOM.map(r => { const o = { ...r, bars: showBars(r), missionLabel: missionLabel[r.mission] || '' }; if (r.model) Object.defineProperty(o, 'name', { get: () => brandVName(r.model), enumerable: true }); return o; }); // f4: hero-model rockets carry the brand name
-var home = createHome({ list: SHOW,
+// f5 career: vehicles / missions locked until their ladder rung is earned (sandbox: all open)
+const rungLabel = c => c.brandKey ? brandMName(c.brandKey, c.name) : c.name;
+var careerUI = createCareerUI({ store: localStorage, onPlay: c => playRung(c),
+  name: { rung: rungLabel, vehicle: id => (SHOW.find(x => x.id === id) || { name: id }).name, site: id => brandLabel('site.' + id, SITE_NAMES[id] || id),
+    part: id => (PARTS[id] || { name: id }).name, mission: id => (MISSIONS[id] || {}).name || brandMName(id, (opsList.find(m => m.id === id) || {}).name || id) } });
+function lockWhy(kind, id) { if (!careerUI.locked(kind, id)) return null; const c = careerUI.unlockedBy(kind, id); return '🔒 Locked: earn "' + (c ? rungLabel(c) : '?') + '" in Career (or turn on Sandbox)'; }
+const lockedFly = i => { const w = lockWhy('vehicles', SHOW[i].id); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); careerUI.show(true); } return !!w; };
+function playRung(c) {
+  if (home && home.on) home.show(false);
+  if (c.how === 'op') return startOp(c.op, true);
+  if (c.how === 'mission') return startMission(c.mission);
+  const i = SHOW.findIndex(x => x.id === c.vehicle); if (i >= 0) setDesign(showDesign(i)); launch();
+  try { if (!F.ignited) F.stagePress(); F.setAuto(true, true); } catch (e) { } // f5: 1 tap -> liftoff on AUTO (ui_ideal_path budget)
+}
+addEventListener('career-change', () => { if (home) home.refresh(); });
+var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].id), onCareer: () => careerUI.show(true),
   onSelect: i => { try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(showDesign(i)); },
-  onFly: i => { setDesign(showDesign(i)); home.show(false); launch(); },
-  onMission: i => { home.show(false); startMission(SHOW[i].mission); },
-  onBuild: i => { goBuild.toHome = false; setDesign(showDesign(i)); home.show(false); refreshBuild(); },
+  onFly: i => { if (lockedFly(i)) return; setDesign(showDesign(i)); home.show(false); launch(); },
+  onMission: i => { if (lockedFly(i)) return; const w = lockWhy('missions', SHOW[i].mission); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); return; } home.show(false); startMission(SHOW[i].mission); },
+  onBuild: i => { if (lockedFly(i)) return; goBuild.toHome = false; setDesign(showDesign(i)); home.show(false); refreshBuild(); },
   onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => $('hGearM').classList.toggle('hidden') });
 { const g = document.createElement('div'); g.id = 'hGearM'; g.className = 'hidden'; document.body.appendChild(g);
   const mk = (t, fn) => { const b = document.createElement('button'); b.textContent = t; b.onclick = () => { g.classList.add('hidden'); fn(); }; g.appendChild(b); };
@@ -1941,6 +2029,7 @@ var home = createHome({ list: SHOW,
   document.addEventListener('pointerdown', e => { if (!g.classList.contains('hidden') && !e.target.closest('#hGearM,#hGear')) g.classList.add('hidden'); }, true);
   const back = document.createElement('button'); back.id = 'homeBack'; back.className = 'acad'; back.textContent = '‹ Home'; back.title = 'Back to the rocket showroom';
   back.onclick = () => { goBuild.toHome = true; home.show(true); home.set(home.index); }; const bh = document.querySelector('#build .bhead'); if (bh) bh.prepend(back); }
+setTimeout(prewarmHeavy, 1500);
 if (!params.has('hangar')) { let i0 = 0; try { i0 = +localStorage.getItem(HOME_KEY) || 0; } catch (e) { } home.set(Math.min(SHOW.length - 1, Math.max(0, i0))); home.show(true); }
 $('standBtn').onclick = () => testStand(); $('tunnelBtn').onclick = () => fun.openTunnel(); $('dropBtn').onclick = () => dropTest();
 addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e.preventDefault(); }, true);
@@ -1968,7 +2057,7 @@ function plumeAudit() {
 window.__game = { get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
     const c0 = b.mesh.getWorldPosition(new THREE.Vector3()), p0 = c0.clone().project(cam), p1 = c0.clone().add(ny.clone().multiplyScalar(10)).project(cam), up = V.norm(b.r);
     const cu = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion), crt = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
-    return { id: b.id || 'A', replay: !!(i === 0 && split.replay), state: b.state, phase: b.phase, meshVsDir: +(ny.x * b.dir[0] + ny.y * b.dir[1] + ny.z * b.dir[2]).toFixed(3), dirUp: +V.dot(b.dir, up).toFixed(3), noseScreenUp: +(p1.y - p0.y).toFixed(4), onScreen: Math.abs(p0.x) < 1 && Math.abs(p0.y) < 1 && p0.z < 1, camUpRadial: +(cu.x * up[0] + cu.y * up[1] + cu.z * up[2]).toFixed(3), roll: +(crt.x * up[0] + crt.y * up[1] + crt.z * up[2]).toFixed(3), R2: S.dbg.R2 }; }), dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
+    return { id: b.id || 'A', replay: !!(i === 0 && split.replay), state: b.state, phase: b.phase, meshVsDir: +(ny.x * b.dir[0] + ny.y * b.dir[1] + ny.z * b.dir[2]).toFixed(3), dirUp: +V.dot(b.dir, up).toFixed(3), noseScreenUp: +(p1.y - p0.y).toFixed(4), onScreen: Math.abs(p0.x) < 1 && Math.abs(p0.y) < 1 && p0.z < 1, camUpRadial: +(cu.x * up[0] + cu.y * up[1] + cu.z * up[2]).toFixed(3), roll: +(crt.x * up[0] + crt.y * up[1] + crt.z * up[2]).toFixed(3), R2: S.dbg.R2 }; }), dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds, lod: earthLOD.group }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
     const va = V.sub(v.v, siteVel(v)), sp = V.len(va), vh = sp > 1 ? V.scale(va, 1 / sp) : P.noseOf(v), nz = V.sub(v.r, V.scale(P.noseOf(v), P.massProps(v).ycom)); let ahead = 0, maxA = -1e9, n = 0; const dbg = [];
     for (const sys of [fire, smoke]) for (const q of sys.d) { if (q.life <= 0 || Math.hypot(q.x, q.y, q.z) - P.R_E < 300) continue; /* ignore the pad cloud */ const a = V.dot([q.x - nz[0], q.y - nz[1], q.z - nz[2]], vh); if (V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]) > 3000) continue; n++; if (a > maxA) maxA = a; if (a > 2) { ahead++; if (dbg.length < 6) dbg.push({ sys: sys === fire ? 'fire' : 'smoke', a: +a.toFixed(0), age: +(q.max - q.life).toFixed(2), c: q.c0 && q.c0.toString(16), d: q.drag, rva: +V.dot([q.vx - v.v[0], q.vy - v.v[1], q.vz - v.v[2]], vh).toFixed(0), an: +V.dot(P.noseOf(v), vh).toFixed(3), r: +V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]).toFixed(0) }); } }
-    return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };
+    return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };

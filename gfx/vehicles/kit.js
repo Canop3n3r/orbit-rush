@@ -1,8 +1,8 @@
 // Geometry kit: every part is added with a local transform and baked into ONE merged mesh per material
 // (a whole vehicle stage = a handful of draw calls). Materials are shared across all vehicles.
 import * as THREE from 'three/webgpu';
-import * as T from './textures.js?v=f4.2';
-import { decalTexture } from './decals.js?v=f4.2';
+import * as T from './textures.js?v=f5b.1';
+import { decalTexture } from './decals.js?v=f5b.1';
 // own merge (all inputs are non-indexed with position/normal/uv), so the module needs no bare 'three' import
 export function mergeGeometries(gs) { const out = new THREE.BufferGeometry(); for (const [a, n] of [['position', 3], ['normal', 3], ['uv', 2]]) { let len = 0; for (const g of gs) len += g.attributes[a].array.length; const arr = new Float32Array(len); let o = 0; for (const g of gs) { arr.set(g.attributes[a].array, o); o += g.attributes[a].array.length; } out.setAttribute(a, new THREE.BufferAttribute(arr, n)); } return out; }
 const MATS = new Map();
@@ -15,7 +15,7 @@ export function mat(key) {
     case 'silver': m = new S({ map: T.paint({ base: '#c9ccd0', rings: 8 }), roughness: 0.35, metalness: 0.7 }); break;
     case 'carbon': m = new P({ map: T.carbon(), color: 0x3c3c40, roughness: 0.5, metalness: 0.1, clearcoat: 0.6, clearcoatRoughness: 0.3 }); break; // clearcoat: legs catch a highlight against the dark interstage
     case 'ti': m = new S({ color: 0xa8a29a, roughness: 0.55, metalness: 1, alphaMap: T.gridFin(), alphaTest: 0.5, side: THREE.DoubleSide }); break;
-    case 'tiframe': m = new S({ color: 0x5f5b56, roughness: 0.5, metalness: 1 }); break;
+    case 'tiframe': m = new S({ color: 0xa9a49c, roughness: 0.42, metalness: 1 }); break; // rockets-3: lighter bare titanium so grid fins read
     case 'bell': m = new S({ map: T.bell(false), roughness: 0.38, metalness: 0.9, side: THREE.DoubleSide }); break;
     case 'bellx': m = new S({ map: T.bell(true), roughness: 0.32, metalness: 0.95, side: THREE.DoubleSide }); break;
     // brushed stainless: MeshPhysical anisotropy (node material on both WebGPU and WebGL2 backends; tangents are
@@ -38,7 +38,7 @@ export function mat(key) {
     case 'decal': m = new S({ map: decalTexture(arg), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, roughness: 0.5, metalness: 0.1 }); break;
     default: m = new S({ color: 0xff00ff });
   }
-  m.name = key; m.userData.cached = true; for (const v of Object.values(m)) if (v && v.isTexture) v.userData.cached = true; MATS.set(key, m); return m;
+  m.name = key; m.userData.cached = true; weakDisposeListeners(m); for (const v of Object.values(m)) if (v && v.isTexture) v.userData.cached = true; MATS.set(key, m); return m;
 }
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3(), _p = new THREE.Vector3();
 export function xf(p = [0, 0, 0], r = [0, 0, 0], s = [1, 1, 1]) { _e.set(r[0], r[1], r[2], 'YXZ'); _q.setFromEuler(_e); return new THREE.Matrix4().compose(_p.set(...p), _q, _s.set(...(typeof s === 'number' ? [s, s, s] : s))); }
@@ -60,17 +60,19 @@ export class Kit {
 // shared-geometry cache: identical merged geometries (e.g. titan v3/v4 boosters) are stored once, refcounted
 const GEO = new Map(); let _gid = 0;
 function geoKey(g) { const p = g.attributes.position.array, n = p.length; let h = n; for (let i = 0; i < n; i += Math.max(1, (n / 512) | 0)) h = (h * 31 + Math.round(p[i] * 1000)) | 0; return n + ':' + h + ':' + p[n - 1]; }
-export function shareGeometries(group) { group.traverse(m => { if (!m.isMesh || m.geometry.userData.shared) return; const k = geoKey(m.geometry) + (m.geometry.attributes.tangent ? 't' : ''), e = GEO.get(k);
+export function shareGeometries(group) { group.traverse(m => { if (!m.isMesh || m.geometry.userData.shared || m.geometry.userData.noShare) return; const k = geoKey(m.geometry) + (m.geometry.attributes.tangent ? 't' : ''), e = GEO.get(k);
   if (e) { m.geometry.dispose(); m.geometry = e.g; e.refs++; } else { m.geometry.userData.shared = k; GEO.set(k, { g: m.geometry, refs: 1 }); } }); return group; }
 export const geometryCacheSize = () => GEO.size;
 // compactStages: compact each stage group (direct child) separately so stages still detach on every LOD
 // mid/lo: minor materials fold into a near-identical neighbour (fewer draw calls per stage)
+// heron-heavy mid/lo: also fold carbon + every paint variant (soot gradients are invisible at that range); lo folds bells too
+export const FOLD_HEAVY = { bellx: 'bell', shield: 'dark', skirt: 'dark', tiframe: 'dark', grey: 'dark', ti: 'dark', carbon: 'dark', 'paint:*': 'paint:0.4,0.2' };
 const FOLD = { bellx: 'bell', shield: 'dark', skirt: 'dark', tiframe: 'dark', grey: 'dark', ti: 'dark' };
 export function compactStages(group, keep = ['legs'], fold = true) { for (const c of group.children.slice()) if (!c.isMesh) compact(c, keep, fold); return group; }
 // compact: merge every mesh with the same material (in group space) into one mesh; subtrees named in keep (animated legs) stay
 export function compact(group, keep = ['legs'], fold = false) { const by = new Map(), drop = []; group.updateMatrixWorld(true); const inv = group.matrixWorld.clone().invert();
   group.traverse(o => { if (o === group) return; let p = o; while (p && p !== group) { if (keep.includes(p.name)) return; p = p.parent; }
-    if (o.isMesh) { const g = o.geometry.clone(); g.applyMatrix4(inv.clone().multiply(o.matrixWorld)); if (g.attributes.tangent) g.deleteAttribute('tangent'); const M = fold && FOLD[o.material.name] ? mat(FOLD[o.material.name]) : o.material; (by.get(M) || by.set(M, []).get(M)).push(g); drop.push(o); } });
+    if (o.isMesh) { const g = o.geometry.clone(); g.applyMatrix4(inv.clone().multiply(o.matrixWorld)); if (g.attributes.tangent) g.deleteAttribute('tangent'); const F = fold === true ? FOLD : fold || {}, nm = o.material.name, to = F[nm] ?? (nm.startsWith('paint:') ? F['paint:*'] : undefined), M = to ? mat(to) : o.material; (by.get(M) || by.set(M, []).get(M)).push(g); drop.push(o); } });
   for (const o of drop) { o.parent.remove(o); if (!o.geometry.userData.shared) o.geometry.dispose(); }
   for (const g of group.children.slice()) if (!g.isMesh && !keep.includes(g.name) && !g.children.some(c => c.isMesh || c.children.length)) { /* emptied stage group: keep as an (empty) handle for userData.stages */ }
   for (const [m, gs] of by) { const g = mergeGeometries(gs); for (const x of gs) x.dispose();
@@ -79,7 +81,31 @@ export function compact(group, keep = ['legs'], fold = false) { const by = new M
   return group; }
 // dispose: free a vehicle's GPU/JS memory when it is swapped out. Cached (shared) materials/textures are kept; shared
 // geometries are refcounted and freed when the last user goes.
-export function dispose(group) { const seen = new Set(); group.traverse(o => { if (!o.isMesh && !o.isSprite) return; const g = o.geometry;
+export function dispose(group) { const seen = new Set(); group.traverse(o => { if (!o.isMesh && !o.isSprite) return; if (o.isInstancedMesh) o.dispose(); const g = o.geometry;
   if (g && !seen.has(g)) { seen.add(g); const k = g.userData.shared; if (k) { const e = GEO.get(k); if (e && --e.refs <= 0) { GEO.delete(k); g.dispose(); } } else g.dispose(); }
   for (const m of [].concat(o.material || [])) if (!m.userData?.cached) { for (const v of Object.values(m)) if (v && v.isTexture && !v.userData?.cached) v.dispose(); m.dispose(); } });
   group.removeFromParent(); }
+// release(group, renderer?, scene?, camera?): leak-safe model swap. Detach first, render one frame without it (the renderer
+// drops its per-object render state for objects no longer in the scene), then free GPU geometry/material/texture and
+// drop CPU arrays so retained wrappers can't pin vertex data.
+export async function release(group, renderer, scene, camera) {
+  group.removeFromParent();
+  if (renderer && scene && camera) { renderer.render(scene, camera); await new Promise(r => requestAnimationFrame(r)); }
+  dispose(group);
+  group.traverse(o => { if (o.isMesh) { if (o.geometry && !o.geometry.userData.shared) { for (const k of Object.keys(o.geometry.attributes)) o.geometry.deleteAttribute(k); o.geometry.setIndex(null); } o.geometry = null; o.material = null; } });
+  group.clear(); group.userData = {};
+}
+// Leak fix (Playtest QA perf_rockets-2: +27.5 MB / ~3.6k buffers per rendered model cycle). three r172 RenderObjects
+// subscribe to their material's 'dispose' event; our materials are shared and never disposed, so those listeners pinned
+// every mesh ever rendered (plus its vertex arrays) forever. For the shared materials only, 'dispose' listeners are held
+// through WeakRefs: the RenderObject owns its listener, and it is itself only weakly keyed by the mesh, so a removed
+// mesh (and its render state) can be collected. Dispatching 'dispose' still reaches every live listener.
+export function weakDisposeListeners(m) {
+  const add = m.addEventListener.bind(m), rm = m.removeEventListener.bind(m), refs = new Set();
+  m.addEventListener = (type, fn) => { if (type !== 'dispose') return add(type, fn); for (const r of refs) if (r.deref() === fn) return; refs.add(new WeakRef(fn)); };
+  m.removeEventListener = (type, fn) => { if (type !== 'dispose') return rm(type, fn); for (const r of refs) { const f = r.deref(); if (!f || f === fn) refs.delete(r); } };
+  const disp = m.dispatchEvent.bind(m);
+  m.dispatchEvent = e => { if (e.type === 'dispose') for (const r of [...refs]) { const f = r.deref(); if (f) f.call(m, { ...e, target: m }); else refs.delete(r); } return disp(e); };
+  m.hasWeakDispose = () => { let n = 0; for (const r of refs) if (r.deref()) n++; return n; };
+  return m;
+}
