@@ -48,21 +48,23 @@ export function earthSurfaceMaterial(t, tier = 'high', U = surfaceUniforms()) {
 export function moonSurfaceMaterial(t, tier = 'high', U = surfaceUniforms({ R: 1737.4 })) {
   const T = WORLD_TIERS[tier], m = new THREE.MeshStandardNodeMaterial();
   const d = normalize(positionWorld.sub(U.center)), uv = dirUV(d), base = texture(t.moon, uv).rgb;
-  const pkm = positionWorld.sub(U.center), alt = camAlt(U), near = smoothstep(300.0, 2.0, alt);
+  const pkm = positionWorld.sub(U.center), alt = camAlt(U), near = smoothstep(300.0, 2.0, alt).mul(smoothstep(25.0, 2.0, length(cameraPosition.sub(positionWorld)))); // per-pixel distance fade: no moire
   // regolith: fine fbm albedo grain + small crater-ish pits; mid-scale ejecta brightening
-  const grain = fbm(pkm.mul(40.0), T.detail).mul(0.5).add(0.5), ejecta = fbm(pkm.mul(0.6), 2).mul(0.5).add(0.5);
-  m.colorNode = base.mul(mix(float(1), grain.mul(0.16).add(0.92), near)).mul(ejecta.mul(0.1).add(0.95)).mul(vec3(1.0, 0.985, 0.96));
-  m.normalNode = toView(detailNormal(normalWorld, pkm, 6.0, near.mul(0.3).add(0.04), T.detail));
+  const warp = vec3(fbm(pkm.mul(0.35), 2), fbm(pkm.mul(0.35).add(17.0), 2), 0).mul(2.5); // domain warp breaks the repeating look
+  const macro = fbm(pkm.mul(0.04), 2).mul(0.5).add(0.5), grain = fbm(pkm.add(warp.mul(0.03)).mul(40.0), T.detail).mul(0.5).add(0.5), ejecta = fbm(pkm.mul(0.6).add(warp), 2).mul(0.5).add(0.5);
+  m.colorNode = base.mul(mix(float(1), grain.mul(0.16).add(0.92), near)).mul(ejecta.mul(0.1).add(0.95)).mul(macro.mul(0.22).add(0.89)).mul(vec3(1.0, 0.985, 0.96));
+  m.normalNode = toView(detailNormal(normalWorld, pkm, 5.0, near.mul(0.3).add(0.01), T.detail));
   m.roughnessNode = float(0.97); m.metalnessNode = float(0);
   m.userData.U = U; return m;
 }
 export function marsSurfaceMaterial(t, tier = 'high', U = surfaceUniforms({ R: 3389.5 })) {
   const T = WORLD_TIERS[tier], m = new THREE.MeshStandardNodeMaterial();
   const d = normalize(positionWorld.sub(U.center)), uv = dirUV(d), base = texture(t.mars, uv).rgb;
-  const pkm = positionWorld.sub(U.center), alt = camAlt(U), near = smoothstep(300.0, 3.0, alt);
-  const dunes = fbm(pkm.mul(9.0), T.detail).mul(0.5).add(0.5);
-  m.colorNode = base.mul(mix(float(1), dunes.mul(0.14).add(0.93), near)).mul(vec3(1.05, 0.97, 0.9));
-  m.normalNode = toView(detailNormal(normalWorld, pkm, 4.0, near.mul(0.25).add(0.04), T.detail));
+  const pkm = positionWorld.sub(U.center), alt = camAlt(U), near = smoothstep(300.0, 3.0, alt).mul(smoothstep(30.0, 2.0, length(cameraPosition.sub(positionWorld))));
+  const warp = vec3(fbm(pkm.mul(0.3), 2), fbm(pkm.mul(0.3).add(9.0), 2), 0).mul(3.0), macro = fbm(pkm.mul(0.05), 2).mul(0.5).add(0.5);
+  const dunes = fbm(pkm.add(warp.mul(0.06)).mul(9.0), T.detail).mul(0.5).add(0.5);
+  m.colorNode = base.mul(mix(float(1), dunes.mul(0.14).add(0.93), near)).mul(mix(vec3(0.92, 0.82, 0.74), vec3(1.08, 1.0, 0.92), macro));
+  m.normalNode = toView(detailNormal(normalWorld, pkm, 3.5, near.mul(0.25).add(0.01), T.detail));
   m.roughnessNode = float(0.95); m.metalnessNode = float(0);
   // dust haze: butterscotch aerial perspective by view grazing angle and path length, blue-ish at the terminator
   const V = normalize(cameraPosition.sub(positionWorld)), mu = saturate(dot(normalWorld, V)), dist = length(cameraPosition.sub(positionWorld));
