@@ -46,6 +46,7 @@ export function flyAuto(id, opts = {}) {
   const reserveT = (opts.reserve ?? mode.reserve?.[0] ?? 0) / 1000, s0 = cat.stages.find(s => s.parallel) ? 1 : 0;
   let cur = F.v.cur, phase = '';
   F.autoStage = false; F.stagePress(); F.setAuto(true, true);
+  F.v.direct = opts.direct ?? true; // direct-insertion AUTO (guidance.js), as the real flights fly
   if (opts.ascent) F.v.ascentTable = opts.ascent; // timelines/ascent.js table, read by autoGuide
   const peak = { q: 0, t: 0, alt: 0 }; let meco = null;
   for (let t = 0; t < (opts.tMax || 1500); t += dt) {

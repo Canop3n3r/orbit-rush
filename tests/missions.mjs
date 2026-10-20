@@ -12,7 +12,9 @@ const rot = s => s.replace(/[a-z]/gi, c => String.fromCharCode((c <= 'Z' ? 65 : 
 const BAD = ['fcnprk', 'fgneyvaxf?', 'snypbaf?', 'qentbaf?', 'fgnefuvcf?', 'fhcre ?urnil', 'zrpunmvyyn', 'pubcfgvpxf?', 'encgbef?', 'zreyvaf?', 'SU', 'nfqf', 'zhfx', 'S9'].map(rot);
 const BRANDS = new RegExp('\\b(' + BAD.join('|') + ')\\b', 'i');
 const here = new URL('..', import.meta.url), walk = d => readdirSync(new URL(d, here), { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(d + e.name + '/') : [d + e.name]);
-const files = [...walk('missions/'), ...readdirSync(new URL('tests/', here)).filter(f => /^(missions|campaign)/.test(f)).map(f => 'tests/' + f)];
+// fun/ and brand/ are scanned too; real names may live only in the private brand pack file brand/sx.js.
+const BRAND_EXEMPT = new Set(['brand/sx.js']);
+const files = [...walk('missions/'), ...walk('fun/'), ...walk('brand/').filter(f => !BRAND_EXEMPT.has(f)), ...readdirSync(new URL('tests/', here)).filter(f => /^(missions|campaign)/.test(f)).map(f => 'tests/' + f)];
 for (const f of files) readFileSync(new URL(f, here), 'utf8').split('\n').forEach((l, i) => ok(!BRANDS.test(l), `${f}:${i + 1} neutral (code + comments): ${l.trim().slice(0, 80)}`));
 ok(BRANDS.test(rot('fgnefuvc')) && !BRANDS.test('heron-9'), 'scan catches a real name and passes a neutral id');
 ok(!validateMission({ id: 'Bad Id' }).ok, 'schema rejects a bad mission');

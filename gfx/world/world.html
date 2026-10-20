@@ -1,0 +1,69 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>Orbit Rush world-1 (clouds + surfaces)</title>
+<style>body{margin:0;background:#000;overflow:hidden}#cap{position:fixed;left:10px;bottom:8px;color:#fff9;font:12px system-ui}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/tsl":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.tsl.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"}}</script>
+</head><body><div id="cap"></div>
+<script type="module">
+// f5 world-1 showcase: ?shot=pad|10km|100km|orbit|moon|mars &tier=high|med|low &webgl &perf=N (frames to time)
+// Units: km. Uses gfx/gfx.js atmoMaterial unchanged (atmosphere is owned by f4.1; not edited here).
+import * as THREE from 'three/webgpu';
+import * as GX from '../gfx.js?v=f2';
+import { WORLD_TIERS, lonLatToDir } from './tiers.js?v=w1';
+import { createClouds, cloudUniforms } from './clouds.js?v=w1';
+import { surfaceUniforms, earthSurfaceMaterial, moonSurfaceMaterial, marsSurfaceMaterial, capGeometry } from './surfaces.js?v=w1';
+globalThis.W1VIEW = +(new URLSearchParams(location.search).get('view') ?? 0) || (new URLSearchParams(location.search).has('view') ? 1 : 0);
+const q = new URLSearchParams(location.search), shot = q.get('shot') || 'pad', tier = WORLD_TIERS[q.get('tier')] ? q.get('tier') : 'high';
+if (q.get('steps')) WORLD_TIERS[tier].steps = +q.get('steps'); if (q.get('light')) WORLD_TIERS[tier].light = +q.get('light');
+const renderer = new THREE.WebGPURenderer({ antialias: tier !== 'low', forceWebGL: q.has('webgl'), logarithmicDepthBuffer: true });
+renderer.setPixelRatio(tier === 'low' ? 1 : Math.min(devicePixelRatio, 1.5)); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.85;
+renderer.setSize(innerWidth, innerHeight); document.body.prepend(renderer.domElement); await renderer.init();
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.002, 1e6);
+const L = new THREE.TextureLoader(), T = n => { const t = L.load(new URL('../../assets/tex/' + n, import.meta.url).href); t.anisotropy = 8; return t; };
+const srgb = t => (t.colorSpace = THREE.SRGBColorSpace, t);
+const hi = tier === 'low' ? '_1k.jpg' : '.jpg';
+const body = shot === 'moon' ? 'moon' : shot === 'mars' ? 'mars' : 'earth', R = { earth: 6371, moon: 1737.4, mars: 3389.5 }[body];
+// site + sun: pad at 28.6N 80.6W; golden-hour sun ~12 deg up from the east-south-east
+const up = new THREE.Vector3(...lonLatToDir(body === 'earth' ? -81.0 : body === 'moon' ? 23.5 : -137.4, body === 'earth' ? 28.6 : body === 'moon' ? 0.7 : -4.6));
+const east = new THREE.Vector3(0, 1, 0).cross(up).normalize(), north = up.clone().cross(east).normalize();
+const sunEl = { night: -25, ascent: 20, pad: 16, '10km': 22, '100km': 25, orbit: 30, moon: 12, mars: 20 }[shot] ?? 15, sunAz = { orbit: 0 }[shot] ?? 110;
+const az = THREE.MathUtils.degToRad(sunAz), el = THREE.MathUtils.degToRad(sunEl);
+const sunDir = up.clone().multiplyScalar(Math.sin(el)).add(north.clone().multiplyScalar(Math.cos(el) * Math.cos(az))).add(east.clone().multiplyScalar(Math.cos(el) * Math.sin(az))).normalize();
+const sun = new THREE.DirectionalLight(0xfff1e0, 3.2); sun.position.copy(sunDir).multiplyScalar(1e5); scene.add(sun, sun.target);
+scene.add(new THREE.HemisphereLight(0x8fb4ff, 0x1a1410, body === 'earth' ? 0.25 : 0.05));
+scene.background = srgb(T('milkyway_1k.jpg')); scene.background.mapping = THREE.EquirectangularReflectionMapping; scene.backgroundIntensity = 0.25;
+const CU = cloudUniforms({ R, offsetU: +(q.get('wx') ?? 0.829) }); // weather-of-the-day offset into the weather map
+const U = surfaceUniforms({ R, cloudUV: CU.offset }); U.sunDir.value.copy(sunDir);
+const tex = { day: srgb(T('earth_day' + hi)), night: srgb(T('earth_night' + hi)), spec: T('earth_spec_1k.jpg'), clouds: T('earth_clouds' + hi), moon: srgb(T('moon' + hi)), mars: srgb(T('mars' + hi)) };
+const mat = body === 'earth' ? earthSurfaceMaterial(tex, tier, U) : body === 'moon' ? moonSurfaceMaterial(tex, tier, U) : marsSurfaceMaterial(tex, tier, U);
+const segs = tier === 'low' ? 128 : 256;
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(R - 0.3, segs, segs / 2), mat)); // global sphere sits just under the cap
+scene.add(new THREE.Mesh(capGeometry(R, up.toArray(), 6, tier === 'low' ? 160 : 320), mat)); // smooth local ground around the site
+let clouds = null;
+if (body === 'earth' && !q.has('noclouds')) {
+  clouds = createClouds({ weatherTex: tex.clouds, tier, R, U: CU }); clouds.setSun(sunDir); scene.add(clouds.mesh);
+  const atmo = GX.atmoMaterial({ R, Ra: R + 100 }); atmo.userData.sunDir.value.copy(sunDir); atmo.userData.gain.value = 0.9;
+  const sh = new THREE.Mesh(new THREE.SphereGeometry(R + 100, 128, 64), atmo); sh.renderOrder = 4; scene.add(sh);
+}
+// pad + rocket for the pad shot (models from gfx/vehicles; metres -> km)
+const site = up.clone().multiplyScalar(R);
+if (shot === 'pad' || shot === 'ascent') {
+  const { buildLOD } = await import('../vehicles/vehicles.js?v=f4');
+  const rk = buildLOD('heron-9', { phone: tier === 'low' }); rk.scale.setScalar(0.001); rk.position.copy(site); rk.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up); scene.add(rk);
+  const padM = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.004, 48), new THREE.MeshStandardMaterial({ color: 0x8a8580, roughness: 0.9 }));
+  padM.position.copy(site); padM.quaternion.copy(rk.quaternion); scene.add(padM);
+  scene.environment = GX.envTexture(); scene.environmentIntensity = 0.4;
+}
+// camera per shot: [alt km, back distance km along -heading, heading az deg, look pitch deg]
+const C = { ascent: [3.2, 0, 150, 6], night: [420, 0, 300, -24], pad: [0.012, 0.2, 200, 9], '10km': [10, 0, 120, -12], '100km': [100, 0, 105, -14], orbit: [420, 0, 70, -17], moon: [3, 0, 120, -14], mars: [6, 0, 110, -12] }[shot];
+const ha = THREE.MathUtils.degToRad(C[2]), fwd = north.clone().multiplyScalar(Math.cos(ha)).add(east.clone().multiplyScalar(Math.sin(ha)));
+cam.position.copy(site).addScaledVector(up, C[0]).addScaledVector(fwd, -C[1]); cam.up.copy(up);
+const pitch = THREE.MathUtils.degToRad(C[3]); cam.lookAt(cam.position.clone().add(fwd.clone().multiplyScalar(Math.cos(pitch)).addScaledVector(up, Math.sin(pitch))));
+if (shot === 'pad') cam.lookAt(site.clone().addScaledVector(up, 0.035)), cam.fov = 40, cam.updateProjectionMatrix();
+if (shot === 'ascent') { const rk = scene.getObjectByProperty('type', 'LOD'); if (rk) { rk.position.copy(cam.position).addScaledVector(fwd, 1.4).addScaledVector(up, 0.05); rk.scale.setScalar(+(q.get("rs") || 0.004)); rk.updateMatrixWorld(true); if (clouds && !q.has('nodepth')) clouds.setOccluder(rk, up); } } // exaggerated x4 so it reads at 1.4 km
+document.getElementById('cap').textContent = `world-1 · ${shot} · tier ${tier}${clouds ? ' · clouds ' + clouds.mesh.name.slice(7) : ''} · Earth/Moon/Mars textures CC BY 4.0 Solar System Scope`;
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); });
+await new Promise(r => setTimeout(r, 1500)); // textures
+const perfN = +q.get('perf') || 0; let last = performance.now(); const times = [];
+renderer.setAnimationLoop(() => { if (window.__stop) return; const now = performance.now(), dt = (now - last) / 1000; last = now; if (clouds) clouds.update(0, cam); U.time.value += dt; renderer.render(scene, cam);
+  if (perfN && times.length < perfN + 5) { times.push(dt * 1000); if (times.length === perfN + 5) { const s = times.slice(5).sort((a, b) => a - b); window.__perf = { mean: s.reduce((a, b) => a + b, 0) / s.length, p50: s[s.length >> 1], p95: s[Math.floor(s.length * 0.95)], n: s.length, backend: renderer.backend.isWebGPUBackend ? 'webgpu' : 'webgl2' }; } }
+  window.__ready = (window.__ready || 0) + 1; });
+</script></body></html>
