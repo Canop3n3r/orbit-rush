@@ -738,7 +738,7 @@ function attachHero() {
   if (hero) { heroDispose(hero); hero = null; }
   if (!design.model || !SG.length) return;
   try { hero = heroLOD(design.model, { phone: TOUCH }); } catch (e) { console.warn('[Orbit Rush] hero model', e); hero = null; return; }
-  let L = 0; for (const g of SG) L += g.userData.h; const hH = new THREE.Box3().setFromObject(hero.userData.hi || hero).getSize(new THREE.Vector3()).y || L;
+  let L = 0; try { L = P.stackGeom(v).L; } catch (e) {} if (!(L > 0)) for (const g of SG) L += g.userData.h; const hH = new THREE.Box3().setFromObject(hero.userData.hi || hero).getSize(new THREE.Vector3()).y || L;
   hero.scale.setScalar(L / hH); rocketG.add(hero);
   for (const g of SG) g.traverse(o => { if (o.isMesh && !isPlumeChild(o, g)) o.visible = false; });
 }
@@ -1861,12 +1861,13 @@ function testStand() { // static fire: engines lit at full throttle, held down b
 function dropTest() { if (!validate(design).ok) return; launch(); F.placeState({ h: 1500, vUp: 0, vEast: 0, stage: 0, att: 'up', sas: 'stab' }); syncStages(); F.ignited = true; F.flags.liftoff = true; F.met = 20; v.ut = 0; v.throttle = 0; camDist = Math.max(120, stackL() * 3); fun.call('📦', 'DROP TEST — 1.5 km', '#ffd23a', true); }
 $('missionsBtn').onclick = () => fun.openHub(); $('atlasBtn').onclick = () => fun.openAtlas();
 // ---------- f2h: home = rocket showroom; the hangar is its own "Build" mode ----------
+const showDesign = i => ({ ...cloneDesign(SHOW[i].design), name: SHOW[i].name }); // f4: hero rockets carry their brand name into the hangar/flight
 const HOME_KEY = 'orbitrush.homeIdx', SHOW = SHOWROOM.map(r => { const o = { ...r, bars: showBars(r), missionLabel: missionLabel[r.mission] || '' }; if (r.model) Object.defineProperty(o, 'name', { get: () => brandVName(r.model), enumerable: true }); return o; }); // f4: hero-model rockets carry the brand name
 var home = createHome({ list: SHOW,
-  onSelect: i => { try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(cloneDesign(SHOW[i].design)); },
-  onFly: i => { setDesign(cloneDesign(SHOW[i].design)); home.show(false); launch(); },
+  onSelect: i => { try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(showDesign(i)); },
+  onFly: i => { setDesign(showDesign(i)); home.show(false); launch(); },
   onMission: i => { home.show(false); startMission(SHOW[i].mission); },
-  onBuild: i => { goBuild.toHome = false; setDesign(cloneDesign(SHOW[i].design)); home.show(false); refreshBuild(); },
+  onBuild: i => { goBuild.toHome = false; setDesign(showDesign(i)); home.show(false); refreshBuild(); },
   onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => $('hGearM').classList.toggle('hidden') });
 { const g = document.createElement('div'); g.id = 'hGearM'; g.className = 'hidden'; document.body.appendChild(g);
   const mk = (t, fn) => { const b = document.createElement('button'); b.textContent = t; b.onclick = () => { g.classList.add('hidden'); fn(); }; g.appendChild(b); };
