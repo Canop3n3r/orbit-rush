@@ -13,26 +13,26 @@ export const ENGINES_MARTELL = {
   'mm-e10': { tSl: 0, tVac: 0.2, ispSl: 0, ispVac: 236.0, src: 'spec:engines#mm-e10' },
 };
 export const ROSTER_MARTELL = [
-  { id: 'titanus-2', name: "Titanus II", company: 'martell', src: 'spec:titanus-2', area: 7.3, fairing: 0, est: ['area'],
+  { id: 'titanus-2', name: "Titanus II (Twinship Hauler)", company: 'martell', src: 'spec:titanus-2', area: 7.3, fairing: 0, est: ['area'],
     stages: [
       { engines: {'mm-e1': 2}, dry: 4000, prop: 118000, burn: 147.0, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'mm-e2': 1}, dry: 2400, prop: 26500, burn: 182.0, group: 1, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 3763, orbit: { hp: 159, ha: 269, inc: 28.9 }, src: "spec:titanus-2#ref (flown: heaviest crewed capsule, launch mass, and its insertion orbit; agency history)", est: []  }] },
+    modes: [{ variant: 'leo', payload: 3763, orbit: { hp: 159, ha: 269, inc: 28.9 }, src: "spec:titanus-2#ref (flown: heaviest crewed capsule, launch mass, and its insertion orbit; agency history)", est: [] }] },
   { id: 'titanus-3', name: "Titanus III", company: 'martell', src: 'spec:titanus-3', area: 22.5, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'mm-e3': 2}, dry: 67600, prop: 384800, burn: 115.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)'] },
       { engines: {'mm-e4': 2}, dry: 5500, prop: 111100, burn: 147.0, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'mm-e5': 1}, dry: 2650, prop: 26550, burn: 205.0, group: 1, recovery: 'expended', src: 'GCAT' },
-      { engines: {'mm-e6': 2}, dry: 2000, prop: 10500, burn: 440.0, group: 2, recovery: 'expended', src: 'GCAT' },
+      { engines: {'mm-e6': 2}, dry: 2000, prop: 10500, burn: 440.0, group: 2, restart: true, restartSrc: 'spec:titanus-3#restart (rocketdb per-stage restartable, cited)', recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 13300, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:titanus-3#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model -15 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); no flown near-capacity LEO payload with a clean orbit found; SL thrust/Isp 0.88 x vac ESTIMATE; fairing mass unsourced (0)"  }] },
+    modes: [{ variant: 'leo', payload: 13300, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:titanus-3#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] }] },
   { id: 'athenix', name: "Athenix", company: 'martell', src: 'spec:athenix', area: 4.2, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'mm-e7': 1}, dry: 4450, prop: 48650, burn: 83.4, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'mm-e8': 1}, dry: 4450, prop: 48650, burn: 83.4, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'mm-e9': 1}, dry: 1030, prop: 9770, burn: 150.0, group: 2, recovery: 'expended', src: 'GCAT' },
-      { engines: {'mm-e10': 4}, dry: 360, prop: 340, burn: 550.0, group: 3, recovery: 'expended', src: 'GCAT' },
+      { engines: {'mm-e10': 4}, dry: 360, prop: 340, burn: 550.0, group: 3, restart: true, restartSrc: "spec:athenix#restart (vendor family brief: orbit-adjust module, multiple orbits, 2-orbit 3-hour timelines)", recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 726, orbit: { hp: 677, ha: 682, inc: 98.2 }, src: "spec:athenix#ref (flown: imaging satellite and its orbit, GCAT satcat)", est: [] , knownGap: "model no orbit to the flown 677 x 682 km sun-synchronous orbit: the solid stack needs its orbit-adjust module's long coast/restart, not in GCAT stage data; SL thrust/Isp 0.88 x vac ESTIMATE"  }] },
+    modes: [{ variant: 'leo', payload: 726, orbit: { hp: 677, ha: 682, inc: 98.2 }, src: "spec:athenix#ref (flown: imaging satellite and its orbit, GCAT satcat)", est: [] , knownGap: "model +117 %: fairing mass unsourced (0); final stage restartable: coast-and-restart flown; SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
 ];
