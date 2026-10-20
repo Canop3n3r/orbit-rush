@@ -1,8 +1,8 @@
 // Milestone B (gx1) graphics tests that run without a GPU: presets, Earth map alignment, licensed assets + credits.
 // Run: node tests/gfx.mjs
 import fs from 'fs';
-import { GFX, GFX_ORDER } from '../gfx/presets.js?v=f5';
-import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, sampleEarth, latLonToGame, gameToGeo } from '../gfx/earthmap.js?v=f5';
+import { GFX, GFX_ORDER } from '../gfx/presets.js?v=f5a';
+import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, sampleEarth, latLonToGame, gameToGeo } from '../gfx/earthmap.js?v=f5a';
 let pass = 0, fail = 0;
 const ok = (c, n, x = '') => { if (c) { pass++; console.log('  ✔', n, x); } else { fail++; console.log('  ✘', n, x); } };
 console.log('1. Quality presets');
