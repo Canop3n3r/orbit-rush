@@ -27,6 +27,9 @@ procedural maps, particle effects, sounds, the physics and the lessons are origi
 ## Vehicle models (art1)
 All vehicle models, the catch tower and their textures in `gfx/vehicles/` are original procedural work for Orbit Rush (canvas-generated; no third-party textures, no logos). Proportions follow public dimensions collected in the team specs sheet.
 
+## Launch vehicle data (GCAT)
+Some stage masses in `vehicles/roster/` come from Jonathan McDowell's General Catalog of Artificial Space Objects (GCAT), https://planet4589.org/space/gcat/ , licensed CC BY 4.0.
+
 ## f5 world-1 (gfx/world/, Rocket Art Bot)
 - Volumetric cloud coverage (weather map), cloud shadows, night lights, coastline mask and ocean specular reuse the Earth day/night/cloud/specular maps from Solar System Scope (CC BY 4.0, above); Moon and Mars detail tuning uses the Solar System Scope Moon/Mars maps (CC BY 4.0).
 - All detail normals, regolith grain, Mars dust haze and cloud erosion noise are procedural and original (MaterialX noise from three.js, MIT). Lighting model: Beer-Powder + dual-lobe Henyey-Greenstein, techniques from public talks (Schneider, "The Real-time Volumetric Cloudscapes of Horizon Zero Dawn", SIGGRAPH 2015); no code or assets copied. KSP EVE/Scatterer were a visual reference only.
