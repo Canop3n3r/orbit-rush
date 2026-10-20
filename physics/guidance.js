@@ -211,7 +211,7 @@ export function boosterAutopilot(b, dtHint = 0.02) {
   // (rideshare RTLS lit at ~30 km). Look ahead along a drag-only fall and wait for the altitude where the solve, fed the
   // predicted state, first asks for ignition (refreshed every 0.5 s; skipped once lit, near the ground or under manual control).
   if (!sol.ignite) b._hIgn = null; // stale look-ahead: recompute when the solve next asks for ignition
-  if (!b._hs && b.ignAlt == null && sol.ignite && !b.manual && hp > 3000) { // only the high, thin-air ignitions; the last 3 km stay with the solve
+  if (!b._hs && b.ignAlt == null && sol.ignite && !b.manual && (hp > 3000 || (b._hIgn != null && b.nMax >= 3))) { // below 3 km a held look-ahead still hands over to the 3-engine burn it assumed // only the high, thin-air ignitions; the last 3 km stay with the solve
     b._lT = (b._lT ?? 0) - dtHint;
     if (b._lT <= 0 || b._hIgn == null) { b._lT = 0.5; b._hIgn = predictIgnAlt(b, Math.min(3, b.nMax || 1), T1, m, deck); }
     if (b._hIgn != null && hp > Math.max(3000, b._hIgn + Math.max(vDown, 50) * 0.6)) sol = { ...sol, ignite: false, throttle: 0, tIgn: (hp - b._hIgn) / Math.max(vDown, 50) };
