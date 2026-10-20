@@ -630,7 +630,7 @@ function refreshBuild() {
     requestVerdict(design, (a, p) => {
     if (JSON.stringify(design.parts) !== key || !$('verdict')) return;
     $('verdict').innerHTML = `<span class="${a.level}">${a.text}</span>`;
-    if ($('ghost')) { fun.drawGhost.t0 = performance.now(); fun.drawGhost($('ghost'), a.track, a.level); }
+    if ($('ghost') && fun && fun.drawGhost) { fun.drawGhost.t0 = performance.now(); fun.drawGhost($('ghost'), a.track, a.level); }
     const el = $('landPlan'); const s1 = design && stats.analysis.stages[0];
     if (p.reason === 'single') el.innerHTML = '<span class="small">Single-stage rocket: no booster to land.</span>';
     else if (p.reason === 'radial') el.innerHTML = '<span class="small">Radial boosters are expendable: they drop into the sea.</span>';
@@ -1116,7 +1116,7 @@ function emit(veh, group, dt, bottom, dir) {
   const ps = plumeShape(p * 101325, thr), pl = plumeLook(p * 101325, thr), ud = plume.userData, w0 = ud.w, fl = 0.92 + 0.16 * Math.random();
   const len = pl.len * w0 * fl; plume.scale.set(1, 1, 1);
   const setL = (m, wk, lk = 1) => { m.scale.set(wk, len * lk, wk); m.position.y = -len * lk / 2; };
-  const applyTo = P0 => { const u = P0.userData; setL(u.glow, pl.glowW * 1.4 * (0.95 + 0.1 * Math.random()), 0.85); setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.1 * Math.random());
+  const applyTo = P0 => { const u = P0.userData; setL(u.glow, pl.glowW * 1.15 * (0.95 + 0.1 * Math.random()), 0.85); setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.1 * Math.random());
     u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW, len * 0.45, pl.bellW); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl); };
   applyTo(plume); if (ex) for (const e of ex) applyTo(e);
   const hiF = 1 - 0.92 * Math.min(1, Math.max(0, (h - 25000) / 15000)); // f4: above ~40 km the vacuum plume is just a faint glow
@@ -1724,12 +1724,12 @@ function placeArrow(a, d, L, at) { if (!d) { a.visible = false; return; } _wd.se
   const len = L * 1.15, w = Math.max(0.6, L / 26), u = a.userData; u.sh.scale.set(w, len, w); u.sh.position.y = len / 2 + L * 0.15; u.hd.scale.set(w, w, w); u.hd.position.y = len + L * 0.15 + 1.5 * w;
   a.position.copy(at); a.visible = true; }
 function rocketScreenBox() { // projected bounding box of the craft (CSS px) — used by the tag and the ui_smoke "rocket not covered" check
-  if (!rocketG || !rocketG.visible) return null; _wb.makeEmpty(); rocketG.updateMatrixWorld(true);
+  if (!rocketG || !rocketG.visible) return null; _wb.makeEmpty(); rocketG.updateMatrixWorld(true); const boxes = []; // f4: project each mesh box (one big AABB balloons when the camera is close and low)
   rocketG.traverseVisible(o => { if (!o.isMesh || o.isPoints || o.isSprite || o.isInstancedMesh) return; const m = Array.isArray(o.material) ? o.material[0] : o.material; if (!m || m.blending === THREE.AdditiveBlending || (m.transparent && !m.depthWrite)) return;
-    for (let p = o; p && p !== rocketG; p = p.parent) if (p.userData && p.userData.isFx) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); _wb2.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld); _wb.union(_wb2); });
+    for (let p = o; p && p !== rocketG; p = p.parent) if (p.userData && p.userData.isFx) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); _wb2.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld); _wb.union(_wb2); boxes.push(_wb2.clone()); });
   if (_wb.isEmpty()) return null;
   const c = renderer.domElement.getBoundingClientRect(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, any = false;
-  for (let i = 0; i < 8; i++) { _wp.set(i & 1 ? _wb.max.x : _wb.min.x, i & 2 ? _wb.max.y : _wb.min.y, i & 4 ? _wb.max.z : _wb.min.z).project(camera); if (_wp.z > 1) continue; any = true;
+  for (const bx of boxes) for (let i = 0; i < 8; i++) { _wp.set(i & 1 ? bx.max.x : bx.min.x, i & 2 ? bx.max.y : bx.min.y, i & 4 ? bx.max.z : bx.min.z).project(camera); if (_wp.z > 1) continue; any = true;
     const x = c.left + (_wp.x + 1) / 2 * c.width, y = c.top + (1 - _wp.y) / 2 * c.height; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
   return any ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
 }
