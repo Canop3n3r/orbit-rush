@@ -28,6 +28,7 @@ for f,v in J.items():
 print(json.dumps(out))`;
     const r = spawnSync('python3', ['-c', py, db + '/tools'], { input: JSON.stringify(job), encoding: 'utf8' });
     if (r.status !== 0) ok(false, 'namecheck run: ' + (r.stderr || '').slice(-200)); else for (const [f, pr] of Object.entries(JSON.parse(r.stdout))) ok(pr.length === 0, `${f}: public names clean ${pr.join('; ')}`); } }
+{ const c = readFileSync(new URL('co_europia.js', dir), 'utf8'); for (const id of ['europia']) ok(c.includes(`'${id}':`), 'co_europia id ' + id); ok(!realHit(c), 'co_europia.js: no real names'); }
 console.log(`vehicles_art: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
 // noses/fairings: every profile's narrowest point is its highest point (tips point +Y, away from the engines)
 const PR = await import('../gfx/vehicles/profiles.js');
