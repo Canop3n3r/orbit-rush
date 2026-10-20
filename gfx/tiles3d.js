@@ -74,9 +74,9 @@ export function createTiles({ earth, camera, renderer, onSurface, padEF, ground,
   tiles.addEventListener('tile-download-start', () => stats.req++);
 
   const ray = new THREE.Raycaster(), camL = new THREE.Vector3(), inv = new THREE.Matrix4();
-  function measureGround() { // the real ground under the pad (ENU origin): raycast straight down through the loaded tiles
+  function measureGround(n = 0, e = 0) { // real ground at (north, east) metres from the pad, relative to the game ground
     g.updateMatrixWorld(true);
-    const top = new THREE.Vector3(0, 3000, 0).applyMatrix4(anchor.matrixWorld), down = new THREE.Vector3(0, -1, 0).transformDirection(anchor.matrixWorld);
+    const top = new THREE.Vector3(n, 3000, e).applyMatrix4(anchor.matrixWorld), down = new THREE.Vector3(0, -1, 0).transformDirection(anchor.matrixWorld);
     ray.set(top, down); ray.far = 6000; const hit = ray.intersectObject(g, true)[0];
     if (!hit) return null; return 3000 - hit.distance; // height of the real ground above the current game ground
   }
@@ -100,5 +100,5 @@ export function createTiles({ earth, camera, renderer, onSurface, padEF, ground,
       attr.style.display = tiles.visibleTiles.size ? 'block' : 'none'; attr.innerHTML = '<b>Google</b> · ' + (txt || 'Map data ©Google').replace(/</g, '&lt;'); }
     stats.visible = tiles.visibleTiles.size; stats.loaded = tiles.lruCache.itemSet.size; stats.mb = +(tiles.lruCache.cachedBytes / 2 ** 20 || 0).toFixed(0);
   }
-  return { update, tiles, anchor, stats, measureGround, get h0() { return h0; }, site: S };
+  return { update, tiles, anchor, stats, measureGround, heightAt: measureGround, get h0() { return h0; }, site: S };
 }
