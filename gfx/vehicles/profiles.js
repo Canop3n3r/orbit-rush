@@ -30,7 +30,7 @@ export const NOSES = {
   'heron-heavy.sidenose': () => ogive(1.83, 6.2),
   'sparrow-1.fairing': () => fairing(0.75, 0.3, 1.65, 0, 0.66),
   'heron-9-crew.capsule': () => capsule(1.85),
-  'titan.shipnose': () => ogive(4.5, 16, 0, 18, 0.12),
+  'colossus.shipnose': () => ogive(4.5, 16, 0, 18, 0.12),
 };
 // ---- co-nosa (NOSA house, rocketdb tier S) ----
 // Saturnine V command module: blunt 3.9 m heat shield, ~33° half-angle cone to a docking tunnel (tip +Y)
@@ -46,11 +46,11 @@ NOSES['space-truck.srb'] = () => ogive(TRUCK.srbR, TRUCK.srbNose, 0, 18, 0.1);
 NOSES['space-truck.orbiter'] = () => ogive(TRUCK.orbR, TRUCK.orbNose, 0, 18, 0.12);
 // ---- co-krasnaya (R-7 family parody): core "waisted" profile, strap-on cone, crew shroud, cargo fairing (tips +Y) ----
 export const R7 = { coreTop: 27.8, sr: 1.34, sTip: 19.6, off: 2.45 };
-export function r7Core(y0 = 1.5) { return [[0, y0], [1.03, y0], [1.2, 10], [1.4, 17], [1.475, 21], [1.475, 25], [1.33, R7.coreTop]]; }
+export function rkCore(y0 = 1.5) { return [[0, y0], [1.03, y0], [1.2, 10], [1.4, 17], [1.475, 21], [1.475, 25], [1.33, R7.coreTop]]; }
 export function r7Strap(y0 = 1.5) { const out = [[0, y0], [R7.sr, y0], [R7.sr, 6.0]]; for (let i = 1; i <= 8; i++) { const t = i / 8; out.push([R7.sr * (1 - t) + 0.18 * t - 0.12 * Math.sin(t * Math.PI), 6.0 + t * (R7.sTip - 6.0)]); } out.push([0.05, R7.sTip + 0.15]); return out; }
 // crew shroud: cylinder 1.5 m radius, cone to the escape tower base
-export function r7Shroud(y0 = 0) { return [[0, y0], [1.5, y0], [1.5, y0 + 4.2], [1.1, y0 + 6.4], [0.55, y0 + 8.2], [0.32, y0 + 8.6], [0, y0 + 8.7]]; }
-NOSES['soyuzny.strap'] = () => r7Strap(0);
-NOSES['soyuzny.shroud'] = () => r7Shroud();
-NOSES['soyuzny-2.fairing'] = () => fairing(2.05, 4.5, 4.4, 0, 1.33, 18, 1.2);
-NOSES['vostochka.shroud'] = () => ogive(1.3, 3.2, 0, 18, 0.12);
+export function rkShroud(y0 = 0) { return [[0, y0], [1.5, y0], [1.5, y0 + 4.2], [1.1, y0 + 6.4], [0.55, y0 + 8.2], [0.32, y0 + 8.6], [0, y0 + 8.7]]; }
+NOSES['rodnik.strap'] = () => r7Strap(0);
+NOSES['rodnik.shroud'] = () => rkShroud();
+NOSES['rodnik-2.fairing'] = () => fairing(2.05, 4.5, 4.4, 0, 1.33, 18, 1.2);
+NOSES['lastochka.shroud'] = () => ogive(1.3, 3.2, 0, 18, 0.12);
