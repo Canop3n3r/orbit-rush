@@ -931,6 +931,11 @@ $('launchBtn').onclick = e => { e.currentTarget.blur(); launch(); };
 $('againBtn').onclick = () => { goBuild(); const hb = $('homeBack'); if (hb) hb.click(); }; // f3: the result card's Home goes back to the showroom
 $('relaunchBtn').onclick = () => launch();
 new MutationObserver(() => { document.body.classList.toggle('endOn', !$('end').classList.contains('hidden')); }).observe($('end'), { attributes: true, attributeFilter: ['class'] });
+{ // QA f5.1c P1: the flight HUD hides whenever any menu is up (Missions hub, Atlas, Settings, pause, career, home tabs)
+  let mq = 0; const menuCheck = () => { mq = 0; const on = !!document.querySelector('.modal:not(.hidden):not(#end), #careerM:not(.hidden)') || (document.body.classList.contains('home') && !document.body.classList.contains('endOn'));
+    if (document.body.classList.contains('menuOn') !== on) document.body.classList.toggle('menuOn', on); };
+  new MutationObserver(() => { if (!mq) mq = requestAnimationFrame(menuCheck); }).observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+  window.__menuCheck = menuCheck; }
 $('contBtn').onclick = () => { $('end').classList.add('hidden'); document.body.classList.remove('endOn'); F.unfinish(); F.endQueued = true; };
 function shareText() { const sc = F.score(); return `🚀 I scored ${sc.toLocaleString()} in Orbit Rush${F.flags.orbit ? ' — reached a full-scale orbit' : ''}${F.flags.boosterBonus ? ' and landed the booster' : ''}${F.flags.recovered ? ' and brought the capsule home' : ''}! Can you beat it?`; }
 $('shareBtn').onclick = async () => { const t = shareText(), url = location.href.split('?')[0]; try { if (navigator.share) await navigator.share({ text: t, url }); else { await navigator.clipboard.writeText(t + ' ' + url); $('shareBtn').textContent = 'Copied!'; } } catch (e) { } };

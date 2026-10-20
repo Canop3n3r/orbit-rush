@@ -737,7 +737,8 @@ body.touch #navRd{flex-direction:column;gap:0;padding:2px 7px;border-radius:8px;
 #end.lean #endMoreBtn{flex:0 0 48px!important;font-size:20px}
 #nextMisBtn small{display:block;font-size:10.5px;font-weight:600;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #nextMisBtn{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
-body.endOn #pilot,body.endOn #nav,body.endOn #mleft,body.endOn #mright,body.endOn #mhud,body.endOn #topStack,body.endOn #bars,body.endOn #warpBar{display:none!important}
+body.endOn #pilot,body.endOn #nav,body.endOn #mleft,body.endOn #mright,body.endOn #mhud,body.endOn #topStack,body.endOn #bars,body.endOn #warpBar,body.endOn #mtop{display:none!important}
+body.menuOn #pilot,body.menuOn #nav,body.menuOn #mleft,body.menuOn #mright,body.menuOn #mhud,body.menuOn #topStack,body.menuOn #bars,body.menuOn #warpBar,body.menuOn #mtop,body.menuOn #mMenu{display:none!important}
 @media (orientation:landscape) and (max-height:500px){#end.lean{left:calc(12px + var(--sal,0px))!important;right:auto!important;width:min(420px,60vw)!important}}
 /* f5 (ui_ideal_path #13): manual controls + navball hide while AUTO is on; they return the moment AUTO is off */
 body.autoOn #mStick,body.autoOn #mRoll,body.autoOn #mThr,body.autoOn #nav,body.autoOn #mleft{display:none!important}
