@@ -10,8 +10,12 @@ export const ASCENT = {
     rows: [[0, 0, 1], [8, 0, 1], [15, 3, 1], [20, 6, 1], [30, 10, 1], [40, 11, 1], [50, 14, 1], [55, 15.5, 1], [60, 17, 0.8], [70, 24, 0.8], [76, 26, 1],
       [80, 28, 1], [90, 33, 1], [100, 38, 1], [110, 41, 1], [120, 47, 1], [130, 52, 1], [140, 55, 1], [150, 58, 1], [160, 60, 1]],
     // reference values the table is checked against (tests/ascent.mjs, ±15 %)
-    ref: { maxqT: 72, maxqQ: 30000, maxqAlt: 12000, mecoT: 150, mecoAlt: 68000, mecoV: 2200,
-      src: 'spec:ascent-heron-9#ref (times: spec:timeline-heron-9-constellation; q 30 kPa EST — 2018–19 telemetry gives 22–28 kPa)', est: ['maxqQ', 'maxqAlt', 'mecoV'] },
+    // reference = the table's own source flight (spec:ascent-heron-9#telemetry, Iridium NEXT 8): measured Max-Q / MECO, flown
+    // with that flight's payload (10 × 860 kg + 1,000 kg dispenser = 9.6 t, spec:ascent-heron-9#payload). Earlier refs
+    // mixed in the heavier constellation flight's 72 s webcast call, which this table never flew.
+    ref: { payload: 9600, maxqT: 61, maxqQ: 27700, maxqAlt: 9300, mecoT: 150, mecoAlt: 68500, mecoV: 1900,
+      src: 'spec:ascent-heron-9#telemetry (Iridium NEXT 8 telemetry)',
+      knownGap: { maxqQ: 'game stack is ~0.6 m/s² quicker off the pad than the telemetry (94 vs 80 m/s at 20 s) with sourced thrust and B5 masses; unresolved, not tuned (spec:ascent-heron-9#gap)' } },
   },
 };
 export function sampleAscent(tab, t) {
