@@ -3,10 +3,10 @@
 // a scripted deorbit + reentry of the recovery capsule (survives with a shield, burns up without), the full
 // AUTO round trip, and the effect-intensity mappings (monotonic in Mach / q / heat flux).
 // Run: node tests/heat.mjs   (exits non-zero on failure)
-import * as P from '../physics.js?v=f5a.2';
-import { TEMPLATES, cloneDesign, buildVehicle, recoveryInfo, validate } from '../parts.js?v=f5a.2';
-import { Flight, chuteLimits, simulateAuto, simulateMission, planBuild, SAFE_TOUCHDOWN, DEORBIT_PE } from '../flight.js?v=f5a.2';
-import * as FX from '../fxmap.js?v=f5a.2';
+import * as P from '../physics.js?v=f5b';
+import { TEMPLATES, cloneDesign, buildVehicle, recoveryInfo, validate } from '../parts.js?v=f5b';
+import { Flight, chuteLimits, simulateAuto, simulateMission, planBuild, SAFE_TOUCHDOWN, DEORBIT_PE } from '../flight.js?v=f5b';
+import * as FX from '../fxmap.js?v=f5b';
 const { V, R } = P;
 let pass = 0, fail = 0;
 const ok = (c, name, extra = '') => { if (c) { pass++; console.log('  ✔', name, extra); } else { fail++; console.log('  ✘', name, extra); } };

@@ -748,3 +748,21 @@ body.touch #launchBtn{position:fixed!important;right:calc(10px + env(safe-area-i
 body.touch #build{padding-bottom:84px}
 body.touch #build, body.touch #build div:has(#launchBtn){backdrop-filter:none!important;-webkit-backdrop-filter:none!important} /* a backdrop filter makes a containing block for the fixed LAUNCH */
 body.touch #build{background:#0b1220f2}
+/* f5b: one career; compact missions hub */
+#hub .hubCareer{display:flex;gap:8px;align-items:center;width:100%;min-height:52px;padding:8px 14px;border-radius:14px;background:linear-gradient(135deg,#1d3a6a,#14284a);border:1px solid #3d6bb3;color:#fff;font:700 15px var(--ui);text-align:left}
+#hub .hubCareer span{margin-left:auto;color:#ffd27a;font-weight:800}
+#hub .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+#hub .mgrid .mis{min-height:64px;flex-direction:column;justify-content:center}
+#hub .mgrid .mis small,#hub .mgrid .mis i{display:none}
+#hub .cgrid{display:flex;flex-wrap:wrap;gap:6px}
+#hub .cgrid .mis{min-height:44px;padding:6px 10px}
+#hub details.hubMore{margin-top:10px;opacity:.85}
+#hub h3{margin:10px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.7}
+#careerM{max-height:min(78vh,720px)}
+#careerM .cr .crT{display:flex;align-items:baseline;gap:8px}#careerM .cr .crT .crR{margin-left:auto;white-space:nowrap}
+#careerM .cr{padding:6px 0}
+#careerM .cr .crT{flex-direction:row!important;flex-wrap:nowrap}#careerM .cr .crT small.crR{display:inline!important;margin-top:0!important}
+#hub .hubCareer{white-space:nowrap;font-size:14px}
+@media (orientation:landscape) and (max-height:500px){#hub .mbox{width:min(640px,92vw)!important;max-width:none}#hub .mgrid{grid-template-columns:repeat(3,1fr)}#hub .mgrid .mis{min-height:48px;flex-direction:row!important;gap:6px;padding:6px 8px}#hub .mgrid .mis span{font-size:20px}}
+/* f5b: Google tiles attribution (must stay visible) sits under the top HUD on touch, clear of the navball and sticks */
+body.touch #tilesAttr{top:calc(62px + env(safe-area-inset-top,0px))!important;bottom:auto!important;left:auto!important;right:6px!important;max-width:40vw!important;text-align:right;font-size:10px!important}

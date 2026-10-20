@@ -2,12 +2,12 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import { MISSIONS } from './director.js?v=f5a.2';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5a.2';
-import { ATLAS, poisOf } from './lore.js?v=f5a.2';
+import { MISSIONS } from './director.js?v=f5b';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5b';
+import { ATLAS, poisOf } from './lore.js?v=f5b';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f5a.2';
+import { createNavball } from './navball.js?v=f5b';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();
@@ -117,14 +117,17 @@ export function createFunUI(ctx) {
     const ms = Object.entries(MISSIONS).map(([id, m]) => `<button class="mis" data-m="${id}"><span>${m.icon}</span><b>${m.name}</b><small>${m.blurb}</small>${s.medals[id] ? `<em class="medal ${s.medals[id]}">${s.medals[id]}</em>` : ''}<i>▶ ONE-TAP FLY</i></button>`).join('');
     const cs = CONTRACTS.map(c => `<li class="${s.contracts[c.id] ? 'done' : c === nx ? 'next' : ''}">${s.contracts[c.id] ? '✔' : c === nx ? '▶' : '•'} <b>${c.name}</b> — ${c.goal}${c.reward ? ` <small>🎁 ${c.reward.split(':')[1]}</small>` : ''}</li>`).join('');
     const ach = ACHIEVEMENTS.map(a => `<span class="ach ${s.ach[a.id] ? 'got' : ''}" title="${a.desc}">${a.icon}<small>${a.name}</small></span>`).join('');
+    // f5b: ONE career (the 🏆 ladder, $M + 🔬). The hub is a compact launcher: the career line, one-tap missions,
+    // extra ops (gated by the ladder's vehicle unlocks, no separate currency), and details folded away.
     const K = ctx.career ? ctx.career() : null, OPS = ctx.ops ? ctx.ops() : [];
-    const ops = K ? K.CAREER.map(t => `<div class="ctier"><b>${esc(ctx.vname ? ctx.vname(t.vehicleId) : t.vehicleId)}</b>${t.contracts.map(id => { const m = OPS.find(x => x.id === K.missionOf(id)); if (!m) return ''; const g = K.canFly(K.c, id), c = K.CONTRACTS[id], done = Object.hasOwn(K.c.done, id);
-      return `<button class="mis op${g.ok ? '' : ' locked'}" data-op="${id}" title="${esc(m.blurb || '')}${g.ok ? '' : ' — ' + g.why}"><b>${done ? '✔ ' : ''}${esc(id === 'practice' ? 'Practice' : (ctx.opName ? ctx.opName(m) : m.name))}</b><small>${c.cost ? '💰' + c.cost + ' → ' + c.reward : 'free'}${g.ok ? '' : ' · 🔒'}</small></button>`; }).join('')}</div>`).join('') : '';
-    $('hubBody').innerHTML = `<h2>🎯 Missions</h2>${ops ? `<h3>🛰️ Career <small>💰 ${K.c.money} · ⭐ ${K.c.rep}</small></h3><div class="cgrid">${ops}</div>` : ''}<p class="sm">One tap: the mission director builds the rocket, flies the whole mission on real physics, and picks the camera. Steer anytime to take over.</p><div class="mgrid">${ms}</div>
-      <div class="hcols"><div><h3>📜 Contracts</h3><ol class="cl">${cs}</ol></div>
-      <div><h3>⭐ Daily challenge <small>${dc.day}</small></h3><p class="daily">${esc(dc.text)}</p><p class="sm">${best != null ? 'Your best today: ' + best.toLocaleString() : 'Not done yet today'} · 🔥 streak ${s.streak.n} day${s.streak.n === 1 ? '' : 's'} (best ${s.streak.best})</p>
-      <h3>🏅 Achievements <small>${Object.keys(s.ach).length}/${ACHIEVEMENTS.length}</small></h3><div class="achs">${ach}</div>
-      <p class="sm">Flights ${s.stats.flights} · explosions ${s.stats.booms} · best score ${s.stats.best.toLocaleString()} · worlds visited ${s.visited.length}</p></div></div>`;
+    const ms2 = Object.entries(MISSIONS).map(([id, m]) => `<button class="mis" data-m="${id}"><span>${m.icon}</span><b>${m.name}</b>${s.medals[id] ? `<em class="medal ${s.medals[id]}">${s.medals[id]}</em>` : ''}</button>`).join('');
+    const ex = K ? K.extra.map(e => { const m = OPS.find(x => x.id === (ctx.missionOf ? ctx.missionOf(e.id) : e.id)) || OPS.find(x => x.id === e.id); if (!m) return ''; const why = K.opLock(e.id);
+      return `<button class="mis op${why ? ' locked' : ''}" data-op="${e.id}" title="${esc(why || m.blurb || '')}"><b>${esc(ctx.opName ? ctx.opName(m) : m.name)}</b>${why ? '<small>🔒</small>' : ''}</button>`; }).join('') : '';
+    $('hubBody').innerHTML = `<h2>🎯 Missions</h2>${K ? `<button id="hubCareer" class="hubCareer">🏆 $${K.cash}M · 🔬${K.sci} · ${K.done}/${K.of}${K.next ? ` <span>▶ ${esc(K.next)}</span>` : ''}</button>` : ''}
+      <h3>One tap</h3><div class="mgrid">${ms2}</div>${ex ? `<details class="hubMore"><summary>Extra ops</summary><div class="cgrid">${ex}</div></details>` : ''}
+      <details class="hubMore"><summary>Daily · achievements · stats</summary><p class="daily">⭐ ${esc(dc.text)} <small>${best != null ? 'best ' + best.toLocaleString() : ''} · 🔥 ${s.streak.n}</small></p>
+      <div class="achs">${ach}</div><p class="sm">Flights ${s.stats.flights} · best ${s.stats.best.toLocaleString()} · worlds ${s.visited.length}</p></details>`;
+    const hc = $('hubCareer'); if (hc) hc.onclick = () => { hub.classList.add('hidden'); K.open(); };
     hub.querySelectorAll('.mis').forEach(b => b.onclick = () => { hub.classList.add('hidden'); if (b.dataset.op) { if (b.classList.contains('locked')) return; ctx.startOp(b.dataset.op); } else ctx.startMission(b.dataset.m); });
     hub.classList.remove('hidden');
   }

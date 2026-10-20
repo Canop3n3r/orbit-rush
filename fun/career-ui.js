@@ -1,6 +1,6 @@
 // f5 career UI: the progress screen (#careerM: ladder, wallet, unlocks, sandbox toggle) and the career block
 // of the post-flight results card. Logic lives in fun/ladder.js; names come in through `name` (brand-aware).
-import * as L from './ladder.js?v=f5a.2';
+import * as L from './ladder.js?v=f5b';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 export function createCareerUI({ store, name, onPlay }) {
   let S = L.load(store);
@@ -13,15 +13,15 @@ export function createCareerUI({ store, name, onPlay }) {
   function render() {
     S = L.load(store); const nx = L.next(S), done = L.LADDER.filter(c => S.done[c.id]).length, sand = sb();
     const rows = L.LADDER.map((c, i) => { const st = S.done[c.id] ? 'done' : c === nx ? 'next' : 'locked';
-      return `<li class="cr ${st}"><span class="crI">${st === 'done' ? '✓' : st === 'next' ? '▶' : i + 1}</span><div class="crT"><b>${esc(rungName(c))}</b><small>${esc(c.goal)} · ${esc(name.vehicle(c.vehicle))}</small>`
-        + `<small class="crR">${rw(c.reward)}${unlockList(c).length ? ' → ' + esc(unlockList(c).join(', ')) : ''}</small></div></li>`; }).join('');
+      // f5b (QA P2): one line per rung; the goal, vehicle and unlocks live in the tooltip and the NEXT block
+      return `<li class="cr ${st}" title="${esc(c.goal + ' · ' + name.vehicle(c.vehicle) + (unlockList(c).length ? ' → ' + unlockList(c).join(', ') : ''))}"><span class="crI">${st === 'done' ? '✓' : st === 'next' ? '▶' : i + 1}</span><div class="crT"><b>${esc(rungName(c))}</b><small class="crR">${rw(c.reward)}</small></div></li>`; }).join('');
     const have = k => L.ALL[k].filter(id => L.isUnlocked(S, k, id, sand));
     el.innerHTML = `<div class="crHead"><h2>Career</h2><button class="crX" aria-label="Close">✕</button></div>
       <div class="crWallet"><span>💰 <b>$${S.cash}M</b></span><span>🔬 <b>${S.sci}</b></span><span>🏁 <b>${done}/${L.LADDER.length}</b></span></div>
       ${nx ? `<div class="crNext"><div><small>NEXT CONTRACT</small><b>${esc(rungName(nx))}</b><small>${esc(nx.goal)}</small></div><button class="crPlay big">Fly ▸</button></div>` : '<div class="crNext"><b>Ladder complete 🎉</b></div>'}
       <ol class="crList">${rows}</ol>
-      <div class="crUnl"><small>UNLOCKED</small><div>${have('vehicles').map(id => '🚀 ' + esc(name.vehicle(id))).join(' · ')}</div><div>${have('sites').map(id => '📍 ' + esc(name.site(id))).join(' · ')}</div></div>
-      <label class="crSand"><input type="checkbox" ${sand ? 'checked' : ''}> Sandbox: everything unlocked (career progress still counts)</label>`;
+      <details class="crUnl"><summary>Unlocked · Sandbox</summary><div>${have('vehicles').map(id => '🚀 ' + esc(name.vehicle(id))).join(' · ')}</div><div>${have('sites').map(id => '📍 ' + esc(name.site(id))).join(' · ')}</div>
+      <label class="crSand"><input type="checkbox" ${sand ? 'checked' : ''}> Sandbox: everything unlocked</label></details>`;
     el.querySelector('.crX').onclick = () => show(false);
     const p = el.querySelector('.crPlay'); if (p) p.onclick = () => { show(false); onPlay(nx); };
     el.querySelector('.crSand input').onchange = e => { L.setSandbox(store, e.target.checked); render(); };

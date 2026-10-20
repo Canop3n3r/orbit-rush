@@ -4,6 +4,7 @@
 // Rungs reuse Mission Design Bot's design: the ops contracts in missions/*.js (constellation-batch, crew-dock,
 // lunar-landing, mars-ship) and the vehicle order of missions/campaign/career.js (sparrow-1 -> heron-9 ->
 // heron-9-crew -> heron-heavy -> titan-ss). Vehicle ids here are showroom ids (fun/showroom.js MODEL_OF).
+import { CONTRACTS as DESIGN } from '../design/career_contracts.js?v=f5b';
 export const KEY = 'orbitrush.ladder.v1', VERSION = 2, SANDBOX_KEY = 'orbitrush.sandbox';
 export const START = { vehicles: ['pip', 'hopper', 'needle'], sites: ['atoll'], parts: [], missions: ['hop'] };
 // every lockable thing, for sandbox and the progress screen
@@ -54,6 +55,11 @@ export const LADDER = [
   { id: 'venus', name: 'Venus flyby', goal: 'Swing past Venus', how: 'mission', mission: 'venus', vehicle: 'ares', test: r => (r.visited || []).includes('venus'),
     reward: { cash: 150, sci: 80 }, unlock: {} },
 ];
+// f5b: ONE career. The rungs that Mission Design Bot's contracts cover take their goal text, rewards ($M + 🔬) and
+// vehicle/site unlocks from design/career_contracts.js; the ladder keeps its own tests, parts and mission-gate unlocks.
+for (const c of LADDER) { const d = DESIGN.find(x => x.rung === c.id); if (!d) continue; c.contract = d.id;
+  c.reward = { cash: d.reward.cash || 0, sci: d.reward.sci || 0 }; if (d.goal && d.goal.text) c.goal = d.goal.text;
+  for (const k of ['vehicles', 'sites']) if (d.unlock && d.unlock[k]) c.unlock[k] = [...new Set([...(c.unlock[k] || []), ...d.unlock[k]])]; }
 export function blank() { return { v: VERSION, cash: 0, sci: 0, done: {}, unlocked: JSON.parse(JSON.stringify(START)), flights: 0, last: null }; }
 export function load(store) {
   try { const s = migrate(JSON.parse(store.getItem(KEY) || 'null')); if (!s || s.v !== VERSION || typeof s.done !== 'object') return blank();
