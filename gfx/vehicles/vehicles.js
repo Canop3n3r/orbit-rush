@@ -224,7 +224,8 @@ export const HOUSE_SETS = { originals: K(CO_ORIGINALS), spacey: ['sparrow-1', 'h
   civspace: K(CO_CIVSPACE, CO_CIVSPACE2, CO_VANTGUARD), arion: K(CO_EUROPIA, CO_VEGARA, CO_ARION), albion: K(CO_ALBION), baltic: K(CO_BALTIC), bluehz: K(CO_BLUEHZ), bolt: K(CO_BOLT),
   convex: K(CO_CONVEX_B, CO_CONVEX), dougwing: K(CO_DOUGWING), gaulois: K(CO_GAULOIS), irg: K(CO_IRG), isra: K(CO_ISRA_B, CO_ISRA), jade: K(CO_JADE_B, CO_JADELANTERN, CO_JADELANTERN2), jaxo: K(CO_JAXO_B, CO_JAXO, CO_TSURUGI),
   krasnaya: K(CO_KRASNAYA, CO_MOGUTNY, CO_MOONHAMMER), krunov: K(CO_KRUNOV_B, CO_KRUNOV, CO_TAIGA), lingvolt: K(CO_LINGVOLT), martell: K(CO_MARTELL_B, CO_MARTELL), orbitron: K(CO_ORBITRON_B, CO_ORBITRON),
-  rocketwell: K(CO_ROCKETWELL), southstar: K(CO_SOUTHSTAR_C, CO_SOUTHSTAR), unilift: K(CO_ULX, CO_VULC) };
+  rocketwell: K(CO_ROCKETWELL), skyland: K(CO_SKYLAND), southstar: K(CO_SOUTHSTAR_C, CO_SOUTHSTAR), unilift: K(CO_ULX, CO_VULC),
+  cnfoll: K(CO_CNFOLL), expl: K(CO_EXPL), galen: K(CO_GALEN), levant: K(CO_LEVANT) };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
   if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
