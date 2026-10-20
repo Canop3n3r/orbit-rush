@@ -750,11 +750,11 @@ function heroPiece(i) { // a copy of the dropped hero stage rides on the detache
   for (const k of keys) if (st[k]) { const c = st[k].clone(); grp.add(c); }
   if (!grp.children.length) return null; grp.scale.copy(hero.scale); grp.position.y = -y0; return grp;
 }
-function heroStage(cur) { // hide the stages already dropped (hi LOD only detaches; lo keeps the whole stack)
-  if (!hero) return; const st = (hero.userData.hi && hero.userData.hi.userData.stages) || {}, heavy = design.model === 'heron-heavy';
+function heroStage(cur) { // hide the stages already dropped, on every LOD level (rockets-2 @15b1836)
+  if (!hero) return; const heavy = design.model === 'heron-heavy';
   const gone = heavy ? [['side0', 'side1', 'struts'], ['booster'], ['upper']] : [['booster'], ['upper']];
-  for (let j = 0; j < cur && j < gone.length; j++) for (const k of gone[j]) if (st[k]) st[k].visible = false;
-  if (cur > 0 && hero.levels && hero.levels[1]) hero.levels[1].distance = 1e9; // keep the hi level once stages are gone
+  for (const lv of hero.levels || [{ object: hero }]) { const st = (lv.object.userData && lv.object.userData.stages) || {};
+    for (let j = 0; j < gone.length; j++) for (const k of gone[j]) if (st[k]) st[k].visible = j >= cur; }
 }
 // f1 paint shop + decals: the shared hull/accent materials take the design's paint; a canvas decal (symbol + name)
 // is wrapped on the first stage
