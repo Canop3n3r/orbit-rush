@@ -102,3 +102,6 @@ export const MISSION_VARIANTS = [
 export const PAYLOADS = [
   { id: 'roadster-payload', mass: 1300, massRange: [1250, 1350], kind: 'demo mass (car + mount)', carrier: 'heron-heavy', orbit: 'heliocentric', src: 'spec:roadster-payload' },
 ];
+
+// Roster company 'krunich' (data only, neutral ids; spec:loss-model): see vehicles/roster/krunich.js
+export { ROSTER_KRUNICH, ENGINES_KRUNICH } from './roster/krunich.js';
