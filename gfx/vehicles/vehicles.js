@@ -13,7 +13,7 @@ import * as PR from './profiles.js?v=art1';
 import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
 export { setLegs, mat };
 import { CO_NOSA } from './co_nosa.js?v=art1'; // co-nosa-1: NOSA heritage vehicles
-import { CO_HTREE } from './co_htree.js?v=art1';
+import { CO_TSURUGI } from './co_tsurugi.js?v=art1';
 import { CO_JAXO } from './co_jaxo.js?v=art1';
 const PI = Math.PI;
 // ---- kerolox booster core (9 engines, octaweb, legs, grid fins) ----
@@ -161,13 +161,13 @@ export const VEHICLES = {
   'colossus-v4': { height: 142, build: o => colossus({ ...o, boosterH: 81, shipH: 61, gridFins: 3 }), src: 'specs sheet (colossus) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
   'catch-tower': { height: 164, build: catchTower, src: 'public ~146 m tower (art estimate)', est: ['all'] },
   'payload-roadster': { height: 3.2, build: roadster, src: 'generic roadster-style car (art)', est: ['all'] },
-  ...CO_NOSA, ...CO_HTREE, ...CO_JAXO,
+  ...CO_NOSA, ...CO_TSURUGI, ...CO_JAXO,
   'payload-flatsat-stack': { height: 5.6, build: satStack, src: 'specs sheet flatsat-style flat-pack stack (art)', est: ['plate size'] },
 };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
   if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
-  else if (/^heron-9|^h-tree-22$|^h-tree-24$|^h-tree-30$|^h-too$|^h-too-2024$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^tsurugi-22$|^tsurugi-24$|^tsurugi-30$|^tsubame$|^tsubame-2024$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)
