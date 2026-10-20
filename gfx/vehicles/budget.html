@@ -19,5 +19,10 @@ for (const id of ['heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'tita
 { const a = build('titan-ss-v3'), b = build('titan-ss-v4'); const s = new Set(); let tot = 0; for (const g of [a, b]) g.traverse(m => { if (m.isMesh) { tot++; s.add(m.geometry); } }); out.share = { meshes: tot, unique: s.size }; dispose(a); dispose(b); }
 // leak: cycle all models 3x through the scene with dispose; geometry count must stay flat
 for (let c = 0; c < 3; c++) { for (const id of Object.keys(VEHICLES)) { const g = build(id); scene.add(g); renderer.render(scene, cam); dispose(g); } renderer.render(scene, cam); out.mem.push({ gpu: renderer.info.memory.geometries, cache: geometryCacheSize() }); }
+// rendered heap check (Playtest QA rockets-2 leak): cycle every model x hi/mid/lo through the scene with 2 rendered frames each,
+// GC (needs --js-flags=--expose-gc + --enable-precise-memory-info), heap after each cycle must stay flat
+out.heap = []; const frame = () => new Promise(r => requestAnimationFrame(() => { renderer.render(scene, cam); r(); }));
+for (let c = 0; c < 4; c++) { for (const id of Object.keys(VEHICLES)) for (const detail of ['hi', 'mid', 'lo']) { const g = build(id, { detail }); scene.add(g); await frame(); await frame(); dispose(g); }
+  await frame(); if (globalThis.gc) { gc(); gc(); } await new Promise(r => setTimeout(r, 50)); out.heap.push(performance.memory ? +(performance.memory.usedJSHeapSize / 1048576).toFixed(1) : null); }
 window.__budget = out; document.title = 'done';
 </script></body></html>

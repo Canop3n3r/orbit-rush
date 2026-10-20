@@ -15,7 +15,7 @@ export function mat(key) {
     case 'silver': m = new S({ map: T.paint({ base: '#c9ccd0', rings: 8 }), roughness: 0.35, metalness: 0.7 }); break;
     case 'carbon': m = new P({ map: T.carbon(), color: 0x3c3c40, roughness: 0.5, metalness: 0.1, clearcoat: 0.6, clearcoatRoughness: 0.3 }); break; // clearcoat: legs catch a highlight against the dark interstage
     case 'ti': m = new S({ color: 0xa8a29a, roughness: 0.55, metalness: 1, alphaMap: T.gridFin(), alphaTest: 0.5, side: THREE.DoubleSide }); break;
-    case 'tiframe': m = new S({ color: 0x5f5b56, roughness: 0.5, metalness: 1 }); break;
+    case 'tiframe': m = new S({ color: 0xa9a49c, roughness: 0.42, metalness: 1 }); break; // rockets-3: lighter bare titanium so grid fins read
     case 'bell': m = new S({ map: T.bell(false), roughness: 0.38, metalness: 0.9, side: THREE.DoubleSide }); break;
     case 'bellx': m = new S({ map: T.bell(true), roughness: 0.32, metalness: 0.95, side: THREE.DoubleSide }); break;
     // brushed stainless: MeshPhysical anisotropy (node material on both WebGPU and WebGL2 backends; tangents are
@@ -38,7 +38,7 @@ export function mat(key) {
     case 'decal': m = new S({ map: decalTexture(arg), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, roughness: 0.5, metalness: 0.1 }); break;
     default: m = new S({ color: 0xff00ff });
   }
-  m.name = key; m.userData.cached = true; for (const v of Object.values(m)) if (v && v.isTexture) v.userData.cached = true; MATS.set(key, m); return m;
+  m.name = key; m.userData.cached = true; weakDisposeListeners(m); for (const v of Object.values(m)) if (v && v.isTexture) v.userData.cached = true; MATS.set(key, m); return m;
 }
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3(), _p = new THREE.Vector3();
 export function xf(p = [0, 0, 0], r = [0, 0, 0], s = [1, 1, 1]) { _e.set(r[0], r[1], r[2], 'YXZ'); _q.setFromEuler(_e); return new THREE.Matrix4().compose(_p.set(...p), _q, _s.set(...(typeof s === 'number' ? [s, s, s] : s))); }
@@ -79,7 +79,31 @@ export function compact(group, keep = ['legs'], fold = false) { const by = new M
   return group; }
 // dispose: free a vehicle's GPU/JS memory when it is swapped out. Cached (shared) materials/textures are kept; shared
 // geometries are refcounted and freed when the last user goes.
-export function dispose(group) { const seen = new Set(); group.traverse(o => { if (!o.isMesh && !o.isSprite) return; const g = o.geometry;
+export function dispose(group) { const seen = new Set(); group.traverse(o => { if (!o.isMesh && !o.isSprite) return; if (o.isInstancedMesh) o.dispose(); const g = o.geometry;
   if (g && !seen.has(g)) { seen.add(g); const k = g.userData.shared; if (k) { const e = GEO.get(k); if (e && --e.refs <= 0) { GEO.delete(k); g.dispose(); } } else g.dispose(); }
   for (const m of [].concat(o.material || [])) if (!m.userData?.cached) { for (const v of Object.values(m)) if (v && v.isTexture && !v.userData?.cached) v.dispose(); m.dispose(); } });
   group.removeFromParent(); }
+// release(group, renderer?, scene?, camera?): leak-safe model swap. Detach first, render one frame without it (the renderer
+// drops its per-object render state for objects no longer in the scene), then free GPU geometry/material/texture and
+// drop CPU arrays so retained wrappers can't pin vertex data.
+export async function release(group, renderer, scene, camera) {
+  group.removeFromParent();
+  if (renderer && scene && camera) { renderer.render(scene, camera); await new Promise(r => requestAnimationFrame(r)); }
+  dispose(group);
+  group.traverse(o => { if (o.isMesh) { if (o.geometry && !o.geometry.userData.shared) { for (const k of Object.keys(o.geometry.attributes)) o.geometry.deleteAttribute(k); o.geometry.setIndex(null); } o.geometry = null; o.material = null; } });
+  group.clear(); group.userData = {};
+}
+// Leak fix (Playtest QA perf_rockets-2: +27.5 MB / ~3.6k buffers per rendered model cycle). three r172 RenderObjects
+// subscribe to their material's 'dispose' event; our materials are shared and never disposed, so those listeners pinned
+// every mesh ever rendered (plus its vertex arrays) forever. For the shared materials only, 'dispose' listeners are held
+// through WeakRefs: the RenderObject owns its listener, and it is itself only weakly keyed by the mesh, so a removed
+// mesh (and its render state) can be collected. Dispatching 'dispose' still reaches every live listener.
+export function weakDisposeListeners(m) {
+  const add = m.addEventListener.bind(m), rm = m.removeEventListener.bind(m), refs = new Set();
+  m.addEventListener = (type, fn) => { if (type !== 'dispose') return add(type, fn); for (const r of refs) if (r.deref() === fn) return; refs.add(new WeakRef(fn)); };
+  m.removeEventListener = (type, fn) => { if (type !== 'dispose') return rm(type, fn); for (const r of refs) { const f = r.deref(); if (!f || f === fn) refs.delete(r); } };
+  const disp = m.dispatchEvent.bind(m);
+  m.dispatchEvent = e => { if (e.type === 'dispose') for (const r of [...refs]) { const f = r.deref(); if (f) f.call(m, { ...e, target: m }); else refs.delete(r); } return disp(e); };
+  m.hasWeakDispose = () => { let n = 0; for (const r of refs) if (r.deref()) n++; return n; };
+  return m;
+}

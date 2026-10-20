@@ -26,3 +26,9 @@ build('heron-9', { fins: 1, legs: 1 })          // fins: grid-fin deploy 0..1 at
 To swap stages at staging, detach `stages.upper` etc. (each is a Group positioned in vehicle space).
 Brand pack (private repo only): `import { setBrandPack } from './gfx/vehicles/decals.js'; setBrandPack({ 'booster.side': urlOrCanvas, ... })`
 before building. Slots: booster.side, upper.side, fairing.side, capsule.side, ship.side, titanbooster.side, sat.top.
+
+## Perf notes (rockets-3)
+- **Swapping models:** call `dispose(group)` (or `await release(group, renderer, scene, camera)`, which detaches, renders one frame without the model and then disposes). The rendered-cycle heap leak (+27.5 MB per full cycle, ~3.6k buffers, Playtest QA) came from three r172 RenderObjects subscribing to our shared materials' `dispose` event; `kit.js` `weakDisposeListeners` now holds those listeners weakly. `tests/vehicles_budget.cjs` checks the rendered heap (flat to <3 MB over 4 cycles; measured 18.9 → 19.1 MB).
+- **Avoid `THREE.InstancedMesh` for per-model parts** in r172: each instance mesh leaves node-builder state behind (+5.5 MB/cycle measured). The leg arms are therefore one vertex-rewritten mesh.
+- **heron-9 family hi:** 27–28 meshes, 16.8–18.5k tris (was 40–41 / 15.9–17.6k), with a budget of 30 meshes / 20k tris. Phones should still use `buildLOD(id, {phone: true})` (mid near level: 18–19 meshes, 5.5–6.2k tris).
+- **Build cost:** titan hi takes 58–70 ms to build on the main thread (heron-heavy hi 25–49 ms). Build at the hangar or showroom, never mid-flight: `prewarm(['titan-ss-v3', ...], {phone})` builds during idle slices, and `await takeWarm(id, {phone})` hands one out (it builds on the spot if it wasn't prewarmed).

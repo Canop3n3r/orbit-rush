@@ -29,8 +29,15 @@ export function ringPos(rings) { const out = []; for (const [n, r, a0 = 0] of ri
 export function gridFins(k, r, y, w, h, n = 4, a0 = PI / 4, deploy = 1) {
   for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI; k.push(xf([Math.cos(a) * r, y, Math.sin(a) * r], [0, -a, 0]));
     k.push(xf([0, 0, 0], [0, 0, -deploy * PI / 2 * 0.98])); // hinged at the hull: stowed points up, deployed sticks out
-    if (k.hi) { k.add(new THREE.PlaneGeometry(w, h), 'ti', xf([0, h / 2 + 0.1, 0], [0, PI / 2, 0]));
-      k.add(new THREE.BoxGeometry(0.22, h * 0.96, w * 0.96), 'dark', xf([-0.14, h / 2 + 0.1, 0])); const t = 0.12; for (const [px, py, sx, sy] of [[0, 0.1, w, t], [0, h + 0.1, w, t], [-w / 2, h / 2 + 0.1, t, h], [w / 2, h / 2 + 0.1, t, h]]) k.add(new THREE.BoxGeometry(t * 3, sy, sx), 'tiframe', xf([0, py, px]));
+    if (k.hi) { // real lattice: +-45 deg blades with depth, so the fin reads as open cells from any angle (edge-on included)
+      const d = 0.38, t = 0.045, step = 0.26, y0 = 0.1;
+      for (const sg of [1, -1]) for (let c = -(w + h); c <= w + h; c += step) { // blade line: v = sg*u + c, clipped to |u|<=w/2, 0<=v<=h
+        let u0 = -w / 2, u1 = w / 2; const vAt = u => sg * u + c;
+        const lo = sg > 0 ? (0 - c) : (c - h), hi = sg > 0 ? (h - c) : (c - 0); u0 = Math.max(u0, Math.min(lo, hi)); u1 = Math.min(u1, Math.max(lo, hi));
+        if (u1 - u0 < 0.05) continue; const um = (u0 + u1) / 2, L = (u1 - u0) * Math.SQRT2;
+        k.add(new THREE.BoxGeometry(d, L, t), 'tiframe', xf([0, y0 + vAt(um), um], [sg * PI / 4, 0, 0]));
+      }
+      const ft = 0.1; for (const [px, py, sx, sy] of [[0, 0.1, w, ft], [0, h + 0.1, w, ft], [-w / 2, h / 2 + 0.1, ft, h], [w / 2, h / 2 + 0.1, ft, h]]) k.add(new THREE.BoxGeometry(0.42, sy, sx), 'tiframe', xf([0, py, px]));
     } else k.add(new THREE.BoxGeometry(0.12, h, w), 'tiframe', xf([0, h / 2 + 0.1, 0]));
     k.pop(); k.add(new THREE.BoxGeometry(0.5, 0.6, 0.6), 'dark', xf([0.1, 0, 0])); k.pop(); }
 }
@@ -42,14 +49,15 @@ export function legs(KitC, detail, r, len, y, n = 4, a0 = PI / 4) {
   for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI, piv = new THREE.Group(); piv.position.set(Math.cos(a) * (r + 0.02), y, Math.sin(a) * (r + 0.02)); piv.rotation.y = -a;
     const k = new KitC(detail), lean = detail !== 'hi', K = key => lean ? 'carbon' : key; // mid/lo: one material per leg, no telescoping arms (draw calls)
     // tapered triangular-section leg: wide at the hinge, narrow at the foot; sits flush (0.22 m proud of the hull)
-    const sh = new THREE.Shape(); sh.moveTo(-0.75, 0); sh.lineTo(0.75, 0); sh.lineTo(0.32, len); sh.lineTo(-0.32, len); sh.closePath();
-    const lg = new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }); k.add(lg, K('carbon'), new THREE.Matrix4().makeRotationY(PI / 2));
-    k.add(new THREE.BoxGeometry(0.06, len * 0.92, 0.1), K('grey'), xf([0.23, len * 0.5, 0])); // centre spine / arm recess
-    k.add(new THREE.CylinderGeometry(0.42, 0.5, 0.18, k.hi ? 16 : 8), K('dark'), xf([0.2, len + 0.02, 0], [0, 0, PI / 2])); // foot pad (crush core)
+    const sh = new THREE.Shape(); sh.moveTo(-0.95, 0); sh.lineTo(0.95, 0); sh.lineTo(0.42, len); sh.lineTo(-0.42, len); sh.closePath();
+    const lg = new THREE.ExtrudeGeometry(sh, { depth: 0.55, bevelEnabled: false }); k.add(lg, K('carbon'), new THREE.Matrix4().makeRotationY(PI / 2));
+    k.add(new THREE.BoxGeometry(0.06, len * 0.92, 0.1), K('grey'), xf([0.48, len * 0.5, 0])); // centre spine / arm recess
+    k.add(new THREE.CylinderGeometry(0.62, 0.72, 0.26, k.hi ? 16 : 8), K('dark'), xf([0.2, len + 0.02, 0], [0, 0, PI / 2])); // foot pad (crush core)
     k.add(new THREE.BoxGeometry(0.3, 0.5, 1.2), K('dark'), xf([0.1, 0.25, 0])); // hinge clevis
     piv.add(k.build('leg')); g.add(piv); g.userData.pivots.push(piv);
-    if (lean) continue; const outer = new THREE.Mesh(unit, mat('grey')), inner = new THREE.Mesh(unit, mat('tiframe')); g.add(outer, inner);
-    g.userData.arms.push({ piv, outer, inner, A: new THREE.Vector3(Math.cos(a) * (r - 0.1), y + len * 0.42, Math.sin(a) * (r - 0.1)), tipL: new THREE.Vector3(0.24, len * 0.86, 0) }); }
+    if (lean) continue; if (!g.userData.armMesh) { const geo = mergeGeometries(Array.from({ length: 2 * n }, () => unit.clone())); const am = new THREE.Mesh(geo, mat('grey')); am.frustumCulled = false; am.name = 'arms'; g.add(am);
+      g.userData.armMesh = am; g.userData.armBase = { pos: unit.attributes.position.array.slice(), nor: unit.attributes.normal.array.slice(), nv: unit.attributes.position.count }; }
+    g.userData.arms.push({ piv, idx: i, A: new THREE.Vector3(Math.cos(a) * (r - 0.1), y + len * 0.42, Math.sin(a) * (r - 0.1)), tipL: new THREE.Vector3(0.24, len * 0.86, 0) }); }
   setLegs(g, 0); if (detail === 'lo') bakeLegs(g); return g;
 }
 // lo LOD: the 4 legs become two merged meshes (stowed / deployed); setLegs toggles them (1 draw call per stage)
@@ -63,8 +71,14 @@ const _B = new THREE.Vector3(), _d = new THREE.Vector3(), _up = new THREE.Vector
 export function setLegs(g, t) { if (g.userData.baked) { g.userData.baked.stowed.visible = t < 0.5; g.userData.baked.deployed.visible = t >= 0.5; g.userData.t = t; return; } for (const p of g.userData.pivots) p.rotation.z = -t * 2.0; g.userData.t = t;
   for (const m of g.userData.arms || []) { m.piv.updateMatrix(); _B.copy(m.tipL).applyMatrix4(m.piv.matrix); _d.subVectors(_B, m.A); const L = _d.length(); _d.normalize();
     const q = new THREE.Quaternion().setFromUnitVectors(_up, _d);
-    m.outer.position.copy(m.A); m.outer.quaternion.copy(q); m.outer.scale.set(0.11, L * 0.55, 0.11);
-    m.inner.position.copy(m.A).addScaledVector(_d, L * 0.5); m.inner.quaternion.copy(q); m.inner.scale.set(0.07, L * 0.5, 0.07); } }
+    // rockets-3: arms are 2 InstancedMeshes per leg set (was 2 meshes per leg) -> -6 draw calls on hi
+    // rockets-3: all telescoping arms live in ONE mesh whose vertices are rewritten here (was 2 meshes per leg -> -7 draw calls)
+    armWrite(g, 2 * m.idx, _M.compose(m.A, q, _S.set(0.16, L * 0.55, 0.16))); armWrite(g, 2 * m.idx + 1, _M.compose(_P.copy(m.A).addScaledVector(_d, L * 0.5), q, _S.set(0.1, L * 0.5, 0.1))); }
+  if (g.userData.armMesh) { const a = g.userData.armMesh.geometry.attributes; a.position.needsUpdate = a.normal.needsUpdate = true; } }
+function armWrite(g, copy, M) { const B = g.userData.armBase, a = g.userData.armMesh.geometry.attributes, P = a.position.array, N = a.normal.array, o = copy * B.nv * 3, nm = _NM.getNormalMatrix(M);
+  for (let v = 0; v < B.nv; v++) { const j = v * 3; _P.fromArray(B.pos, j).applyMatrix4(M).toArray(P, o + j); _S2.fromArray(B.nor, j).applyMatrix3(nm).normalize().toArray(N, o + j); } }
+const _NM = new THREE.Matrix3(), _S2 = new THREE.Vector3();
+const _M = new THREE.Matrix4(), _S = new THREE.Vector3(), _P = new THREE.Vector3();
 // decal strip: a cylinder section just outside radius r, height h, centred on angle ac, arc width (radians)
 export function decal(k, slot, r, y, h, ac = 0, arc = 1.1) { if (!k.hi) return; k.add(new THREE.CylinderGeometry(r * 1.004, r * 1.004, h, 24, 1, true, ac - arc / 2 + PI / 2, arc), 'decal:' + slot, xf([0, y + h / 2, 0])); }
 // external raceway / cable tray along a tank

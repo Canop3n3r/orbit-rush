@@ -7,8 +7,8 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, geometryCacheSize } from './kit.js?v=art1';
-export { dispose, geometryCacheSize };
+import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=art1';
+export { dispose, release, geometryCacheSize };
 import * as PR from './profiles.js?v=art1';
 import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
 export { setLegs, mat };
@@ -162,9 +162,18 @@ export const VEHICLES = {
 };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
-  if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy'); shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
+  if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
+  else if (/^heron-9/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)
 // o.phone: the near level uses 'mid' (titan ~11k instead of ~53k tris)
 export function buildLOD(id, o = {}) { const lod = new THREE.LOD(), hi = build(id, { ...o, detail: o.phone ? 'mid' : 'hi' }), lo = build(id, { ...o, detail: 'lo' }), h = VEHICLES[id].height;
   lod.addLevel(hi, 0); lod.addLevel(lo, Math.max(60, h * 6)); lod.userData = { ...hi.userData, hi, lo }; lod.name = id; return lod; }
+// prewarm(ids, o): build LODs off the critical path (one per idle slice) so titan hi (58-70 ms on the main thread,
+// Playtest QA rockets-2) is never built mid-flight. Returns a Map id -> Promise<LOD>; take() hands one out.
+const WARM = new Map();
+export function prewarm(ids, o = {}) { const idle = globalThis.requestIdleCallback || (f => setTimeout(f, 16)); let chain = Promise.resolve();
+  for (const id of ids) if (!WARM.has(id + (o.phone ? ':p' : ''))) { const p = chain = chain.then(() => new Promise(r => idle(() => r(buildLOD(id, o))))); WARM.set(id + (o.phone ? ':p' : ''), p); }
+  return WARM; }
+export async function takeWarm(id, o = {}) { const k = id + (o.phone ? ':p' : ''), p = WARM.get(k); WARM.delete(k); return p ? p : buildLOD(id, o); }
