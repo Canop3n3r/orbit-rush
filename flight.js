@@ -529,9 +529,9 @@ export class Flight {
   // Start the flight from a given state (Academy lessons): altitude h, vertical/horizontal speed relative to the air,
   // attitude 'up' | 'prograde' | 'retrograde', which stage is active, optional fuel (t) for that stage.
   placeState({ h, vUp = 0, vEast = 0, stage = this.v.cur, att = 'up', fuel = null, sas = 'stab' }) {
-    const v = this.v; this.ignited = true; this.flags.liftoff = 1; this.flags.fairing = 1; this.ascent = false;
+    const v = this.v, keepF = h < P.FAIRING_ALT && v.fairing > 0; this.ignited = true; this.flags.liftoff = 1; this.flags.fairing = keepF ? 0 : 1; this.ascent = false; // f4: below the fairing altitude the fairing stays on
     while (v.cur < stage) v.cur++;
-    v.fairing = 0; v._g = null; v.clamped = false; this.met = 600; v.ut = 0; v.throttle = 0;
+    if (!keepF) v.fairing = 0; v._g = null; v.clamped = false; this.met = 600; v.ut = 0; v.throttle = 0;
     if (fuel !== null) v.stages[v.cur].fuel = Math.min(fuel, v.stages[v.cur].fuelMax);
     const r = R + h, th = 0.3, up = [Math.cos(th), Math.sin(th), 0], east = [-Math.sin(th), Math.cos(th), 0], w = v.earthRot ? P.OMEGA_E : 0;
     v.r = V.scale(up, r); v.v = V.add(V.scale(up, vUp), V.scale(east, vEast + w * r));

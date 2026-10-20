@@ -674,3 +674,5 @@ details.bset{display:contents}details.bset[open]>summary{display:none}
 #split.portrait #spCardB{top:62px!important}
 #split.portrait #spCardU{top:auto!important;bottom:calc(50% + 10px)!important;right:10px}
 @media (orientation:landscape){#split:not(.portrait) .spBtns{top:calc(64px + var(--sat,0px));right:auto;left:10px}}
+/* f4: in split screen each pane has its own mini navball; the big one would sit across the pane border */
+body.splitOn #nav, body.splitOn #navCue{display:none!important}

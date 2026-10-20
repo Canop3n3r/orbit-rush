@@ -699,7 +699,7 @@ const hooks = {
   drop: d => { if (opHooks) try { opHooks.drop(d); } catch (e) {} d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
   ship: s => { shipVis = makeShip(s); },
   shipMoved: s => shipVis && onSurface(shipVis, s.ef, 0),
-  jettison: () => { const f = SG[SG.length - 1].userData.fair; if (f) { f.visible = false; const p = V.sub(v.r, V.scale(P.noseOf(v), -10)); for (let k = 0; k < 12; k++) smoke.spawn(p, jit(v.v, 15), 1.5, 1, 3, 0xffffff, null, 0.1); } beep(990); },
+  jettison: () => { heroFairing(false); const f = SG[SG.length - 1].userData.fair; if (f) { f.visible = false; const p = V.sub(v.r, V.scale(P.noseOf(v), -10)); for (let k = 0; k < 12; k++) smoke.spawn(p, jit(v.v, 15), 1.5, 1, 3, 0xffffff, null, 0.1); } beep(990); },
   // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
   boosterControl: manual => { for (const k in keys) keys[k] = false; if (manual) { camMode = 'booster'; camDist = 160; } else camMode = 'chase'; $('tProg').classList.toggle('on', F.autoOn); },
   boosterLost: (b, moving) => { explode(b.r, moving ? b.v : siteVel(b), false); b.mesh.visible = false; b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
@@ -750,8 +750,10 @@ function heroPiece(i) { // a copy of the dropped hero stage rides on the detache
   for (const k of keys) if (st[k]) { const c = st[k].clone(); grp.add(c); }
   if (!grp.children.length) return null; grp.scale.copy(hero.scale); grp.position.y = -y0; return grp;
 }
+function heroFairing(on) { if (!hero) return; for (const lv of hero.levels || [{ object: hero }]) { const st = (lv.object.userData && lv.object.userData.stages) || {}; if (st.payload && !/titan/.test(design.model)) st.payload.visible = on; } } // the hero 'payload' group is the fairing shell
 function heroStage(cur) { // hide the stages already dropped, on every LOD level (rockets-2 @15b1836)
-  if (!hero) return; const heavy = design.model === 'heron-heavy';
+  if (!hero) return; { let y0 = 0; for (let j = 0; j < cur && j < SG.length; j++) if (!SG[j].userData.radial) y0 += SG[j].userData.h; hero.position.y = -y0; } // f4: the stack drops with the stages, like the part groups
+  const heavy = design.model === 'heron-heavy';
   const gone = heavy ? [['side0', 'side1', 'struts'], ['booster'], ['upper']] : [['booster'], ['upper']];
   for (const lv of hero.levels || [{ object: hero }]) { const st = (lv.object.userData && lv.object.userData.stages) || {};
     for (let j = 0; j < gone.length; j++) for (const k of gone[j]) if (st[k]) st[k].visible = j >= cur; }
@@ -772,7 +774,7 @@ function addDecal(g, d) {
 function syncStages() {
   for (let j = 0; j < v.cur && j < SG.length; j++) SG[j].visible = false; heroStage(v.cur);
   let y = 0; for (let j = v.cur; j < SG.length; j++) { SG[j].position.y = y; y += SG[j].userData.h; }
-  const f = SG.length && SG[SG.length - 1].userData.fair; if (f && v.fairing <= 0) f.visible = false;
+  const f = SG.length && SG[SG.length - 1].userData.fair; if (f && v.fairing <= 0) f.visible = false; if (v.fairing <= 0) heroFairing(false);
 }
 let chuteVis = null;
 function reset() {
@@ -1500,6 +1502,7 @@ function updateSplit(rdt) {
     if (!split.done && split.rec.length > 30) split.replay = { i: Math.max(0, split.rec.length - 240), k: 0 };
     split.done += rdt;
   }
+  document.body.classList.toggle('splitOn', !!(want && split.full !== 'b'));
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want) { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
   if (!split.on) return;
   const R2 = paneRect(), fb = split.full === 'b';
