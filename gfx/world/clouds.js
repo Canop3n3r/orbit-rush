@@ -11,7 +11,7 @@ const hg = (c, g) => float(1 - g * g).div(pow(float(1 + g * g).sub(c.mul(2 * g))
 export function cloudUniforms(o = {}) {
   return { center: uniform(new THREE.Vector3()), sunDir: uniform(new THREE.Vector3(1, 0, 0)), R: uniform(o.R ?? 6371),
     base: uniform(o.base ?? CLOUD_LAYER.base), top: uniform(o.top ?? CLOUD_LAYER.top), coverage: uniform(o.coverage ?? 1.0),
-    density: uniform(o.density ?? 0.8), time: uniform(0), offset: uniform(new THREE.Vector2(o.offsetU ?? 0, 0)), wind: uniform(new THREE.Vector3(0.004, 0, 0.0)), sunCol: uniform(new THREE.Color(1.0, 0.96, 0.9)), exposure: uniform(o.exposure ?? 1.0), camFwd: uniform(new THREE.Vector3(0, 0, -1)), capA: uniform(new THREE.Vector4()), capB: uniform(new THREE.Vector3()),
+    density: uniform(o.density ?? 0.8), time: uniform(0), offset: uniform(new THREE.Vector2(o.offsetU ?? 0, 0)), wind: uniform(new THREE.Vector3(5.0e-7, 0, 0.0)) /* uv/s: ~20 m/s eastward drift (u spans 2πR); was 0.004 = ~160 km/s */, sunCol: uniform(new THREE.Color(1.0, 0.96, 0.9)), exposure: uniform(o.exposure ?? 1.0), camFwd: uniform(new THREE.Vector3(0, 0, -1)), capA: uniform(new THREE.Vector4()), capB: uniform(new THREE.Vector3()),
     frame: uniform(new THREE.Matrix3()) }; // world dir -> texture-sphere frame (identity in world.html; the game's Earth is Z-up and spins)
 }
 // coverage 0..1 at unit direction d (weather map, contrast-boosted, wind-advected)
@@ -27,7 +27,7 @@ function densityAt(weather, U, p, oct) { // p relative to centre, km
   const topH = mix(float(0.35), float(1.0), cov).toVar();
   const base = smoothstep(0.0, 0.03, h), hn = h.div(topH).toVar();
   if (oct === 0) return cov.mul(base).mul(float(1).sub(smoothstep(0.7, 1.0, hn))); // cheap light-sample density (no noise)
-  const pw = p.mul(0.16).add(vec3(U.time.mul(0.02), 0, 0)).toVar();
+  const pw = p.mul(0.16).add(vec3(U.time.mul(0.0032), 0, 0)).toVar(); // detail drifts ~20 m/s (p in km; was 0.02 = 125 m/s)
   const n = saturate(fbm(pw, oct).mul(2.4).add(0.5)); // cell / billow field 0..1
   const fine = oct > 1 ? mx_noise_float(p.mul(0.9)).mul(0.5).add(0.5) : float(0.5);
   // far away (orbit) the billow noise aliases into speckle: blend to the smooth weather-map shape
