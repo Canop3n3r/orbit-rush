@@ -21,11 +21,11 @@ function lmat(key) { if (LOCAL.has(key)) return LOCAL.get(key); let m;
 function quads(k, r, y, h, a0 = 0, n = 2) { for (let i = 0; i < n; i++) tube(k, r * 1.006, r * 1.006, h, y, 'dark', { open: true, t0: a0 + i * PI, tl: PI / 2, seg: k.hi ? 10 : 4 }); }
 function band(k, r, y, h) { tube(k, r * 1.006, r * 1.006, h, y, 'dark', { open: true, seg: k.hi ? 40 : 14 }); }
 function stringers(k, r, y, h, n, key = 'paint:0,0') { if (!k.hi || k.mid) return; for (let i = 0; i < n; i++) { const a = (i + 0.5) / n * 2 * PI; k.add(new THREE.BoxGeometry(0.09, h, 0.06), key, xf([Math.cos(a) * (r + 0.03), y + h / 2, Math.sin(a) * (r + 0.03)], [0, -a, 0])); } }
-// Saturnine V stack heights (m, from the F-1 exits): S-IC 0-42.1, interstage 42.1-47.6, S-II -72.4, S-IVB taper -77.4 + cyl -90.1,
+// Saturnine V stack heights (m, from the K-1 exits): stage1 0-42.1, interstage 42.1-47.6, stage2 -72.4, stage3 taper -77.4 + cyl -90.1,
 // IU -91.0, SLA -99.5 (6.6 -> 3.9 m), SM -102.2, CM -105.4, LES tower+motor -110.6
 const R1 = 5.03, R3 = 3.3, Y = { ic: 42.1, is: 47.6, ii: 72.4, tp: 77.4, ivb: 90.1, iu: 91.0, sla: 99.5, sm: 102.2, cm: 105.4, top: 110.6 };
 function sic(d, o) { const k = new Kit(d), b0 = 5.2; // body starts above the hanging bells
-  // 5 F-1: centre + 4 at 45° under the fins; bells 3.76 m exit, ~5.8 m long incl. nozzle extension
+  // 5 K-1: centre + 4 at 45° under the fins; bells 3.76 m exit, ~5.8 m long incl. nozzle extension
   for (const [x, z] of ringPos([[4, 3.2, PI / 4], [1, 0]])) bell(k, 1.88, 5.6, x, 0, z, { head: 1.4, rt: 0.55 });
   k.add(new THREE.CircleGeometry(R1 * 0.99, k.hi ? 40 : 12), 'shield', xf([0, b0, 0], [-PI / 2, 0, 0])); // heat shield
   tube(k, R1, R1, 7.0, b0, 'paint:0.25,0', { hs: 1 }); // thrust structure
@@ -41,21 +41,21 @@ function sic(d, o) { const k = new Kit(d), b0 = 5.2; // body starts above the ha
   stringers(k, R1, b0 + 21, 3, 48, 'dark'); // intertank corrugation only (tank stringers read as noise)
   for (const a of [0.2, PI + 0.2]) k.add(new THREE.BoxGeometry(0.5, 32, 0.7), 'paint:0,0', xf([Math.cos(a) * (R1 + 0.3), b0 + 22, Math.sin(a) * (R1 + 0.3)], [0, -a, 0])); // tunnels (LOX/cable)
   decal(k, 'booster.side', R1, 20, 8, PI, 0.5);
-  const g = k.build('S-IC'); for (const m of g.children) if (m.name.endsWith(':bell')) m.material = lmat('x-bellblack'); g.userData.top = Y.ic; return g; } // F-1: dark regen tubes
+  const g = k.build('stage1'); for (const m of g.children) if (m.name.endsWith(':bell')) m.material = lmat('x-bellblack'); g.userData.top = Y.ic; return g; } // K-1: dark regen tubes
 function sii(d) { const k = new Kit(d);
   tube(k, R1, R1, Y.is - Y.ic, Y.ic, 'paint:0,0'); band(k, R1, Y.ic + 0.2, 0.5); stringers(k, R1, Y.ic, Y.is - Y.ic, 36); // interstage (falls away after ignition)
   for (const [x, z] of ringPos([[4, 2.65, PI / 4], [1, 0]])) bell(k, 1.0, 3.1, x, Y.ic + 1.0, z, { ext: false, head: 0.9, rt: 0.3 }); // 5 J-2 (inside the interstage)
   tube(k, R1, R1, Y.ii - Y.is, Y.is, 'paint:0,0'); band(k, R1, Y.ii - 3.6, 3.6); // all white, black forward skirt band
   ring(k, R1, Y.is + 9, 0.03); ring(k, R1, Y.is + 17, 0.03);
   decal(k, 'upper.side', R1, Y.is + 6, 9, PI, 0.45);
-  const g = k.build('S-II'); g.userData.top = Y.ii; return g; }
+  const g = k.build('stage2'); g.userData.top = Y.ii; return g; }
 function sivb(d) { const k = new Kit(d);
   tube(k, R1, R3, Y.tp - Y.ii, Y.ii, 'paint:0,0'); stringers(k, (R1 + R3) / 2, Y.ii + 0.5, 4, 20); // conical aft interstage 10.06 -> 6.6 m
   bell(k, 1.0, 3.1, 0, Y.tp - 3.2, 0, { head: 0.9, rt: 0.3 }); // one J-2
   tube(k, R3, R3, Y.ivb - Y.tp, Y.tp, 'paint:0,0'); quads(k, R3, Y.tp, 4.2, 0, 2); band(k, R3, Y.ivb - 0.8, 0.8); // aft roll quadrants
   for (const a of [PI / 2, 3 * PI / 2]) k.add(new THREE.BoxGeometry(1.4, 1.1, 1.2), 'paint:0,0', xf([Math.cos(a) * (R3 + 0.5), Y.tp + 0.8, Math.sin(a) * (R3 + 0.5)], [0, -a, 0])); // APS pods
   k.add(new THREE.BoxGeometry(0.3, Y.ivb - Y.tp - 1, 0.5), 'paint:0,0', xf([R3 + 0.2, (Y.tp + Y.ivb) / 2, 0]));
-  const g = k.build('S-IVB'); g.userData.top = Y.ivb; return g; }
+  const g = k.build('stage3'); g.userData.top = Y.ivb; return g; }
 function iu(d) { const k = new Kit(d); tube(k, R3, R3, Y.iu - Y.ivb, Y.ivb, 'silver'); if (k.hi) for (let i = 0; i < 16; i++) { const a = i / 16 * 2 * PI; k.add(new THREE.BoxGeometry(0.5, 0.5, 0.1), 'dark', xf([Math.cos(a) * (R3 + 0.03), Y.ivb + 0.45, Math.sin(a) * (R3 + 0.03)], [0, -a + PI / 2, 0])); }
   const g = k.build('IU'); g.userData.top = Y.iu; return g; }
 function sla(d) { const k = new Kit(d), rs = 1.96; tube(k, R3, rs, Y.sla - Y.iu, Y.iu, 'paint:0,0'); // tapered adapter (lander inside)
@@ -83,6 +83,6 @@ export function saturnine(o) { const d = o.detail; const g = group('saturnine-v'
   if (o.plume) g.add(plume(5, ringPos([[4, 3.2, PI / 4], [1, 0]]), 2.2, 60 * o.plume)); return g; }
 function kbuild(k, name) { const g = k.build(name); for (const m of g.children) { const key = m.name.split(':').slice(1).join(':'); if (key.startsWith('x-')) m.material = lmat(key); } return g; }
 export const CO_NOSA = {
-  'saturnine-v': { height: 110.6, build: saturnine, src: 'rocketdb saturnine-v (GCAT): 110.6 m, 10.06 m; S-IC 42.1, S-II 24.8, S-IVB 6.6 m dia; stack split art-fitted', est: ['IU/SLA/CSM/LES split', 'fin shape'] },
+  'saturnine-v': { height: 110.6, build: saturnine, src: 'rocketdb saturnine-v (GCAT): 110.6 m, 10.06 m; stage1 42.1, stage2 24.8, stage3 6.6 m dia; stack split art-fitted', est: ['IU/SLA/CSM/LES split', 'fin shape'] },
 };
 export { group, lmat, kbuild, plume }; // shared helpers for the other co_* company files
