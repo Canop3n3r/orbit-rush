@@ -17,13 +17,13 @@ export const ROSTER_REDSTAR = [
     modes: [{ variant: 'leo', payload: 8670, orbit: { hp: 240, ha: 240, inc: 51.6 }, src: 'spec:soyuzny#leo',
  }],
     tli: 2350, flights: 170 },
-  { id: 'n-won', name: 'N-Won Moon Rocket', company: 'redstar', src: 'spec:n-won (draft-project masses)', area: 227, fairing: 0,
+  { id: 'moonhammer', name: 'Moonhammer', company: 'redstar', src: 'spec:moonhammer (draft-project masses)', area: 227, fairing: 0,
     stages: [
       { engines: { 'ko-m15': 30 }, dry: 130000, prop: 1750000, burn: 125, group: 0, recovery: 'expended' },
       { engines: { 'ko-m15v': 8 }, dry: 55700, prop: 505000, burn: 120, group: 1, recovery: 'expended' },
       { engines: { 'ko-m21': 4 }, dry: 13700, prop: 175000, burn: 370, group: 2, recovery: 'expended' },
     ],
-    modes: [{ variant: 'leo', payload: 95000, orbit: { hp: 225, ha: 225, inc: 51.6 }, src: 'spec:n-won#leo (design)',
+    modes: [{ variant: 'leo', payload: 95000, orbit: { hp: 225, ha: 225, inc: 51.6 }, src: 'spec:moonhammer#leo (design)',
  knownGap: 'model +24 % (2-D): design-stage masses vs design payload; never flew to orbit' }],
     tli: 33000, flights: 4 },
 ];
