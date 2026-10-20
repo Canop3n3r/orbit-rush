@@ -695,7 +695,7 @@ export class Flight {
         if (v.clamped && !v.holdDown && this.ignited && v.throttle > 0.95) { f.padTime += dt; if (f.padTime > 6 || (st && st.fuel <= 0)) this.fail('too heavy to lift off (TWR < 1)', 'twr'); }
         if (!f.mach1 && tel.mach > 1 && h < 30000) { f.mach1 = 1; this.toast('Mach 1 — supersonic', '#9cc3ff'); }
         if (!f.highQ && tel.q > 30000 && v.thrust > 0) { f.highQ = 1; /* one hint system: the persistent HIGH Q hint (hint()) says it; no duplicate toast */ }
-        if (!f.maxq && this.maxQ > 8000 && tel.q < this.maxQ * 0.8) { f.maxq = 1; if (!this.ret) this.toast(`Max-Q passed (${(this.maxQ / 1000).toFixed(1)} kPa)`, '#9cc3ff'); }
+        if (!f.maxq && this.maxQ > 8000 && tel.q < this.maxQ * 0.98) { f.maxq = 1; if (!this.ret) this.toast(`Max-Q passed (${(this.maxQ / 1000).toFixed(1)} kPa)`, '#9cc3ff'); }
         if (!f.fairing && h > P.FAIRING_ALT && (tel.heat < P.FAIRING_QDOT || h > P.FAIRING_ALT_MAX)) this.jettison();
         if (v.thrust > 0 && !v.clamped) {
           const pitch = Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), V.norm(v.r)))));
