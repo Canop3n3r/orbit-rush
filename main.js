@@ -1115,7 +1115,7 @@ function emit(veh, group, dt, bottom, dir) {
   const len = pl.len * w0 * fl; plume.scale.set(1, 1, 1);
   const setL = (m, wk, lk = 1) => { m.scale.set(wk, len * lk, wk); m.position.y = -len * lk / 2; };
   const applyTo = P0 => { const u = P0.userData; setL(u.glow, pl.glowW * 1.4 * (0.95 + 0.1 * Math.random()), 0.85); setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.1 * Math.random());
-    u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW, len * 0.7, pl.bellW); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl); };
+    u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW, len * 0.45, pl.bellW); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl); };
   applyTo(plume); if (ex) for (const e of ex) applyTo(e);
   M.plume.opacity = (0.55 + 0.35 * Math.random()) * pl.bright * (1 - 0.45 * pl.vac); M.plumeGlow.opacity = 0.42 * pl.bright * fl; M.plumeCore.opacity = 0.75 + 0.25 * Math.random();
   M.plumeBell.opacity = 0.5 * pl.bell * fl; M.plumeSprite.opacity = 0.9 * pl.bright;

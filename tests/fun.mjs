@@ -55,8 +55,9 @@ function fly(id, maxF = 2e6) { const said = []; const F = new Flight(tpl(MISSION
 { ok(FX.flowStreaks(12000, 0.5) === 0, 'no flow specks at Mach 0.5'); ok(FX.flowStreaks(12000, 1.1) > 0.5, 'flow streaks once compressible');
   ok(FX.vaporCone(0.5, 15000, 2000) === 0 && FX.vaporCone(0.8, 15000, 2000) === 0, 'no vapor cone below Mach 0.86'); ok(FX.vaporCone(0.97, 30000, 5000) > 0.5, 'vapor cone at Mach ~0.97 in humid air'); ok(FX.vaporCone(1.3, 30000, 5000) === 0, 'vapor gone by Mach 1.3');
   const sl = FX.plumeLook(101325, 1), mid = FX.plumeLook(20000, 1), vac = FX.plumeLook(1, 1);
-  ok(sl.bellW < mid.bellW && mid.bellW < vac.bellW && vac.bellW > 5, `plume bell widens as the air thins (${sl.bellW.toFixed(2)} → ${mid.bellW.toFixed(2)} → ${vac.bellW.toFixed(2)})`);
-  ok(sl.bell < 0.05 && vac.bell > 0.9, 'tight column at sea level, full bell in vacuum'); ok(vac.len > sl.len, 'longer plume in vacuum');
+  ok(sl.bellW < mid.bellW && mid.bellW < vac.bellW && vac.bellW > 2.5 && vac.bellW < 4, // f4: capped so it stays subtle at altitude
+  `plume bell widens as the air thins (${sl.bellW.toFixed(2)} → ${mid.bellW.toFixed(2)} → ${vac.bellW.toFixed(2)})`);
+  ok(sl.bell < 0.05 && vac.bell > 0.5 && vac.bell < 0.7, 'tight column at sea level, faint bell in vacuum (f4 cap)'); ok(vac.len > sl.len, 'longer plume in vacuum');
   ok(FX.plumeLook(101325, 0.4).len < sl.len && FX.plumeLook(101325, 0.4).bright < sl.bright, 'plume scales with throttle'); ok(sl.diamonds > 0.5 && vac.diamonds === 0, 'shock diamonds only in thick air');
   ok(sl.smoke === 1 && vac.smoke < 1e-4, 'exhaust smoke fades with altitude'); }
 // ---------- test stand + split-screen warp ----------

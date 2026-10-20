@@ -59,8 +59,8 @@ export function plumeLook(pa, throttle = 1) {
   const sh = plumeShape(pa, throttle), vac = 1 - smooth(600, 40000, pa), t = clamp01(throttle);
   const len = (10 + 14 * t) * (1 + 0.9 * vac);               // column length (× nozzle radius)
   const coreW = 0.9 + 0.5 * vac, glowW = 1.6 + 2.4 * vac;    // inner core / outer glow widths
-  const bellW = 1 + (Math.min(9, sh.width) - 1) * 0.85 * smooth(0.05, 0.6, vac); // expanded bell rim
-  return { len, coreW, glowW, bellW, bell: smooth(0.05, 0.5, vac) * (0.35 + 0.65 * t), vac, diamonds: sh.diamonds, bright: 0.55 + 0.45 * t, smoke: clamp01(pa / 101325) };
+  const bellW = 1 + (Math.min(3.5, sh.width) - 1) * 0.85 * smooth(0.05, 0.6, vac); // expanded bell rim
+  return { len, coreW, glowW, bellW, bell: smooth(0.05, 0.5, vac) * (0.2 + 0.4 * t), vac, diamonds: sh.diamonds, bright: 0.55 + 0.45 * t, smoke: clamp01(pa / 101325) };
 }
 // Effects quality presets (fx.js): particle counts and which layers draw.
 export const QUALITY = {
