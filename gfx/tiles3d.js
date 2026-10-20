@@ -92,13 +92,13 @@ export function createTiles({ earth, camera, renderer, onSurface, padEF, ground,
     if (k <= 0) { attr.style.display = 'none'; return; }   // above 30 km: no traversal, no requests
     anchor.updateMatrixWorld(true); camera.updateMatrixWorld();
     inv.copy(g.matrixWorld).invert(); camL.setFromMatrixPosition(camera.matrixWorld).applyMatrix4(inv); mask.center.copy(camL);
-    tiles.setResolutionFromRenderer(camera, renderer);
-    tiles.update();
+    const t0 = performance.now(); tiles.setResolutionFromRenderer(camera, renderer);
+    tiles.update(); stats.updMs = +((stats.updMs || 0) * 0.9 + (performance.now() - t0) * 0.1).toFixed(2);
     if (!h0Known && tiles.visibleTiles.size > 20) { const d = measureGround(); if (d !== null && Math.abs(d) < 500) { h0 += d; h0Known = true; stats.h0 = h0; place(); } }
     const now = performance.now();
     if (now - attrT > 1000) { attrT = now; const a = tiles.getAttributions(); const txt = a.filter(x => x.type === 'string').map(x => x.value).join('; ');
       attr.style.display = tiles.visibleTiles.size ? 'block' : 'none'; attr.innerHTML = '<b>Google</b> · ' + (txt || 'Map data ©Google').replace(/</g, '&lt;'); }
-    stats.visible = tiles.visibleTiles.size; stats.loaded = tiles.lruCache.itemSet.size;
+    stats.visible = tiles.visibleTiles.size; stats.loaded = tiles.lruCache.itemSet.size; stats.mb = +(tiles.lruCache.cachedBytes / 2 ** 20 || 0).toFixed(0);
   }
   return { update, tiles, anchor, stats, measureGround, get h0() { return h0; }, site: S };
 }
