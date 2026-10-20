@@ -105,3 +105,5 @@ export const PAYLOADS = [
 
 // Roster company 'nosa' (data only, neutral ids; spec:loss-model): see vehicles/roster/nosa.js
 export { ROSTER_NOSA, ENGINES_NOSA } from './roster/nosa.js';
+// Roster company 'rockwell' (data only, neutral ids; spec:loss-model): see vehicles/roster/rockwell.js
+export { ROSTER_ROCKWELL, ENGINES_ROCKWELL } from './roster/rockwell.js';
