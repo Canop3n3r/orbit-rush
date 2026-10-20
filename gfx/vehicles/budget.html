@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><title>vehicle budgets</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/tsl":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.tsl.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"}}</script>
+</head><body><script type="module">
+// perf budget probe (tests/vehicles_budget.cjs): tris + meshes per vehicle/LOD, shared geometry, dispose leak check
+import * as THREE from 'three/webgpu';
+import { build, VEHICLES, dispose, geometryCacheSize } from './vehicles.js?v=art1';
+const renderer = new THREE.WebGPURenderer({ forceWebGL: true }); renderer.setSize(64, 64); document.body.appendChild(renderer.domElement); await renderer.init();
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1e4); cam.position.set(0, 50, 300);
+const out = { rows: [], mem: [] }, count = g => { let n = 0; g.traverse(m => m.isMesh && n++); return n; };
+for (const id of Object.keys(VEHICLES)) for (const detail of ['hi', 'mid', 'lo']) { const g = build(id, { detail }); out.rows.push({ id, detail, tris: g.userData.tris, meshes: count(g) }); dispose(g); }
+// sharing: v3 + v4 alive together → shared geometries counted once
+{ const a = build('titan-ss-v3'), b = build('titan-ss-v4'); const s = new Set(); let tot = 0; for (const g of [a, b]) g.traverse(m => { if (m.isMesh) { tot++; s.add(m.geometry); } }); out.share = { meshes: tot, unique: s.size }; dispose(a); dispose(b); }
+// leak: cycle all models 3x through the scene with dispose; geometry count must stay flat
+for (let c = 0; c < 3; c++) { for (const id of Object.keys(VEHICLES)) { const g = build(id); scene.add(g); renderer.render(scene, cam); dispose(g); } renderer.render(scene, cam); out.mem.push({ gpu: renderer.info.memory.geometries, cache: geometryCacheSize() }); }
+window.__budget = out; document.title = 'done';
+</script></body></html>
