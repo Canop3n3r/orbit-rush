@@ -1,6 +1,6 @@
-// co-krunov-1: Krunov Machine Works (parody heavy-rocket plant) — Protonik-M (7.4 m first stage: central 4.1 m oxidizer tank ringed by
+// co-krunov-1: Krunov Machine Works (parody heavy-rocket plant) — Gorynych-M (7.4 m first stage: central 4.1 m oxidizer tank ringed by
 // six 1.6 m fuel tanks, one engine under each; 4-engine second stage; third stage; doughnut-tank upper under a 4.35 m fairing) and
-// Protonik-K (third stage + spherical-tank kick stage in a long fairing). Dimensions: rocketdb protonik (GCAT) + design.md. No logos/names.
+// Gorynych-K (third stage + spherical-tank kick stage in a long fairing). Dimensions: rocketdb gorynych (GCAT) + design.md. No logos/names.
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=art1';
 import * as PR from './profiles.js?v=art1';
@@ -27,8 +27,8 @@ function fairing(d, y0, cyl) { const k = new Kit(d), p = PR.fairing(RF, cyl, 5.0
   if (hiOnly(k)) for (const ph of [0, PI]) lathe(k, p.slice(1), 'dark', { s: 1.003, seg: 1, p0: ph - 0.004, pl: 0.008 }); decal(k, 'fairing.side', RF, y0 + cyl * 0.5, 3, PI / 2, 0.8);
   const g = k.build('payload'); g.userData.top = p.at(-1)[1]; return g; }
 function prot(o, kind) { const d = o.detail, a = s1(d), b = s2(d, a.userData.top), c = s3(d, b.userData.top), u = upper(d, c.userData.top + 0.6, kind), f = fairing(d, c.userData.top, kind === 'm' ? 8.6 : 9.6);
-  const g = group('protonik-' + kind, [a, b, c, u, f], f.userData.top); if (o.plume) g.add(plume(0, ringPos([[6, OFF, 0]]), 0.9, 45 * o.plume)); return g; }
+  const g = group('gorynych-' + kind, [a, b, c, u, f], f.userData.top); if (o.plume) g.add(plume(0, ringPos([[6, OFF, 0]]), 0.9, 45 * o.plume)); return g; }
 export const CO_KRUNOV = {
-  'protonik-m': { height: 58.2, build: o => prot(o, 'm'), src: 'rocketdb protonik (GCAT): 7.4 m first stage 21.2 m (4.1 m core + 6 x 1.6 m tanks), 2nd 14.6 m, 3rd 6.5 m, 4.35 m fairing', est: ['fairing length', 'upper inside shroud'] },
-  'protonik-k': { height: 59.2, build: o => prot(o, 'k'), src: 'rocketdb protonik (K + sphere kick stage config), longer fairing', est: ['fairing length'] },
+  'gorynych-m': { height: 58.2, build: o => prot(o, 'm'), src: 'rocketdb gorynych (GCAT): 7.4 m first stage 21.2 m (4.1 m core + 6 x 1.6 m tanks), 2nd 14.6 m, 3rd 6.5 m, 4.35 m fairing', est: ['fairing length', 'upper inside shroud'] },
+  'gorynych-k': { height: 59.2, build: o => prot(o, 'k'), src: 'rocketdb gorynych (K + sphere kick stage config), longer fairing', est: ['fairing length'] },
 };
