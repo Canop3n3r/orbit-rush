@@ -2,16 +2,16 @@
 // right stage count, then overwrites each stage's masses/engines with vehicles/catalog.js values (game units: t, kN).
 // Uses only the public Flight API (no game files changed). Geometry/aero stay those of the stand-in parts (EST).
 import { Flight } from '../flight.js';
-import { VEHICLES, ENGINES } from '../vehicles/catalog.js';
+import { VEHICLES, ENGINES, gameTVac } from '../vehicles/catalog.js';
 const P = (id, n) => (n ? { id, n } : { id });
 const STAND_IN = {
   2: [P('fairing'), P('sat'), P('probe'), P('tank-xl'), P('lark'), P('dec'), P('tank-xl'), P('tank-xl'), P('thumper', 5), P('fins')],
   radial: [P('fairing'), P('sat'), P('probe'), P('tank-xl'), P('lark'), P('dec'), P('tank-xl'), P('thumper', 3), P('fins'), P('rdec', 2), P('tank-r'), P('thumper', 2)],
 };
 export const vehicle = id => VEHICLES.find(v => v.id === id);
-function engOf(st) { // one equivalent engine type: summed vac thrust, flow-weighted Isp
+function engOf(st, anchor) { // one equivalent engine type: summed vac thrust, flow-weighted Isp
   let tv = 0, n = 0, fSl = 0, fV = 0, tSl = 0;
-  for (const [id, k] of Object.entries(st.engines)) { const e = ENGINES[id], ev = (st.tVacOverride || e.tVac) * k; tv += ev; n += k; fV += ev / (st.ispOverride?.[1] || e.ispVac); const sl = e.tSl * k; tSl += sl; fSl += sl ? sl / (st.ispOverride?.[0] || e.ispSl) : 0; }
+  for (const [id, k] of Object.entries(st.engines)) { const e = ENGINES[id], ev = (st.tVacOverride || gameTVac(e, anchor)) * k; tv += ev; n += k; fV += ev / (st.ispOverride?.[1] || e.ispVac); const sl = e.tSl * k; tSl += sl; fSl += sl ? sl / (st.ispOverride?.[0] || e.ispSl) : 0; }
   const ispVac = tv / fV, ispSl = fSl ? tSl / fSl : ispVac * 0.45; // vacuum-only engines: crude SL Isp (EST)
   return { eng: { tv: tv / n, ispSl, ispVac }, n };
 }
@@ -25,13 +25,15 @@ export function makeFlight(id, opts = {}) {
   if (v.stages.length !== game.length) throw new Error(`${id}: stand-in has ${v.stages.length} stages, catalog ${game.length}`);
   const payloadT = (opts.payload ?? mode.payloadLEO) / 1000;
   game.forEach((st, i) => {
-    const gs = v.stages[i], { eng, n } = engOf(st), dryParts = gs.parts.filter(p => !['pod', 'payload', 'fairing'].includes(p.kind));
+    const gs = v.stages[i], { eng, n } = engOf(st, cat.thrustAnchor), dryParts = gs.parts.filter(p => !['pod', 'payload', 'fairing'].includes(p.kind));
     const dry0 = dryParts.reduce((t, p) => t + p.m, 0), cap0 = gs.parts.reduce((t, p) => t + (p.fuelCap || 0), 0), dryT = st.dry / 1000, propT = st.prop / 1000;
     dryParts.forEach(p => { p.m *= dryT / dry0; }); gs.parts.forEach(p => { if (p.fuelCap) p.fuelCap *= propT / cap0; });
     const pay = gs.parts.filter(p => p.kind === 'pod' || p.kind === 'payload'); if (pay.length) { const m0 = pay.reduce((t, p) => t + p.m, 0); pay.forEach(p => { p.m *= payloadT / m0; }); }
     Object.assign(gs, { dry: dryT, fuel: propT, fuelMax: propT, eng: { ...eng, gimbal: gs.eng.gimbal || 0.087 }, n });
   });
   if (v.fairing !== undefined) v.fairing = (cat.fairing || 0) / 1000;
+  if (cat.diam) for (const gs of v.stages) for (const p of gs.parts) if (!['fins', 'pod', 'payload'].includes(p.kind) && p.d !== undefined) p.d = p.kind === 'fairing' ? (cat.fairingDiam || p.d) : Math.max(p.d, cat.diam);
+  if (cat.qFloor) v.qFloor = cat.qFloor; // AUTO throttle-bucket floor (physics/guidance.js qCap)
   v._g = null; // stackGeom caches part masses/fuelCap at construction: drop it so the catalog masses take effect
   return { F, cat, mode };
 }
