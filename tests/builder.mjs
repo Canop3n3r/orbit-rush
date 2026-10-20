@@ -96,7 +96,7 @@ console.log('4. Hand-built three-stage rocket stages correctly');
   ok(r.orbit && r.pe > P.ORBIT_PE, '3-stage rocket reaches orbit on AUTO', `Pe ${km(r.pe)}, top stage ${r.s2left.toFixed(2)} t left`);
   ok(r.F.flags.fairing === 1, 'fairing jettisoned');
   // manual staging needs the double press each time
-  const F = new Flight(d); F.stagePress(); F.setAuto(true, true); let presses = 0;
+  const F = new Flight(d); F.stagePress(); F.setAuto(true, true); F.autoStage = false; let presses = 0;
   for (let i = 0; i < 120 * 900 && F.v.cur < 2 && !F.flags.dead; i++) {
     F.realT += 1 / 120; F.step(1 / 120);
     if (F.v.stages[F.v.cur].fuel < 0.5 && F.canStage()) { const a = F.stagePress(); F.realT += 0.2; const b = F.stagePress(); if (a === 'armed' && b === 'stage') presses++; }

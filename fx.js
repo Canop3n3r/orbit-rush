@@ -186,7 +186,8 @@ export class FX {
     const apex = new THREE.Vector3(0, yW, 0).addScaledVector(d, -standoff);
     this.last = s;
     // --- flow particles ---
-    const flowOn = s.flow > 0.01 && dt > 0, F = this.flow, U = F.U; F.mesh.visible = flowOn;
+    const flowOn = s.flow > 0.01 && s.plasma > 0.05 && dt > 0, // f3: streak specks only in the reentry plasma regime
+      F = this.flow, U = F.U; F.mesh.visible = flowOn;
     if (flowOn) {
       const vis = 25 + Math.min(tel.vAir, 2500) * 0.06, streakLen = Math.max(0.6, Math.min(12, tel.vAir * 0.005 + 0.6));
       const e1 = new THREE.Vector3().crossVectors(d, Math.abs(d.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)).normalize(), e2 = new THREE.Vector3().crossVectors(d, e1);
@@ -203,16 +204,16 @@ export class FX {
       if (this.gpu) { renderer.compute(F.computeNode); this.compute++; } else F.stepCPU(U.dt.value);
     }
     // --- shock cone + compressed-air glow ---
-    const shockI = Q.shock ? 0.35 * s.shock + 1.1 * s.glow : 0;
+    const shockI = Q.shock ? 0.12 * s.shock + 0.5 * s.glow : 0; // f3: a faint collar at the nose, never a sky-wide cone
     this.shock.visible = shockI > 0.02;
     if (this.shock.visible) {
-      const H = L * 1.5 + 25, tn = Math.min(1.4, Math.tan(s.machAngle));
+      const H = Math.min(L * 0.25, 2.5 * ctx.d + 3), tn = Math.min(0.55, Math.tan(s.machAngle));
       this.shock.position.copy(apex); qFrom(this.shock, d); this.shock.scale.set(tn * H, H, tn * H);
       this.shockU.inten.value = Math.min(1.2, shockI);
       this.shockU.color.value.setRGB(0.62 + 0.38 * s.glow, 0.76 - 0.2 * s.glow, 1.0 - 0.6 * s.glow);
     }
     // --- vapor cone: only flying nose-first in humid transonic air ---
-    this.vapor.visible = Q.vapor && s.vapor > 0.02 && noseFirst;
+    this.vapor.visible = false; // f3: condensation now lives in the one exhaust/vapour trail (main.js emit)
     if (this.vapor.visible) {
       const len = 2.2 * ctx.d + 4; this.vapor.position.set(0, ctx.shoulderY, 0); this.vapor.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), d);
       this.vapor.scale.set(R, len, R); this.vaporU.inten.value = Math.min(1, s.vapor * 1.6);

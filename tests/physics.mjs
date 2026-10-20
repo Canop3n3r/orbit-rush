@@ -143,7 +143,7 @@ console.log('7. Every template reaches a full-scale orbit on AUTO');
 for (const earthRot of [true, false]) for (const t of TEMPLATES) {
   const t0 = Date.now(), r = simulateAuto(t, { earthRot });
   const minH = (() => { if (!r.orbit) return 0; const c = { ...r.F.v, stages: r.F.v.stages.map(s => ({ ...s })) }; return Math.min(...P.orbitPoints(c.r, c.v, 128).map(p => V.len(p) - R)); })();
-  ok(r.orbit && r.pe > P.ORBIT_PE && minH > 120000 && r.dvUsed > 8500 && r.dvUsed < 11500, `${t.name}${earthRot ? '' : ' (no Earth rotation)'}`, `Ap ${(r.ap / 1000).toFixed(0)} / Pe ${(r.pe / 1000).toFixed(0)} km, Δv used ${(r.dvUsed / 1000).toFixed(2)} km/s, max ${r.F.maxG.toFixed(1)} g, Max-Q ${(r.F.maxQ / 1000).toFixed(1)} kPa (${Date.now() - t0} ms)`);
+  ok(r.orbit && r.pe > P.ORBIT_PE && minH > 120000 && r.dvUsed > 8500 && r.dvUsed < 12000, `${t.name}${earthRot ? '' : ' (no Earth rotation)'}`, `Ap ${(r.ap / 1000).toFixed(0)} / Pe ${(r.pe / 1000).toFixed(0)} km, Δv used ${(r.dvUsed / 1000).toFixed(2)} km/s, max ${r.F.maxG.toFixed(1)} g, Max-Q ${(r.F.maxQ / 1000).toFixed(1)} kPa (${Date.now() - t0} ms)`);
 }
 { const r = simulateAuto(TEMPLATES[0]); ok(r.dvUsed > 9000 && r.dvUsed < 9800, 'Recommended uses ~9.3–9.5 km/s to orbit (with Earth rotation)', `${(r.dvUsed / 1000).toFixed(2)} km/s`); }
 

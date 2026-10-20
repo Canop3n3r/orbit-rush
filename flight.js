@@ -71,7 +71,7 @@ export function planBuild(design, opts = {}) {
   const s = designStats(design); if (s.twr < 1) return { minReserve: null, orbit: false, reason: 'twr' };
   if (s.stages.length < 2) return { minReserve: null, orbit: false, reason: 'single' };
   if (s.analysis.stages[0].radial) return { minReserve: null, orbit: false, reason: 'radial' };
-  const F = new Flight(design, {}, { earthRot: opts.earthRot }); F.stagePress(); F.setAuto(true, true);
+  const F = new Flight(design, {}, { earthRot: opts.earthRot }); F.autoStage = false; F.stagePress(); F.setAuto(true, true);
   const snaps = [], fuelMax = F.v.stages[0].fuelMax, step = Math.max(1, Math.round(fuelMax / 40));
   let nextLvl = Math.floor(fuelMax * 0.5 / step) * step;
   for (let i = 0; i < 25 * 400 && F.v.cur === 0 && !F.flags.dead; i++) {
@@ -88,7 +88,7 @@ export function planBuild(design, opts = {}) {
 // booster to a scripted "player" after staging; opts.earthRot: Earth rotation on/off.
 export function simulateAuto(design, opts = {}) {
   const dt = opts.dt || PHYS_DT, F = new Flight(design, opts.hooks || {}, { earthRot: opts.earthRot });
-  F.stagePress(); F.setAuto(true, true);
+  F.stagePress(); F.setAuto(true, true); if (opts.reserve !== undefined || opts.autoStage === false) F.autoStage = false;
   // f1 ghost trajectory: downrange/altitude samples (km) + events, drawn by the hangar's "Will it fly?" panel
   const track = [], r0 = F.v.r.slice(), R0 = Math.hypot(...r0); let tNext = 0, lastCur = F.v.cur;
   const sample = (t, ev) => { const r = F.v.r, c = (r[0] * r0[0] + r[1] * r0[1] + r[2] * r0[2]) / (Math.hypot(...r) * R0); track.push([+(Math.acos(Math.max(-1, Math.min(1, c))) * R0 / 1000).toFixed(2), +(F.alt / 1000).toFixed(2), +t.toFixed(1), ev || 0]); };
@@ -659,6 +659,11 @@ export class Flight {
         const gd = P.autoGuide(v); v.steerDir = gd.dir;
         if (gd.phase === 'done' && v.ut > 0) { v.ut = 0; if (!f.cutoff) { f.cutoff = 1; this.toast('AUTO cutoff — orbit reached', '#7dffa6'); } }
         v.throttle = v.auto ? gd.throttle : this.autoThrottle ? Math.min(v.ut, gd.throttle) : v.ut;
+        // f3 auto-staging: AUTO stages the booster itself while it still has the fuel to fly home and land (15 % margin)
+        if (v.cur === 0 && this.last > 0 && !v.stages[0].radial && this.autoStage !== false && this.alt > 2000 && this.canStage()) {
+          if (this._plan === undefined) { try { this._plan = this.design ? planBuild(this.design, { earthRot: v.earthRot !== false }) : null; } catch (e) { this._plan = null; } }
+          const pl = this._plan; if (pl && pl.orbit && pl.landed && v.stages[0].fuel <= pl.minReserve) { this.toast(`AUTO: staging — booster keeps ${v.stages[0].fuel.toFixed(1)} t to fly home`, '#9cc3ff'); this.stage(); }
+        }
         if (v.cur < this.lastPow && v.stages[v.cur].fuel <= 0 && this.canStage()) { this.toast(v.cur === 0 ? 'AUTO: booster empty, staging' : `AUTO: stage ${v.cur + 1} empty, staging`, '#9cc3ff'); this.stage(); }
       } else { v.throttle = this.autoOn ? Math.min(v.ut, P.qCap(v.tel ? v.tel.q : 0)) : v.ut; if (!this.autoOn) v.steerDir = null; }
       if (v.clamped) v.steerDir = null;
@@ -838,8 +843,8 @@ export class Flight {
     if (v.clamped) return 'Not enough thrust… lighten the rocket';
     if (tel.q > 30000 && engineOn) return this.autoOn ? 'HIGH Q — AUTO is throttling down' : 'HIGH Q — throttle down (Ctrl)';
     if (!this.autoOn && h < 8000 && sp < 900) return 'Press F for AUTO (flies all the way to orbit), or pitch east yourself with W (SAS holds your heading)';
-    if (v.cur < this.last && cs.fuel <= 0) return v.cur === 0 ? 'Booster empty — SPACE twice to stage!' : `Stage ${v.cur + 1} empty — SPACE twice to stage!`;
-    if (v.cur === 0 && this.last > 0 && h > 20000) return this.boosterCanLand() ? `SPACE twice to stage — booster has ${s1.fuel.toFixed(1)} t, enough to land` : `⚠ Booster ${s1.fuel.toFixed(1)} t: no longer enough to land it — stage soon (SPACE twice)`;
+    if (v.cur < this.last && cs.fuel <= 0) return this.autoOn ? '' : v.cur === 0 ? 'Booster empty — tap STAGE' : `Stage ${v.cur + 1} empty — tap STAGE`;
+    if (v.cur === 0 && this.last > 0 && h > 20000 && !this.autoOn) return this.boosterCanLand() ? `Stage now — booster has ${s1.fuel.toFixed(1)} t, enough to land` : `⚠ Booster ${s1.fuel.toFixed(1)} t: no longer enough to land it — stage soon (SPACE twice)`;
     if (fuelLeft <= 0 && !f.orbit) return 'Out of fuel — suborbital';
     if (f.orbit && !engineOn && this.rec.capsule && this.rec.chute && (!b || b.state !== 'flying')) return 'In orbit 🛰️ — press O to deorbit and bring the capsule home';
     if (f.orbit) return engineOn ? 'In orbit! Cut throttle (X)' : b && b.state === 'flying' ? 'Orbit! Watch the booster: B · fly it: Y' : 'Orbit achieved 🛰️';
@@ -848,7 +853,7 @@ export class Flight {
       const tAp = P.timeToApV(v);
       if (v.guid === 'circ') return 'AUTO circularizing at apoapsis — burning until Pe > 150 km';
       if (v.guid === 'coast') return `AUTO coasting to apoapsis (${Math.round(tAp / SIM_SPEED)} s) — press G to warp there`;
-      return 'AUTO flying the gravity turn' + (v.cur === 0 && !v.stages[0].radial ? ' — stage (SPACE twice) while the booster still has landing fuel (see hangar)' : '');
+      return 'AUTO flying the gravity turn' + (v.cur === 0 && !v.stages[0].radial && this.last > 0 ? ' — it stages and lands the booster for you' : '');
     }
     if (engineOn && isFinite(o.ap) && o.ap > 170000 && h < ATM - 10000) return 'Ap is high enough — cut throttle (X) and coast';
     if (!engineOn && h < ATM && vr > 0) return h > 20000 ? 'Coasting — press "Warp to Ap" (G)' : 'Coasting…';

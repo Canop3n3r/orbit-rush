@@ -18,6 +18,7 @@ const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'c
 export class Director {
   constructor(F, id, opts = {}) {
     this.F = F; this.id = id; this.m = MISSIONS[id]; this.phase = 'ascent'; this.t = 0; this.log = ['ascent']; this.active = true; this.opts = opts;
+    F.autoStage = false; // f3: the director runs its own staging plan (Moon/Mars need the whole booster)
     this.target = this.m.target; this.corrections = 0; this.result = null; this.ok = false; this.say = opts.say || (() => {});
   }
   get cam() { return CAMS[this.phase] || 'chase'; }
