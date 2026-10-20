@@ -27,7 +27,7 @@ function sic(d, o) { const k = new Kit(d), b0 = 5.2; // body starts above the ha
   quads(k, R1, b0 + 7, 13.8, 0); // black roll quadrants on the fuel tank
   band(k, R1, b0 + 20.8, 3.2); // intertank black band
   tube(k, R1, R1, Y.ic - (b0 + 27.4), b0 + 27.4, 'paint:0,0'); quads(k, R1, Y.ic - 3.0, 3.0, PI / 2, 2); // LOX tank + forward skirt checker
-  stringers(k, R1, b0 + 7, 13.8, 24); stringers(k, R1, b0 + 21, 3, 48);
+  stringers(k, R1, b0 + 21, 3, 48); // intertank corrugation only (tank stringers read as noise)
   for (const a of [0.2, PI + 0.2]) k.add(new THREE.BoxGeometry(0.5, 32, 0.7), 'paint:0,0', xf([Math.cos(a) * (R1 + 0.3), b0 + 22, Math.sin(a) * (R1 + 0.3)], [0, -a, 0])); // tunnels (LOX/cable)
   decal(k, 'booster.side', R1, 20, 8, PI, 0.5);
   const g = k.build('S-IC'); g.userData.top = Y.ic; return g; }
