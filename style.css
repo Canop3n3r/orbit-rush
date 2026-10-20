@@ -648,3 +648,13 @@ details.bset{display:contents}details.bset[open]>summary{display:none}
   #endBody{overflow:auto;min-height:0;flex:1 1 auto}
   #end .endMain,#end .endShare{flex:none}
 }
+@media (max-width:600px) and (orientation:portrait){
+  #build #launchBtn.stickyLaunch{position:sticky;bottom:calc(4px + env(safe-area-inset-bottom,0px));z-index:40;width:100%;min-height:52px;box-shadow:0 6px 24px #000a;margin-top:8px}
+}
+/* f4 phone palette: category chips that open one tile row each (accordion) */
+@media (max-width:900px),(max-height:520px){
+  #palette{flex-wrap:wrap!important;overflow:visible!important;touch-action:auto!important}
+  #palette .palH{writing-mode:horizontal-tb!important;transform:none!important;width:auto!important;flex:0 0 auto!important;min-height:44px;padding:4px 12px!important;border:1px solid var(--line)!important;border-radius:22px!important;font:700 11px system-ui!important;opacity:.9;gap:6px}
+  #palette .palG{flex:0 0 100%;display:flex;gap:6px;overflow-x:auto;touch-action:pan-x;padding-bottom:4px}
+  #palette .palG.shut{display:none}
+}

@@ -480,7 +480,8 @@ function partTip(id, p) {
 const BUILD_OPEN = {};
 { // f4: hangar launch settings fold into one row (phones) so the rocket stays visible above the sheet
   const tr = document.querySelector('#build .trow'), labs = tr ? [...tr.querySelectorAll(':scope > label.chk')] : [];
-  if (labs.length) { const d = document.createElement('details'); d.className = 'bset'; d.innerHTML = '<summary>⚙ Launch &amp; graphics settings</summary>'; labs.forEach(l => d.appendChild(l)); tr.insertBefore(d, tr.querySelector('.saved')); if (!(TOUCH && innerWidth < 600)) d.open = true; } }
+  if (labs.length) { const d = document.createElement('details'); d.className = 'bset'; d.innerHTML = '<summary>⚙ Launch &amp; graphics settings</summary>'; labs.forEach(l => d.appendChild(l)); tr.insertBefore(d, tr.querySelector('.saved')); if (!(TOUCH && innerWidth < 600)) d.open = true; }
+  const lb = document.getElementById('launchBtn'), bp = document.getElementById('build'); if (lb && bp && innerWidth < 600 && innerHeight > innerWidth) { lb.classList.add('stickyLaunch'); bp.appendChild(lb); } }
 // f4: camera distance that fits a stack of length L into `frac` of the screen height (fov-aware, slim rockets fill the frame)
 function fitDist(L, frac) { const vf = (camera.fov || 50) * Math.PI / 180; return Math.max(18, L / frac / (2 * Math.tan(vf / 2))); }
 function buildPalette() {
