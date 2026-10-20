@@ -2,12 +2,13 @@
 // within a tight radius of the recovery point at low speed, standing in for a catch by tower arms.
 // The game currently lands boosters on a droneship deck; the catch is scored by miss distance and
 // touchdown speed against that same point. TODO(main.js/gfx): a real tower + arms visual and its own site.
-// TODO(specs/): real catch-tower tolerances and booster return mass from Vehicle Specs Bot's sheet.
+// Real figures: specs/starship.md (booster dry mass row; Recovery row: boostback + tower catch by chopsticks,
+// first 2024-10-13). Catch tolerances are not in the sheet: ESTIMATE.
 export default {
   id: 'tower-catch', name: 'Tower catch',
   blurb: 'Deliver the payload, then bring the booster back slow and dead-centre so the tower arms can catch it.',
   vehicle: { template: 'Recommended', role: 'medium-reusable-launcher', payloadPart: 'sat', gameMassT: 2.0 },
-  real: { catchRadiusM: 10 /* TODO: real arm span ~ booster diameter + margin */, maxCatchSpeed: 2 /* TODO m/s */, boosterDryT: 25 /* TODO placeholder */ },
+  real: { boosterDryT: 275 /* specs/starship.md Booster dry mass (infobox) */, catchRadiusM: 10 /* ESTIMATE */, maxCatchSpeed: 2 /* ESTIMATE m/s */ },
   deploy: [ { kind: 'fairing-sep' }, { kind: 'stack-release', delayS: 20 }, { kind: 'booster-return', mode: 'catch', catchRadiusM: 35, maxSpeed: 10 } ],
   objectives: [
     { id: 'orbit', kind: 'orbit', label: 'Reach orbit', points: 0, required: true },
