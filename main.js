@@ -9,7 +9,9 @@ import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 import { newCareer, canFly, applyFlight } from './missions/campaign/state.js';
 import { saveTo, loadFrom } from './missions/campaign/save.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName } from './brand/index.js?v=f4.2';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f4.2';
+import { createCareerUI } from './fun/career-ui.js?v=f5';
+import { SITE_NAMES } from './fun/ladder.js?v=f5';
 import { createSolarMap } from './solarmap.js?v=f4.2';
 import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f4.2';
 import { FX } from './fx.js?v=f4.2';
@@ -515,7 +517,7 @@ function buildPalette() {
       const t = document.createElement('div'); t.className = 'tile'; t.draggable = true;
       t.innerHTML = `<i style="background:${TYPE_COL[type]}"></i><b>${d.name}</b><small>${partStat(id)}</small>`; qol.attachTip(t, () => partTip(id) + '<div class="sm">Click to add above the selected part, or drag into the stack.</div>', TOUCH);
       t.onclick = () => { if (!dragEaten()) addPart(id); }; touchDrag(t, 'new:' + id); t.ondragstart = e => { e.dataTransfer.setData('text/plain', 'new:' + id); e.dataTransfer.effectAllowed = 'copy'; };
-      t.dataset.id = id; if (PR.partLocked(PROG, id)) { t.classList.add('locked'); t.title = 'Locked — earn it with contracts'; } grp.appendChild(t);
+      t.dataset.id = id; if (partLock(id)) { t.classList.add('locked'); t.title = 'Locked — earn it with contracts'; } grp.appendChild(t);
     }
   }
 }
@@ -551,8 +553,10 @@ const endDrag = e => {
 addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
 function setDesign(d, keepSel) { design = d; if (!keepSel) selected = -1; selected = Math.min(selected, design.parts.length - 1); refreshBuild(); }
 // click: append at the bottom, or insert above the highlighted part (which stays highlighted)
-function addPart(id) { if (PR.partLocked(PROG, id)) { toast('🔒 Locked — complete contracts in 🎯 Missions to unlock this part', '#ffb35c'); return; } snapAnim = 1; funAudio.ui('snap'); lastAdded = selected < 0 ? design.parts.length : selected; if (selected < 0) setDesign(insertPart(design, id, design.parts.length), true); else { const at = selected; selected = -1; design = insertPart(design, id, at); selected = at + 1; refreshBuild(); } }
-function dropAt(data, at) { if (data.startsWith('new:') && PR.partLocked(PROG, data.slice(4))) { toast('🔒 Locked part', '#ffb35c'); return; } snapAnim = 1; funAudio.ui('snap'); lastAdded = at;
+// f5: a part is open once either the old contract chain or the career ladder unlocked it (sandbox: all)
+function partLock(id) { return PR.partLocked(PROG, id) && (!careerUI || careerUI.locked('parts', id)); }
+function addPart(id) { if (partLock(id)) { toast('🔒 Locked — complete contracts in 🎯 Missions to unlock this part', '#ffb35c'); return; } snapAnim = 1; funAudio.ui('snap'); lastAdded = selected < 0 ? design.parts.length : selected; if (selected < 0) setDesign(insertPart(design, id, design.parts.length), true); else { const at = selected; selected = -1; design = insertPart(design, id, at); selected = at + 1; refreshBuild(); } }
+function dropAt(data, at) { if (data.startsWith('new:') && partLock(data.slice(4))) { toast('🔒 Locked part', '#ffb35c'); return; } snapAnim = 1; funAudio.ui('snap'); lastAdded = at;
   if (data.startsWith('new:')) { design = insertPart(design, data.slice(4), at); if (selected >= at) selected++; }
   else if (data.startsWith('move:')) { const from = +data.slice(5); const to = from < at ? at - 1 : at; design = movePart(design, from, to); selected = -1; }
   refreshBuild();
@@ -1129,6 +1133,9 @@ function showEnd() {
   const stars = { gold: 3, silver: 2, bronze: 1 }[out && out.medal] || (ok || (director && director.ok) ? 1 : 0);
   $('endBody').innerHTML = `<div class="endStars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<i>${'★'.repeat(3 - stars)}</i></div>` + head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
     + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}${extra.more ? '<br>' + extra.more : ''}</details>`;
+  if (out && out.ladder) { $('endBody').insertAdjacentHTML('afterbegin', careerUI.resultsHTML(out.ladder)); }
+  { let nb = $('nextMisBtn'); if (!nb) { nb = document.createElement('button'); nb.id = 'nextMisBtn'; nb.className = 'big'; $('relaunchBtn').after(nb); nb.onclick = () => { const n = careerUI.next(); $('end').classList.add('hidden'); if (n) playRung(n); else careerUI.show(true); }; }
+    const n = careerUI.next(); nb.textContent = n ? 'Next mission ▸' : 'Career ▸'; nb.title = n ? 'Next contract: ' + rungLabel(n) : 'Career progress'; }
   $('replayBtn').classList.toggle('hidden', !(flags.dead && recBuf.length > 30));
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
   $('shareBtn').textContent = 'Share score';
@@ -1718,16 +1725,17 @@ loadMissions().then(l => { opsList = l; }).catch(e => console.warn('[Orbit Rush]
 loadBrand().then(() => applyBrandDom()).catch(() => {});
 // career (PR #9): money / reputation / unlocks, saved in localStorage via the campaign save module
 function career() { const r = loadFrom(localStorage); return r && r.ok && r.career ? r.career : newCareer(); }
-function startOp(contractId) {
+let lastOp = null;
+function startOp(contractId, viaLadder) {
   const mid = missionOf(contractId), m = opsList.find(x => x.id === mid); if (!m) return;
-  const c = career(), g = canFly(c, contractId); if (!g.ok) { fun.call('🔒', g.why, '#ffb35c'); return; }
+  const c = career(), g = canFly(c, contractId); if (!g.ok && !viaLadder) { fun.call('🔒', g.why, '#ffb35c'); return; }
   opContract = contractId; opHooks = missionHooks(m, () => F); opFlightOpts = missionFlightOpts(m);
   setDesign(missionDesign(m)); launch(); opFlightOpts = null; applyMission(m, F); opSess = missionSession(m).attach(F);
   fun.call('🎯', opName(m) + ' — AUTO flies the ascent; follow the prompts on orbit', '#ffe9b0', true);
 }
 function opEnd(why) {
   const S = opSess; if (!S || S._shown) return; S._shown = 1;
-  const r = evalOp(S.m, F, S), ok = r.objectives.filter(o => o.pass).length;
+  const r = evalOp(S.m, F, S), ok = r.objectives.filter(o => o.pass).length; lastOp = { id: S.m.id, ok: !!r.complete };
   let line = `${opName(S.m)}: ${ok}/${r.objectives.length} objectives · score ${r.score.toLocaleString()}`;
   try { const c1 = applyFlight(career(), opContract, r); saveTo(localStorage, c1); line += ` · 💰 ${c1.money} · ⭐ ${c1.rep}`; } catch (e) { console.warn('[Orbit Rush] career', e); }
   fun.call(r.complete ? '🏆' : '⚠️', line, r.complete ? '#7dffa6' : '#ffb35c', true); opSess = null; opHooks = null;
@@ -1921,7 +1929,12 @@ function recordFlight(score) {
   const landed = Object.entries(F.goals || {}).find(([, g]) => g.landed);
   const r = { maxAlt: f.maxAlt || 0, space: !!f.space, orbit: !!f.orbit, boosterLanded: !!(booster && booster.state === 'landed'), recovered: !!f.recovered, visited, landed: landed ? landed[0] : null,
     dead: f.dead || null, maxMach: seen.maxMach || 0, maxHeat: F.maxHeat || 0, stages: v.stages.length, mass: F.stats ? F.stats.mass : 0, fuelLeft: F.orbitSnap ? F.orbitSnap.fuel : top && top.fuelMax ? top.fuel / top.fuelMax : 0, score, mission: director ? director.id : null };
-  const out = PR.record(PROG, r); PR.save(localStorage, PROG); return out;
+  const out = PR.record(PROG, r); PR.save(localStorage, PROG);
+  // f5 career ladder: the flown showroom vehicle and any ops contract result ride along
+  let op = lastOp; if (opSess) { try { const e = evalOp(opSess.m, F, opSess); op = { id: opSess.m.id, ok: !!e.complete }; } catch (e) { } }
+  const sh = SHOW.find(x => x.name === design.name);
+  try { out.ladder = careerUI.record({ ...r, vehicle: sh ? sh.id : null, op: op ? op.id : null, opOk: !!(op && op.ok) }); } catch (e) { console.warn('[Orbit Rush] ladder', e); }
+  return out;
 }
 function savePhoto(req) {
   const cv = renderer.domElement, w = cv.width, h = cv.height, c2 = document.createElement('canvas'); c2.width = w; c2.height = h; const g = c2.getContext('2d'); g.filter = req.filter || 'none'; g.drawImage(cv, 0, 0);
@@ -1943,11 +1956,25 @@ $('missionsBtn').onclick = () => fun.openHub(); $('atlasBtn').onclick = () => fu
 // ---------- f2h: home = rocket showroom; the hangar is its own "Build" mode ----------
 const showDesign = i => ({ ...cloneDesign(SHOW[i].design), name: SHOW[i].name }); // f4: hero rockets carry their brand name into the hangar/flight
 const HOME_KEY = 'orbitrush.homeIdx', SHOW = SHOWROOM.map(r => { const o = { ...r, bars: showBars(r), missionLabel: missionLabel[r.mission] || '' }; if (r.model) Object.defineProperty(o, 'name', { get: () => brandVName(r.model), enumerable: true }); return o; }); // f4: hero-model rockets carry the brand name
-var home = createHome({ list: SHOW,
+// f5 career: vehicles / missions locked until their ladder rung is earned (sandbox: all open)
+const rungLabel = c => c.brandKey ? brandMName(c.brandKey, c.name) : c.name;
+var careerUI = createCareerUI({ store: localStorage, onPlay: c => playRung(c),
+  name: { rung: rungLabel, vehicle: id => (SHOW.find(x => x.id === id) || { name: id }).name, site: id => brandLabel('site.' + id, SITE_NAMES[id] || id),
+    part: id => (PARTS[id] || { name: id }).name, mission: id => (MISSIONS[id] || {}).name || brandMName(id, (opsList.find(m => m.id === id) || {}).name || id) } });
+function lockWhy(kind, id) { if (!careerUI.locked(kind, id)) return null; const c = careerUI.unlockedBy(kind, id); return '🔒 Locked: earn "' + (c ? rungLabel(c) : '?') + '" in Career (or turn on Sandbox)'; }
+const lockedFly = i => { const w = lockWhy('vehicles', SHOW[i].id); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); careerUI.show(true); } return !!w; };
+function playRung(c) {
+  if (home && home.on) home.show(false);
+  if (c.how === 'op') return startOp(c.op, true);
+  if (c.how === 'mission') return startMission(c.mission);
+  const i = SHOW.findIndex(x => x.id === c.vehicle); if (i >= 0) setDesign(showDesign(i)); launch();
+}
+addEventListener('career-change', () => { if (home) home.refresh(); });
+var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].id), onCareer: () => careerUI.show(true),
   onSelect: i => { try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(showDesign(i)); },
-  onFly: i => { setDesign(showDesign(i)); home.show(false); launch(); },
-  onMission: i => { home.show(false); startMission(SHOW[i].mission); },
-  onBuild: i => { goBuild.toHome = false; setDesign(showDesign(i)); home.show(false); refreshBuild(); },
+  onFly: i => { if (lockedFly(i)) return; setDesign(showDesign(i)); home.show(false); launch(); },
+  onMission: i => { if (lockedFly(i)) return; const w = lockWhy('missions', SHOW[i].mission); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); return; } home.show(false); startMission(SHOW[i].mission); },
+  onBuild: i => { if (lockedFly(i)) return; goBuild.toHome = false; setDesign(showDesign(i)); home.show(false); refreshBuild(); },
   onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => $('hGearM').classList.toggle('hidden') });
 { const g = document.createElement('div'); g.id = 'hGearM'; g.className = 'hidden'; document.body.appendChild(g);
   const mk = (t, fn) => { const b = document.createElement('button'); b.textContent = t; b.onclick = () => { g.classList.add('hidden'); fn(); }; g.appendChild(b); };

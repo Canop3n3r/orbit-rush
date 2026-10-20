@@ -1,0 +1,16 @@
+import * as L from '../fun/ladder.js';
+let pass = 0, fail = 0; const ok = (c, m) => { c ? pass++ : (fail++, console.log('FAIL', m)); };
+const mem = () => { const m = new Map(); return { getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)) }; };
+const st = mem(); let s = L.load(st);
+ok(L.next(s).id === 'hop', 'starts at hop'); ok(!L.isUnlocked(s, 'vehicles', 'kestrel'), 'F9 locked'); ok(L.isUnlocked(s, 'vehicles', 'kestrel', true), 'sandbox unlocks');
+let o = L.record(s, { maxAlt: 5000 }); ok(o.earned.length === 0, 'low hop earns nothing');
+o = L.record(s, { maxAlt: 200000, space: true, orbit: true }); ok(o.earned.map(c => c.id).join() === 'hop,karman,orbit', 'orbit earns 3 rungs');
+ok(o.cash === 70 && o.sci === 22, 'rewards summed'); ok(L.isUnlocked(s, 'vehicles', 'kestrel'), 'F9 unlocked'); ok(o.next.id === 'booster', 'next booster');
+o = L.record(s, { orbit: true, op: 'crew-dock', opOk: true }); ok(o.earned.length === 0, 'out of order rung not earned');
+o = L.record(s, { boosterLanded: true, op: 'constellation-batch', opOk: true }); ok(o.earned.map(c => c.id).join() === 'booster,starlink', 'booster + starlink');
+L.save(st, s); const s2 = L.load(st); ok(s2.cash === s.cash && s2.done.starlink, 'persisted'); ok(L.isUnlocked(s2, 'vehicles', 'heron'), 'crew unlocked');
+st.setItem(L.KEY, '{bad'); ok(L.load(st).cash === 0, 'corrupt -> blank');
+ok(L.LADDER.every(c => L.ALL.vehicles.includes(c.vehicle)), 'vehicles known');
+for (const c of L.LADDER) for (const k in c.unlock) for (const id of c.unlock[k]) ok(L.ALL[k].includes(id), 'unlock known ' + id);
+ok(L.ALL.vehicles.every(v => L.START.vehicles.includes(v) || L.unlockedBy('vehicles', v)), 'every vehicle unlockable');
+console.log(`ladder: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

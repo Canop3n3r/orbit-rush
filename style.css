@@ -691,3 +691,22 @@ body.splitOn #sL{display:none!important}
 #split.portrait.tri #spCardB2{top:10px;bottom:auto}
 /* f4.2: phone landscape (single booster): the booster card sits under the pane buttons, clear of STAGE/AUTO/THR */
 @media (orientation:landscape) and (max-height:500px){body.touch #split:not(.tri):not(.portrait) #spCardB{top:calc(140px + var(--sat,0px));bottom:auto}}
+/* f5 career: progress screen + results-card block + locked showroom vehicles */
+#careerM{position:fixed;z-index:60;left:50%;top:calc(12px + var(--sat,0px));transform:translateX(-50%);width:min(560px,calc(100vw - 20px));max-height:calc(100dvh - 24px - var(--sat,0px) - var(--sab,0px));overflow:auto;padding:14px 16px;box-sizing:border-box;color:#e8eefc;font:500 14px/1.4 var(--ui,system-ui)}
+#careerM.hidden{display:none}
+#careerM .crHead{display:flex;align-items:center;justify-content:space-between}#careerM h2{margin:0;font-size:22px}
+#careerM .crX{min-width:44px;min-height:44px;font-size:18px;background:none;border:0;color:inherit}
+#careerM .crWallet{display:flex;gap:14px;margin:6px 0 8px;font-variant-numeric:tabular-nums}#careerM .crWallet b{font-size:17px}
+#careerM .crNext{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(80,140,255,.16);border:1px solid rgba(120,170,255,.35)}
+#careerM .crNext>div{display:flex;flex-direction:column}#careerM .crNext small{opacity:.75;font-size:11.5px}#careerM .crNext b{font-size:16px}
+#careerM .crPlay{min-height:44px;min-width:88px;border-radius:12px}
+#careerM .crList{list-style:none;margin:8px 0;padding:0}
+#careerM .cr{display:flex;gap:10px;align-items:flex-start;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.07)}
+#careerM .crI{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:rgba(255,255,255,.08)}
+#careerM .cr.done .crI{background:#2f9e5b;color:#fff}#careerM .cr.next .crI{background:#3d7dff;color:#fff}#careerM .cr.locked{opacity:.6}
+#careerM .crT{display:flex;flex-direction:column;min-width:0}#careerM .crT small{font-size:12px;opacity:.8}#careerM .crR{color:#ffe7a8}
+#careerM .crUnl{font-size:12.5px;margin:6px 0}#careerM .crUnl small{opacity:.7}
+#careerM .crSand{display:flex;gap:8px;align-items:center;min-height:44px;font-size:13px}#careerM .crSand input{width:22px;height:22px}
+#endBody .endCareer{margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:rgba(80,140,255,.13);border:1px solid rgba(120,170,255,.3);font-size:13.5px}
+#endBody .ecEarn{color:#9df0b8}#endBody .ecUnl{color:#bfe9c8;font-size:12.5px}#endBody .ecRw{color:#ffe7a8;white-space:nowrap}#endBody .ecWal{opacity:.75;font-size:12px;font-variant-numeric:tabular-nums}
+#hFly.locked{filter:grayscale(.7);opacity:.85}
