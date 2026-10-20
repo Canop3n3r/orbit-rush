@@ -12,6 +12,7 @@ export { dispose, release, geometryCacheSize };
 import * as PR from './profiles.js?v=art1';
 import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
 export { setLegs, mat };
+import { CO_NOSA } from './co_nosa.js?v=art1'; // co-nosa-1: NOSA heritage vehicles
 const PI = Math.PI;
 // ---- kerolox booster core (9 engines, octaweb, legs, grid fins) ----
 function core9(detail, o = {}) {
@@ -158,6 +159,7 @@ export const VEHICLES = {
   'titan-ss-v4': { height: 142, build: o => titan({ ...o, boosterH: 81, shipH: 61, gridFins: 3 }), src: 'specs sheet (titan-ss) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
   'catch-tower': { height: 164, build: catchTower, src: 'public ~146 m tower (art estimate)', est: ['all'] },
   'payload-roadster': { height: 3.2, build: roadster, src: 'generic roadster-style car (art)', est: ['all'] },
+  ...CO_NOSA,
   'payload-flatsat-stack': { height: 5.6, build: satStack, src: 'specs sheet flatsat-style flat-pack stack (art)', est: ['plate size'] },
 };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
