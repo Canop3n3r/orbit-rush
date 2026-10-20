@@ -5,8 +5,8 @@ export const ENGINES_ORBITRON = {
   'ob-e2': { tSl: 0, tVac: 196.0, ispSl: 0, ispVac: 289.0, src: 'spec:engines#ob-e2' },
   'ob-e3': { tSl: 0, tVac: 36.0, ispSl: 0, ispVac: 289.6, src: 'spec:engines#ob-e3' },
   'ob-e4': { tSl: 1691.4, tVac: 1922.0, ispSl: 274.5, ispVac: 311.9, src: 'spec:engines#ob-e4', est: ['tSl', 'ispSl'] },
-  'ob-e5': { tSl: 0, tVac: 260.0, ispSl: 0, ispVac: 300, src: 'spec:engines#ob-e5', est: ['ispVac'] },
-  'ob-e6': { tSl: 785.0, tVac: 892.0, ispSl: 264.0, ispVac: 300, src: 'spec:engines#ob-e6', est: ['ispVac', 'tSl', 'ispSl'] },
+  'ob-e5': { tSl: 0, tVac: 260.0, ispSl: 0, ispVac: 0, unsourced: ['ispVac'], src: 'spec:engines#ob-e5', est: ['ispVac'] },
+  'ob-e6': { tSl: 785.0, tVac: 892.0, ispSl: 0, ispVac: 0, unsourced: ['ispVac'], src: 'spec:engines#ob-e6', est: ['ispVac', 'tSl', 'ispSl'] },
   'ob-e7': { tSl: 0, tVac: 267.0, ispSl: 0, ispVac: 287.5, src: 'spec:engines#ob-e7' },
   'ob-e8': { tSl: 0, tVac: 196.0, ispSl: 0, ispVac: 289.0, src: 'spec:engines#ob-e8' },
   'ob-e9': { tSl: 0, tVac: 36.0, ispSl: 0, ispVac: 289.6, src: 'spec:engines#ob-e9' },
@@ -18,9 +18,9 @@ export const ENGINES_ORBITRON = {
   'ob-e15': { tSl: 0, tVac: 1223.0, ispSl: 0, ispVac: 304.0, src: 'spec:engines#ob-e15' },
   'ob-e16': { tSl: 0, tVac: 289.0, ispSl: 0, ispVac: 306.0, src: 'spec:engines#ob-e16' },
   'ob-e17': { tSl: 0, tVac: 36.0, ispSl: 0, ispVac: 289.6, src: 'spec:engines#ob-e17' },
-  'ob-e18': { tSl: 377.5, tVac: 429.0, ispSl: 264.0, ispVac: 300, src: 'spec:engines#ob-e18', est: ['ispVac', 'tSl', 'ispSl'] },
-  'ob-e19': { tSl: 377.5, tVac: 429.0, ispSl: 264.0, ispVac: 300, src: 'spec:engines#ob-e19', est: ['ispVac', 'tSl', 'ispSl'] },
-  'ob-e20': { tSl: 0, tVac: 429.0, ispSl: 0, ispVac: 300, src: 'spec:engines#ob-e20', est: ['ispVac'] },
+  'ob-e18': { tSl: 377.5, tVac: 429.0, ispSl: 0, ispVac: 0, unsourced: ['ispVac'], src: 'spec:engines#ob-e18', est: ['ispVac', 'tSl', 'ispSl'] },
+  'ob-e19': { tSl: 377.5, tVac: 429.0, ispSl: 0, ispVac: 0, unsourced: ['ispVac'], src: 'spec:engines#ob-e19', est: ['ispVac', 'tSl', 'ispSl'] },
+  'ob-e20': { tSl: 0, tVac: 429.0, ispSl: 0, ispVac: 0, unsourced: ['ispVac'], src: 'spec:engines#ob-e20', est: ['ispVac'] },
   'ob-e21': { tSl: 0, tVac: 68.7, ispSl: 0, ispVac: 292.1, src: 'spec:engines#ob-e21' },
 };
 export const ROSTER_ORBITRON = [
@@ -30,13 +30,13 @@ export const ROSTER_ORBITRON = [
       { engines: {'ob-e2': 1}, dry: 420, prop: 3580, burn: 72.5, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e3': 1}, dry: 126, prop: 774, burn: 69.6, group: 2, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 221, orbit: { hp: 741, ha: 741, inc: 90.0 }, src: "spec:pegacorn#ref (user's guide fig. 3-1: 221 kg to 741 km circular polar from the west-coast range; air-launched)", est: [] , knownGap: "model no orbit: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 221, orbit: { hp: 741, ha: 741, inc: 90.0 }, src: "spec:pegacorn#ref (user's guide fig. 3-1: 221 kg to 741 km circular polar from the west-coast range; air-launched)", est: []}] },
   { id: 'antarion', name: "Antarion", company: 'orbitron', src: 'spec:antarion', area: 11.9, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'ob-e4': 2}, dry: 18715, prop: 241985, burn: 235.0, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e5': 1}, dry: 1220, prop: 25080, burn: 166.0, group: 1, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 6250, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:antarion#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model -75 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 6250, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:antarion#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "UNMODELLED: rocketdb has no vacuum Isp for ob-e5 (the old generator filled 300 s, an invented figure); data request to Rocket Art Bot" }] },
   { id: 'minotaurus-1', name: "Minotaurus I/II", company: 'orbitron', src: 'spec:minotaurus-1', area: 2.2, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'ob-e6': 1}, dry: 2320, prop: 20580, burn: 60.0, group: 0, recovery: 'expended', src: 'GCAT' },
@@ -44,7 +44,7 @@ export const ROSTER_ORBITRON = [
       { engines: {'ob-e8': 1}, dry: 420, prop: 3580, burn: 72.5, group: 2, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e9': 1}, dry: 126, prop: 774, burn: 69.6, group: 3, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 580, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: "spec:minotaurus-1#ref (vendor data sheet: 580 kg to 185 km, 28.5 deg; payload includes adapter and separation system)", est: [] , knownGap: "model -43 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 580, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: "spec:minotaurus-1#ref (vendor data sheet: 580 kg to 185 km, 28.5 deg; payload includes adapter and separation system)", est: [] , knownGap: "UNMODELLED: rocketdb has no vacuum Isp for ob-e6 (the old generator filled 300 s, an invented figure); data request to Rocket Art Bot" }] },
   { id: 'taurox', name: "Taurox", company: 'orbitron', src: 'spec:taurox', area: 4.3, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'ob-e10': 1}, dry: 4450, prop: 48650, burn: 83.4, group: 0, recovery: 'expended', src: 'GCAT' },
@@ -52,7 +52,7 @@ export const ROSTER_ORBITRON = [
       { engines: {'ob-e12': 1}, dry: 345, prop: 3055, burn: 73.3, group: 2, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e13': 1}, dry: 126, prop: 774, burn: 69.6, group: 3, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 1380, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:taurox#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model -29 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 1380, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:taurox#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)']}] },
   { id: 'minotaurus-4', name: "Minotaurus IV/V", company: 'orbitron', src: 'spec:minotaurus-4', area: 4.3, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'ob-e14': 1}, dry: 4400, prop: 49000, burn: 78.8, group: 0, recovery: 'expended', src: 'GCAT' },
@@ -60,7 +60,7 @@ export const ROSTER_ORBITRON = [
       { engines: {'ob-e16': 1}, dry: 635, prop: 7165, burn: 60.7, group: 2, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e17': 1}, dry: 500, prop: 700, burn: 69.6, group: 3, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 1735, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:minotaurus-4#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model no orbit: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 1735, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:minotaurus-4#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +56 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'conestogo', name: "Conestogo", company: 'orbitron', src: 'spec:conestogo', area: 4.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'ob-e18': 4}, dry: 5680, prop: 40320, burn: 60.9, group: 0, jettisonAt: 60.9, recovery: 'expended', src: 'GCAT' },
@@ -68,5 +68,5 @@ export const ROSTER_ORBITRON = [
       { engines: {'ob-e20': 1}, dry: 1420, prop: 10080, burn: 60.9, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e21': 1}, dry: 140, prop: 2060, burn: 84.1, group: 2, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 900, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:conestogo#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model -41 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 900, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:conestogo#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "UNMODELLED: rocketdb has no vacuum Isp for ob-e18, ob-e19, ob-e20 (the old generator filled 300 s, an invented figure); data request to Rocket Art Bot" }] },
 ];
