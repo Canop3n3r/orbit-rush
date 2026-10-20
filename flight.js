@@ -1,9 +1,9 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.1h';
-import * as C from './physics/patched.js?v=f5.1h';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.1h';
+import * as P from './physics.js?v=f5.2';
+import * as C from './physics/patched.js?v=f5.2';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.2';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -153,12 +153,23 @@ function assessOutcome(r) {
 export { cloneDesign };
 export const fmtDur = s => { s = Math.max(0, s); const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), ss = Math.floor(s % 60); return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m ${String(ss).padStart(2, '0')}s`; };
 
+// f5.2: a roster (rocketdb) stack: stage masses (t), engine thrust (kN, vacuum, per engine), Isp and count from Vehicle Specs
+export function applySpec(v, sp) { if (!sp || !sp.stages || sp.stages.length !== v.stages.length) return false;
+  v.stages.forEach((s, i) => { const o = sp.stages[i]; s.dry = o.dry; s.fuel = s.fuelMax = o.fuel; s.n = o.n; s.eng = { ...s.eng, tv: o.tv, ispSl: o.ispSl, ispVac: o.ispVac };
+    // the physics mass comes from the parts: scale the stage's structure to the roster dry mass; the payload part carries the payload
+    const st = s.parts.filter(p => !['pod', 'payload', 'fairing'].includes(p.kind)), sum = st.reduce((t, p) => t + p.m, 0);
+    if (sum > 0) for (const p of st) p.m *= o.dry / sum;
+    const cap = s.parts.reduce((t, p) => t + (p.fuelCap || 0), 0); if (cap > 0) for (const p of s.parts) if (p.fuelCap) p.fuelCap *= o.fuel / cap; // tanks share the roster propellant
+    if (o.payload > 0) { const pl = s.parts.find(p => p.kind === 'pod' || p.kind === 'payload'); if (pl) pl.m = o.payload; }
+    if (sp.fairing > 0) { const f = s.parts.find(p => p.kind === 'fairing'); if (f) f.m = sp.fairing; } });
+  v.spec = sp.src || true; return true; }
 export class Flight {
   constructor(design, hooks = {}, opts = {}) {
     this.recovery = opts.recovery || design.recovery || 'ship'; // f4: 'rtls' = boostback to the landing zone at the launch site
     if (typeof opts === 'number') opts = { padZ: opts };
     this.design = cloneDesign(design); this.h = hooks; this.stats = designStats(design);
     const v = buildVehicle(design); v.earthRot = opts.earthRot !== false;
+    if (design.spec) applySpec(v, design.spec);
     v.site = { ef: PAD_EF, lift: (opts.padZ ?? 0.4) + P.massProps(v).ycom, q0: P.padAttitude(PAD_EF) }; // r is the centre of mass
     const s0 = P.siteAt(v, 0); v.r = s0.r; v.v = s0.v; v.q = s0.q; v.clock = 0; v.ut = 0; v.auto = false; v.sas = 'stab';
     this.v = v; this.booster = null; this.boosters = []; this.ship = null; this.dvUsed = 0;
