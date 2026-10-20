@@ -14,6 +14,7 @@ export const MISSIONS = {
 };
 // phase → camera: the renderer picks chase / wide / map cams from this
 export const CAMS = { hop: 'chase', coast: 'wide', ascent: 'chase', plan: 'map', burn: 'wide', correct: 'wide', cruise: 'map', capture: 'wide', brake: 'chase', descent: 'chase', home: 'chase', done: 'wide' };
+export const MAX_CORR_WAIT = 400 * 86400; // s: never wait longer than this for a course-correction node
 const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'capture', 'brake', 'descent', 'home', 'done'];
 export class Director {
   constructor(F, id, opts = {}) {
@@ -59,6 +60,8 @@ export class Director {
         this.plan = pl; F.target = pl.target; this.execNext(pl.tuned);
         this.set('burn', `Window in ${pl.wait > 86400 ? (pl.wait / 86400).toFixed(0) + ' days' : Math.round(pl.wait / 60) + ' min'} — warping to the burn`); break; }
       case 'burn': case 'correct':
+        // f4 (QA): a correction node far beyond the cruise (seen: ~9,749 days out) would stall the mission; drop it and keep cruising
+        if (this.phase === 'correct' && F.nodes.length && F.nodes[0].t - F.tAbs > MAX_CORR_WAIT) { F.setExec(false); F.nodes.splice(0); this.set('cruise', 'Correction skipped — cruising on'); break; }
         if (v.thrust > 0 && !F.warpTarget) F.setWarp(4, true);
         if (!F.exec && !F.nodes.length) this.afterBurn();
         else if (!F.exec && F.nodes.length) F.setExec(true);
@@ -70,7 +73,7 @@ export class Director {
             const pr = C.predict('sun', v.r, v.v, F.tAbs, { maxPatches: 3 }), ca = C.closestApproach(pr, this.target);
             if (!ca.inside) { this.corrections++;
               const cn = C.correctionNode('sun', v.r, v.v, F.tAbs, this.target, { peAlt: 300000, tol: 3e6, starts: [5 * 86400, 30 * 86400], scaleV: 2, byT: F.tAbs + 4e7 });
-              if (cn && cn.node && cn.dv < 900) { this.execNext(cn.node); this.set('correct', 'Course correction ' + cn.dv.toFixed(0) + ' m/s'); break; } }
+              if (cn && cn.node && cn.dv < 900 && cn.node.t - F.tAbs < MAX_CORR_WAIT) { this.execNext(cn.node); this.set('correct', 'Course correction ' + cn.dv.toFixed(0) + ' m/s'); break; } }
           }
           if (!F.warpToSOI()) this.finish('Missed ' + P.BODIES[this.target].name, false);
         }
@@ -101,7 +104,7 @@ export class Director {
       this.corrections++;
       const cn = this.target === 'moon' ? C.correctionNode('earth', v.r, v.v, F.tAbs, 'moon', { peAlt: 100000 })
         : C.correctionNode('earth', v.r, v.v, F.tAbs, this.target, { peAlt: 300000, tol: 3e6, starts: [3600, 6 * 3600, 86400], scaleV: 3, byT: F.tAbs + (this.plan && this.plan.hohmann ? this.plan.hohmann.tt * 1.25 : 3e7) });
-      if (cn && cn.node) { this.execNext(cn.node); this.set('correct', 'Course correction ' + C.nodeDv(cn.node).toFixed(0) + ' m/s'); return; }
+      if (cn && cn.node && cn.node.t - F.tAbs < MAX_CORR_WAIT) { this.execNext(cn.node); this.set('correct', 'Course correction ' + C.nodeDv(cn.node).toFixed(0) + ' m/s'); return; }
     }
     this.set('cruise', 'Coasting to ' + P.BODIES[this.target].name);
   }
