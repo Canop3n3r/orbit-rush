@@ -20,7 +20,7 @@ export function mat(key) {
     case 'bellx': m = new S({ map: T.bell(true), roughness: 0.32, metalness: 0.95, side: THREE.DoubleSide }); break;
     // brushed stainless: MeshPhysical anisotropy (node material on both WebGPU and WebGL2 backends; tangents are
     // generated in build() around the vehicle axis) plus a bright env so it never reads as black
-    case 'steel': m = new P({ map: T.steelSkin(), roughness: 0.32, metalness: 0.85, anisotropy: 0.65, anisotropyRotation: Math.PI / 2, envMapIntensity: 1.25 }); break;
+    case 'steel': m = new P({ map: T.steelSkin(), roughness: 0.36, metalness: 0.72, /* plan #6: less mirror, more sun shading */ anisotropy: 0.65, anisotropyRotation: Math.PI / 2, envMapIntensity: 1.25 }); break;
     case 'frost': m = new S({ color: 0xffffff, emissive: 0x14161a, roughness: 0.9, metalness: 0, alphaMap: T.frost(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }); break;
     case 'skirt': m = new S({ map: T.skirt(), roughness: 0.75, metalness: 0.35 }); break;
     case 'shield': m = new S({ map: T.blanket(), roughness: 0.9, metalness: 0.1 }); break;
