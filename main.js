@@ -1,51 +1,52 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.1h';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.2';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.1h';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.1h';
-import * as C from './physics/patched.js?v=f5.1h';
+import * as P from './physics.js?v=f5.2';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.2';
+import * as C from './physics/patched.js?v=f5.2';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.1h';
-import { createCareerUI } from './fun/career-ui.js?v=f5.1h';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.1h';
-import { createSolarMap } from './solarmap.js?v=f5.1h';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.1h';
-import { FX } from './fx.js?v=f5.1h';
-import { createAcademy } from './academy-ui.js?v=f5.1h';
-import { createMobile, isTouch } from './mobile.js?v=f5.1h';
-import { localize } from './wording.js?v=f5.1h';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.1h';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.1h';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.2';
+import { createCareerUI } from './fun/career-ui.js?v=f5.2';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.2';
+import { createSolarMap } from './solarmap.js?v=f5.2';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.2';
+import { FX } from './fx.js?v=f5.2';
+import { createAcademy } from './academy-ui.js?v=f5.2';
+import { createMobile, isTouch } from './mobile.js?v=f5.2';
+import { localize } from './wording.js?v=f5.2';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.2';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.2';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.1h';
-import * as GX from './gfx/gfx.js?v=f5.1h';
-import { Director, MISSIONS } from './fun/director.js?v=f5.1h';
-import * as PR from './fun/progress.js?v=f5.1h';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.1h';
-import { createAudio } from './fun/audio.js?v=f5.1h';
-import { createCompact } from './fun/compact.js?v=f5.1h';
-import { createHome } from './fun/home.js?v=f5.1h';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.1h';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.1h';
-import { createFunUI } from './fun/ui.js?v=f5.1h';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES } from './gfx/vehicles/vehicles.js?v=f5.1h';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.1h';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.1h';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.1h';
-import { qualifying, launchPlan, autoNote } from './fun/mispick.js?v=f5.1h';
-import { pickerHTML, baseFor, roleFor } from './fun/picker.js?v=f5.1h';
-import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5.1h';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.2';
+import * as GX from './gfx/gfx.js?v=f5.2';
+import { Director, MISSIONS } from './fun/director.js?v=f5.2';
+import * as PR from './fun/progress.js?v=f5.2';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.2';
+import { createAudio } from './fun/audio.js?v=f5.2';
+import { createCompact } from './fun/compact.js?v=f5.2';
+import { createHome } from './fun/home.js?v=f5.2';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.2';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.2';
+import { createFunUI } from './fun/ui.js?v=f5.2';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES } from './gfx/vehicles/vehicles.js?v=f5.2';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.2';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.2';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.2';
+import { specFor, specDesign } from './fun/specstack.js?v=f5.2';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.2';
+import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.2';
+import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5.2';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.1h';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.2';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -697,7 +698,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.1h', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.2', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -1191,22 +1192,22 @@ function showEnd() {
   const extra = fun.endExtras(out, true), sc = lines.pop(), head = [], rest = [];
   for (const l of lines) (/class="(bad|warn)"|^<b class=/.test(l) && head.length < 3 ? head : rest).push(l);
   let stars = director && director.result && !director.ok ? 0 : { gold: 3, silver: 2, bronze: 1 }[out && out.medal] || (ok || (director && director.ok) ? 1 : 0); // a missed mission earns no stars
-  if (!stars && design.sub && flags.space && !(director && director.result)) stars = 1; // f5.1h (QA): Pip's job is to touch space
+  if (!stars && design.sub && flags.space && !director) stars = 1; // f5.1h (QA): Pip's job is to touch space
   if (!stars) extra.medal = ''; // f5.1h (QA): the ⋯ sheet never shows a medal the card's stars do not
-  $('endBody').innerHTML = `<div class="endStars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<i>${'★'.repeat(3 - stars)}</i></div>` + head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
+  $('endBody').innerHTML = `<div class="endStars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<i>${'☆'.repeat(3 - stars)}</i></div>` + head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
     + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}${extra.more ? '<br>' + extra.more : ''}</details>`;
   if (out && out.ladder) { $('endBody').insertAdjacentHTML('afterbegin', careerUI.resultsHTML(out.ladder)); }
-  { const rid = director && director.id && LADDER.some(c => c.id === director.id) ? director.id : null; let nb = $('nextMisBtn'); if (!nb) { nb = document.createElement('button'); nb.id = 'nextMisBtn'; nb.className = 'big'; $('relaunchBtn').after(nb); nb.onclick = () => { const n = careerUI.next(nb.dataset.after || null); $('end').classList.add('hidden'); if (n && !rungLocked(n)) playRung(n); else $('againBtn').click(); }; }
+  { const rid = director && director.id && LADDER.some(c => c.id === director.id) ? director.id : null; let nb = $('nextMisBtn'); if (!nb) { nb = document.createElement('button'); nb.id = 'nextMisBtn'; nb.className = 'big'; $('relaunchBtn').after(nb); nb.onclick = () => { const n = nb.dataset.home ? null : careerUI.next(nb.dataset.after || null); $('end').classList.add('hidden'); if (n && !rungLocked(n)) playRung(n); else $('againBtn').click(); }; }
     nb.dataset.after = rid || ''; const n = careerUI.next(rid); nb.textContent = n ? 'Next mission ▸' : 'Career ▸'; nb.title = n ? 'Next contract: ' + rungLabel(n) : 'Career progress'; }
   $('replayBtn').classList.toggle('hidden', !(flags.dead && recBuf.length > 30));
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
   $('shareBtn').textContent = 'Share score';
   // f5 lean end card (playtest ui_ideal_path #14 budget): ONE line + ↻ Retry + ▶ Next + ⋯; everything else lives in the ⋯ sheet
   { const L = out && out.ladder, starTxt = '★'.repeat(stars) + '☆'.repeat(3 - stars);
-    const what = design.sub && flags.space ? 'Touched space ✓' : flags.dead ? 'Crashed' : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${Math.round(apKm)} km` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
+    const what = design.sub && flags.space && !director ? 'Touched space ✓' : flags.dead ? 'Crashed' : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${Math.round(apKm)} km` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
     const earn = L && (L.cash || L.sci) ? ` <span class="eLine">+$${L.cash}M${L.sci ? ' 🔬' + L.sci : ''}</span>` : '';
     $('endTitle').innerHTML = `<span class="eStars">${starTxt}</span> ${what}${earn}`;
-    const nb = $('nextMisBtn'), n = careerUI.next(nb && nb.dataset.after || null); if (nb) nb.innerHTML = n && !rungLocked(n) ? `▶ Next<small>${rungLabel(n)}</small>` : '▶ Home';
+    const nb = $('nextMisBtn'), n = careerUI.next(nb && nb.dataset.after || null); if (nb) nb.dataset.home = director && !stars ? '1' : ''; if (nb) nb.innerHTML = n && !rungLocked(n) && !(director && !stars) ? `▶ Next<small>${rungLabel(n)}</small>` : '▶ Home';
     let mb = $('endMoreBtn'); if (!mb) { mb = document.createElement('button'); mb.id = 'endMoreBtn'; mb.textContent = '⋯'; mb.title = 'Details: score, Share, Home'; mb.setAttribute('aria-label', 'Flight details'); nb.after(mb); mb.onclick = () => $('end').classList.toggle('more'); }
     $('relaunchBtn').textContent = '↻ Retry'; $('end').classList.add('lean'); $('end').classList.remove('more'); }
   document.body.classList.add('endOn');
@@ -1858,18 +1859,26 @@ function startMission(id, plan) { // f5.1h: no plan -> the mission card (choose 
   if (!plan.auto) { try { F.setAuto(false, true); } catch (e) { } }
   fun.call(m.icon, m.name + ' — ' + autoNote(plan.auto, plan.design.name || 'rocket'), '#ffe9b0', true); camDist = 120; camYaw = 0.9; camPitch = 0.08;
 }
-function openMissionCard(id) {
-  const m = MISSIONS[id]; if (!m) return; let card = $('misCard'); if (!card) { card = document.createElement('div'); card.id = 'misCard'; document.body.appendChild(card); }
-  const houses = []; for (const [h, ids] of Object.entries(HOUSE_SETS)) if (h !== 'originals') for (const mid of ids) { const b = pickBase(STAGE_KEYS[mid] || [], (ART[mid] && ART[mid].height) || 50); if (SHOW.some(x => x.id === b)) houses.push({ model: mid, name: houseName(mid), base: b }); }
-  const q0 = qualifying(id, SHOW, houses), q = q0.filter(x => x.name !== design.name), mine = validate(design).ok ? [{ key: 'mine', name: design.name || 'Your rocket', mine: true }] : [];
-  const list = [...mine, ...q]; let sel = list[0] && list[0].key;
+function houseRows() { const houses = []; for (const [h, ids] of Object.entries(HOUSE_SETS)) if (h !== 'originals') for (const mid of ids) { const b = pickBase(STAGE_KEYS[mid] || [], (ART[mid] && ART[mid].height) || 50); if (SHOW.some(x => x.id === b) && !specFor(mid)) houses.push({ model: mid, name: houseName(mid), base: b }); } return houses; }
+const curRocket = () => ({ name: design.name || 'Your rocket', model: pickModel || design.model || null, ok: validate(design).ok, sub: !!design.sub });
+// f5.2 (QA f5.1h P1): one compact card for missions and career fly rungs. The player's rocket is kept when it qualifies;
+// otherwise the recommended one is preselected with a visible line, and the player can tap back. Fly / AUTO are equal, neither preselected.
+function openRocketCard(title, ch, go) {
+  let card = $('misCard'); if (!card) { card = document.createElement('div'); card.id = 'misCard'; document.body.appendChild(card); }
+  const list = ch.list; let sel = ch.sel, more = false; const SHORT = 3;
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const draw = () => { card.innerHTML = `<div class="mcIn"><h3>${m.icon} ${esc(m.name)}</h3><p>${esc(m.blurb || '')}</p><h5>Rocket</h5><div class="mcList">${list.map(r => `<button data-k="${esc(r.key)}" class="${r.key === sel ? 'on' : ''}">${r.mine ? '⭐ Your rocket: ' : ''}${esc(r.name)}${r.mine && !q.some(x => x.base && SHOW.find(s => s.id === x.base && s.name === r.name)) ? ' <small>(not checked for this mission)</small>' : ''}</button>`).join('')}</div>
-    <div class="mcAct"><button id="mcFly" class="big">▶ Fly it yourself</button><button id="mcAuto">🤖 AUTO mission (director flies it)</button><button id="mcX">Cancel</button></div></div>`; };
-  draw(); card.classList.remove('hidden');
-  const pick = () => { const r = list.find(x => x.key === sel); if (!r) return null; if (r.mine) return cloneDesign(design); const i = SHOW.findIndex(x => x.id === r.base); const d = { ...cloneDesign(SHOW[i].design), name: r.name }; if (r.model) d.model = r.model; return d; };
-  card.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.k) { sel = b.dataset.k; draw(); return; }
-    if (b.id === 'mcX') { card.classList.add('hidden'); return; } const d = pick(); if (!d) return; card.classList.add('hidden'); if (home && home.on) home.show(false); startMission(id, launchPlan(d, b.id === 'mcAuto')); };
+  const draw = () => { const vis = more ? list : list.slice(0, SHORT); if (!vis.some(r => r.key === sel)) vis.push(list.find(r => r.key === sel));
+    card.innerHTML = `<div class="mcIn"><h3>${title}</h3>${ch.note ? `<p class="mcNote">${esc(ch.note)}</p>` : ''}<div class="mcAct"><button id="mcFly">▶ Fly yourself</button><button id="mcAuto">🤖 AUTO</button><button id="mcX" aria-label="Cancel">✕</button></div>`
+      + `<div class="mcList">${vis.map(r => `<button data-k="${esc(r.key)}" class="${r.key === sel ? 'on' : ''}">${r.mine ? '⭐ ' : ''}${esc(r.name)}</button>`).join('')}${!more && list.length > vis.length ? `<button data-more="1" class="mcMore">More rockets (${list.length - vis.length})</button>` : ''}</div></div>`; };
+  draw(); card.classList.remove('hidden'); document.body.classList.add('mcOn');
+  const shut = () => { card.classList.add('hidden'); document.body.classList.remove('mcOn'); };
+  const pick = () => { const r = list.find(x => x.key === sel); if (!r) return null; if (r.mine) return cloneDesign(design); const i = SHOW.findIndex(x => x.id === r.base); if (r.model && specFor(r.model)) return specDesign(specFor(r.model), r.name, r.model); const d = { ...cloneDesign(SHOW[i].design), name: r.name }; if (r.model) d.model = r.model; return d; };
+  card.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.more) { more = true; draw(); return; } if (b.dataset.k) { sel = b.dataset.k; draw(); return; }
+    if (b.id === 'mcX') { shut(); return; } const d = pick(); if (!d) return; shut(); if (home && home.on) home.show(false); go(d, b.id === 'mcAuto'); };
+}
+function openMissionCard(id) {
+  const m = MISSIONS[id]; if (!m) return;
+  openRocketCard(`${m.icon} ${m.name}`, cardChoice(qualifying(id, SHOW, houseRows()), curRocket(), id !== 'hop'), (d, auto) => startMission(id, launchPlan(d, auto)));
 }
 let dirPhase = '';
 function directorCam(rdt) { // cinematic cameras per mission phase (the player can still drag / zoom)
@@ -2081,7 +2090,7 @@ const showDesign = i => ({ ...cloneDesign(SHOW[i].design), name: SHOW[i].name })
 const houseName = id => { const b = brandVName(id); if (b && b !== id) return b; if (ART_NAMES[id]) return ART_NAMES[id]; return id.split('-').map(w => /^(i|ii|iii|iv|v|vi)$/.test(w) ? w.toUpperCase() : /^[a-z]{1,2}\d*$/.test(w) && w.length <= 2 ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1)).join(' '); };
 let pickModel = null; // f5.1h: a house rocket picked in the grouped picker rides on SHOW[i]'s part stack
 let pickStack = null; // f5.1h: an extra stack (fun/showroom.js EXTRA_STACKS) when no showroom rocket has the model's stage shape
-const pickDesign = i => pickModel ? { ...cloneDesign(pickStack ? EXTRA_STACKS[pickStack].design : SHOW[i].design), name: houseName(pickModel), model: pickModel } : showDesign(i); // f4: hero rockets carry their brand name into the hangar/flight
+const pickDesign = i => pickModel && specFor(pickModel) ? specDesign(specFor(pickModel), houseName(pickModel), pickModel) : pickModel ? { ...cloneDesign(pickStack ? EXTRA_STACKS[pickStack].design : SHOW[i].design), name: houseName(pickModel), model: pickModel } : showDesign(i); // f4: hero rockets carry their brand name into the hangar/flight
 const HOME_KEY = 'orbitrush.homeIdx', SHOW = SHOWROOM.map(r => { const o = { ...r, bars: showBars(r), missionLabel: missionLabel[r.mission] || '' }; if (r.model) Object.defineProperty(o, 'name', { get: () => { const m = ART_ALIAS[r.model] || r.model, b = brandVName(m); return b && b !== m ? b : r.name; }, enumerable: true }); return o; }); // f4: hero-model rockets carry the brand name
 // f5 career: vehicles / missions locked until their ladder rung is earned (sandbox: all open)
 const rungLabel = c => c.brandKey ? brandMName(c.brandKey, c.name) : c.name;
@@ -2094,7 +2103,9 @@ function playRung(c) {
   if (home && home.on) home.show(false);
   if (c.how === 'op') return startOp(c.op, true);
   if (c.how === 'mission') return startMission(c.mission);
-  launch(); fun.call('🎯', rungLabel(c) + ' — your ' + (design.name || 'rocket') + '. AUTO is off (press F / AUTO to turn it on).', '#ffe9b0', true); // f5.1h: fly the player's rocket; no swap, no auto
+  const vb = SHOW.find(x => x.id === c.vehicle), q = vb ? [{ key: 'o:' + vb.id, name: vb.name, base: vb.id }, ...houseRows().filter(h => h.base === vb.id).slice(0, 6)] : [];
+  const ch = cardChoice(q, curRocket(), c.id !== 'hop' && c.id !== 'karman'); if (c.id === 'hop' || c.id === 'karman') { const me = ch.list.find(r => r.mine); if (me && !ch.note) ch.sel = 'mine'; } // f5.2: Fly ▸ / Next use the mission card's rule
+  openRocketCard('🎯 ' + rungLabel(c), ch, (d, auto) => { setDesign(d); launch(); try { if (auto) { if (!F.ignited) F.stagePress(); F.setAuto(true, true); } else F.setAuto(false, true); } catch (e) { } fun.call('🎯', rungLabel(c) + ' — ' + autoNote(auto, d.name || 'rocket'), '#ffe9b0', true); });
 }
 addEventListener('career-change', () => { if (home) home.refresh(); });
 var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].id), onCareer: () => careerUI.show(true),
@@ -2124,7 +2135,7 @@ var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].i
   const SBK = 'orbitrush.sandbox', sbOn = () => { try { return localStorage.getItem(SBK) === '1'; } catch (e) { return false; } };
   const pk = document.createElement('div'); pk.id = 'picker'; pk.className = 'hidden'; document.body.appendChild(pk);
   const nav = () => { const b = $('hnBuild'); if (b) b.classList.toggle('hidden', !sbOn()); };
-  const render = () => { pk.innerHTML = pickerHTML({ sandbox: sbOn(), sets: HOUSE_SETS, name: houseName, role: id => roleFor((ART[id] && ART[id].height) || 50), locked: id => !!lockWhy('vehicles', SHOW[baseIdx(id)].id),
+  const render = () => { pk.innerHTML = pickerHTML({ sandbox: sbOn(), sets: HOUSE_SETS, name: houseName, role: id => (CLASS_OF[baseOf(id)] || 'Super-heavy') + (specFor(id) ? ' · real specs' : ' · ' + Math.round((ART[id] && ART[id].height) || 50) + ' m'), locked: id => !!lockWhy('vehicles', SHOW[baseIdx(id)].id),
     originals: SHOW.map((r, i) => ({ i, name: r.name, role: r.role, locked: !!lockWhy('vehicles', r.id) })) }); };
   const close = () => pk.classList.add('hidden');
   const keysOf = id => { try { const st = (ART[id] && STAGE_KEYS[id]) || null; return st || []; } catch (e) { return []; } };
@@ -2138,7 +2149,7 @@ var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].i
     const c = t.closest('.pkC'); if (!c) return;
     if (c.dataset.i != null) { close(); home.set(+c.dataset.i); return; }
     if (c.dataset.m) { const id = c.dataset.m, i = baseIdx(id), b = baseOf(id);
-      close(); home.set(i, true); pickModel = id; pickStack = EXTRA_STACKS[b] ? b : null; $('hName').textContent = houseName(id); $('hRole').textContent = 'Flies on the ' + (pickStack ? EXTRA_STACKS[pickStack].name : SHOW[i].name) + ' stack'; setDesign(pickDesign(i)); } });
+      close(); home.set(i, true); pickModel = id; pickStack = EXTRA_STACKS[b] ? b : null; $('hName').textContent = houseName(id); $('hRole').textContent = (specFor(id) ? 'Real specs · ' + specFor(id).stages.length + ' stages · ' + specFor(id).name : 'Flies on the ' + (pickStack ? EXTRA_STACKS[pickStack].name : SHOW[i].name) + ' stack'); setDesign(pickDesign(i)); } });
   const top = document.querySelector('#hTop .hTopR'); if (top) { const b = document.createElement('button'); b.id = 'hPick'; b.textContent = '▦'; b.title = b.ariaLabel = 'All rockets'; b.onclick = () => window.openPicker(); top.prepend(b); }
   const hn = $('hName'); if (hn) { hn.style.cursor = 'pointer'; hn.onclick = () => window.openPicker(); }
   nav(); addEventListener('career-change', nav);
