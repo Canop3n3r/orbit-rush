@@ -8,13 +8,13 @@ export const ENGINES_REDSTAR = {
   'ko-m21': { tSl: 0, tVac: 450, ispSl: 0, ispVac: 353, src: 'spec:engines#ko-m21' },
 };
 export const ROSTER_REDSTAR = [
-  { id: 'soyuzny', name: 'Soyuzny', company: 'redstar', src: 'spec:soyuzny', area: 18.1, fairing: 4500, est: ['fairing'],
+  { id: 'rodnik', name: 'Soyuzny', company: 'redstar', src: 'spec:rodnik', area: 18.1, fairing: 4500, est: ['fairing'],
     stages: [
       { engines: { 'ko-k1': 4 }, dry: 15136, prop: 156640, burn: 118, group: 0, recovery: 'expended' },
       { engines: { 'ko-k2': 1 }, dry: 6545, prop: 90100, burn: 286, group: 0, recovery: 'expended' },
       { engines: { 'ko-k3': 1 }, dry: 2355, prop: 25400, burn: 270, group: 1, recovery: 'expended' },
     ],
-    modes: [{ variant: 'leo', payload: 8670, orbit: { hp: 240, ha: 240, inc: 51.6 }, src: 'spec:soyuzny#leo',
+    modes: [{ variant: 'leo', payload: 8670, orbit: { hp: 240, ha: 240, inc: 51.6 }, src: 'spec:rodnik#leo',
  }],
     tli: 2350, flights: 170 },
   { id: 'n-won', name: 'N-Won Moon Rocket', company: 'redstar', src: 'spec:n-won (draft-project masses)', area: 227, fairing: 0,
