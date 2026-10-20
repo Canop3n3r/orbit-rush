@@ -7,9 +7,9 @@ export const ENGINES_KRUNICH = {
 export const ROSTER_KRUNICH = [
   { id: 'gorynych', name: 'Gorynych', company: 'krunich', src: 'spec:gorynych', area: 43.0, fairing: 4000, est: ['fairing'],
     stages: [
-      { engines: { 'kr-u1': 6 }, dry: 30600, prop: 428300, burn: 123, group: 0, recovery: 'expended' },
-      { engines: { 'kr-u2': 4 }, dry: 11000, prop: 157300, burn: 215, group: 1, recovery: 'expended' },
-      { engines: { 'kr-u3': 1 }, dry: 3500, prop: 46562, burn: 238, group: 2, recovery: 'expended' },
+      { engines: { 'kr-u1': 6 }, engineCount: 6, engineName: 'kr-u1', propellant: 'hypergolic', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 30600, prop: 428300, burn: 123, group: 0, recovery: 'expended' },
+      { engines: { 'kr-u2': 4 }, engineCount: 4, engineName: 'kr-u2', propellant: 'hypergolic', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 11000, prop: 157300, burn: 215, group: 1, recovery: 'expended' },
+      { engines: { 'kr-u3': 1 }, engineCount: 1, engineName: 'kr-u3', propellant: 'hypergolic', nozzleLayout: { type: 'single' }, reusable: false, dry: 3500, prop: 46562, burn: 238, group: 2, recovery: 'expended' },
     ],
     modes: [{ variant: 'leo', payload: 23000, orbit: { hp: 180, ha: 180, inc: 51.5 }, src: 'spec:gorynych#leo', }],
     gto: 6920, flights: 116 },

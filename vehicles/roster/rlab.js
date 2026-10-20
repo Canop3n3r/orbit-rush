@@ -9,11 +9,11 @@ export const ROSTER_RLAB = [
   { id: 'electrino', name: 'Electrino', company: 'rlab', src: 'spec:electrino', area: 1.13, fairing: 50, est: ['fairing'],
     stages: [
       // burn = prop / (Tvac / (Isp·g0)) (EST, spec:electrino#burn)
-      { engines: { 'rl-k1': 9 }, dry: 950, prop: 9250, burn: 120, group: 0, recovery: 'expended (ocean recovery trialled)', src: 'GCAT', est: ['burn'] },
-      { engines: { 'rl-k1v': 1 }, dry: 250, prop: 2050, burn: 267, group: 1, recovery: 'expended', src: 'GCAT', est: ['burn'] },
+      { engines: { 'rl-k1': 9 }, engineCount: 9, engineName: 'rl-k1', propellant: 'kerolox', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 950, prop: 9250, burn: 120, group: 0, recovery: 'expended (ocean recovery trialled)', src: 'GCAT', est: ['burn'] },
+      { engines: { 'rl-k1v': 1 }, engineCount: 1, engineName: 'rl-k1v', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 250, prop: 2050, burn: 267, group: 1, recovery: 'expended', src: 'GCAT', est: ['burn'] },
       // kick stage (spec:electrino#kick): dry 40 kg and 120 N from the user guide; restartable; prop = 120 N × 130 s / (320 s·g0)
       // with 130 s = half the 267 s quoted as "more than twice the standard" burn (EST)
-      { engines: { 'rl-c1': 1 }, dry: 40, prop: 5, burn: 130, group: 2, restart: true, recovery: 'deorbit burn', est: ['prop', 'burn'] },
+      { engines: { 'rl-c1': 1 }, engineCount: 1, engineName: 'rl-c1', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, estimated: true, estimatedFields: ['propellant'], dry: 40, prop: 5, burn: 130, group: 2, restart: true, recovery: 'deorbit burn', est: ['prop', 'burn'] },
     ],
     // reference orbit from the payload user guide: 200 kg to 500 km circular sun-synchronous
     modes: [{ variant: 'sso-500', payload: 200, orbit: { hp: 500, ha: 500, inc: 97.4 }, src: 'spec:electrino#sso',

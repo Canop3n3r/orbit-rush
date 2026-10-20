@@ -9,18 +9,18 @@ export const ROSTER_ROCKWELL = [
   { id: 'space-truck', name: 'Space Truck Stack', company: 'rockwell', src: 'spec:space-truck', area: 100, fairing: 0, est: ['area'],
     publishedLoss: { grav: 1222, drag: 107, steer: 358 }, // spec:loss-model#published
     stages: [
-      { engines: { 'rw-s4': 2 }, dry: 181437, prop: 997903, burn: 124, group: 0, recovery: 'parachute to sea, recovered' },
+      { engines: { 'rw-s4': 2 }, engineCount: 2, engineName: 'rw-s4', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 181437, prop: 997903, burn: 124, group: 0, recovery: 'parachute to sea, recovered' },
       // tank + orbiter: orbiter carried at its 110 t launch mass (EST: taken as excluding payload); tank prop = gross − empty
-      { engines: { 'rw-h3': 3 }, dry: 26535 + 110000, prop: 735510, burn: 510, group: 0, recovery: 'orbiter runway landing; tank expended', est: ['dry'] },
+      { engines: { 'rw-h3': 3 }, engineCount: 3, engineName: 'rw-h3', propellant: 'hydrolox', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 26535 + 110000, prop: 735510, burn: 510, group: 0, recovery: 'orbiter runway landing; tank expended', est: ['dry'] },
     ],
     modes: [{ variant: 'leo', payload: 27500, orbit: { hp: 204, ha: 204, inc: 28.5 }, src: 'spec:space-truck#leo',
  knownGap: 'model −26 %: dominated by orbiter mass. Agency mass-properties records give orbiter liftoff mass (excl. payload, incl. OMS prop) of 99.5–119.5 t across early flights; over that range the model gives 30.8 → 10.9 t. No source ties the 27.5 t figure to one orbiter mass, so 110 t stays ESTIMATE. The published budget (injection at 111 km, +144 m/s OMS from orbiter prop already inside its mass) needs no extra term.' }],
     gto: 4940, flights: 135 },
   { id: 'super-lift', name: 'Super Lift System', company: 'rockwell', src: 'spec:super-lift', area: 76.9, fairing: 0,
     stages: [
-      { engines: { 'rw-s5': 2 }, dry: 181437, prop: 1270059, burn: 126, group: 0, recovery: 'expended' },
-      { engines: { 'rw-h3': 4 }, dry: 97934, prop: 987486, burn: 480, group: 0, recovery: 'expended', est: ['burn'] },
-      { engines: { 'rw-h4': 1 }, dry: 4000, prop: 27000, burn: 1125, group: 1, recovery: 'expended', src: 'spec:super-lift#vds (agency vehicle data summary: burnout ~4,000 kg, impulse prop ~27,000 kg)', est: ['dry', 'prop'] },
+      { engines: { 'rw-s5': 2 }, engineCount: 2, engineName: 'rw-s5', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 181437, prop: 1270059, burn: 126, group: 0, recovery: 'expended' },
+      { engines: { 'rw-h3': 4 }, engineCount: 4, engineName: 'rw-h3', propellant: 'hydrolox', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 97934, prop: 987486, burn: 480, group: 0, recovery: 'expended', est: ['burn'] },
+      { engines: { 'rw-h4': 1 }, engineCount: 1, engineName: 'rw-h4', propellant: 'hydrolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 4000, prop: 27000, burn: 1125, group: 1, recovery: 'expended', src: 'spec:super-lift#vds (agency vehicle data summary: burnout ~4,000 kg, impulse prop ~27,000 kg)', est: ['dry', 'prop'] },
     ],
     modes: [{ variant: 'leo', payload: 95000, orbit: { hp: 200, ha: 200, inc: 28.5 }, src: 'spec:super-lift#leo',
  knownGap: 'model over-predicts: core-stage reference (below) is also high, so the booster/core inputs over-perform; booster pair dry mass is the four-segment value (EST)' },
