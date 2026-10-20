@@ -37,7 +37,7 @@ function third(d, o) { const k = new Kit(d), y0 = R.coreTop, top = y0 + 1.3 + (o
   decal(k, 'upper.side', r, y0 + 3, 2, 0, 0.9);
   const g = darkBells(k.build('third')); g.userData.top = top; return g; }
 function crew(d, y0) { const k = new Kit(d), p = PR.r7Shroud(y0); lathe(k, p, 'paint:0,0'); tube(k, 1.5 * 1.008, 1.5 * 1.008, 0.4, y0 + 3.6, 'grey', { open: true });
-  for (let i = 0; i < 4; i++) { const a = i * PI / 2; k.push(xf([Math.cos(a) * 1.55, y0 + 3.2, Math.sin(a) * 1.55], [0, -a, 0]));
+  if (k.hi) for (let i = 0; i < 4; i++) { const a = i * PI / 2; k.push(xf([Math.cos(a) * 1.55, y0 + 3.2, Math.sin(a) * 1.55], [0, -a, 0]));
     k.add(new THREE.BoxGeometry(0.12, 1.4, 1.1), k.hi ? 'tiframe' : 'dark', xf([0.4, 0, 0], [0, 0, -0.5])); k.pop(); } // 4 lattice stabiliser panels (folded)
   const tb = y0 + 8.6; for (const [x, z] of [[1, 1], [-1, 1], [-1, -1], [1, -1]]) strut(k, [x * 0.25, tb, z * 0.25], [x * 0.12, tb + 2.4, z * 0.12], 0.04, 'dark'); // escape tower
   tube(k, 0.28, 0.24, 2.5, tb + 2.4, 'paint:0,0'); lathe(k, PR.ogive(0.24, 0.9, tb + 4.9, 10, 0.2), 'paint:0,0');
