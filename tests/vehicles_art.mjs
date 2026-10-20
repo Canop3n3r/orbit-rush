@@ -9,6 +9,20 @@ for (const id of ['sparrow-1', 'heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-
 { const c = readFileSync(new URL('co_nosa.js', dir), 'utf8'); for (const id of ['saturnine-v', 'space-truck']) ok(c.includes(`'${id}':`), 'co-nosa model id ' + id); ok(!/\b(nasa|saturn|apollo|boeing|rocketdyne|shuttle|rockwell|endeavour|discovery|atlantis|columbia|challenger)\b/i.test(c.replace(/saturnine/gi, '')), 'co_nosa.js: no real agency/vehicle names'); }
 const d = readFileSync(new URL('decals.js', dir), 'utf8'); ok(/setBrandPack/.test(d) && /function generic/.test(d), 'decal slots with generic default');
 { const c = readFileSync(new URL('co_bolt.js', dir), 'utf8'); for (const id of ['electrino','electrino-recovery']) ok(c.includes(`'${id}':`), 'co_bolt id ' + id); ok(!/\b(electron|rutherford|rocket ?lab|photon|neutron|curie)\b/i.test(c), 'co_bolt.js: no real names'); }
+// public-name audit: rocketdb/tools/namecheck.py (PRIVATE, never in this repo) checks every model id, display/src string and stage-group
+// name, plus a whole-file real-name-stem scan. Path: ROCKETDB env or the studio checkout; the check is skipped when the file is absent.
+{ const { spawnSync } = await import('node:child_process'); const { existsSync, readdirSync } = await import('node:fs');
+  const db = process.env.ROCKETDB || '/workspace/game-studio/orbit-rush/rocketdb', nc = db + '/tools/namecheck.py';
+  if (existsSync(nc)) { const files = readdirSync(new URL('.', dir)).filter(f => /^co_.*\.js$/.test(f)), job = {};
+    for (const f of files) { const c = readFileSync(new URL(f, dir), 'utf8'), fields = [f.replace(/\.js$/, '')];
+      for (const m of c.matchAll(/'([a-z0-9-]+)': \{ height/g)) fields.push(m[1]); for (const m of c.matchAll(/src: '([^']*)'/g)) fields.push(m[1]); for (const m of c.matchAll(/group\('([^']+)'/g)) fields.push(m[1]);
+      job[f] = { fields, text: c }; }
+    const py = `import sys,json;sys.path.insert(0,sys.argv[1]);import namecheck as n;J=json.load(sys.stdin);out={}
+for f,v in J.items():
+  t=v['text'].lower();out[f]=sorted(set(sum([n.problems(x) for x in v['fields']],[])+['stem: '+w for w in n.STEMS if w in t]))
+print(json.dumps(out))`;
+    const r = spawnSync('python3', ['-c', py, db + '/tools'], { input: JSON.stringify(job), encoding: 'utf8' });
+    if (r.status !== 0) ok(false, 'namecheck run: ' + (r.stderr || '').slice(-200)); else for (const [f, pr] of Object.entries(JSON.parse(r.stdout))) ok(pr.length === 0, `${f}: public names clean ${pr.join('; ')}`); } }
 console.log(`vehicles_art: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
 // noses/fairings: every profile's narrowest point is its highest point (tips point +Y, away from the engines)
 const PR = await import('../gfx/vehicles/profiles.js');
