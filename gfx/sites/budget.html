@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><title>site budgets</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/tsl":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.tsl.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"}}</script>
+</head><body><script type="module">
+// site budget probe (tests/vehicles_budget.cjs, sites block): tris + meshes per site/LOD, phone LOD, placement, dispose leak check.
+// Sites are discovered from the directory listing (python http.server), so each art-sites-N branch only adds its site_<id>.js.
+import * as THREE from 'three/webgpu';
+import { buildSite, buildSiteLOD, placeSite, disposeSite } from './kit.js?v=art1';
+import { upDir } from './geo.js?v=art1';
+const ids = [...new Set([...(await (await fetch('./')).text()).matchAll(/site_([a-z0-9-]+)\.js/g)].map(m => m[1]))].sort();
+const SITES = {}; for (const id of ids) SITES[id] = (await import('./site_' + id + '.js?v=art1')).SITE;
+const renderer = new THREE.WebGPURenderer({ forceWebGL: true }); renderer.setSize(64, 64); document.body.appendChild(renderer.domElement); await renderer.init();
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 1, 1e5); cam.position.set(300, 200, 600); cam.lookAt(0, 0, 0); scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
+const count = g => { let n = 0, inst = 0; g.traverse(m => { if (m.isInstancedMesh) inst++; if (!m.isMesh) return; for (let p = m; p; p = p.parent) if (!p.visible) return; n++; }); return [n, inst]; };
+const out = { ids, rows: [], phone: [], place: [], mem: [], heap: [] };
+for (const id of ids) for (const detail of ['hi', 'mid', 'lo']) { const g = buildSite(SITES[id], { detail }); const [meshes, inst] = count(g); out.rows.push({ id, detail, tris: g.userData.tris, meshes, inst }); disposeSite(g); }
+for (const id of ids) { const L = buildSiteLOD(SITES[id], { phone: true }); const [meshes] = count(L.userData.near); out.phone.push({ id, tris: L.userData.near.userData.tris, meshes, levels: L.levels.length }); disposeSite(L); }
+for (const id of ids) { const S = SITES[id], g = placeSite(new THREE.Group(), S); g.updateMatrixWorld(true); const up = new THREE.Vector3(0, 1, 0).applyQuaternion(g.quaternion), d = upDir(S.body, S.lat, S.lon), p = g.position.clone().normalize();
+  out.place.push({ id, dUp: up.distanceTo(new THREE.Vector3(...d)), dPos: p.distanceTo(new THREE.Vector3(...d)), r: g.position.length() }); }
+const frame = () => new Promise(r => requestAnimationFrame(() => { renderer.render(scene, cam); r(); }));
+for (let c = 0; c < 4; c++) { for (const id of ids) for (const detail of ['hi', 'mid', 'lo']) { const g = buildSite(SITES[id], { detail }); scene.add(g); await frame(); disposeSite(g); }
+  await frame(); out.mem.push(renderer.info.memory.geometries); if (globalThis.gc) { gc(); gc(); } await new Promise(r => setTimeout(r, 50)); out.heap.push(performance.memory ? +(performance.memory.usedJSHeapSize / 1048576).toFixed(1) : null); }
+window.__sites = out; document.title = 'done';
+</script></body></html>
