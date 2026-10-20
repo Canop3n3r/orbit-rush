@@ -47,20 +47,23 @@ export const VEHICLES = [
   { id: 'heron-9-crew', src: 'spec:heron-9-crew', lat: 28.5, liftoff: 549000,
     capsule: { id: 'capsule-2', dry: 7700, launch: 12519, crew: 4, recovery: 'parachute splashdown', src: 'spec:capsule-2' },
     stages: [
-      { engines: { 'kero-d': 9 }, dry: 25600, prop: 395700, recovery: 'propulsive landing (drone ship / landing zone)' },
-      { engines: { 'kero-dv': 1 }, dry: 3900, prop: 92670, recovery: 'expended' },
+      // Block 5 mass set (spec:heron-9#b5-tanks), same as heron-9; S2 reserve 2.5 t EST (spec:heron-9#s2-reserve)
+      { engines: { 'kero-d': 9 }, dry: 22200, prop: 410900, recovery: 'propulsive landing (drone ship / landing zone)' },
+      { engines: { 'kero-dv': 1 }, dry: 4000, prop: 107500, recovery: 'expended' },
     ], fairing: 0,
-    modes: [{ mode: 'drone-ship', payloadLEO: 17400, reserve: [42000, 0], src: 'spec:heron-9#leo-reusable (capacity; capsule 12.5 t)', est: ['reserve'] }] },
+    modes: [{ mode: 'drone-ship', payloadLEO: 17400, reserve: [42000, 2500], src: 'spec:heron-9#leo-reusable (capacity; capsule 12.5 t)', est: ['reserve'] }] },
   { id: 'heron-heavy', src: 'spec:heron-heavy', lat: 28.5, liftoff: 1420000, payloadGTO: 26700,
     stages: [
-      { engines: { 'kero-d': 18 }, dry: 2 * 26600, prop: 2 * 395700, parallel: true, coreFrac: 0.825, recovery: 'side boosters: return to site / drone ship', est: ['dry', 'coreFrac'] }, // coreFrac = side burn 154.3 s / core burn 187 s (spec:heron-heavy), constant-flow assumption
-      { engines: { 'kero-d': 9 }, dry: 27000, prop: 395700, recovery: 'center core: drone ship, or expended', est: ['dry'] },
-      { engines: { 'kero-dv': 1 }, dry: 3900, prop: 92670, recovery: 'expended' },
-    ], fairing: 1900,
+      // Block 5 S1 base (spec:heron-9#b5-tanks: 22.2 t / 410.9 t per core). EST deltas (spec:heron-heavy#core-deltas):
+      // side booster +1.0 t nosecone/attach; center core +10 % structure (22.2 -> 24.4 t) for side-booster loads.
+      { engines: { 'kero-d': 18 }, dry: 2 * 23200, prop: 2 * 410900, parallel: true, coreFrac: 0.825, recovery: 'side boosters: return to site / drone ship', est: ['dry', 'coreFrac'] }, // coreFrac = side burn 154.3 s / core burn 187 s (spec:heron-heavy), constant-flow assumption
+      { engines: { 'kero-d': 9 }, dry: 24400, prop: 410900, recovery: 'center core: drone ship, or expended', est: ['dry'] },
+      { engines: { 'kero-dv': 1 }, dry: 4000, prop: 107500, recovery: 'expended' },
+    ], fairing: 1700,
     // Reusable LEO figures (57 t / <50 t) are unsourced in spec:heron-heavy, so only the expendable figure is tested.
     // Documented exception (owner decision): 63.8 t is an advertised theoretical max, structurally limited and never flown (spec:heron-heavy),
     // so payload is checked against a 50-64 t band instead of +/-8 %.
-    modes: [{ mode: 'expendable', payloadLEO: 63800, payloadBand: [50000, 64000], src: 'spec:heron-heavy#leo-expendable' }] },
+    modes: [{ mode: 'expendable', payloadLEO: 63800, payloadBand: [50000, 64000], reserve: [0, 0, 2500], src: 'spec:heron-heavy#leo-expendable', est: ['reserve'] }] },
   { id: 'titan-ss-v3', src: 'spec:titan-ss#v3', lat: 26, est: ['lat'],
     stages: [
       { engines: { 'meth-3': 33 }, dry: 275000, prop: 3650000, recovery: 'boostback + tower catch' },
