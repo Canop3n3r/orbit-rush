@@ -105,7 +105,7 @@ function colossusBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.
     for (let i = 0; i < 4; i++) { const a = i * PI / 2 + PI / 4; k.add(new THREE.BoxGeometry(1.4, 1.0, 0.25), 'dark', xf([Math.cos(a) * (r + 0.1), 3.6, Math.sin(a) * (r + 0.1)], [0, -a + PI / 2, 0])); } } // QD / ground-service plates
   // vented hot-staging ring
   tube(k, r, r, 1.8, H - 1.8, 'dark'); if (k.hi) for (let i = 0; i < 24; i++) { const a = i / 24 * 2 * PI; k.add(new THREE.BoxGeometry(0.25, 1.4, 0.9), 'steel', xf([Math.cos(a) * r, H - 0.9, Math.sin(a) * r], [0, -a, 0])); }
-  // no grid fins: only the Heron (core9) and New Glendale boosters are reusable (owner rule 2026-10-20)
+  gridFins(k, r + 0.05, H - 5.5, 2.4, 3.2, o.gridFins || 3, PI / 2, o.fins ?? 1); // brief: v3/v4 boosters carry 3 grid fins
   const g = k.build('booster'); g.userData.height = H; return g; }
 function ship(detail, y0, L = 52.1) { const k = new Kit(detail), r = 4.5, nose = 16, cyl = L - nose - 2;
   // windward = -Z half (theta pi/2 .. 3pi/2 in three's cylinder/lathe convention); tile edge lines at +-X
@@ -186,8 +186,8 @@ export const VEHICLES = {
   'heron-9-v11': { height: 68.4, build: o => heron({ ...o, v11: true }), src: 'specs/heron.md (v1.1)', est: ['height (art)'] },
   'heron-9-crew': { height: 65.7, build: o => heron({ ...o, crew: true }), src: 'specs sheet (heron-9-crew, capsule-2): 65.7 m, capsule 4 m dia, 8.1 m with trunk' },
   'heron-heavy': { height: 70, build: heronHeavy, src: 'specs sheet (heron-heavy): 70 m, 12.2 m wide' },
-  'colossus-v3': { height: 124.4, build: o => colossus({ ...o, boosterH: 72.3, shipH: 52.1 }), src: 'specs sheet (colossus) Block 3: booster 72.3 m, ship 52.1 m (ESTIMATE), 9 m', est: ['shipH'] },
-  'colossus-v4': { height: 142, build: o => colossus({ ...o, boosterH: 81, shipH: 61 }), src: 'specs sheet (colossus) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
+  'colossus-v3': { height: 124.4, build: o => colossus({ ...o, boosterH: 72.3, shipH: 52.1, gridFins: 3 }), src: 'specs sheet (colossus) Block 3: booster 72.3 m, ship 52.1 m (ESTIMATE), 9 m', est: ['shipH'] },
+  'colossus-v4': { height: 142, build: o => colossus({ ...o, boosterH: 81, shipH: 61, gridFins: 3 }), src: 'specs sheet (colossus) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
   'catch-tower': { height: 164, build: catchTower, src: 'public ~146 m tower (art estimate)', est: ['all'] },
   'payload-roadster': { height: 3.2, build: roadster, src: 'generic roadster-style car (art)', est: ['all'] },
   ...CO_CIVSPACE, ...CO_ALBION, ...CO_EUROPIA, ...CO_VEGARA, ...CO_ARION, ...CO_BLUEHZ, ...CO_BOLT, ...CO_CONVEX, ...CO_DOUGWING, ...CO_GAULOIS, ...CO_JADELANTERN2, ...CO_JADELANTERN, ...CO_IRG, ...CO_ISRA, ...CO_TSURUGI, ...CO_JAXO, ...CO_KRASNAYA, ...CO_MOGUTNY, ...CO_MOONHAMMER, ...CO_TAIGA, ...CO_KRUNOV, ...CO_LINGVOLT, ...CO_MARTELL, ...CO_VANTGUARD, ...CO_CIVSPACE2, ...CO_ORBITRON, ...CO_ORIGINALS, ...CO_ROCKETWELL, ...CO_SOUTHSTAR, ...CO_VULC, ...CO_ULX, ...CO_BALTIC,

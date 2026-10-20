@@ -19,11 +19,11 @@ const realHit = (() => { const f = process.env.REALNAMES || '/workspace/wk/realn
 { const c = readFileSync(new URL('co_bolt.js', dir), 'utf8'); for (const id of ['electrino','electrino-recovery']) ok(c.includes(`'${id}':`), 'co_bolt id ' + id); ok(!realHit(c), 'co_bolt.js: no real names'); }
 { const c = readFileSync(new URL('co_convex.js', dir), 'utf8'); for (const id of ['titanus-4','atlantean-crew','atlantean-upper']) ok(c.includes(`'${id}':`), 'co_convex id ' + id); ok(!realHit(c), 'co_convex.js: no real names'); }
 { const c = readFileSync(new URL('co_dougwing.js', dir), 'utf8'); for (const id of ['deltoid-2-heavy9','deltoid-2-light3']) ok(c.includes(`'${id}':`), 'co_dougwing id ' + id); ok(!realHit(c), 'co_dougwing.js: no real names'); }
-{ // owner rule 2026-10-20: only reusable boosters (Heron core9, Super Lift, New Glendale) get landing legs or grid fins; the Selene lander keeps its lander legs
+{ // owner rule 2026-10-20: only reusable boosters (Heron core9 and the Colossus booster, Super Lift, New Glendale) get landing legs or grid fins; the Selene lander keeps its lander legs
   const ALLOW = new Set(['co_bluehz.js', 'co_rocketwell.js', 'co_originals.js']), CALL = /\b(gridFins|legs|setLegs)\(/;
   for (const f of readdirSync(dir).filter(f => /^(co_.*|gen_b)\.js$/.test(f) && !ALLOW.has(f))) ok(!CALL.test(readFileSync(new URL(f, dir), 'utf8')), f + ': no landing legs or grid fins');
   const v = readFileSync(new URL('vehicles.js', dir), 'utf8'), fins = [...v.matchAll(/^(?:export )?function (\w+)|gridFins\(k/gm)].reduce((a, m) => (m[1] ? (a.f = m[1]) : a.at.push(a.f), a), { f: '', at: [] }).at;
-  ok(fins.length > 0 && fins.every(f => f === 'core9'), 'vehicles.js: grid fins only on the Heron core (' + fins.join(',') + ')'); }
+  ok(fins.length > 0 && fins.every(f => f === 'core9' || f === 'colossusBooster'), 'vehicles.js: grid fins only on the Heron core and Colossus booster (' + fins.join(',') + ')'); }
 { const c = readFileSync(new URL('co_jadelantern.js', dir), 'utf8'); for (const id of ['jade-lantern-5','jade-lantern-5b']) ok(c.includes(`'${id}':`), 'co_jadelantern id ' + id); ok(!realHit(c), 'co_jadelantern.js: no real names'); }
 { const c = readFileSync(new URL('co_jadelantern2.js', dir), 'utf8'); for (const id of ['jade-lantern-2f','jade-lantern-3b']) ok(c.includes(`'${id}':`), 'co_jadelantern2 id ' + id); ok(!realHit(c), 'co_jadelantern2.js: no real names'); }
 { const c = readFileSync(new URL('co_isra.js', dir), 'utf8'); for (const id of ['polar-slinger','monsoon-heavy']) ok(c.includes(`'${id}':`), 'co_isra id ' + id); ok(!realHit(c), 'co_isra.js: no real names'); }
