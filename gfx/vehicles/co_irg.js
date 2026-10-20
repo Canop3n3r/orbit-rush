@@ -1,15 +1,15 @@
-// Independent Rocketeers Guild — plain white. 'new-shepherdish': stubby 3.0 m suborbital booster (4 engines), ring fin near the top,
+// Independent Rocketeers Guild — plain white. 'flock-hopper': stubby 3.0 m suborbital booster (4 engines), ring fin near the top,
 // four wedge base fins, capsule on top. 'featherwing-1': small air-launched spaceplane (round fuselage, stub wings, twin feathering
-// tail booms) slung under a twin-boom carrier plane; built lying flat. rocketdb new-shepherdish / featherwing-1 + design.md.
+// tail booms) slung under a twin-boom carrier plane; built lying flat. rocketdb flock-hopper / featherwing-1 + design.md.
 import { stage, capsule, fin, Kit, kb, tube, lathe, PR, PI, isHi } from './co_gen.js?v=art1';
 import { group, plume } from './co_civspace.js?v=art1';
 // display names: the only place they live (cheap to rename later)
-export const NAMES = { 'new-shepherdish': 'New Shepherd', 'featherwing-1': 'Featherwing I' };
+export const NAMES = { 'flock-hopper': 'Flock Hopper', 'featherwing-1': 'Featherwing I' };
 function ns(o) { const d = o.detail, R = 1.5;
   const a = stage(d, 'booster', { r: R, h: 12.0, y0: 1.6, eng: [[4, 0.6, 0.38, 1.0, PI / 4]], skirt: R * 1.04, bands: [[11.2, 0.4]], decalY: 6,
     extra: k => { tube(k, R * 1.35, R * 1.35, 0.9, 12.0, 'dark', { open: true, seg: isHi(k) ? 40 : 14 }); for (let i = 0; i < 4; i++) fin(k, PI / 4 + i * PI / 2, R, 0.9, 2.6, 0.0, 0.12); } });
   const c = capsule(d, 'capsule', { r: 1.8, h: 2.4, y0: a.userData.top + 0.1, key: 'paint:0,0', can: 0.5 });
-  const g = group('new-shepherdish', [a, c], c.userData.top); g.userData.displayName = NAMES['new-shepherdish'];
+  const g = group('flock-hopper', [a, c], c.userData.top); g.userData.displayName = NAMES['flock-hopper'];
   if (o.plume) g.add(plume(0, [[0, 0]], 1.0, 25 * o.plume)); return g; }
 // flat builders: local y = nose direction, local z = up; group rotated so y -> -z(world) and z -> y(world)
 function flat(g, h) { g.rotation.x = -PI / 2; g.position.y = h; return g; }
@@ -28,6 +28,6 @@ function carrier(d) { const k = new Kit(d), s = isHi(k) ? 16 : 6;
 function fw(o) { const d = o.detail, c = carrier(d), p = plane(d); const g = group('featherwing-1', [c, p], 4.4); g.userData.displayName = NAMES['featherwing-1'];
   if (o.plume) { const pl = plume(0, [[0, 0]], 0.4, 10 * o.plume); pl.rotation.x = PI / 2; pl.position.set(0, 1.9, 2.0); g.add(pl); } return g; }
 export const CO_IRG = {
-  'new-shepherdish': { name: NAMES['new-shepherdish'], height: 18.0, build: ns, src: 'rocketdb new-shepherdish (GCAT): 3.0 m booster 12 m (4 engines), ring fin, wedge fins, capsule; ~18 m with capsule', est: ['capsule', 'ring fin'] },
+  'flock-hopper': { name: NAMES['flock-hopper'], height: 18.0, build: ns, src: 'rocketdb flock-hopper (GCAT): 3.0 m booster 12 m (4 engines), ring fin, wedge fins, capsule; ~18 m with capsule', est: ['capsule', 'ring fin'] },
   'featherwing-1': { name: NAMES['featherwing-1'], height: 4.4, build: fw, src: 'rocketdb featherwing-1: 5 m x 1.5 m spaceplane under a twin-boom carrier (carrier dims art-fitted)', est: ['carrier', 'wing planform'] },
 };

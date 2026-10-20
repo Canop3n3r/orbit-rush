@@ -81,7 +81,7 @@ Generated Tue Oct 20 2026 14:34 CT by the headless staging harness (browser: eve
 | Deltoid 2 Light3 | deltoid-2-light3 | Heron Heavy | 3 | pass | FAIL: model stages never driven (flight knew only booster/upper); model boosters, stack has none; model has 2 core stages, stack drops 1 |
 | Diamantine A | diamantine-a | selene | 3 | pass | FAIL: model stages never driven (flight knew only booster/upper); model has 3 core stages, stack drops 1 |
 | Diamantine B | diamantine-b | selene | 3 | pass | FAIL: model stages never driven (flight knew only booster/upper); model has 3 core stages, stack drops 1 |
-| New Shepherd-ish | new-shepherdish | Pip | 1 | pass | FAIL: model stages never driven (flight knew only booster/upper) |
+| Flock Hopper | flock-hopper | Pip | 1 | pass | FAIL: model stages never driven (flight knew only booster/upper) |
 | Featherwing I | featherwing-1 | Pip | 1 | pass | FAIL: model stages never driven (flight knew only booster/upper); stack drops 1 core stages, model has 0 |
 | Polar Slinger | polar-slinger | Booster 2-stage | 4 | FAIL: model has 3 core stages, stack drops 2 | FAIL: model stages never driven (flight knew only booster/upper); model boosters, stack has none; model has 4 core stages, stack drops 1 |
 | Monsoon Heavy | monsoon-heavy | Heron Heavy | 3 | pass | FAIL: model stages never driven (flight knew only booster/upper); model boosters, stack has none; model has 2 core stages, stack drops 1 |

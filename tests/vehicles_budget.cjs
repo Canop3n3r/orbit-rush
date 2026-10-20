@@ -14,7 +14,7 @@ const BUD = { ...Object.fromEntries(['dark-dart'].map(id => [id, { hi: [30000, 3
   ...Object.fromEntries(['deltoid-2-heavy9','deltoid-2-light3'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])),
   ...Object.fromEntries(['diamantine-a','diamantine-b'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])),
   ...Object.fromEntries(['jade-lantern-2f','jade-lantern-3b'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])), ...Object.fromEntries(['jade-lantern-5','jade-lantern-5b'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])),
-  ...Object.fromEntries(['new-shepherdish','featherwing-1'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])),
+  ...Object.fromEntries(['flock-hopper','featherwing-1'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])),
   ...Object.fromEntries(['polar-slinger','monsoon-heavy'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])),
   ...Object.fromEntries(['tsurugi-22','tsurugi-24','tsurugi-30'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])), ...Object.fromEntries(['tsubame','tsubame-2024'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])),
   ...Object.fromEntries(['rodnik', 'rodnik-2', 'lastochka', 'pervy'].map(id => [id, { hi: [30000, 40], mid: [8000, 30], lo: [4000, 24] }])),
@@ -44,7 +44,7 @@ const BUD = { ...Object.fromEntries(['dark-dart'].map(id => [id, { hi: [30000, 3
   Object.assign(NEED, Object.fromEntries(['diamantine-a','diamantine-b'].map(id => [id, ['s1','s2','s3','payload']])));
   Object.assign(NEED, Object.fromEntries(['jade-lantern-2f','jade-lantern-3b'].map(id => [id, ['s1', 'side0', 'side1', 'side2', 'side3', 's2', 'payload']])));
   Object.assign(NEED, Object.fromEntries(['jade-lantern-5','jade-lantern-5b'].map(id => [id, ['core', 'side0', 'side1', 'side2', 'side3', 'payload']])));
-  Object.assign(NEED, { 'new-shepherdish': ['booster', 'capsule'], 'featherwing-1': ['carrier', 'spaceplane'] });
+  Object.assign(NEED, { 'flock-hopper': ['booster', 'capsule'], 'featherwing-1': ['carrier', 'spaceplane'] });
   Object.assign(NEED, Object.fromEntries(['tsubame','tsubame-2024'].map(id => [id, ['s1', 'srb0', 'srb1', 's2', 'payload']])));
   Object.assign(NEED, Object.fromEntries(['rodnik', 'rodnik-2', 'lastochka', 'pervy'].map(id => [id, ['core', 'strap0', 'strap1', 'strap2', 'strap3', 'payload']])));
   Object.assign(NEED, { 'mogutny-glider': ['core', 'side0', 'side1', 'side2', 'side3', 'orbiter'] }); Object.assign(BUD, { 'mogutny-glider': { hi: [32000, 32], mid: [8000, 26], lo: [4000, 20] } });
