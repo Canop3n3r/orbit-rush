@@ -743,3 +743,8 @@ body.endOn #pilot,body.endOn #nav,body.endOn #mleft,body.endOn #mright,body.endO
 body.autoOn #mStick,body.autoOn #mRoll,body.autoOn #mThr,body.autoOn #nav,body.autoOn #mleft{display:none!important}
 @media (orientation:landscape) and (max-height:500px){body.touch #nav #navSas{left:auto!important;right:calc(100% + 6px)!important;bottom:0!important;transform:none!important;margin-bottom:0!important}}
 #hTop .hTopR{display:flex;gap:8px}#hnCareer{pointer-events:auto;width:44px;height:44px;border-radius:50%;font-size:19px;padding:0;background:var(--glass);border:1px solid var(--line);color:var(--txt)}
+/* f5a.2 (QA P2): the build screen's LAUNCH is always on screen on phones and ≥64 px tall */
+body.touch #launchBtn{position:fixed!important;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));left:auto;width:auto!important;min-width:180px;min-height:64px!important;z-index:60!important;padding:0 22px;box-shadow:0 6px 24px #000c}
+body.touch #build{padding-bottom:84px}
+body.touch #build, body.touch #build div:has(#launchBtn){backdrop-filter:none!important;-webkit-backdrop-filter:none!important} /* a backdrop filter makes a containing block for the fixed LAUNCH */
+body.touch #build{background:#0b1220f2}
