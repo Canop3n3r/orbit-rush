@@ -8,43 +8,45 @@
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
 import { Kit, xf, mat } from './kit.js?v=art1';
-import { tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
+import * as PR from './profiles.js?v=art1';
+import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
 export { setLegs, mat };
 const PI = Math.PI;
 // ---- kerolox booster core (9 engines, octaweb, legs, grid fins) ----
 function core9(detail, o = {}) {
   const k = new Kit(detail), r = 1.83, H = o.H || 40.9, top = o.nose ? H : H;
   for (const [x, z] of ringPos([[8, 1.22, PI / 8], [1, 0]])) bell(k, 0.46, 1.25, x, 0, z, { head: 0.55 });
-  tube(k, r * 0.98, r * 0.98, 0.25, 1.25, 'dark', { seg: 8 }); // octaweb plate
-  tube(k, r, r, 0.75, 1.5, 'dark', { seg: 8 }); // engine section skirt (octagonal)
-  if (k.hi && !o.v11) for (const [x, z] of ringPos([[8, 1.22, PI / 8]])) k.add(new THREE.CylinderGeometry(0.55, 0.62, 0.5, 14, 1, true), 'dark', xf([x, 1.0, z])); // aft thermal boots
-  tube(k, r, r, H - 2.25, 2.25, 'paint:1,0', { hs: 1 });
-  ring(k, r, H * 0.42, 0.02); raceway(k, r, 2.4, H - 0.4);
+  // octaweb heat shield (quilted blanket plate the bells poke through) + shaded, sooty engine skirt
+  k.add(new THREE.CircleGeometry(r * 0.99, k.hi ? 32 : 8), 'shield', xf([0, 1.3, 0], [-PI / 2, 0, 0]));
+  tube(k, r, r, 0.95, 1.3, 'skirt', { seg: k.hi ? 32 : 8 });
+  if (k.hi && !o.v11) for (const [x, z] of ringPos([[8, 1.22, PI / 8]])) k.add(new THREE.CylinderGeometry(0.52, 0.6, 0.35, 14, 1, true), 'shield', xf([x, 1.12, z])); // aft thermal boots
+  const soot = Math.round((o.soot ?? 0.6) * 4) / 4; tube(k, r, r, H - 2.25, 2.25, `paint:${soot},0`, { hs: 1 }); // post-flight soot rising from the base (o.soot 0 fresh .. 1 heavily reflown)
+  ring(k, r, H * 0.42, 0.02); raceway(k, r, 2.4, H - 0.4, PI / 2, 'dark');
   decal(k, 'booster.side', r, H * 0.35, 4.2, 0, 1.3);
   if (o.nose) { ogive(k, r, 6.2, H, 'paint:0,0.6'); gridFins(k, r + 0.05, H - 1.6, 1.15, 1.4, 4, PI / 4, o.fins ?? 0.15); }
   else { tube(k, r, r, 6.6, H, o.v11 ? 'paint:0,0.2' : 'carbon'); gridFins(k, r + 0.05, H + 5.2, 1.15, 1.4, 4, PI / 4, o.fins ?? 0.15);
     if (k.hi) for (const a of [0, PI / 2, PI, 1.5 * PI]) k.add(new THREE.BoxGeometry(0.35, 0.5, 0.35), 'dark', xf([Math.cos(a) * (r + 0.15), H + 3.6, Math.sin(a) * (r + 0.15)])); } // cold-gas thrusters
-  const g = k.build('booster'); const L = legs(Kit, detail, r, 9.8, 0.9); setLegs(L, o.legs ?? 0); g.add(L); g.userData.legs = L; g.userData.height = o.nose ? H + 6.2 : H + 6.6; return g;
+  const g = k.build('booster'); const L = legs(Kit, detail, r, 9.6, 1.0); setLegs(L, o.legs ?? 0); g.add(L); g.userData.legs = L; g.userData.height = o.nose ? H + 6.2 : H + 6.6; return g;
 }
 function upper(detail, o = {}) { const k = new Kit(detail), r = 1.83, y0 = o.y0, h = o.h || 11.6;
   bell(k, 1.3, 3.2, 0, y0 - 3.4, 0, { ext: true, rt: 0.3, head: 0.8 }); // vacuum engine with heat-tinted extension (mostly inside the interstage)
   tube(k, r, r, h, y0, 'paint:0,0.25'); ring(k, r, y0 + h * 0.55, 0.02); decal(k, 'upper.side', r, y0 + 3, 2.6, 0, 1.0); raceway(k, r, y0 + 0.3, y0 + h - 0.3);
   tube(k, r, 1.6, 0.6, y0 + h, 'dark'); const g = k.build('upper'); g.userData.top = y0 + h + 0.6; return g; }
-function fairing(detail, y0, r = 2.6, cyl = 6.7, nose = 6.4) { const k = new Kit(detail);
-  tube(k, Math.min(1.6, r * 0.9), r, 0.6, y0, 'carbon'); tube(k, r, r, cyl, y0 + 0.6, 'paint:0,0'); ogive(k, r, nose, y0 + 0.6 + cyl, 'paint:0,0');
-  if (k.hi) { k.add(new THREE.BoxGeometry(0.05, cyl + nose * 0.85, 0.12), 'grey', xf([r + 0.01, y0 + 0.6 + (cyl + nose * 0.85) / 2, 0])); decal(k, 'fairing.side', r, y0 + 2.2, 2.2, PI, 1.0); }
-  const g = k.build('payload'); g.userData.top = y0 + 0.6 + cyl + nose; return g; }
+function fairing(detail, y0, r = 2.6, cyl = 6.7, nose = 6.4, rBase) { const k = new Kit(detail), prof = PR.fairing(r, cyl, nose, y0, rBase ?? Math.min(1.6, r * 0.88), k.hi ? 22 : 8);
+  lathe(k, prof, 'paint:0,0'); // ONE continuous profile: boattail, barrel, tangent ogive (tip +Y)
+  if (k.hi) { for (const ph of [0, PI]) lathe(k, prof.slice(1), 'dark', { s: 1.003, seg: 1, p0: ph - 0.004, pl: 0.008 }); // the two half seams
+    lathe(k, prof.slice(1, 3), 'carbon', { s: 1.002 }); decal(k, 'fairing.side', r, y0 + 2.2, 2.2, PI / 2, 1.0); }
+  const g = k.build('payload'); g.userData.top = prof[prof.length - 1][1]; return g; }
 function capsule(detail, y0) { const k = new Kit(detail), r = 1.85;
   tube(k, r, r, 3.7, y0, 'paint:0,0'); // trunk
   tube(k, r * 1.003, r * 1.003, 3.0, y0 + 0.4, 'solar', { open: true, tl: PI, t0: PI }); // body-mounted solar half
   if (k.hi) for (let i = 0; i < 4; i++) { const a = i * PI / 2 + PI / 4; k.add(new THREE.BoxGeometry(1.0, 1.6, 0.08), 'paint:0,0', xf([Math.cos(a) * (r + 0.5), y0 + 0.9, Math.sin(a) * (r + 0.5)], [0, -a + PI / 2, 0])); }
-  const c0 = y0 + 3.7; tube(k, r, r * 0.98, 0.25, c0, 'dark'); // heat-shield rim
-  const pts = [[r * 0.98, 0], [r * 0.95, 0.5], [r * 0.62, 2.9], [r * 0.5, 3.15], [r * 0.5, 3.3], [0.9, 3.55], [0, 3.6]].map(([a, b]) => new THREE.Vector2(a, c0 + 0.25 + b));
-  k.add(new THREE.LatheGeometry(pts, k.seg), 'paint:0,0');
+  const c0 = y0 + 3.7; tube(k, r, r, 0.2, c0, 'dark'); // heat-shield rim
+  const cp = PR.capsule(r, c0); lathe(k, cp.slice(0, 2), 'dark'); lathe(k, cp.slice(1), 'paint:0,0'); // dark heat-shield face, then sidewall + nose cap
   if (k.hi) { for (let i = 0; i < 4; i++) { const a = i * PI / 2; k.add(new THREE.BoxGeometry(0.5, 0.9, 0.35), 'dark', xf([Math.cos(a) * r * 0.86, c0 + 1.2, Math.sin(a) * r * 0.86], [0, -a, -0.32])); } // abort-thruster pods
     for (const a of [-0.35, 0, 0.35]) k.add(new THREE.BoxGeometry(0.1, 0.35, 0.45), 'glass', xf([Math.cos(a) * r * 0.78, c0 + 1.9, Math.sin(a) * r * 0.78], [0, -a, -0.33]));
     decal(k, 'capsule.side', r * 0.75, c0 + 1.0, 0.8, PI, 0.9); }
-  const g = k.build('payload'); g.userData.top = c0 + 3.85; return g; }
+  const g = k.build('payload'); g.userData.top = c0 + 4.0; return g; }
 function group(name, kids, h) { const g = new THREE.Group(); g.name = name; for (const c of kids) g.add(c); g.userData.height = h; g.userData.stages = Object.fromEntries(kids.map(c => [c.name, c])); g.userData.legs = kids.map(c => c.userData.legs).filter(Boolean); return g; }
 // ---- vehicles ----
 function heron(o) { const d = o.detail, b = core9(d, o), u = upper(d, { y0: 46.0 }), f = o.crew ? capsule(d, u.userData.top) : fairing(d, u.userData.top); return group(o.crew ? 'heron-9-crew' : 'heron-9', [b, u, f], f.userData.top); }
@@ -52,7 +54,7 @@ function sparrow(o) { const d = o.detail, k = new Kit(d), r = 0.835;
   bell(k, 0.55, 1.3, 0, 0, 0, { head: 0.5 }); tube(k, r, r, 0.6, 1.25, 'dark'); tube(k, r, r, 13.9, 1.85, 'silver'); ring(k, r, 9, 0.015); decal(k, 'booster.side', r, 6, 2.0, 0, 1.4);
   tube(k, r, r, 1.2, 15.75, 'carbon'); const b = k.build('booster');
   const u = new Kit(d); bell(u, 0.42, 1.0, 0, 16.0, 0, { ext: true, rt: 0.12, head: 0.3 }); tube(u, r, r, 2.4, 16.95, 'silver'); decal(u, 'upper.side', r, 17.2, 1.4, 0, 1.2); const U = u.build('upper');
-  const f = fairing(d, 19.35, 0.75, 0.3, 1.65); return group('sparrow', [b, U, f], 21.3); }
+  const f = fairing(d, 18.85, 0.75, 0.6, 1.85, 0.66); return group('sparrow', [b, U, f], 21.3); }
 function heronHeavy(o) { const d = o.detail, c = core9(d, o), u = upper(d, { y0: 46.0 }), f = fairing(d, u.userData.top), kids = [c, u, f];
   for (const s of [-1, 1]) { const b = core9(d, { ...o, nose: true, H: 40.9 }); b.name = s < 0 ? 'side0' : 'side1'; b.position.x = s * 3.86; b.rotation.y = s < 0 ? PI : 0; kids.push(b); }
   const k = new Kit(d); for (const s of [-1, 1]) { for (const y of [4.5, 38.5]) strut(k, [s * 1.8, y, 0], [s * 2.05, y, 0], 0.3, 'dark'); if (k.hi) strut(k, [s * 1.8, 37, 0.6], [s * 2.05, 39, 0.6], 0.12, 'grey'); }
@@ -61,7 +63,7 @@ function titanBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.boo
   const pos = ringPos([[3, 0.95, PI / 6], [10, 2.55], [20, 3.85, PI / 20]]);
   for (const [x, z] of pos) bell(k, 0.62, 1.55, x, 0, z, { rt: 0.26, head: k.hi ? 0.9 : 0 });
   tube(k, r, r, 0.4, 1.4, 'dark'); tube(k, r * 1.02, r, 3.2, 1.4, 'steel'); // engine skirt + shielding
-  tube(k, r, r, H - 4.6 - 1.8, 4.6, 'steel'); ring(k, r, 30, 0.03, 'grey'); ring(k, r, 52, 0.03, 'grey');
+  tube(k, r, r, H - 4.6 - 1.8, 4.6, 'steel'); if (o.frost ?? 1) tube(k, r * 1.004, r * 1.004, H - 4.6 - 1.8, 4.6, 'frost', { open: true }); // cryo frost: LOX (lower) and CH4 (upper) tanks, clear at the common dome ring(k, r, 30, 0.03, 'grey'); ring(k, r, 52, 0.03, 'grey');
   if (k.hi) for (const a of [PI / 2 - 0.18, PI / 2 + 0.18]) k.add(new THREE.BoxGeometry(0.35, H - 8, 0.5), 'steel', xf([Math.cos(a) * (r + 0.15), H / 2, Math.sin(a) * (r + 0.15)], [0, -a, 0])); // chines
   decal(k, 'titanbooster.side', r, 40, 6, 0, 0.9);
   // vented hot-staging ring
@@ -69,18 +71,21 @@ function titanBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.boo
   gridFins(k, r + 0.05, H - 5.5, 2.4, 3.2, 4, PI / 4, o.fins ?? 1);
   const g = k.build('booster'); g.userData.height = H; return g; }
 function ship(detail, y0, L = 52.1) { const k = new Kit(detail), r = 4.5, nose = 16, cyl = L - nose - 2;
-  for (const [x, z] of ringPos([[3, 1.0, PI / 6]])) bell(k, 0.62, 1.55, x, y0 + 0.2, z, { rt: 0.26, head: 0.8 });
-  for (const [x, z] of ringPos([[3, 3.0, PI / 2]])) bell(k, 1.15, 2.8, x, y0 - 0.8, z, { ext: true, rt: 0.26, head: 0.8 });
-  tube(k, r, r, cyl, y0 + 2, 'steel'); ogive(k, r, nose, y0 + 2 + cyl, 'steel', 0.12);
-  // windward heat shield (half the circumference): tile overlay on the barrel and nose
-  tube(k, r * 1.006, r * 1.006, cyl, y0 + 2, 'tiles', { open: true, t0: 0, tl: PI, hs: 1 });
-  { const pts = [], n = k.hi ? 18 : 7, rho = (r * r + nose * nose) / (2 * r); for (let i = 0; i <= n; i++) { const t = i / n, yy = t * nose; pts.push(new THREE.Vector2(Math.max(0.5, Math.sqrt(Math.max(0, rho * rho - (nose - yy) ** 2)) + r - rho) * 1.006, y0 + 2 + cyl + yy)); }
-    k.add(new THREE.LatheGeometry(pts, k.seg, 0, PI * 0.98), 'tiles'); }
-  // flaps: 2 aft (big), 2 forward (small), on the leeward/windward boundary (hinge line)
-  const flap = (y, h, w0, w1, side) => { const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(w0, 0); sh.lineTo(w1, h); sh.lineTo(0, h * 0.92); sh.closePath();
-    const g = new THREE.ExtrudeGeometry(sh, { depth: 0.35, bevelEnabled: false }); k.add(g, 'tiles', xf([side * r, y, -0.1], [0, side < 0 ? PI : 0, 0])); k.add(new THREE.BoxGeometry(0.6, h, 0.6), 'steel', xf([side * (r + 0.1), y + h / 2, 0.2])); };
-  for (const s of [-1, 1]) { flap(y0 + 3, 12, 3.6, 2.4, s); flap(y0 + 2 + cyl + 2, 7, 2.2, 1.0, s); }
-  decal(k, 'ship.side', r, y0 + 20, 6, PI, 0.9);
+  // windward = -Z half (theta pi/2 .. 3pi/2 in three's cylinder/lathe convention); tile edge lines at +-X
+  for (const [x, z] of ringPos([[3, 1.0, PI / 6]])) bell(k, 0.65, 1.6, x, y0 + 0.2, z, { rt: 0.26, head: 0.8 }); // sea-level (gimbaled)
+  for (const [x, z] of ringPos([[3, 3.05, PI / 2]])) bell(k, 1.15, 3.0, x, y0 - 1.0, z, { ext: true, rt: 0.26, head: 0.8 }); // vacuum (fixed, large)
+  tube(k, r, r, 2, y0, 'skirt'); tube(k, r, r, cyl, y0 + 2, 'steel'); ogive(k, r, nose, y0 + 2 + cyl, 'steel', 0.12);
+  tube(k, r * 1.006, r * 1.006, cyl, y0 + 2, 'tiles', { open: true, t0: PI / 2, tl: PI });
+  lathe(k, PR.ogive(r, nose, y0 + 2 + cyl, k.hi ? 18 : 7, 0.12).map(([a, b]) => [a * 1.006, b]), 'tiles', { p0: PI / 2, pl: PI });
+  // flaps: planar, hinged on the tile edge; windward face tiled, steel back; actuator fairing over the hinge
+  const flap = (yb, h, w0, w1, side, rad, lean = 0) => { const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(w0, 0.6); sh.lineTo(w1, h); sh.lineTo(0, h); sh.closePath();
+    k.push(xf([side * rad, yb, 0], [lean, side < 0 ? PI : 0, 0]));
+    k.add(new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }), 'steel');
+    k.add(new THREE.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: false }), 'tiles', xf([0, 0, -0.07]));
+    k.add(new THREE.CylinderGeometry(0.35, 0.35, h, 10), 'steel', xf([0.1, h / 2, 0.2])); k.pop(); };
+  for (const s of [-1, 1]) { flap(y0 + 1.5, 11, 4.2, 2.6, s, r); // aft
+    flap(y0 + 2 + cyl + 4, 7, 2.8, 1.2, s, 4.05, 0); } // forward (on the nose, smaller, slightly leeward on v3)
+  decal(k, 'ship.side', r, y0 + 20, 6, -PI / 2, 0.9); // leeward steel side
   const g = k.build('upper'); g.userData.top = y0 + 2 + cyl + nose; return g; }
 function titan(o) { const b = titanBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1); return group('titan', [b, s], s.userData.top); }
 // ---- ground systems: catch tower with chopsticks + orbital launch mount ----
