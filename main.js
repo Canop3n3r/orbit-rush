@@ -1,52 +1,51 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.2.1';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.2.2';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.2.1';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.2.1';
-import * as C from './physics/patched.js?v=f5.2.1';
+import * as P from './physics.js?v=f5.2.2';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.2.2';
+import * as C from './physics/patched.js?v=f5.2.2';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.2.1';
-import { createCareerUI } from './fun/career-ui.js?v=f5.2.1';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.2.1';
-import { createSolarMap } from './solarmap.js?v=f5.2.1';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.2.1';
-import { FX } from './fx.js?v=f5.2.1';
-import { createAcademy } from './academy-ui.js?v=f5.2.1';
-import { createMobile, isTouch } from './mobile.js?v=f5.2.1';
-import { localize } from './wording.js?v=f5.2.1';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.2.1';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.2.1';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.2.2';
+import { createCareerUI } from './fun/career-ui.js?v=f5.2.2';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.2.2';
+import { createSolarMap } from './solarmap.js?v=f5.2.2';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.2.2';
+import { FX } from './fx.js?v=f5.2.2';
+import { createAcademy } from './academy-ui.js?v=f5.2.2';
+import { createMobile, isTouch } from './mobile.js?v=f5.2.2';
+import { localize } from './wording.js?v=f5.2.2';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.2.2';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.2.2';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.2.1';
-import * as GX from './gfx/gfx.js?v=f5.2.1';
-import { Director, MISSIONS } from './fun/director.js?v=f5.2.1';
-import * as PR from './fun/progress.js?v=f5.2.1';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.2.1';
-import { createAudio } from './fun/audio.js?v=f5.2.1';
-import { createCompact } from './fun/compact.js?v=f5.2.1';
-import { createHome } from './fun/home.js?v=f5.2.1';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.2.1';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.2.1';
-import { createFunUI } from './fun/ui.js?v=f5.2.1';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES } from './gfx/vehicles/vehicles.js?v=f5.2.1';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.2.1';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.2.1';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.2.1';
-import { specFor, specDesign } from './fun/specstack.js?v=f5.2.1';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.2.1';
-import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.2.1';
-import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5.2.1';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.2.2';
+import * as GX from './gfx/gfx.js?v=f5.2.2';
+import { Director, MISSIONS } from './fun/director.js?v=f5.2.2';
+import * as PR from './fun/progress.js?v=f5.2.2';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.2.2';
+import { createAudio } from './fun/audio.js?v=f5.2.2';
+import { createCompact } from './fun/compact.js?v=f5.2.2';
+import { createHome } from './fun/home.js?v=f5.2.2';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.2.2';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.2.2';
+import { createFunUI } from './fun/ui.js?v=f5.2.2';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.2.2';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.2.2';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.2.2';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.2.2';
+import { specFor, specDesign } from './fun/specstack.js?v=f5.2.2';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.2.2';
+import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.2.2';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.2.1';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.2.2';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -403,6 +402,7 @@ function makeRocketGroups(design) {
       legs.visible = false; g.add(legs);
     }
     g.userData = { h: y, plume, legs, fair, fairH: fair ? 1.6 * fp.d : 0, hot, stage: si };
+    g.traverse(o => { if (o.geometry) o.geometry.userData.own = true; }); // f5.2.2: created for this stack only (materials stay shared M.*)
     out.push(g);
   });
   return out;
@@ -698,7 +698,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.2.1', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.2.2', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -793,10 +793,14 @@ function detachStage(i) {
   return g;
 }
 const stackL = () => (v && v.tel ? v.tel.L : 40);
-function freeGroup(g) { const seen = new Set(); g.traverse(o => { if (o === hero) return; const geo = o.geometry; if (geo && !seen.has(geo) && !(geo.userData && geo.userData.shared)) { seen.add(geo); geo.dispose(); } for (const mt of [].concat(o.material || [])) if (mt.userData && mt.userData.own) { if (mt.map) mt.map.dispose(); mt.dispose(); } }); }
+function freeGroup(g) { // f5.2.2: frees only what this part stack created (userData.own) and nothing still drawn elsewhere; the hero subtree is skipped (released by attachHero)
+  const live = new Set(); scene.traverse(o => { if (o.geometry) live.add(o.geometry); for (const m of [].concat(o.material || [])) live.add(m); });
+  const walk = o => { if (o === hero || o.userData.hero) return; const geo = o.geometry; if (geo && geo.userData.own && !live.has(geo)) { geo.userData.own = false; geo.dispose(); }
+    for (const mt of [].concat(o.material || [])) if (mt.userData && mt.userData.own && !live.has(mt)) { mt.userData.own = false; if (mt.map && mt.map.userData.own) mt.map.dispose(); mt.dispose(); }
+    for (const c of o.children) walk(c); }; walk(g); }
 function showPreview() {
   if (rocketG) { scene.remove(rocketG); freeGroup(rocketG); } // f5.2.1: the old part-stack meshes were never freed (GPU buffers grew ~30 geometries per rocket swap)
-  rocketG = new THREE.Group(); SG = design.parts.length ? makeRocketGroups(design) : [];
+  rocketG = new THREE.Group(); SG = design.parts.length ? makeRocketGroups(design) : []; for (const g of SG) g.traverse(o => { if (o.geometry) o.geometry.userData.own = true; }); // f5.2.2: the part stack (incl. radial copies, chutes) owns these
   let y = 0; for (const g of SG) { g.position.y = y; y += g.userData.h; rocketG.add(g); } scene.add(rocketG);
   F = new Flight(validate(design).ok ? design : TEMPLATES[0], hooks, { padZ: PAD_Z, earthRot, incl: launchIncl, epoch: EPOCH, ...(opFlightOpts || {}) }); v = F.v;
   rocketG.add(comMark, copMark, cotMark);
@@ -860,12 +864,12 @@ function addDecal(g, d) {
   const sym = PR.DECALS[d.decal] || '', name = (d.name || '').slice(0, 18); if (!sym && !name) return;
   const c = document.createElement('canvas'); c.width = 512; c.height = 128; const x = c.getContext('2d'); const pt = PR.PAINTS[d.paint] || PR.PAINTS.classic;
   x.fillStyle = '#' + pt.accent.toString(16).padStart(6, '0'); x.font = 'bold 64px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(`${sym} ${name.toUpperCase()}`.trim(), 256, 66);
-  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.userData.own = true;
   // f4.1b: wrap the decal on the hull at its own height (the whole group's box includes fins/legs → a floating ring)
   const h = g.userData.h, yd = h * 0.62; g.updateMatrixWorld(true); const gi = new THREE.Matrix4().copy(g.matrixWorld).invert(); let r = 1e9;
   g.traverse(o => { if (!o.isMesh || isPlumeChild(o, g)) return; const b = new THREE.Box3().setFromObject(o).applyMatrix4(gi); if (b.min.y <= yd && b.max.y >= yd) { const hw = Math.min(b.max.x - b.min.x, b.max.z - b.min.z) / 2; if (hw > 0.3) r = Math.min(r, hw); } });
   if (!(r < 1e8)) { const bb = new THREE.Box3().setFromObject(g); r = Math.max(0.6, (bb.max.x - bb.min.x) / 2 - 0.1); }
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(r + 0.03, r + 0.03, Math.min(6, h * 0.3), 32, 1, true, -Math.PI * 0.5, Math.PI), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.5, depthWrite: false })); m.material.userData.own = true; // f5.2.1: freed with its group
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r + 0.03, r + 0.03, Math.min(6, h * 0.3), 32, 1, true, -Math.PI * 0.5, Math.PI), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.5, depthWrite: false })); m.material.userData.own = true; m.geometry.userData.own = true; // f5.2.1: freed with its group
   m.rotation.y = Math.PI / 2; m.position.y = yd; m.renderOrder = 3; g.add(m);
 }
 // Re-stack the visible stage groups from v.cur (used after F.placeInOrbit in the ?scenario=orbit start)

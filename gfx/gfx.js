@@ -3,9 +3,9 @@
 // PBR environment, quality presets (low keeps phones and software GPUs working). No physics here.
 import * as THREE from 'three/webgpu';
 import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass, attribute } from 'three/tsl';
-export { GFX, GFX_ORDER } from './presets.js?v=f5.2.1';
-import { GFX } from './presets.js?v=f5.2.1';
-import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5.2.1';
+export { GFX, GFX_ORDER } from './presets.js?v=f5.2.2';
+import { GFX } from './presets.js?v=f5.2.2';
+import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5.2.2';
 export { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth };
 export const earthTexMatrix = () => new THREE.Matrix4().fromArray(EARTH_TEX_M4);
 export function softwareGPU() {
