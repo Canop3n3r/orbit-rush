@@ -211,7 +211,7 @@ export function runMission(m, opts = {}) {
   let F = null; const hooks = missionHooks(m, () => F);
   F = applyMission(m, new Flight(design, hooks, missionFlightOpts(m))); const S = missionSession(m).attach(F);
   const fmax = F.v.stages.map(s => s.fuelMax), frac = { 0: rv.sideReserveFrac, 1: rv.coreReserveFrac };
-  F.stagePress(); F.setAuto(true, true);
+  F.autoStage = false; F.stagePress(); F.setAuto(true, true); // f4: the runner stages by its own reserve rule (f3 AUTO auto-staging would stage Moon/Mars boosters early)
   const pilot = rv.stage0 === 'catch-pilot' && opts.player !== false;
   const sub = () => { F.realT += SUB_DT; if (pilot) boosterPilot(F); F.step(SUB_DT); S.tick(F); if (opts.each) opts.each(F, S); };
   for (let t = 0; t < (opts.tMax || 2400) && S.phase === 'ascent' && !F.flags.dead && !F.flags.stranded; t += SUB_DT * n) {
