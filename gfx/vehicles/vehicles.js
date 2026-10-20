@@ -57,10 +57,10 @@ function core9(detail, o = {}) {
   ring(k, r, H * 0.42, 0.02); raceway(k, r, 2.4, H - 0.4, PI / 2, 'dark');
   if (o.frost) tube(k, r * 1.004, r * 1.004, H * 0.55 - 0.3, H * 0.45, 'frost', { open: true }); // LOX-tank frost (upper tank of the first stage) when fuelled
   decal(k, 'booster.side', r, H * 0.35, 4.2, 0, 1.3);
-  if (o.nose) { ogive(k, r, 6.2, H, 'paint:0,0.6'); gridFins(k, r + 0.05, H - 1.6, 1.15, 1.4, 4, PI / 4, o.fins ?? 0.15); }
-  else { tube(k, r, r, 6.6, H, o.v11 ? 'paint:0,0.2' : 'carbon'); gridFins(k, r + 0.05, H + 5.2, 1.15, 1.4, 4, PI / 4, o.fins ?? 0.15);
+  if (o.nose) { ogive(k, r, 7.0, H, 'paint:0,0.6'); /* plan #7: sharper side-booster nose */ gridFins(k, r + 0.05, H - 1.6, 1.15, 1.4, 4, PI / 4, o.fins ?? 0.15); }
+  else { tube(k, r, r, 6.6, H, o.v11 ? 'paint:0,0.2' : 'carbon'); if (k.hi && !o.v11) { ring(k, r, H + 0.25, 0.03, 'grey'); ring(k, r, H + 6.3, 0.03, 'grey'); raceway(k, r, H + 0.4, H + 6.2, PI / 2, 'dark'); } /* plan #7: interstage edge lands + raceway so the black band is not flat */ gridFins(k, r + 0.05, H + 5.2, 1.15, 1.4, 4, PI / 4, o.fins ?? 0.15);
     if (k.hi) for (const a of [0, PI / 2, PI, 1.5 * PI]) k.add(new THREE.BoxGeometry(0.35, 0.5, 0.35), 'dark', xf([Math.cos(a) * (r + 0.15), H + 3.6, Math.sin(a) * (r + 0.15)])); } // cold-gas thrusters
-  const g = k.build('booster'); const L = legs(Kit, detail, r, 9.6, 1.0); setLegs(L, o.legs ?? 0); g.add(L); g.userData.legs = L; g.userData.height = o.nose ? H + 6.2 : H + 6.6; return g;
+  const g = k.build('booster'); const L = legs(Kit, detail, r, 9.6, 1.0); setLegs(L, o.legs ?? 0); g.add(L); g.userData.legs = L; g.userData.height = o.nose ? H + 7.0 : H + 6.6; return g;
 }
 function upper(detail, o = {}) { const k = new Kit(detail), r = 1.83, y0 = o.y0, h = o.h || 11.6;
   bell(k, 1.3, 3.2, 0, y0 - 3.4, 0, { ext: true, rt: 0.3, head: 0.8 }); // vacuum engine with heat-tinted extension (mostly inside the interstage)
@@ -101,7 +101,7 @@ function colossusBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.
   tube(k, r, r, H - 4.6 - 1.8, 4.6, 'steel'); if (o.frost ?? 0) tube(k, r * 1.004, r * 1.004, H - 4.6 - 1.8, 4.6, 'frost', { open: true }); // cryo frost: LOX (lower) and CH4 (upper) tanks, clear at the common dome ring(k, r, 30, 0.03, 'grey'); ring(k, r, 52, 0.03, 'grey');
   if (k.hi) for (const a of [PI / 2 - 0.18, PI / 2 + 0.18]) k.add(new THREE.BoxGeometry(0.35, H - 8, 0.5), 'steel', xf([Math.cos(a) * (r + 0.15), H / 2, Math.sin(a) * (r + 0.15)], [0, -a, 0])); // chines
   decal(k, 'colossusbooster.side', r, 40, 6, 0, 0.9);
-  if (k.hi) { for (const a of [PI * 0.25, PI * 1.25]) raceway(k, r, 6, H - 3, a, 'steel'); for (const y of [12, 30, 52]) ring(k, r, y, 0.035, 'grey'); // conduit raceways, weld lands
+  if (k.hi) { for (const a of [PI * 0.25, PI * 1.25]) raceway(k, r, 6, H - 3, a, 'steel'); for (const y of [12, 30, 52]) ring(k, r, y, 0.035, 'grey'); for (let y = 6.4; y < H - 3; y += 4.5) ring(k, r, y, 0.018, 'dark'); tube(k, r * 1.003, r * 1.003, 9, 4.6, 'skirt', { open: true, hs: 1 }); // plan #6: panel weld lines every 4.5 m + soot band over the aft skirt // conduit raceways, weld lands
     for (let i = 0; i < 4; i++) { const a = i * PI / 2 + PI / 4; k.add(new THREE.BoxGeometry(1.4, 1.0, 0.25), 'dark', xf([Math.cos(a) * (r + 0.1), 3.6, Math.sin(a) * (r + 0.1)], [0, -a + PI / 2, 0])); } } // QD / ground-service plates
   // vented hot-staging ring
   tube(k, r, r, 1.8, H - 1.8, 'dark'); if (k.hi) for (let i = 0; i < 24; i++) { const a = i / 24 * 2 * PI; k.add(new THREE.BoxGeometry(0.25, 1.4, 0.9), 'steel', xf([Math.cos(a) * r, H - 0.9, Math.sin(a) * r], [0, -a, 0])); }

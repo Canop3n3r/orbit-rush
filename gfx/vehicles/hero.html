@@ -25,18 +25,18 @@ function skyTex(seed = 3) { const W = 1024, H = 512, c = document.createElement(
   const hz = x.createLinearGradient(0, H * 0.43, 0, H * 0.52); hz.addColorStop(0, 'rgba(255,220,180,0)'); hz.addColorStop(1, 'rgba(255,214,170,0.7)'); x.fillStyle = hz; x.fillRect(0, H * 0.43, W, H * 0.09);
   const t = new THREE.CanvasTexture(c); t.mapping = THREE.EquirectangularReflectionMapping; t.colorSpace = THREE.SRGBColorSpace; return t; }
 // cumulus billboards (crisp, high-res, lit tops / shaded bases) placed around the horizon
-function cloudTex(seed) { const W = 512, H = 220, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); let s = seed; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+function cloudTex(seed) { const W = 1024, H = 440, S2 = 2, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); let s = seed; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
   // connected cumulus: many small puffs gaussian-distributed along a flat base, blurred; sunlit tops, blue-grey shaded bases
   const g2 = () => (r() + r() + r() - 1.5) / 1.5, puffs = [], base = H * 0.8;
-  for (let i = 0; i < 90; i++) { const px = W / 2 + g2() * W * 0.36, ht = 1 - Math.abs(px - W / 2) / (W * 0.5), rr = 10 + r() * 26 * ht + 6; puffs.push([px, base - rr * 0.6 - r() * ht * H * 0.45, rr]); }
-  x.filter = 'blur(3px)';
+  for (let i = 0; i < 90; i++) { const px = W / 2 + g2() * W * 0.36, ht = 1 - Math.abs(px - W / 2) / (W * 0.5), rr = (10 + r() * 26 * ht + 6) * S2; puffs.push([px, base - rr * 0.6 - r() * ht * H * 0.45, rr]); }
+  x.filter = 'blur(5px)'; // plan #2: 2x texture + proportional blur, no grain on 2 km sprites
   for (const [px, py, rr] of puffs) { x.fillStyle = 'rgba(128,124,146,0.9)'; x.beginPath(); x.arc(px, py, rr, 0, 7); x.fill(); }
   for (const [px, py, rr] of puffs) { const g = x.createRadialGradient(px - rr * 0.3, py - rr * 0.45, 0, px, py, rr); g.addColorStop(0, 'rgba(255,232,200,1)'); g.addColorStop(0.55, 'rgba(240,206,176,0.7)'); g.addColorStop(1, 'rgba(240,206,176,0)'); x.fillStyle = g; x.beginPath(); x.arc(px, py, rr, 0, 7); x.fill(); }
-  x.filter = 'none'; x.globalCompositeOperation = 'destination-out'; const cut = x.createLinearGradient(0, base - 6, 0, base + 10); cut.addColorStop(0, 'rgba(0,0,0,0)'); cut.addColorStop(1, 'rgba(0,0,0,1)'); x.fillStyle = cut; x.fillRect(0, base - 6, W, H - base + 6);
+  x.filter = 'none'; x.globalCompositeOperation = 'destination-out'; const cut = x.createLinearGradient(0, base - 12, 0, base + 20); cut.addColorStop(0, 'rgba(0,0,0,0)'); cut.addColorStop(1, 'rgba(0,0,0,1)'); x.fillStyle = cut; x.fillRect(0, base - 12, W, H - base + 12);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 const clouds = new THREE.Group(); scene.add(clouds);
 { let s = 5; const r = () => (s = (s * 16807) % 2147483647) / 2147483647; for (let i = 0; i < 26; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex(11 + i * 7), transparent: true, depthWrite: false, fog: false, opacity: 0.9 }));
-  const a = r() * Math.PI * 2, R = 3500 + r() * 3000, w = 700 + r() * 1300; sp.scale.set(w, w * 220 / 512, 1); sp.position.set(Math.cos(a) * R, R * Math.tan((3 + r() * 14) * Math.PI / 180), Math.sin(a) * R); sp.renderOrder = -1; clouds.add(sp); } }
+  const a = r() * Math.PI * 2, R = 3500 + r() * 3000, w = 1000 + r() * 1200; sp.scale.set(w, w * 440 / 1024, 1); sp.position.set(Math.cos(a) * R, R * Math.tan((6 + r() * 12) * Math.PI / 180), Math.sin(a) * R); sp.renderOrder = -1; clouds.add(sp); } }
 const sky = skyTex(); scene.background = sky; scene.environment = GX.envTexture(); scene.environmentIntensity = 0.45; // game env, dimmed: fill without flattening
 const hemi = new THREE.HemisphereLight(0xbfd4f0, 0x5a4a38, 0.35); scene.add(hemi);
 const key = new THREE.DirectionalLight(0xffc48a, 4.2); scene.add(key); scene.add(key.target); // golden-hour key
@@ -59,16 +59,27 @@ function lattice(g, H, W, x, z) { const lv = Math.max(3, W * 0.9), n = Math.floo
     E.set(0, ry + Math.PI / 2, (i % 2 ? 1 : -1) * Math.atan2(lv, W), 'YXZ'); br.setMatrixAt(k++, M.compose(new THREE.Vector3(cx, i * lv + lv / 2, cz), Q.setFromEuler(E), new THREE.Vector3(Math.hypot(W, lv), t * 0.7, t * 0.7))); }
   br.count = k; g.add(br); }
 // per-vehicle set: pad radius from the vehicle, a service tower (Heron family), the catch tower + mount (titan)
+// pad clutter scaled to the pad: horizontal propellant tanks, service trucks, a cable tray to the pad edge, a water tower
+const clutM = { tank: new THREE.MeshStandardMaterial({ color: 0xe4e1d8, roughness: 0.55, metalness: 0.2 }), cab: new THREE.MeshStandardMaterial({ color: 0xc9a227, roughness: 0.6 }), box: new THREE.MeshStandardMaterial({ color: 0x8b8f93, roughness: 0.8 }) };
+function clutter(padR) { const s = padR / 18, add = (m, x, y, z, ry = 0) => { m.position.set(x, y, z); m.rotation.y = ry; stage.add(m); };
+  for (const [a, k] of [[2.5, 1.9], [2.75, 2.0], [3.6, 1.8]]) { const R = 1.4 * s, L = 7 * s, x = Math.cos(a) * padR * k, z = Math.sin(a) * padR * k;
+    const t = new THREE.Mesh(new THREE.CapsuleGeometry(R, L, 4, 12), clutM.tank); t.rotation.z = Math.PI / 2; add(t, x, R + 0.5 * s, z); t.rotation.order = 'YZX'; t.rotation.y = a;
+    for (const e of [-L * 0.35, L * 0.35]) add(new THREE.Mesh(new THREE.BoxGeometry(0.4 * s, R + 0.5 * s, R * 1.6), clutM.box), x + Math.cos(a) * e, (R + 0.5 * s) / 2, z - Math.sin(a) * e, a); } // saddles along the tank axis
+  for (const [a, k, ry] of [[1.2, 1.6, 0.4], [4.4, 1.5, 2.1], [5.3, 2.2, -0.6]]) { const x = Math.cos(a) * padR * k, z = Math.sin(a) * padR * k, g = new THREE.Group();
+    const bed = new THREE.Mesh(new THREE.BoxGeometry(5 * s, 1.6 * s, 2.2 * s), clutM.box); bed.position.set(-0.8 * s, 1.4 * s, 0); const cab = new THREE.Mesh(new THREE.BoxGeometry(1.8 * s, 2 * s, 2.2 * s), clutM.cab); cab.position.set(2.6 * s, 1.6 * s, 0);
+    for (const wx of [-2.6, 0.6, 2.6]) for (const wz of [-1.1, 1.1]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.5 * s, 0.5 * s, 0.35 * s, 10), darkM); w.rotation.x = Math.PI / 2; w.position.set(wx * s, 0.5 * s, wz * s); g.add(w); }
+    g.add(bed, cab); add(g, x, 0, z, ry); }
+  const tray = new THREE.Mesh(new THREE.BoxGeometry(padR * 1.2, 0.5 * s, 1.0 * s), clutM.box); add(tray, -Math.cos(0.3) * padR * 1.6, 0.25 * s, -Math.sin(0.3) * padR * 1.6, 0.3);
+  const wt = new THREE.Group(); const tk = new THREE.Mesh(new THREE.SphereGeometry(3 * s, 16, 10), clutM.tank); tk.position.y = 14 * s; wt.add(tk);
+  for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.78, l = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * s, 0.3 * s, 14 * s, 6), steelM); l.position.set(Math.cos(a) * 2 * s, 7 * s, Math.sin(a) * 2 * s); wt.add(l); }
+  add(wt, Math.cos(3.1) * padR * 3, 0, Math.sin(3.1) * padR * 3); }
 function clearStage() { for (const c of stage.children.slice()) dispose(c); }
-const TABLE = /^(baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
-const TABLE = /^(baltic-hammer|redrock|junebug|pegacorn|dark-dart)/; // ids that stand on a launch table instead of a tower
-const TABLE = /^(diamantine|baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
-const TABLE = /^(scoutling|vantguard|baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
-const TABLE = /^(vantguard|baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
+const TABLE = /^(baltic-hammer|redrock|junebug|pegacorn|dark-dart|diamantine|scoutling|vantguard)/; // ids that stand on a launch table instead of a tower (one list: merged copies)
 function setStage(id, h, rV) { clearStage(); let lift = 0; const small = h < 10;
   const padR = small ? 4 : Math.max(18, rV * 6);
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(padR, padR * 1.06, small ? 0.4 : 1.2, 48), concM); pad.position.y = small ? 0.2 : 0.6; stage.add(pad); lift = small ? 0.4 : 1.2;
   if (small) return lift;
+  clutter(padR);
   if (TABLE.test(id)) { // early-rocket launch table: 4 steel legs, ring top, blast-deflector cone under; no tower (rockets like Baltic Hammer, Redrock)
     const tH = Math.max(1.0, rV * 1.4), top = new THREE.Mesh(new THREE.CylinderGeometry(rV * 1.25, rV * 1.25, 0.18, 24, 1, false), steelM); top.position.y = lift + tH; stage.add(top);
     for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.78, l = new THREE.Mesh(new THREE.BoxGeometry(0.22, tH, 0.22), steelM); l.position.set(Math.cos(a) * rV * 1.15, lift + tH / 2, Math.sin(a) * rV * 1.15); stage.add(l); }
@@ -93,10 +104,10 @@ const { bloom } = await import('three/addons/tsl/display/BloomNode.js'); const {
 const pp = new THREE.PostProcessing(renderer), sp = pass(scene, camera), col = sp.getTextureNode('output'), bl = bloom(col, 0.35, 0.4, 1.4);
 pp.outputNode = q.has('nobloom') ? col : col.add(bl);
 const RADIUS = { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 };
-const RADIUS = { ...Object.fromEntries(['dark-dart'].map(i => [i, 1.0])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 };
-const RADIUS = { ...Object.fromEntries(['europia'].map(i => [i, 2.0])), ...Object.fromEntries(['vegara','vegara-c'].map(i => [i, 1.7])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['arion-5','arion-62','arion-64'].map(i => [i, 2.7])) };
-const RADIUS = { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['new-glendale'].map(i => [i, 3.5])) };
-const RADIUS = { 'moonhammer': 8.4, 'mogutny': 6.0, 'mogutny-glider': 6.0, 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, 'rodnik': 1.47, 'rodnik-2': 1.47, 'lastochka': 1.47, 'pervy': 1.47 };
+Object.assign(RADIUS, { ...Object.fromEntries(['dark-dart'].map(i => [i, 1.0])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 }); // merged copy
+Object.assign(RADIUS, { ...Object.fromEntries(['europia'].map(i => [i, 2.0])), ...Object.fromEntries(['vegara','vegara-c'].map(i => [i, 1.7])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['arion-5','arion-62','arion-64'].map(i => [i, 2.7])) }); // merged copy
+Object.assign(RADIUS, { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['new-glendale'].map(i => [i, 3.5])) }); // merged copy
+Object.assign(RADIUS, { 'moonhammer': 8.4, 'mogutny': 6.0, 'mogutny-glider': 6.0, 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, 'rodnik': 1.47, 'rodnik-2': 1.47, 'lastochka': 1.47, 'pervy': 1.47 }); // merged copy
 let cur = null;
 // shot: { id, opts, hero:true (auto-frame 85 % of the height, low 3/4) | cam/aim in vehicle heights, fov, sunAz (deg, from camera), only, legs, bare (no set) }
 async function shot(s) { if (cur) { dispose(cur); cur = null; } const h = VEHICLES[s.id].height, rV = RADIUS[s.id] || 2;
@@ -104,10 +115,12 @@ async function shot(s) { if (cur) { dispose(cur); cur = null; } const h = VEHICL
   cur = build(s.id, { detail: s.lo ? 'lo' : 'hi', ...(s.opts || {}) }); cur.position.y = s.id === 'catch-tower' ? 0 : lift; stage.add(cur);
   if (s.only) for (const c of cur.children) c.visible = c.name === s.only;
   if (s.legs !== undefined) for (const L of cur.userData.legs || []) setLegs(L, s.legs);
-  const base = s.hero ? 0 : cur.position.y, H = s.hero ? cur.position.y + h : h; // hero: frame the whole stack incl. mount camera.fov = s.fov || 30; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-  const yaw = (s.yaw ?? 40) * Math.PI / 180; let target, pos;
+  const base = s.hero ? 0 : cur.position.y, H = s.hero ? cur.position.y + h : h; camera.fov = s.fov || 30; // hero: frame the whole stack incl. mount
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  const yaw = (s.yaw ?? (s.hero ? 52 : 40)) * Math.PI / 180; let target, pos; // plan #5: hero yaw swings the tower further aside
   if (s.hero) { // fit: vertical span (base..tip) = 85 % of the frame, camera low (slight upward tilt)
-    const span = H / 0.85, d = span / (2 * Math.tan(camera.fov * Math.PI / 360)); target = new THREE.Vector3(0, base + H * 0.5, 0);
+    const fitF = s.fitH ?? (h / (2 * rV) > 12 ? 0.92 : 0.85), span = H / fitF, // plan #5: slender stacks fill more of the frame
+      d = span / (2 * Math.tan(camera.fov * Math.PI / 360)); target = new THREE.Vector3(0, base + H * 0.5, 0);
     pos = new THREE.Vector3(Math.sin(yaw) * d, base + H * 0.5 - d * Math.tan(5 * Math.PI / 180) * 1.0, Math.cos(yaw) * d); pos.y = Math.max(1.6, pos.y - H * 0.18); }
   else if (s.fit) { // fit: frame only the visible stage (s.only) from direction s.fit [x,y,z], 80 % of frame height
     const bb = new THREE.Box3(); cur.updateMatrixWorld(true); for (const c of cur.children) if (c.visible) bb.expandByObject(c);
