@@ -223,9 +223,9 @@ const W1 = (() => { const q = params.get('world1'); let on = q != null ? q !== '
   try { W1_WS.value = 0.001; const U = w1CU({ R: R / 1000 }), tier = worldTier(gfxQ, TOUCH);
     const c = w1Clouds({ weatherTex: GX.tex('earth_clouds', gfxQ, false), tier, R: R / 1000, U });
     const g = new THREE.Group(); g.scale.setScalar(1000); g.add(c.mesh); scene.add(g); clouds.visible = false; clouds.userData.w1 = true;
-    const ep = new THREE.Vector3(), cp = { position: new THREE.Vector3() }, geoM = GX.earthTexMatrix().multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2)), fm = new THREE.Matrix4();
+    const ep = new THREE.Vector3(), cp = { position: new THREE.Vector3(), cam: null, getWorldDirection(v) { return this.cam ? this.cam.getWorldDirection(v) : v.set(0, 0, -1); } }, geoM = GX.earthTexMatrix().multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2)), fm = new THREE.Matrix4();
     c.mesh.onBeforeRender = (r, sc, cam) => { earth.getWorldPosition(ep); g.position.copy(ep); g.updateMatrixWorld(); U.center.value.copy(ep).multiplyScalar(0.001); };
-    return { c, g, U, tier, frame(dt, cam) { earth.getWorldPosition(ep); g.position.copy(ep); U.center.value.copy(ep).multiplyScalar(0.001); c.setSun(sunDirV); fm.extractRotation(earth.matrixWorld).multiply(geoM).invert(); U.frame.value.setFromMatrix4(fm); cp.position.copy(cam.position).multiplyScalar(0.001); c.update(dt, cp);
+    return { c, g, U, tier, frame(dt, cam) { earth.getWorldPosition(ep); g.position.copy(ep); U.center.value.copy(ep).multiplyScalar(0.001); c.setSun(sunDirV); fm.extractRotation(earth.matrixWorld).multiply(geoM).invert(); U.frame.value.setFromMatrix4(fm); cp.cam = cam; cp.position.copy(cam.position).multiplyScalar(0.001); c.update(dt, cp);
       // world-2: the rocket punches a hole in the cloud deck during ascent (capsule in km: the module works in km, the game in metres)
       if (c.setOccluder && (W1.occT = (W1.occT || 0) + 1) % 8 === 0) { const low = typeof v !== 'undefined' && v && state === 'flight' && P.altOf(v) < 15000;
         if (low && rocketG) { c.setOccluder(rocketG, rocketG.up); U.capA.value.multiplyScalar(0.001); U.capB.value.multiplyScalar(0.001); } else c.setOccluder(null); }
