@@ -1,19 +1,29 @@
 // Compact flight HUD (f1u): thin edge strips, one short self-hiding text line, everything secondary in one drawer.
 // It re-parents existing controls (warp arrows, MAP, ☰, TAKE OVER, Pilot buttons, desktop #ctl) so their handlers keep working.
 const $ = id => document.getElementById(id);
+// f2: hints are whole phrases, never cut mid-word with "…". Keep the first clause; if it still runs past
+// two lines (~76 chars) drop trailing comma-clauses, then trailing words at a word boundary.
+export const HINT_MAX = 76;
 export function shortHint(s) {
   if (!s) return '';
-  let t = String(s).replace(/\s+/g, ' ').trim();
-  const cut = [' — ', ' (', '. ', '; ', ': ', ' – '].map(k => t.indexOf(k)).filter(i => i > 8);
+  let t = String(s).replace(/\s+/g, ' ').trim().replace(/…$/, '');
+  const cut = [' — ', ' (', '. ', '; ', ' – ', ' | ', '…'].map(k => t.indexOf(k)).filter(i => i > 8);
   if (cut.length) t = t.slice(0, Math.min(...cut));
-  return t.length > 44 ? t.slice(0, 43).trimEnd() + '…' : t;
+  while (t.length > HINT_MAX && /, (?=[^,]*$)/.test(t)) { const i = t.lastIndexOf(', '); if (i < 8) break; t = t.slice(0, i); }
+  while (t.length > HINT_MAX && t.includes(' ')) t = t.slice(0, t.lastIndexOf(' '));
+  return t.replace(/[,:;\s]+$/, '');
 }
-export function createCompact({ touch, onSpeedTap, onMarkers }) {
+export function createCompact({ touch, onSpeedTap, onMarkers, onEngTap }) {
   document.body.classList.add('cx');
   const strip = document.createElement('div'); strip.id = 'strip';
   strip.innerHTML = `<div id="sL"><div class="c"><b>ALT km</b><i id="sAlt">—</i></div><button class="c" id="sSpdB" title="Speed reference: surface / orbit / target" aria-label="Speed reference"><b id="sSpdL">SRF m/s</b><i id="sSpd">—</i></button><div class="c ev"><b id="sEvL">AP · PE km</b><i id="sEv">—</i></div></div><div id="sR"></div>`;
   document.body.appendChild(strip);
   const hintS = document.createElement('div'); hintS.id = 'hintS'; hintS.setAttribute('role', 'status'); document.body.appendChild(hintS);
+  // Engineer view in the compact language: 8 fixed slots under the strip (phones) or down the left edge (wide)
+  const ENG = [['eMach', 'MACH'], ['eQ', 'Q kPa'], ['eG', 'G'], ['eVs', 'V/S m/s'], ['eDv', 'Δv m/s'], ['eFuel', 'FUEL'], ['eThr', 'THR'], ['eHeat', 'HEAT kW']];
+  const eng = document.createElement('button'); eng.id = 'engS'; eng.className = 'hidden'; eng.setAttribute('aria-label', 'Engineer readouts, tap for the full sheet');
+  eng.innerHTML = ENG.map(([id, l]) => `<span class="c"><b>${l}</b><i id="${id}">—</i></span>`).join(''); document.body.appendChild(eng);
+  eng.onclick = e => { e.currentTarget.blur(); onEngTap && onEngTap(); };
   const R = $('sR');
   $('sSpdB').onclick = e => { e.currentTarget.blur(); onSpeedTap && onSpeedTap(); };
   for (const id of ['wDn', 'wVal', 'wUp']) { const b = $(id); if (b) R.appendChild(b); }
@@ -50,5 +60,6 @@ export function createCompact({ touch, onSpeedTap, onMarkers }) {
     else if (hintText && now - hintT < 5000) { txt = hintText; kind = 'hint'; }
     set('hintS', txt); hintS.className = txt ? 'on ' + kind : '';
   }
-  return { update, strip, drawer };
+  function updateEng(d) { const on = !!d; eng.classList.toggle('hidden', !on); if (!on) return; eng.classList.toggle('pB', Math.floor(performance.now() / 4000) % 2 === 1); for (const k in d) set(k, d[k]); }
+  return { update, updateEng, strip, drawer, eng };
 }

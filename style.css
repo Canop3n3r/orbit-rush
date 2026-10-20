@@ -460,9 +460,9 @@ body.touch #split button{min-width:var(--tap);min-height:var(--tap)}
 body.touch .builder #launchBtn{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:6}
 
 /* ===================== f1u compact remaster: the rocket is the hero ===================== */
-body.cx #pilot,body.cx:not(.eng) #mhud,body.cx #mtop,body.cx #topStack,body.cx #navMode,body.cx #navCue,body.cx #bars,body.cx #warpBar,body.cx.touch #badge{display:none!important}
-body.cx:not(.eng) #tele,body.cx:not(.eng) #heat{display:none!important}
-body.cx.touch.sheet #tele{display:block!important}
+body.cx #pilot,body.cx #mhud,body.cx #mtop,body.cx #topStack,body.cx #navMode,body.cx #navCue,body.cx #bars,body.cx #warpBar,body.cx.touch #badge{display:none!important}
+body.cx:not(.sheet) #tele,body.cx #heat{display:none!important}
+
 #hud.hidden ~ #strip,#hud.hidden ~ #hintS,body.photo #strip,body.photo #hintS,body.photo #craftTag{display:none!important}
 #strip{position:fixed;z-index:24;top:calc(6px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px));right:calc(6px + env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;font-variant-numeric:tabular-nums}
 #sL,#sR{display:flex;gap:4px;pointer-events:auto}
@@ -521,3 +521,20 @@ body.cx .navWrap{width:calc(var(--nb) + 44px)}
 body.mapOn #hintS{display:none!important}
 @media (orientation:landscape) and (max-height:500px){body.cx.touch #hintS{top:calc(14px + env(safe-area-inset-top,0px));max-width:calc(100vw - 540px)}body.cx.touch #nav{--nb:72px}}
 #pMark[aria-pressed="true"]{background:#1d5fae!important;border-color:#8fd0ff!important}
+/* f2: hint = whole phrases, up to two lines in a fixed-width pill */
+#hintS{height:auto;min-height:28px;max-height:46px;white-space:normal;text-overflow:clip;line-height:18px;padding:4px 14px;border-radius:14px;text-align:center;width:max-content;max-width:min(440px,calc(100vw - 24px))}
+@media (orientation:landscape) and (max-height:500px){body.cx.touch #hintS{max-width:calc(100vw - 540px)}}
+/* f2: Engineer view = 8 fixed cells in the strip language; tap for the full sheet */
+#engS{position:fixed;z-index:23;display:grid;grid-template-columns:repeat(4,auto);gap:4px;padding:0;margin:0;background:none;border:0;cursor:pointer;font-variant-numeric:tabular-nums;top:calc(56px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px))}
+#engS.hidden{display:none}
+#engS .c{width:88px;height:36px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--glass);border:1px solid var(--line);border-radius:9px;-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);color:var(--txt)}
+#engS .c b{font:700 8px/1.1 var(--ui);letter-spacing:.5px;color:var(--dim)}#engS .c i{font:700 13px/1.15 var(--mono);font-style:normal;font-variant-numeric:tabular-nums;white-space:nowrap}
+body.eng #hintS{top:calc(138px + env(safe-area-inset-top,0px))}
+@media (orientation:landscape) and (max-height:500px){#engS{grid-template-columns:repeat(2,auto);top:calc(56px + env(safe-area-inset-top,0px))}#engS .c{width:76px;height:42px}body.eng #hintS{top:calc(14px + env(safe-area-inset-top,0px))}}
+body.cx:not(.touch) #engS{grid-template-columns:repeat(2,auto);top:70px;left:16px}body.cx:not(.touch) #engS .c{width:96px;height:44px}body.cx:not(.touch).eng #hintS{top:66px}
+body.cx.sheet #tele{position:fixed!important;z-index:29;display:block!important;left:calc(6px + env(safe-area-inset-left,0px));top:calc(140px + env(safe-area-inset-top,0px));right:auto;bottom:auto;width:min(380px,calc(100vw - 12px));max-height:calc(100vh - 320px);overflow:auto;padding:10px 12px;box-sizing:border-box;background:var(--glass);border:1px solid var(--line);border-radius:var(--r);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);font-size:11px}
+body.cx:not(.touch).sheet #tele{top:300px;max-height:calc(100vh - 340px)}
+@media (orientation:landscape) and (max-height:500px){body.cx.sheet #tele{left:auto;right:calc(140px + var(--sar));top:56px;width:340px;max-height:calc(100vh - 66px)}}
+body.mapOn #engS,body.photo #engS{display:none!important}
+@media (orientation:landscape) and (max-height:500px){#engS .c{width:64px;height:36px}#engS:not(.pB) .c:nth-child(n+5),#engS.pB .c:nth-child(-n+4){display:none}body.eng #craftTag{display:none!important}}
+body.sheet #craftTag{display:none!important}
