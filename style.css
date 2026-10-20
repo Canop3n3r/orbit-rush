@@ -568,3 +568,4 @@ body.home #build,body.home #badge{display:none!important}
 #homeBack{margin-right:6px}
 #hGearM{position:fixed;z-index:31;top:calc(60px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));width:min(300px,calc(100vw - 28px));padding:10px 12px;box-sizing:border-box;display:grid;gap:8px;background:var(--glass);border:1px solid var(--line);border-radius:16px;-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:var(--shadow);color:var(--txt)}
 #hGearM.hidden{display:none}#hGearM button{min-height:44px;width:100%}#hGearM label{display:flex;justify-content:space-between;align-items:center;min-height:44px;font:600 13px var(--ui)}#hGearM select{min-height:36px}
+@media (orientation:portrait){body.touch #engS .c{width:80px;height:44px}body.touch.eng #hintS{top:calc(108px + env(safe-area-inset-top,0px))}}
