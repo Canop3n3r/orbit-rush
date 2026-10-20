@@ -13,17 +13,31 @@ export function projectY(cam, aim, p, fovDeg) { // screen y as a fraction from t
   const f = norm(sub(aim, cam)), r = norm(cross(f, [0, 1, 0])), u = cross(r, f), v = sub(p, cam);
   return (1 - dot(v, u) / dot(v, f) / Math.tan(fovDeg * Math.PI / 360)) / 2; }
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], norm = a => { const l = Math.hypot(...a); return a.map(x => x / l); };
-export function frameRocket({ h: hIn, fovDeg = 40, aspect = 1, free = {}, fill = 0.7, of = 'screen', yaw = 0.6, elev = 0.08, safeTop = 48, padPx = 6, radius, topRadius, bounds, object, screenH = (typeof innerHeight !== 'undefined' ? innerHeight : 844) }) {
-  // bounds: a THREE.Box3 / {min,max} in rocket space (base at min.y), or object (Object3D: its world Box3 is taken).
-  // With bounds all 8 corners are projected (blunt/flat tops, wide bases); else the bbox corners of round bodies of radius (base) / topRadius (top), default 0.09 h.
-  if (object && !bounds && object.isObject3D) { object.updateMatrixWorld(true); const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9]; object.traverse(o => { if (!o.isMesh || !o.visible) return; o.geometry.computeBoundingBox(); const b = o.geometry.boundingBox; for (let i = 0; i < 8; i++) { const v = b.min.clone().set(i & 1 ? b.max.x : b.min.x, i & 2 ? b.max.y : b.min.y, i & 4 ? b.max.z : b.min.z).applyMatrix4(o.matrixWorld); for (const [k, a] of ['x', 'y', 'z'].entries()) { mn[k] = Math.min(mn[k], v[a]); mx[k] = Math.max(mx[k], v[a]); } } }); bounds = { min: { x: mn[0], y: mn[1], z: mn[2] }, max: { x: mx[0], y: mx[1], z: mx[2] } }; }
-  let h = hIn; if (bounds) h = h ?? (bounds.max.y - bounds.min.y); // bounds assumed to have base at min.y; corners projected relative to it
-  if (bounds) { const y0 = bounds.min.y; bounds = { min: { ...bounds.min, y: 0 }, max: { ...bounds.max, y: bounds.max.y - y0 } }; }
-  radius ??= bounds ? Math.max(Math.abs(bounds.min.x), Math.abs(bounds.max.x), Math.abs(bounds.min.z), Math.abs(bounds.max.z)) : 0.09 * h;
-  topRadius ??= radius; // blunt/flat-top safe default; pass topRadius: 0 for a needle nose
-  const ring = (y, r) => r > 0 ? [[r, y, r], [r, y, -r], [-r, y, r], [-r, y, -r]] : []; // bbox corners of a round body of radius r (matches full-mesh-bounds measurement)
-  const corners = y => [0, 1, 2, 3].map(i => [i & 1 ? bounds.max.x : bounds.min.x, y, i & 2 ? bounds.max.z : bounds.min.z]);
-  const TOP = bounds ? corners(h) : [[0, h, 0], ...ring(h, topRadius)], BASE = bounds ? corners(0) : [[0, 0, 0], ...ring(0, radius)];
+export function frameRocket({ h: hIn, fovDeg = 40, aspect = 1, free = {}, fill = 0.7, of = 'screen', yaw = 0.6, elev = 0.08, safeTop = 48, padPx = 6, radius, topRadius, bounds, object, profile, screenH = (typeof innerHeight !== 'undefined' ? innerHeight : 844) }) {
+  // Real-silhouette projection (QA perf_rockets-3d): never project bbox corners (they sit r*sqrt2 off-axis, outside a round body).
+  // object (Object3D): its visible meshes' WORLD-space vertices (sampled, <= ~4000 total) are projected; base = lowest vertex y.
+  // bounds (Box3/{min,max}) only: 16 points on the ellipse inscribed in the box at the top and base planes.
+  // profile: [[y, r], ...] silhouette rings (m, y from the base), e.g. a blunt/ogive nose; else rings at y=0 (radius) and y=h (topRadius, default = radius, 0 = needle).
+  const N = 16, ring = (y, rx, rz = rx, cx = 0, cz = 0) => rx > 0 || rz > 0 ? Array.from({ length: N }, (_, i) => [cx + rx * Math.cos(2 * Math.PI * i / N), y, cz + rz * Math.sin(2 * Math.PI * i / N)]) : [[cx, y, cz]];
+  let PTS = null, h = hIn;
+  if (object && object.isObject3D) {
+    object.updateMatrixWorld(true); const meshes = []; let total = 0;
+    object.traverse(o => { if (o.isMesh && o.visible && o.geometry?.attributes?.position) { meshes.push(o); total += o.geometry.attributes.position.count; } });
+    const step = Math.max(1, Math.ceil(total / 4000)), raw = [], all = []; let y0 = Infinity, y1 = -Infinity;
+    for (const o of meshes) { const pa = o.geometry.attributes.position, e = o.matrixWorld.elements;
+      for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), w = e[3] * x + e[7] * y + e[11] * z + e[15], wy = (e[1] * x + e[5] * y + e[9] * z + e[13]) / w;
+        y0 = Math.min(y0, wy); y1 = Math.max(y1, wy); all.push([o, i, wy]); } }
+    const band = 0.03 * (y1 - y0); // every vertex near the tip / base plane is kept; the rest is sampled
+    for (let k = 0; k < all.length; k++) { const [o, i, wy] = all[k]; if (k % step && wy > y0 + band && wy < y1 - band) continue;
+      const pa = o.geometry.attributes.position, e = o.matrixWorld.elements, x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), w = e[3] * x + e[7] * y + e[11] * z + e[15];
+      raw.push([(e[0] * x + e[4] * y + e[8] * z + e[12]) / w, wy, (e[2] * x + e[6] * y + e[10] * z + e[14]) / w]); }
+    if (raw.length) { PTS = raw.map(v => [v[0], v[1] - y0, v[2]]); h = hIn ?? (y1 - y0); }
+  }
+  if (!PTS && bounds) { const y0 = bounds.min.y; h = hIn ?? (bounds.max.y - y0); const cx = (bounds.min.x + bounds.max.x) / 2, cz = (bounds.min.z + bounds.max.z) / 2, rx = (bounds.max.x - bounds.min.x) / 2, rz = (bounds.max.z - bounds.min.z) / 2;
+    PTS = [...ring(0, rx, rz, cx, cz), ...ring(bounds.max.y - y0, rx, rz, cx, cz)]; }
+  if (!PTS) { radius ??= 0.09 * h; topRadius ??= radius;
+    PTS = [...ring(0, radius), ...(profile ? profile.flatMap(([y, r]) => ring(y, r)) : ring(h, topRadius))]; }
+  const TOP = PTS, BASE = PTS; // highest / lowest projected point of the whole silhouette
   const safe = Math.max(safeTop, safeAreaTopPx()) / screenH, pad = padPx / screenH;
   const top = Math.max(free.top || 0, safe), bottom = (free.bottom || 0) + pad, left = free.left || 0, right = free.right || 0;
   const freeH = 1 - top - bottom, freeW = 1 - left - right, vfov = fovDeg * Math.PI / 180, T = Math.tan(vfov / 2);
