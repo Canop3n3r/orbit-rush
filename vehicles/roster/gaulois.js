@@ -8,9 +8,9 @@ export const ENGINES_GAULOIS = {
 export const ROSTER_GAULOIS = [
   { id: 'diamantine', name: "Diamantine", company: 'gaulois', src: 'spec:diamantine', area: 1.5, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
-      { engines: {'ga-e1': 1}, dry: 2500, prop: 17800, burn: 119.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb f708c45)' },
-      { engines: {'ga-e2': 1}, dry: 350, prop: 4450, burn: 62.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb f708c45)' },
-      { engines: {'ga-e3': 1}, dry: 62, prop: 738, burn: 46.5, group: 2, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb f708c45)' },
+      { engines: {'ga-e1': 1}, dry: 2500, prop: 17800, burn: 119.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
+      { engines: {'ga-e2': 1}, dry: 350, prop: 4450, burn: 62.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
+      { engines: {'ga-e3': 1}, dry: 62, prop: 738, burn: 46.5, group: 2, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
     ],
     modes: [{ variant: 'leo', payload: 150, orbit: { hp: 500, ha: 500, inc: 5.0 }, src: "spec:diamantine#ref (manufacturer history: up to 150 kg to 500 km LEO; 5 deg inclination from the national space-history dossier)", est: [] , knownGap: "model +145 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
 ];
