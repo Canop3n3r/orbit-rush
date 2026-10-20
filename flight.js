@@ -656,6 +656,7 @@ export class Flight {
       if (!this.ignited) { v.throttle = 0; v.steerDir = null; }
       else if (this.ret) { v.throttle = v.cur <= this.lastPow ? v.ut : 0; if (!this.ret.auto) v.steerDir = null; }
       else if (this.autoOn && !v.clamped) {
+        if (v.ascentTable) v.ascentMet = this.met; // PR #12 hook: table-driven stage-1 ascent
         const gd = P.autoGuide(v); v.steerDir = gd.dir;
         if (gd.phase === 'done' && v.ut > 0) { v.ut = 0; if (!f.cutoff) { f.cutoff = 1; this.toast('AUTO cutoff — orbit reached', '#7dffa6'); } }
         v.throttle = v.auto ? gd.throttle : this.autoThrottle ? Math.min(v.ut, gd.throttle) : v.ut;

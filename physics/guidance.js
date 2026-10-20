@@ -100,8 +100,11 @@ export function autoGuide(v) {
         const vh = len(add(v.v, scale(f.up, -vr))), gEff = Math.max(g - vh * vh / r, 0.5), vrCap = Math.sqrt(2 * gEff * Math.max(TARGET_AP - h, 0));
         // in vacuum a weak upper stage that can't hold the floor still leans downrange (building speed beats hovering)
         const cosMax = qPa < 1000 && v.cur > 0 ? 0.75 : 0.999;
-        pitch = Math.min(pitch, holdPitch(v, f, Math.min(g * tFloor, vrCap), 0.06, cosMax));
-        if (qPa < 5000) pitch = Math.max(pitch, holdPitch(v, f, vrCap, 0.06));
+        // f4: a vacuum upper stage past the target apoapsis may sag (down to ~160 km) instead of hovering against gravity
+        const weak = v.cur > 0 && s && s.eng && s.eng.tv * 1000 * s.n < 1.1 * g * m, sag = weak && qPa < 1000 && o.ap >= TARGET_AP - 1000 ? -0.6 * Math.sqrt(2 * gEff * Math.max(h - (TARGET_PE + 10000), 0)) : 0;
+        pitch = Math.min(pitch, holdPitch(v, f, sag || Math.min(g * tFloor, vrCap), 0.06, cosMax));
+        if (qPa < 5000) pitch = Math.max(pitch, holdPitch(v, f, sag || vrCap, 0.06));
+        if (weak && qPa < 1000 && o.ap >= TARGET_AP - 1000) pitch = holdPitch(v, f, sag, 0.06); // lofted hand-back: may pitch below the horizon to stop the climb (f4)
       }
     }
     const tMax = s && s.eng ? s.eng.tv * 1000 * s.n : 0;
