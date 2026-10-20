@@ -57,6 +57,21 @@ print(json.dumps(out))`;
 { const c = readFileSync(new URL('co_taiga.js', dir), 'utf8'); for (const id of ['taiga-1','taiga-a5']) ok(c.includes(`'${id}':`), 'co_taiga id ' + id); ok(!realHit(c), 'co_taiga.js: no real names'); }
 { const c = readFileSync(new URL('co_lingvolt.js', dir), 'utf8'); for (const id of ['scoutling','scoutling-x1']) ok(c.includes(`'${id}':`), 'co_lingvolt id ' + id); ok(!realHit(c), 'co_lingvolt.js: no real names'); }
 { const c = readFileSync(new URL('co_vantguard.js', dir), 'utf8'); for (const id of ['vantguard']) ok(c.includes(`'${id}':`), 'co_vantguard id ' + id); ok(!realHit(c), 'co_vantguard.js: no real names'); }
+// space-center sites (art-sites-N): every gfx/sites/site_<id>.js is pure layout data; kinds exist in the kit, coordinates valid, names clean
+{ const { readdirSync } = await import('node:fs'); const sd = new URL('../gfx/sites/', import.meta.url), G = await import('../gfx/sites/geo.js?v=art1');
+  const KINDS = [...readFileSync(new URL('kit.js', sd), 'utf8').matchAll(/^  ([a-z]+)\(K, o\)/gm)].map(m => m[1]), REUSE = ['cape-north', 'lz1', 'cape-heritage', 'gulf-port'];
+  ok(KINDS.length >= 15, `site kit part kinds (${KINDS.length})`); for (const f of readdirSync(sd)) { const c = readFileSync(new URL(f, sd), 'utf8'); ok(!realHit(c), `gfx/sites/${f}: no real names`); if (f.endsWith('.js')) ok(!/InstancedMesh/.test(c), `gfx/sites/${f}: no InstancedMesh`); }
+  for (const f of readdirSync(sd).filter(f => /^site_[a-z0-9-]+\.js$/.test(f))) { const { SITE: S } = await import(new URL(f + '?v=art1', sd)); const id = f.slice(5, -3);
+    ok(S.id === id, `${f}: id ${S.id}`); ok(['earth', 'moon', 'mars', 'generic'].includes(S.body), `${id}: body ${S.body}`); ok(Math.abs(S.lat) <= 90 && Math.abs(S.lon) <= 180, `${id}: lat/lon in range`);
+    ok(!/\(/.test(S.name), `${id}: name has no parenthetical`); for (const o of [...S.layout, ...(S.stations || []).flatMap(s => s.layout)]) ok(KINDS.includes(o.k), `${id}: part kind ${o.k}`);
+    const kinds = new Set(S.layout.map(o => o.k)), st = (S.stations || []).flatMap(s => s.layout.map(o => o.k));
+    if (S.body === 'earth') { ok(kinds.has('pad') || kinds.has('catch') || kinds.has('lz'), `${id}: has a pad`); ok(kinds.has('vab') || kinds.has('hangar'), `${id}: has an assembly building`); for (const k of ['tanks', 'road', 'masts', 'water']) ok(kinds.has(k), `${id}: has ${k}`); }
+    else ok(S.sandbox && (kinds.has('lz') || kinds.has('pad')), `${id}: off-world sandbox pad`);
+    const landing = kinds.has('lz') && S.body === 'earth' || st.includes('droneship'); ok(REUSE.includes(id) ? landing : !landing && !st.length, `${id}: landing zones/droneships only at reusable-booster sites (${landing})`);
+    const u = G.upDir(S.body, S.lat, S.lon), m = G.siteMatrix(S.body, S.lat, S.lon, 1); ok(Math.abs(Math.hypot(...u) - 1) < 1e-9 && Math.abs(m[4] - u[0]) + Math.abs(m[5] - u[1]) + Math.abs(m[6] - u[2]) < 1e-9, `${id}: local +Y = surface normal`);
+    for (const s of S.stations || []) { const o = G.localOffset(S.body, S.lat, S.lon, s.lat, s.lon); ok(o[1] < 0 && Math.hypot(o[0], o[2]) > 1e5, `${id}: station ${s.id} downrange (${(Math.hypot(o[0], o[2]) / 1000).toFixed(0)} km)`); } }
+  { const p = G.upDir('earth', 28.6084, -80.6043); ok(Math.abs(p[0] - 1) < 1e-9, 'sites: game pad maps to Earth-fixed +x'); const o = G.localOffset('earth', 28.6084, -80.6043, 28.6084, -80.5); ok(o[0] > 9000 && Math.abs(o[2]) < 50, 'sites: +X is east'); const n = G.localOffset('earth', 28.6084, -80.6043, 28.7, -80.6043); ok(n[2] < -9000, 'sites: -Z is north'); }
+  console.log(`vehicles_art (sites): ${pass} passed, ${fail} failed`); if (fail) process.exit(1); }
 console.log(`vehicles_art: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
 // noses/fairings: every profile's narrowest point is its highest point (tips point +Y, away from the engines)
 const PR = await import('../gfx/vehicles/profiles.js');
