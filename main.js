@@ -1861,6 +1861,7 @@ function startMission(id, plan) { // f5.1h: no plan -> the mission card (choose 
   fun.call(m.icon, m.name + ' — ' + autoNote(plan.auto, plan.design.name || 'rocket'), '#ffe9b0', true); camDist = 120; camYaw = 0.9; camPitch = 0.08;
 }
 function houseRows() { const houses = []; for (const [h, ids] of Object.entries(HOUSE_SETS)) if (h !== 'originals') for (const mid of ids) { const b = pickBase(STAGE_KEYS[mid] || [], (ART[mid] && ART[mid].height) || 50); if (SHOW.some(x => x.id === b) && !specFor(mid)) houses.push({ model: mid, name: houseName(mid), base: b }); } return houses; }
+const rowLocked = r => !!lockWhy('vehicles', r.base === 'booster-2' ? 'atlas' : r.base);
 const curRocket = () => ({ name: design.name || 'Your rocket', model: pickModel || design.model || null, ok: validate(design).ok, sub: !!design.sub });
 // f5.2 (QA f5.1h P1): one compact card for missions and career fly rungs. The player's rocket is kept when it qualifies;
 // otherwise the recommended one is preselected with a visible line, and the player can tap back. Fly / AUTO are equal, neither preselected.
@@ -1879,7 +1880,7 @@ function openRocketCard(title, ch, go) {
 }
 function openMissionCard(id) {
   const m = MISSIONS[id]; if (!m) return;
-  openRocketCard(`${m.icon} ${m.name}`, cardChoice(qualifying(id, SHOW, houseRows()), curRocket(), id !== 'hop'), (d, auto) => startMission(id, launchPlan(d, auto)));
+  openRocketCard(`${m.icon} ${m.name}`, cardChoice(qualifying(id, SHOW, houseRows()), curRocket(), id !== 'hop', rowLocked), (d, auto) => startMission(id, launchPlan(d, auto)));
 }
 let dirPhase = '';
 function directorCam(rdt) { // cinematic cameras per mission phase (the player can still drag / zoom)
@@ -2105,7 +2106,7 @@ function playRung(c) {
   if (c.how === 'op') return startOp(c.op, true);
   if (c.how === 'mission') return startMission(c.mission);
   const vb = SHOW.find(x => x.id === c.vehicle), q = vb ? [{ key: 'o:' + vb.id, name: vb.name, base: vb.id }, ...houseRows().filter(h => h.base === vb.id).slice(0, 6)] : [];
-  const ch = cardChoice(q, curRocket(), c.id !== 'hop' && c.id !== 'karman'); if (c.id === 'hop' || c.id === 'karman') { const me = ch.list.find(r => r.mine); if (me && !ch.note) ch.sel = 'mine'; } // f5.2: Fly ▸ / Next use the mission card's rule
+  const ch = cardChoice(q, curRocket(), c.id !== 'hop' && c.id !== 'karman', rowLocked); if (c.id === 'hop' || c.id === 'karman') { const me = ch.list.find(r => r.mine); if (me && !ch.note) ch.sel = 'mine'; } // f5.2: Fly ▸ / Next use the mission card's rule
   openRocketCard('🎯 ' + rungLabel(c), ch, (d, auto) => { setDesign(d); launch(); try { if (auto) { if (!F.ignited) F.stagePress(); F.setAuto(true, true); } else F.setAuto(false, true); } catch (e) { } fun.call('🎯', rungLabel(c) + ' — ' + autoNote(auto, d.name || 'rocket'), '#ffe9b0', true); });
 }
 addEventListener('career-change', () => { if (home) home.refresh(); });

@@ -68,7 +68,9 @@ export function load(store) {
 export function save(store, s) { try { store.setItem(KEY, JSON.stringify(s)); return true; } catch (e) { return false; } }
 export const sandbox = store => { try { return store.getItem(SANDBOX_KEY) === '1'; } catch (e) { return false; } };
 export const setSandbox = (store, on) => { try { store.setItem(SANDBOX_KEY, on ? '1' : '0'); } catch (e) { } };
-export const isUnlocked = (s, kind, id, sb = false) => sb || !ALL[kind].includes(id) || s.unlocked[kind].includes(id);
+// f5.3 (lead): reaching a rung (every rung below it done) unlocks that rung's recommended rocket, so a card never recommends a locked one
+export const reachedVehicles = s => { const out = new Set(); for (const c of LADDER) { if (c.vehicle) out.add(c.vehicle); if (!s.done[c.id]) break; } return out; };
+export const isUnlocked = (s, kind, id, sb = false) => sb || !ALL[kind].includes(id) || s.unlocked[kind].includes(id) || (kind === 'vehicles' && reachedVehicles(s).has(id));
 export const next = s => LADDER.find(c => !s.done[c.id]) || null;
 // f5.1h (QA): after a rung's flight, Next offers the next open rung further up the ladder (never back down to an old skipped one)
 export const nextAfter = (s, id) => { const k = LADDER.findIndex(c => c.id === id); return k < 0 ? next(s) : LADDER.slice(k + 1).find(c => !s.done[c.id]) || null; };
