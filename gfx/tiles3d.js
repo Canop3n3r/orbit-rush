@@ -17,7 +17,7 @@ export const SITES = {
   // mount stand alone; r0 -> r1 is a dithered soft edge where a game-coloured apron skirt fades into the real ground.
   lc39a:    { name: 'LC-39A, Kennedy Space Center', lat: 28.60822, lon: -80.60413, clip: [190, 250] },
   slc40:    { name: 'SLC-40, Cape Canaveral SFS',   lat: 28.56194, lon: -80.57735, clip: [170, 230] },
-  starbase: { name: 'Starbase, Boca Chica',          lat: 25.99697, lon: -97.15398, clip: [200, 260] },
+  starbase: { name: 'Starbase, Boca Chica',          lat: 25.99617, lon: -97.15440, clip: [200, 260] },
   slc4e:    { name: 'SLC-4E, Vandenberg SFB',        lat: 34.63209, lon: -120.61067, clip: [170, 230] },
 };
 export function tilesSite(params, vehicleId) {
