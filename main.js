@@ -998,7 +998,7 @@ function press(code) {
   if (code === 'Comma') { warpStep(-1); return; }
   if (code === 'KeyG') { if (F.canWarpToAp() || !F.flags.orbit && F.body === 'earth') F.startAutoWarp(); else smap.warpNext(); return; }
   if (code === 'Period') { smap.warpNext(); return; }
-  if (code === 'Digit9') { if (F.exec) { F.setExec(false); toast('Maneuver execution off', '#9cc3ff'); } else F.setExec(true); return; }
+  if (code === 'Digit9') { if (F.exec && opSess) { toast('AUTO is flying the contract burns', '#9cc3ff'); return; } if (F.exec) { F.setExec(false); toast('Maneuver execution off', '#9cc3ff'); } else F.setExec(true); return; }
   if (code === 'KeyY') { F.toggleBooster(); return; }
   if (code === 'KeyB') { if (booster && booster.state === 'flying') camMode = camMode === 'booster' ? 'chase' : 'booster'; else toast('No booster in flight', '#ffb35c'); return; }
   if (F.flags.dead) return;
@@ -1779,7 +1779,7 @@ fun = createFunUI({
   toast, press, audio: funAudio, canvas: renderer.domElement, bodies: () => P.BODIES, bodyColor: id => BODY_COL[id] || '#888',
   setSas: m => { F.setSAS(v.sas === m && m === 'radial' ? 'antiradial' : v.sas === m && m === 'normal' ? 'antinormal' : m); },
   progress: () => PROG, design: () => design, takeOver: () => { if (director && director.active) director.takeOver(); },
-  startMission: id => startMission(id), startOp: id => startOp(id), missionOf: id => missionOf(id), ops: () => opsList, opName: m => opName(m), vname: id => brandVName(id), career: () => { const st = careerUI.state, n = careerUI.next(), inLadder = new Set(LADDER_OPS());
+  startMission: id => startMission(id), startOp: id => startOp(id),  missionOf: id => missionOf(id), ops: () => opsList, opName: m => opName(m), vname: id => brandVName(id), career: () => { const st = careerUI.state, n = careerUI.next(), inLadder = new Set(LADDER_OPS());
     const extra = CAREER.flatMap(t => t.contracts.filter(id => id !== 'practice' && !inLadder.has(id)).map(id => ({ id, model: t.vehicleId })));
     return { cash: st.cash, sci: st.sci, done: Object.keys(st.done).length, of: LADDER.length, next: n ? rungLabel(n) : null, open: () => careerUI.show(true),
       extra, opLock: id => { const e = extra.find(x => x.id === id), sid = e && Object.keys(MODEL_OF).find(k => MODEL_OF[k] === e.model); return sid ? lockWhy('vehicles', sid) : null; } }; }, setPhoto: on => { photoOn = on; if (on) { camDist = Math.max(camDist, 60); } },
@@ -1822,7 +1822,8 @@ function opTick() {
   const S = opSess, el = document.getElementById('opTask'); if (!S) { if (el) el.hidden = true; return; }
   S.tick(F);
   const tk = S.task; if (tk && tk.kind === 'execute-node' && F.flags.orbit && F.nodes.length && !F.exec && F.setExec) F.setExec(true); // QA f5a.2: career ops fly their nodes on AUTO (the toast promises it)
-  if (el) { const t = S.task; el.hidden = !t; if (t) el.innerHTML = t.kind === 'execute-node' ? `<b>▶ Burn ${t.burn}${t.of ? '/' + t.of : ''}</b> ${t.label} <small>${F.nodes.length ? (F.exec ? 'AUTO burns' : TOUCH ? 'MAP ▸ ◆ Node ▸ ▶ Execute' : '9 / ◆ Execute') : ''}</small>` : `<b>▶</b> ${t.label || t.kind}`; }
+  if (el && !S.task && !S.done && !S.failed) { el.hidden = false; el.innerHTML = `<b>▶</b> ${F.flags.orbit ? 'Lining up the next step' : 'Climb to orbit'} <small>AUTO</small>`; } // QA f5b.3: the contract task shows from liftoff (never a blank gap)
+  else if (el) { const t = S.task; el.hidden = !t; if (t) el.innerHTML = t.kind === 'execute-node' ? `<b>▶ Burn ${t.burn}${t.of ? '/' + t.of : ''}</b> ${t.label} <small>${F.nodes.length ? (F.exec ? 'AUTO burns' : TOUCH ? 'MAP ▸ ◆ Node ▸ ▶ Execute' : '9 / ◆ Execute') : ''}</small>` : `<b>▶</b> ${t.label || t.kind}`; }
   if (S.done || S.failed || F.flags.dead) opEnd();
 }
 function startMission(id) {
@@ -2091,7 +2092,7 @@ function plumeAudit() {
   for (const p of smoke.d) { if (p.life <= 0) continue; const d = [p.x - base[0], p.y - base[1], p.z - base[2]], along = V.dot(d, vh); if (along > 60 || along < -400) continue; const lat = V.len(V.addS(d, vh, -along)); if (p.max - p.life > 2.5) continue; n++; s2 += lat * lat; mx = Math.max(mx, lat); }
   out.smoke = { samp: smoke.d.filter(p => { if (p.life <= 0 || p.max - p.life > 2.5) return false; const al = V.dot([p.x - base[0], p.y - base[1], p.z - base[2]], vh); return al < 60 && al > -400; }).slice(0, 10).map(p => { const d = [p.x - base[0], p.y - base[1], p.z - base[2]], al = V.dot(d, vh); return [+(p.max - p.life).toFixed(1), Math.round(al), Math.round(V.len(V.addS(d, vh, -al)))]; }), n, rms: n ? +Math.sqrt(s2 / n).toFixed(1) : 0, max: +mx.toFixed(1) }; return out;
 }
-window.__game = { get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
+window.__game = { opDbg: () => ({ on: !!opSess, id: opSess && opSess.m.id, done: opSess && opSess.done, failed: opSess && opSess.failed, task: opSess && opSess.task && opSess.task.kind, lastOp, ended: F.ended, state }), get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
     const c0 = b.mesh.getWorldPosition(new THREE.Vector3()), p0 = c0.clone().project(cam), p1 = c0.clone().add(ny.clone().multiplyScalar(10)).project(cam), up = V.norm(b.r);
     const cu = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion), crt = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
     return { id: b.id || 'A', replay: !!(i === 0 && split.replay), state: b.state, phase: b.phase, meshVsDir: +(ny.x * b.dir[0] + ny.y * b.dir[1] + ny.z * b.dir[2]).toFixed(3), dirUp: +V.dot(b.dir, up).toFixed(3), noseScreenUp: +(p1.y - p0.y).toFixed(4), onScreen: Math.abs(p0.x) < 1 && Math.abs(p0.y) < 1 && p0.z < 1, camUpRadial: +(cu.x * up[0] + cu.y * up[1] + cu.z * up[2]).toFixed(3), roll: +(crt.x * up[0] + crt.y * up[1] + crt.z * up[2]).toFixed(3), R2: S.dbg.R2 }; }), dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds, lod: earthLOD.group }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
