@@ -127,3 +127,5 @@ export { ROSTER_MARTELL, ENGINES_MARTELL } from './roster/martell.js';
 export { ROSTER_CONVAIR, ENGINES_CONVAIR } from './roster/convair.js';
 // Roster company 'douglas' (data only, neutral ids; spec:loss-model): see vehicles/roster/douglas.js
 export { ROSTER_DOUGLAS, ENGINES_DOUGLAS } from './roster/douglas.js';
+// Roster company 'yuzhno' (data only, neutral ids; spec:loss-model): see vehicles/roster/yuzhno.js
+export { ROSTER_YUZHNO, ENGINES_YUZHNO } from './roster/yuzhno.js';
