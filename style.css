@@ -781,3 +781,4 @@ body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #h
 .palRow .palH.on{background:#2b5fd9;border-color:#6d9bff}
 .palRow .palH img{width:24px;height:24px;filter:invert(1)}
 .palRow .palH::after{display:none!important}
+#hMis.hidden{display:none}
