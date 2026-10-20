@@ -1,0 +1,31 @@
+// f2h home screen: a rocket showroom. The 3D rocket on the pad is the hero; a slim glass card shows the name,
+// role and three bars, one big FLY and one small mission button. Bottom: Fly · Build · Missions · Atlas. Gear: settings.
+const $ = id => document.getElementById(id);
+export function createHome({ list, onSelect, onFly, onMission, onBuild, onMissions, onAtlas, onGear }) {
+  const el = document.createElement('div'); el.id = 'home'; el.className = 'hidden';
+  el.innerHTML = `<div id="hTop"><div class="hLogo">ORBIT <b>RUSH</b></div><button id="hGear" aria-label="Settings" title="Settings">⚙</button></div>
+  <button id="hPrev" class="hArr" aria-label="Previous rocket">‹</button><button id="hNext" class="hArr" aria-label="Next rocket">›</button>
+  <div id="hCard"><div class="hRow"><div><div id="hName"></div><div id="hRole"></div></div><div id="hCount"></div></div>
+    <div id="hBars">${['power', 'range', 'difficulty'].map(k => `<div class="hb"><span>${k === 'power' ? 'Power' : k === 'range' ? 'Range' : 'Difficulty'}</span><i><b id="hb_${k}"></b></i></div>`).join('')}</div>
+    <div class="hRow hAct"><button id="hFly">FLY</button><button id="hMis"></button></div><div id="hDots">${list.map((_, i) => `<i data-i="${i}"></i>`).join('')}</div></div>
+  <nav id="hNav"><button id="hnFly" class="on">🚀<span>Fly</span></button><button id="hnBuild">🔧<span>Build</span></button><button id="hnMis">🎯<span>Missions</span></button><button id="hnAtlas">🪐<span>Atlas</span></button></nav>`;
+  document.body.appendChild(el);
+  let i = 0, on = false;
+  const set = (k, quiet) => { i = (k + list.length) % list.length; const r = list[i];
+    $('hName').textContent = r.name; $('hRole').textContent = r.role; $('hCount').textContent = `${i + 1} / ${list.length}`;
+    for (const b of ['power', 'range', 'difficulty']) $('hb_' + b).style.width = Math.round(r.bars[b] * 100) + '%';
+    $('hMis').textContent = r.mission ? r.missionLabel + ' ▸' : 'Customize ▸'; $('hMis').title = r.mission ? 'One-tap mission: the director flies it, you watch (or take over)' : 'Open it in the builder as a copy';
+    [...$('hDots').children].forEach((d, j) => d.classList.toggle('on', j === i));
+    if (!quiet) onSelect(i); };
+  const tap = (id, fn) => { $(id).onclick = e => { e.currentTarget.blur(); fn(); }; };
+  tap('hPrev', () => set(i - 1)); tap('hNext', () => set(i + 1)); tap('hFly', () => onFly(i)); tap('hMis', () => (list[i].mission ? onMission(i) : onBuild(i)));
+  tap('hnFly', () => {}); tap('hnBuild', () => onBuild(i)); tap('hnMis', () => onMissions()); tap('hnAtlas', () => onAtlas()); tap('hGear', () => onGear());
+  $('hDots').onclick = e => { const d = e.target.closest('i'); if (d) set(+d.dataset.i); };
+  // swipe anywhere that is not a control
+  let sx = null, sy = 0;
+  el.addEventListener('pointerdown', e => { if (e.target.closest('button,#hCard')) return; sx = e.clientX; sy = e.clientY; });
+  el.addEventListener('pointerup', e => { if (sx === null) return; const dx = e.clientX - sx, dy = e.clientY - sy; sx = null; if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) set(i + (dx < 0 ? 1 : -1)); });
+  document.addEventListener('keydown', e => { if (!on || e.target.closest && e.target.closest('input,select,textarea')) return; if (e.code === 'ArrowRight') set(i + 1); else if (e.code === 'ArrowLeft') set(i - 1); else if (e.code === 'Enter') onFly(i); });
+  return { el, set, get index() { return i; }, get on() { return on; },
+    show(v) { on = !!v; el.classList.toggle('hidden', !on); document.body.classList.toggle('home', on); } };
+}

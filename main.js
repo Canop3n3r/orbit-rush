@@ -23,6 +23,8 @@ import * as PR from './fun/progress.js?v=f2';
 import { ATLAS, nearestPoi } from './fun/lore.js?v=f2';
 import { createAudio } from './fun/audio.js?v=f2';
 import { createCompact } from './fun/compact.js?v=f2';
+import { createHome } from './fun/home.js?v=f2';
+import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f2';
 import { createFunUI } from './fun/ui.js?v=f2';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
@@ -738,6 +740,7 @@ function reset() {
   showPreview();
 }
 function launch() {
+  if (typeof home !== 'undefined' && home && home.on) home.show(false);
   initAudio(); reset(); state = 'flight'; mobile.buzzed = false;
   const sc = params.get('scenario');
   if (['moon', 'moonsoi', 'mars', 'solar'].includes(sc) && !launch.busy) { launch.busy = true; try { runScenario(sc); } finally { launch.busy = false; } return; }
@@ -756,6 +759,7 @@ function goBuild() {
   if (fun) fun.hideNav();
   reset(); state = 'build';
   $('hud').classList.add('hidden'); mobile.show(false); $('ignite').classList.add('hidden'); $('build').classList.remove('hidden');
+  if (typeof home !== 'undefined' && home && goBuild.toHome !== false) home.show(true);
   refreshBuild();
 }
 let camUserT = -1e9, camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
@@ -1327,7 +1331,7 @@ renderer.setAnimationLoop(() => {
   worldVis(base, O, nose);
   if (state === 'flight' && !F.flags.dead && SG[v.cur]) emit(v, SG[v.cur], pdt, base, nose);
   else for (let j = v.cur; j < SG.length; j++) SG[j].userData.plume.visible = false;
-  const ovl = state === 'build' || (SET.overlay && state === 'flight' && !F.flags.dead && camMode !== 'map');
+  const ovl = (state === 'build' && !(home && home.on)) || (SET.overlay && state === 'flight' && !F.flags.dead && camMode !== 'map');
   comMark.visible = copMark.visible = ovl; cotMark.visible = ovl && !!(v.stages[v.cur] && v.stages[v.cur].eng && v.stages[v.cur].eng.tv > 0);
   if (ovl) { const yB = 0; comMark.position.set(0, tel.ycom, 0); copMark.position.set(0, P.centerOfPressure(P.stackGeom(v), state === 'build' ? 0.5 : Math.max(0.3, tel.mach || 0.5)), 0); cotMark.position.set(0, yB, 0);
     const sc = Math.max(1, stackL() / 40); comMark.scale.setScalar(sc); copMark.scale.setScalar(sc); cotMark.scale.setScalar(sc); }
@@ -1387,7 +1391,11 @@ renderer.setAnimationLoop(() => {
   }
   if (state === 'flight' && (hudT += rdt) > 0.1) { academy.tick(hudT); hudT = 0; hud(); academy.tick(0); academy.renderLearn(); }
   else if (state === 'build' && academy.active && (hudT += rdt) > 0.25) { academy.tick(hudT); hudT = 0; }
-  if (state === 'build') { camYaw += rdt * 0.15; camDist = Math.max(70, stackL() * 1.9); camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.36, 0, innerWidth, innerHeight); }
+  if (state === 'build' && home && home.on) { // showroom: slow cinematic turn, rocket framed above the card (portrait) or beside it (landscape)
+    camYaw += rdt * 0.22; camPitch += (0.05 - camPitch) * Math.min(1, rdt); const land = innerWidth > innerHeight, wide = innerWidth >= 900 && innerHeight >= 600;
+    const Lh = v ? P.stackGeom(v).L : 40; camDist = Math.max(40, Lh * (land && !wide ? 1.6 : wide ? 1.95 : 1.75)); camAim = 0.5;
+    camera.setViewOffset(innerWidth, innerHeight, land && !wide ? innerWidth * 0.2 : 0, land && !wide ? 0 : innerHeight * (wide ? 0.15 : 0.17), innerWidth, innerHeight); }
+  else if (state === 'build') { camYaw += rdt * 0.15; camDist = Math.max(70, stackL() * 1.9); camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.36, 0, innerWidth, innerHeight); }
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   const mapOn = state === 'flight' && camMode === 'map';
   if (smap.state.on !== mapOn) { smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
@@ -1739,9 +1747,25 @@ function testStand() { // static fire: engines lit at full throttle, held down b
 }
 function dropTest() { if (!validate(design).ok) return; launch(); F.placeState({ h: 1500, vUp: 0, vEast: 0, stage: 0, att: 'up', sas: 'stab' }); syncStages(); F.ignited = true; F.flags.liftoff = true; F.met = 20; v.ut = 0; v.throttle = 0; camDist = Math.max(120, stackL() * 3); fun.call('📦', 'DROP TEST — 1.5 km', '#ffd23a', true); }
 $('missionsBtn').onclick = () => fun.openHub(); $('atlasBtn').onclick = () => fun.openAtlas();
+// ---------- f2h: home = rocket showroom; the hangar is its own "Build" mode ----------
+const HOME_KEY = 'orbitrush.homeIdx', SHOW = SHOWROOM.map(r => ({ ...r, bars: showBars(r), missionLabel: missionLabel[r.mission] || '' }));
+var home = createHome({ list: SHOW,
+  onSelect: i => { try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(cloneDesign(SHOW[i].design)); },
+  onFly: i => { setDesign(cloneDesign(SHOW[i].design)); home.show(false); launch(); },
+  onMission: i => { home.show(false); startMission(SHOW[i].mission); },
+  onBuild: i => { goBuild.toHome = false; setDesign(cloneDesign(SHOW[i].design)); home.show(false); refreshBuild(); },
+  onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => $('hGearM').classList.toggle('hidden') });
+{ const g = document.createElement('div'); g.id = 'hGearM'; g.className = 'hidden'; document.body.appendChild(g);
+  const mk = (t, fn) => { const b = document.createElement('button'); b.textContent = t; b.onclick = () => { g.classList.add('hidden'); fn(); }; g.appendChild(b); };
+  for (const id of ['gfxSel', 'fxSel']) { const l = $(id) && $(id).closest('label'); if (l) g.appendChild(l); }
+  mk('⚙ All settings', () => qol.openSettings()); mk('🎓 Lessons (Academy)', () => academy.openMenu()); mk('Credits', () => $('creditsBtn').click());
+  document.addEventListener('pointerdown', e => { if (!g.classList.contains('hidden') && !e.target.closest('#hGearM,#hGear')) g.classList.add('hidden'); }, true);
+  const back = document.createElement('button'); back.id = 'homeBack'; back.className = 'acad'; back.textContent = '‹ Home'; back.title = 'Back to the rocket showroom';
+  back.onclick = () => { goBuild.toHome = true; home.show(true); home.set(home.index); }; const bh = document.querySelector('#build .bhead'); if (bh) bh.prepend(back); }
+if (!params.has('hangar')) { let i0 = 0; try { i0 = +localStorage.getItem(HOME_KEY) || 0; } catch (e) { } home.set(Math.min(SHOW.length - 1, Math.max(0, i0))); home.show(true); }
 $('standBtn').onclick = () => testStand(); $('tunnelBtn').onclick = () => fun.openTunnel(); $('dropBtn').onclick = () => dropTest();
 addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e.preventDefault(); }, true);
 refreshBuild();
 setInterval(() => { const on = state === 'flight' && !replay; if (on !== funShown) { funShown = on; fun.show(on); } }, 200);
 setMarkers(MARK.on);
-window.__game = { heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };
+window.__game = { home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };

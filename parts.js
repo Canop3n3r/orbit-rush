@@ -21,6 +21,8 @@ export const PARTS = {
   'tank-h2': { type: 'tank', name: 'HX-24 Hydrolox Tank', fuel: 24, rho: 0.36, desc: '24 t of liquid hydrogen + oxygen: light but bulky (0.36 t/m³). Feed it to a Lark or an Osprey.' },
   xenon:   { type: 'tank', name: 'XT-2 Xenon Tank', fuel: 2, rho: 2.0, desc: '2 t of xenon for the Glimmer ion thruster: a tiny tank for a huge Δv.' },
   'tank-xl': { type: 'tank', name: 'FT-100 Tank', fuel: 100, desc: '100 t of propellant, 6 t empty.' },
+  'tank-n':  { type: 'tank', name: 'ST-5 Slim Tank', fuel: 5, dia: 1.25, desc: '5 t of propellant in a needle-thin 1.25 m tank: for sounding rockets and slim stacks.' },
+  'tank-w':  { type: 'tank', name: 'WT-150 Wide Tank', fuel: 150, dia: 5, desc: '150 t of propellant in a 5 m wide tank: the backbone of heavy lifters.' },
   'tank-r':  { type: 'tank', name: 'RT-40 Booster Tank', fuel: 40, dia: 1.8, desc: '40 t of propellant in a slim 1.8 m tank: made for radial boosters.' },
   thumper: { type: 'engine', name: 'Thumper', tv: 950, ispSl: 285, ispVac: 312, m: 0.55, h: 2.4, gimbal: 5 * DEG, desc: 'High-thrust kerosene booster engine (868 kN at sea level). 5° gimbal.' },
   bison:   { type: 'engine', name: 'Bison', tv: 2400, ispSl: 291, ispVac: 318, m: 1.7, h: 3.3, gimbal: 5 * DEG, desc: 'Heavy-lift kerosene engine (2.2 MN at sea level) for big boosters. 5° gimbal.' },
