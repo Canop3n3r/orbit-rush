@@ -24,13 +24,13 @@ export const ENGINES_ORBITRON = {
   'ob-e21': { tSl: 0, tVac: 68.7, ispSl: 0, ispVac: 292.1, src: 'spec:engines#ob-e21' },
 };
 export const ROSTER_ORBITRON = [
-  { id: 'pegacorn', name: "Pegacorn", company: 'orbitron', src: 'spec:pegacorn', area: 1.3, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'pegacorn', name: "Pegacorn", company: 'orbitron', src: 'spec:pegacorn', masses: "spec:pegacorn#masses (user's guide 2.1: release at 11,900 m, Mach 0.82 level, stage 1 ignition 5 s after release; Mach 0.82 = 242 m/s and density ratio 0.258 at 11.9 km from the 1976 standard atmosphere)", airLaunch: { alt: 11900, speed: 242, rhoRatio: 0.258 }, area: 1.3, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
-      { engines: {'ob-e1': 1}, dry: 2000, prop: 15000, burn: 73.4, group: 0, recovery: 'expended', src: 'GCAT' },
+      { engines: {'ob-e1': 1}, dry: 2000, prop: 15000, burn: 73.4, group: 0, igniteAt: 5, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e2': 1}, dry: 373, prop: 3958, burn: 72.5, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'ob-e3': 1}, dry: 126, prop: 774, burn: 69.6, group: 2, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 221, orbit: { hp: 741, ha: 741, inc: 90.0 }, src: "spec:pegacorn#ref (user's guide fig. 3-1: 221 kg to 741 km circular polar from the west-coast range; air-launched)", est: [] , knownGap: "model +21 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 221, orbit: { hp: 741, ha: 741, inc: 90.0 }, src: "spec:pegacorn#ref (user's guide fig. 3-1: 221 kg to 741 km circular polar from the west-coast range; air-launched)", est: [] , knownGap: "model +60 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'antarion', name: "Antarion", company: 'orbitron', src: 'spec:antarion', area: 11.9, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'ob-e4': 2}, dry: 18715, prop: 241985, burn: 215.0, group: 0, recovery: 'expended', src: 'GCAT' },
