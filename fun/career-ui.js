@@ -14,7 +14,7 @@ export function createCareerUI({ store, name, onPlay }) {
     S = L.load(store); const nx = L.next(S), done = L.LADDER.filter(c => S.done[c.id]).length, sand = sb();
     const rows = L.LADDER.map((c, i) => { const st = S.done[c.id] ? 'done' : L.rungLocked(c) ? 'soon' : c === nx ? 'next' : 'locked'; // QA f5a.2: placeholder-vehicle rungs show locked with a reason
       // f5b (QA P2): one line per rung; the goal, vehicle and unlocks live in the tooltip and the NEXT block
-      return `<li class="cr ${st}" title="${esc(c.goal + ' · ' + name.vehicle(c.vehicle) + (unlockList(c).length ? ' → ' + unlockList(c).join(', ') : ''))}"><span class="crI">${st === 'done' ? '✓' : st === 'next' ? '▶' : st === 'soon' ? '🔒' : i + 1}</span><div class="crT"><b>${esc(rungName(c))}</b><small class="crR">${st === 'soon' ? '🔒 coming soon — its rocket is still being built' : rw(c.reward)}</small></div></li>`; }).join('');
+      return `<li class="cr ${st}" title="${esc((st === 'soon' ? 'Coming soon: its rocket is still being built. ' : '') + c.goal + ' · ' + name.vehicle(c.vehicle) + (unlockList(c).length ? ' → ' + unlockList(c).join(', ') : ''))}"><span class="crI">${st === 'done' ? '✓' : st === 'next' ? '▶' : st === 'soon' ? '🔒' : i + 1}</span><div class="crT"><b>${esc(rungName(c))}</b><small class="crR">${st === 'soon' ? 'coming soon · rocket in build' : rw(c.reward)}</small></div></li>`; }).join('');
     const have = k => L.ALL[k].filter(id => L.isUnlocked(S, k, id, sand));
     el.innerHTML = `<div class="crHead"><h2>Career</h2><button class="crX" aria-label="Close">✕</button></div>
       <div class="crWallet"><span>💰 <b>$${S.cash}M</b></span><span>🔬 <b>${S.sci}</b></span><span>🏁 <b>${done}/${L.LADDER.length}</b></span></div>

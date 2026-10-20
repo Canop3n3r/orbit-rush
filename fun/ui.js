@@ -125,7 +125,7 @@ export function createFunUI(ctx) {
       return `<button class="mis op${why ? ' locked' : ''}" data-op="${e.id}" title="${esc(why || m.blurb || '')}"><b>${esc(ctx.opName ? ctx.opName(m) : m.name)}</b>${why ? '<small>🔒</small>' : ''}</button>`; }).join('') : '';
     $('hubBody').innerHTML = `<h2>🎯 Missions</h2>${K ? `<button id="hubCareer" class="hubCareer">🏆 $${K.cash}M · 🔬${K.sci} · ${K.done}/${K.of}${K.next ? ` <span>▶ ${esc(K.next)}</span>` : ''}</button>` : ''}
       <h3>One tap</h3><div class="mgrid">${ms2}</div>${ex ? `<details class="hubMore"><summary>Extra ops</summary><div class="cgrid">${ex}</div></details>` : ''}
-      <details class="hubMore"><summary>Daily · achievements · stats</summary><p class="daily">⭐ ${esc(dc.text)} <small>${best != null ? 'best ' + best.toLocaleString() : ''} · 🔥 ${s.streak.n}</small></p>
+      <details class="hubMore"><summary>Daily · achievements · stats</summary><p class="daily">📅 ${esc(dc.text)} <small>${best != null ? 'best ' + best.toLocaleString() : ''} · 🔥 ${s.streak.n}</small></p>
       <div class="achs">${ach}</div><p class="sm">Flights ${s.stats.flights} · best ${s.stats.best.toLocaleString()} · worlds ${s.visited.length}</p></details>`;
     const hc = $('hubCareer'); if (hc) hc.onclick = () => { hub.classList.add('hidden'); K.open(); };
     hub.querySelectorAll('.mis').forEach(b => b.onclick = () => { hub.classList.add('hidden'); if (b.dataset.op) { if (b.classList.contains('locked')) return; ctx.startOp(b.dataset.op); } else ctx.startMission(b.dataset.m); });
@@ -211,14 +211,14 @@ export function createFunUI(ctx) {
   }
   function endExtras(out, split) {
     if (split) { if (!out) return {}; const u = [...out.contracts.map(c => `📜 <b>${c.name}</b>`), ...out.ach.map(a => `${a.icon} <b>${a.name}</b>`)];
-      if (out.daily) u.push(`⭐ Daily ${out.daily.score.toLocaleString()}${out.daily.best ? ' · best!' : ''}`); if (out.streak > 1) u.push(`🔥 ${out.streak}-day streak`);
+      if (out.daily) u.push(`📅 Daily ${out.daily.score.toLocaleString()}${out.daily.best ? ' · best!' : ''}`); if (out.streak > 1) u.push(`🔥 ${out.streak}-day streak`);
       const more = [...out.contracts.filter(c => c.reward).map(c => `📜 ${c.name} — unlocked ${c.reward.replace(':', ' ')}`), ...out.ach.map(a => `${a.icon} Achievement: ${a.name}`)].join('<br>');
       return { medal: out.medal ? ` <span class="medal ${out.medal}">${out.medal.toUpperCase()}</span>` : '', unlocks: u.join(' · '), more }; }
     if (!out) return ''; const L = [];
     if (out.medal) L.push(`<span class="medal ${out.medal}">${out.medal.toUpperCase()} MEDAL</span>`);
     for (const c of out.contracts) L.push(`<span class="good">📜 Contract complete: <b>${c.name}</b>${c.reward ? ` — unlocked ${c.reward.replace(':', ' ')}` : ''}</span>`);
     for (const a of out.ach) L.push(`<span class="good">${a.icon} Achievement: <b>${a.name}</b></span>`);
-    if (out.daily) L.push(`<span class="good">⭐ Daily challenge done: ${out.daily.score.toLocaleString()}${out.daily.best ? ' — new best!' : ''}</span>`);
+    if (out.daily) L.push(`<span class="good">📅 Daily challenge done: ${out.daily.score.toLocaleString()}${out.daily.best ? ' — new best!' : ''}</span>`);
     if (out.streak > 1) L.push(`<span>🔥 ${out.streak}-day streak</span>`);
     return L.join('<br>');
   }
