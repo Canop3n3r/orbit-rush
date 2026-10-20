@@ -689,3 +689,5 @@ body.splitOn #sL{display:none!important}
 #spHud2{position:static!important;background:none!important;padding:0!important;font:600 11px/1.3 monospace}
 #split.portrait.tri #spCardU{bottom:calc(66.7% + 10px)!important}
 #split.portrait.tri #spCardB2{top:10px;bottom:auto}
+/* f4.2: phone landscape (single booster): the booster card sits under the pane buttons, clear of STAGE/AUTO/THR */
+@media (orientation:landscape) and (max-height:500px){body.touch #split:not(.tri):not(.portrait) #spCardB{top:calc(140px + var(--sat,0px));bottom:auto}}

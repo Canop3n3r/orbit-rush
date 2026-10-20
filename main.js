@@ -1541,7 +1541,7 @@ function paneRect(i = 0, nb = 1) { const W = innerWidth, H = innerHeight; // f4.
 function updateSplit(rdt) {
   const b = booster, flyA = b && b.state === 'flying' && b.mesh && b.mesh.visible !== false, flying = flyA || !!(booster2 && booster2.state === 'flying');
   if (flyA) { split.rec.push({ r: b.r.slice(), dir: b.dir.slice(), thr: b.thrust, n: b.n }); if (split.rec.length > 900) split.rec.shift(); split.done = 0; }
-  const want = split.enabled && !split.closed && state === 'flight' && camMode !== 'map' && F.body === 'earth' && !photoOn && !replay && !F.flags.dead && b && (flying || split.done < 6);
+  const want = split.enabled && !split.closed && state === 'flight' && $('end').classList.contains('hidden') && /* f4.2: the end card replaces the split */ camMode !== 'map' && F.body === 'earth' && !photoOn && !replay && !F.flags.dead && b && (flying || split.done < 6);
   if (!flying && b && split.on) { // landed or lost: hold, then a slow replay of the last seconds, then close
     if (!split.done && split.rec.length > 30) split.replay = { i: Math.max(0, split.rec.length - 240), k: 0 };
     split.done += rdt;
