@@ -5,7 +5,7 @@
 //   vehicle: { template, role, payloadPart, gameMassT, reserve? }
 //     template: name of a parts.js TEMPLATE to fly; role: neutral vehicle role key ('medium-reusable-launcher')
 //     gameMassT: payload mass the flown (game-scaled) design carries; real figures live in `real`
-//   real: { ...realistic figures, marked TODO until specs/ sheet lands }
+//   real: { ...realistic figures, from specs/ with the row cited; unsourced values flagged ESTIMATE }
 //   deploy: [ { kind, ...} ]  ordered sequence run after orbit insertion:
 //     'fairing-sep'            requires the fairing to have dropped (flight.js drops it itself above 100 km)
 //     'stack-release' { delayS } release the payload stack from the upper stage
