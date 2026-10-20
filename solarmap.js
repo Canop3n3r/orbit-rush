@@ -65,11 +65,13 @@ export function createSolarMap(opts) {
   ui.innerHTML = `<div id="mapLabels"></div>
   <div id="mapBar">
     <button data-a="prev" title="Previous focus ([ or Shift+Tab)">◀</button><span id="mapFocus">Craft</span><button data-a="next" title="Next focus (] or Tab)">▶</button>
-    <button data-a="craft" title="Focus the craft">Craft</button><button data-a="pole" title="Look down on the orbit plane">Top</button><button data-a="edge" title="Edge-on view">Edge</button>
-    <button data-a="zin" title="Zoom in (+)">＋</button><button data-a="zout" title="Zoom out (−)">－</button>
-    <button data-a="node" title="Add a maneuver node 10 minutes ahead (or click / tap the trajectory)">◆ Node</button>
-    <button data-a="plan" title="Transfer planner">Planner</button><button data-a="alarms" title="Alarms: stop the warp at a time">⏰</button><button data-a="dv" title="Δv map: what it costs to get everywhere">Δv</button><button data-a="conic" title="Patched conics drawing: each patch relative to its own body, or a moon's patches as seen from its planet">⊙ ${(settings && settings.conic) === 'parent' ? 'Parent' : 'Body'}</button><button data-a="warp" title="Warp to the next event">⏩ Next</button>
-    <button data-a="close" title="Back to flight (M)">✕ Map</button>
+    <button data-a="node" title="Add a maneuver node 10 minutes ahead (or tap the trajectory)">◆ Node</button><button data-a="warp" title="Warp to the next event">⏩</button>
+    <button data-a="more" title="More: views, planner, alarms, Δv, body info">⋯</button><button data-a="close" title="Back to flight (M)">✕</button>
+  </div>
+  <div id="mapMore" class="hidden">
+    <button data-a="craft">Craft</button><button data-a="pole">Top view</button><button data-a="edge">Edge view</button><button data-a="reset">Reset view</button>
+    <button data-a="plan">Planner</button><button data-a="alarms">⏰ Alarms</button><button data-a="dv">Δv map</button><button data-a="info">Body info</button>
+    <button data-a="conic" title="Patched conics drawing: each patch relative to its own body, or a moon's patches as seen from its planet">⊙ ${(settings && settings.conic) === 'parent' ? 'Parent' : 'Body'}</button>
   </div>
   <div id="mapPanel" class="hidden"></div>
   <div id="mapInfo"></div>`;
@@ -81,8 +83,16 @@ export function createSolarMap(opts) {
   function marker(text, cls) { let d = markerPool[markerN]; if (!d) { d = document.createElement('div'); labels.appendChild(d); markerPool.push(d); } markerN++; d.className = 'mmark ' + (cls || ''); if (d.textContent !== text) d.textContent = text; d.style.display = ''; return d; }
   const handles = ['pro', 'ret', 'nrm', 'anti', 'rad', 'radin'].map(k => { const d = document.createElement('div'); d.className = 'mhandle h-' + k; d.dataset.h = k; d.textContent = { pro: '⊕', ret: '⊗', nrm: '▲', anti: '▼', rad: '◉', radin: '◎' }[k]; labels.appendChild(d); return d; });
   // ---------- state ----------
-  const S = { conic: (settings && settings.conic) || 'body', on: false, focus: 'craft', dist: 3e7, distT: 3e7, q: new THREE.Quaternion(), pan: [0, 0, 0], trans: null, sel: null, panelMode: null, plan: null, planTarget: null, pred: null, predT: 0, predKey: '', W: innerWidth, H: innerHeight, lastClick: 0 };
-  S.q.setFromEuler(new THREE.Euler(1.0, 0, 0.6, 'ZXY'));
+  const PITCH0 = 33 * Math.PI / 180; // f3: default view, 33° above the ecliptic, north up
+  const S = { yaw: 0, yawT: 0, pitch: PITCH0, pitchT: PITCH0, pitch0: PITCH0, idle: 0, conic: (settings && settings.conic) || 'body', on: false, focus: 'craft', dist: 3e7, distT: 3e7, q: new THREE.Quaternion(), pan: [0, 0, 0], trans: null, sel: null, panelMode: null, plan: null, planTarget: null, pred: null, predT: 0, predKey: '', W: innerWidth, H: innerHeight, lastClick: 0 };
+  // the camera is yaw (about ecliptic north, +z) and pitch (elevation above the plane): never rolls, never flips
+  const NORTH = new THREE.Vector3(0, 0, 1), _m4 = new THREE.Matrix4(), _o = new THREE.Vector3();
+  function applyYP() { S.pitch = Math.max(4 * Math.PI / 180, Math.min(88 * Math.PI / 180, S.pitch)); const cp = Math.cos(S.pitch);
+    const back = new THREE.Vector3(cp * Math.cos(S.yaw), cp * Math.sin(S.yaw), Math.sin(S.pitch)); _m4.lookAt(back, _o.set(0, 0, 0), NORTH); S.q.setFromRotationMatrix(_m4); }
+  function sunYaw() { // sun lit from the side: look across the sun line
+    const f = focusAbs(), d = [-f[0], -f[1]]; return Math.hypot(d[0], d[1]) > 1 ? Math.atan2(d[1], d[0]) + Math.PI / 2 : 0.6; }
+  function resetView() { S.yawT = sunYaw(); S.pitchT = PITCH0; S.pan = [0, 0, 0]; S.distT = niceDist(S.focus); S.idle = 99; }
+  applyYP();
   const tNow = () => getF().tAbs;
   function craftAbs(t = tNow()) { const F = getF(), v = F.v, b = F.body, s = P.absState(b, t); return V.add(s.r, mv(P.frameOf(b), v.r)); }
   function bodyAbs(id, t = tNow()) { return P.absState(id, t).r; }
@@ -105,7 +115,9 @@ export function createSolarMap(opts) {
   function refNormal() { const F = getF(); if (S.focus === 'craft') { const n = V.norm(V.cross(F.v.r, F.v.v)); return mv(P.frameOf(F.body), n); } if (S.focus === 'sun') return [0, 0, 1]; const s = P.relState(S.focus, tNow()), pf = P.frameOf(B[S.focus].parent); return mv(pf, V.norm(V.cross(s.r, s.v))); }
   function setView(kind, tilt = 0) {
     const n = refNormal(), N = new THREE.Vector3(...n);
-    if (kind === 'pole') { const back = N.clone(); const up = Math.abs(N.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0); const m = new THREE.Matrix4().lookAt(back, new THREE.Vector3(), up.cross(back).cross(back).negate().normalize()); S.q.setFromRotationMatrix(m); }
+    if (kind === 'pole') { S.pitchT = 88 * Math.PI / 180; S.idle = -1e9; return; }
+    if (kind === 'edge') { S.pitchT = 5 * Math.PI / 180; S.idle = -1e9; return; }
+    if (kind === 'pole0') { const back = N.clone(); const up = Math.abs(N.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0); const m = new THREE.Matrix4().lookAt(back, new THREE.Vector3(), up.cross(back).cross(back).negate().normalize()); S.q.setFromRotationMatrix(m); }
     else if (kind === 'edge') { const side = new THREE.Vector3(1, 0, 0).cross(N); if (side.lengthSq() < 1e-6) side.set(0, 1, 0); side.normalize(); const back = side.clone().applyAxisAngle(N, 0.4).multiplyScalar(Math.cos(tilt)).addScaledVector(N, Math.sin(tilt)).normalize(); const m = new THREE.Matrix4().lookAt(back, new THREE.Vector3(), N); S.q.setFromRotationMatrix(m); }
   }
   // ---------- input ----------
@@ -127,10 +139,7 @@ export function createSolarMap(opts) {
     if (hdrag && hdrag.id === e.pointerId) { handleMove(e); return; }
     if (!ptrs.has(e.pointerId)) return; const [px, py] = ptrs.get(e.pointerId), dx = e.clientX - px, dy = e.clientY - py; moved += Math.abs(dx) + Math.abs(dy);
     if (ptrs.size === 1) {
-      if (drag === 'rot') { // trackball: yaw about the camera's up, pitch about its right axis (quaternions: no gimbal lock)
-        const qy = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -dx * 0.006), qx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -dy * 0.006);
-        S.q.multiply(qy).multiply(qx).normalize();
-      } else panBy(dx, dy);
+      if (drag === 'rot') { S.yaw -= dx * 0.006; S.pitch += dy * 0.006; S.yawT = S.yaw; S.pitchT = S.pitch; S.idle = 0; applyYP(); } else panBy(dx, dy);
     } else if (ptrs.size === 2) {
       let o; for (const [id, q] of ptrs) if (id !== e.pointerId) o = q;
       const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); zoomBy(d0 / Math.max(d1, 1)); panBy(dx / 2, dy / 2);
@@ -146,17 +155,18 @@ export function createSolarMap(opts) {
     const t = e.target; if (!S.on) return;
     if (t.dataset.node !== undefined) { selectNode(getF().nodes[+t.dataset.node]); return; }
     const id = t.dataset.id; if (!id) return; const now = performance.now();
-    if (now - S.lastClick < 400 && S.lastId === id) setFocus(id); else showBody(id); S.lastClick = now; S.lastId = id;
+    setFocus(id); S.lastClick = now; S.lastId = id;
   });
+  el.addEventListener('dblclick', e => { if (S.on) { let hitB = false; for (const id of IDS) { const p = bodies[id].scr; if (p && p.z < 1 && Math.hypot(p.x - e.clientX, p.y - e.clientY) < Math.max(18, p.r + 6)) hitB = true; } if (!hitB) resetView(); } });
   labels.addEventListener('dblclick', e => { const id = e.target.dataset.id; if (id) setFocus(id); });
   // click / tap on the scene: double = focus the nearest body; single on the trajectory = add a node there
   function click(x, y) {
     const now = performance.now(), dbl = now - S.lastClick < 350; S.lastClick = now;
     let best = null; for (const id of IDS) { const p = bodies[id].scr; if (p && p.z < 1) { const d = Math.hypot(p.x - x, p.y - y); if (d < Math.max(18, p.r + 6) && (!best || d < best.d)) best = { id, d }; } }
     if (craftScr && Math.hypot(craftScr.x - x, craftScr.y - y) < 18) best = { id: 'craft', d: 0 };
-    if (dbl && best) { setFocus(best.id); return; }
+    if (best) { setFocus(best.id); return; }
+    if (dbl) { resetView(); return; }
     const hit = pickTraj(x, y); if (hit) { addNodeAt(hit.t); return; }
-    if (best && best.id !== 'craft') showBody(best.id);
   }
   // ---------- nodes ----------
   let hdrag = null;
@@ -257,8 +267,10 @@ export function createSolarMap(opts) {
     if (a === 'planb') { S.panelMode = 'plan'; runPlanner(S.bodyId); }
   });
   panel.addEventListener('change', e => { const t = e.target, n = S.sel; if (t.dataset.k && n) { const x = parseFloat(t.value); if (isFinite(x)) { n[t.dataset.k] = x; n.started = false; S.predKey = ''; renderPanel(true); } } });
-  ui.querySelector('#mapBar').addEventListener('click', e => {
-    const a = e.target.dataset.a, F = getF(); if (!a) return; e.target.blur();
+  const barClick = e => {
+    const a = e.target.dataset.a, F = getF(); if (!a) return; e.target.blur(); const mm = ui.querySelector('#mapMore');
+    if (a === 'more') { mm.classList.toggle('hidden'); return; } if (mm.contains(e.target) && a !== 'conic') mm.classList.add('hidden');
+    if (a === 'reset') resetView(); if (a === 'info') showBody(S.focus === 'craft' ? F.body : S.focus);
     if (a === 'prev') cycle(-1); if (a === 'next') cycle(1); if (a === 'craft') setFocus('craft');
     if (a === 'pole') setView('pole'); if (a === 'edge') setView('edge');
     if (a === 'zin') zoomBy(0.5); if (a === 'zout') zoomBy(2);
@@ -268,7 +280,8 @@ export function createSolarMap(opts) {
     if (a === 'alarms' || a === 'dv') { S.panelMode = S.panelMode === a ? null : a; renderPanel(); }
     if (a === 'conic') { S.conic = S.conic === 'body' ? 'parent' : 'body'; e.target.textContent = S.conic === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; onChange && onChange('conic', S.conic); toast(S.conic === 'body' ? 'Patches drawn relative to their own body' : "A moon's patches drawn as seen from its planet", '#9cc3ff'); }
     if (a === 'close') onChange && onChange('close');
-  });
+  };
+  ui.querySelector('#mapBar').addEventListener('click', barClick); ui.querySelector('#mapMore').addEventListener('click', barClick);
   function addAlarmKind(k) {
     const F = getF(), v = F.v, mu = P.muOf(v); let at = null, label = '';
     if (k === 'node') { const n = F.nodes[0]; if (n) { at = n.t - F.nodeBurnTime(n) / 2 - 300; label = 'maneuver in 5 min'; } }
@@ -291,10 +304,12 @@ export function createSolarMap(opts) {
     if (!S.on) return; const F = getF(), t = F.tAbs, v = F.v;
     S.W = innerWidth; S.H = innerHeight; camera.aspect = S.W / S.H;
     S.dist += (S.distT - S.dist) * Math.min(1, rdt * 8); S.dist = Math.max(minDist(), S.dist);
-    if (S.trans) { S.trans.k = Math.max(0, S.trans.k - rdt * 1.6); if (S.trans.k <= 0) S.trans = null; }
+    if (S.trans) { S.trans.k = Math.max(0, S.trans.k - rdt * 3.3); if (S.trans.k <= 0) S.trans = null; }
     const ease = S.trans ? S.trans.k * S.trans.k * (3 - 2 * S.trans.k) : 0;
     const origin = V.add(V.add(focusAbs(), S.pan), S.trans ? V.scale(S.trans.from, ease) : [0, 0, 0]);
     // camera at the origin of the scene looking at -z of S.q; focus point at (0,0,0)
+    S.idle += Math.min(rdt, 0.1); if (S.idle > 1.5) S.pitchT = S.idle > 1e6 ? S.pitchT : PITCH0; // after a drag, ease back to the upright default (yaw kept)
+    { const k = Math.min(1, rdt * (S.idle > 50 ? 9 : 3)); let dy = S.yawT - S.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); S.yaw += dy * k; S.pitch += (S.pitchT - S.pitch) * k; if (S.idle > 50 && Math.abs(dy) + Math.abs(S.pitchT - S.pitch) < 1e-3) S.idle = 3; applyYP(); }
     const back = new THREE.Vector3(0, 0, 1).applyQuaternion(S.q).multiplyScalar(S.dist);
     camera.position.copy(back); camera.quaternion.copy(S.q); camera.near = Math.max(0.5, S.dist * 1e-4); camera.far = Math.max(1e13, S.dist * 1e3);
     { // keep the focus in the free part of the screen (not under the toolbar or the side panel)
@@ -397,10 +412,24 @@ export function createSolarMap(opts) {
     }
     // info strip
     const o = P.orbitOf(v), rb = B[F.body].R, ca = S.ca;
-    info.innerHTML = `<b>${B[F.body].name}</b> SOI · ${new Date(P.dateFromT(t)).toISOString().slice(0, 16).replace('T', ' ')} UTC · warp ×${F.effWarp()}${F.warpTarget ? ` → ${F.warpTarget.label}` : ''}<br>`
-      + `${isFinite(o.ra) ? `Ap ${fmtD(o.ra - rb)} · ` : 'escape · '}Pe ${fmtD(o.rp - rb)} · inc ${(o.inc * 180 / Math.PI).toFixed(1)}°${S.relInc !== undefined && F.target ? ` · rel. inc ${S.relInc.toFixed(1)}°` : ''}`
-      + (F.target ? `<br>Target <b>${B[F.target].name}</b>${ca ? ca.inside ? ` · encounter, Pe ${fmtD(ca.alt)}` : ` · closest ${fmtD(ca.d)} in ${fmtDur(ca.t - t)} · rel ${fmtV(ca.relV)}` : ''}` : '');
+    { const ap = isFinite(o.ra) ? 'Ap ' + fmtD(o.ra - rb) : 'escape', pe = o.rp - rb > 0 ? 'Pe ' + fmtD(o.rp - rb) : 'Pe —';
+      const imp = F._imp && F._imp.t > t ? ', impact ' + fmtDur(F._imp.t - t) : '', tg = F.target && ca ? (ca.inside ? ` · ${B[F.target].name} Pe ${fmtD(ca.alt)}` : ` · ${B[F.target].name} ${fmtD(ca.d)}`) : '';
+      const txt = ap + ' · ' + pe + imp + tg; if (info.textContent !== txt) info.textContent = txt; }
     S.relInc = undefined;
+    declutter();
+  }
+  // f3 label declutter: priority order, hide anything that collides with a label already placed or that sits
+  // behind / on the disc of a nearer body (distant planets used to print across the Earth)
+  function declutter() {
+    const F = getF(), items = [], rect = d => { const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(d.style.transform); if (!m) return null; const w = d._w || (d._w = d.offsetWidth || 60), h = d._h || (d._h = d.offsetHeight || 16); const x = +m[1], y = +m[2]; return d.classList.contains('mmark') ? { l: x - 6, t: y - 9, r: x - 6 + w, b: y - 9 + h } : { l: x, t: y, r: x + w, b: y + h }; };
+    const pri = d => d.classList.contains('nodem') ? 0 : d === craftLab ? 1 : d.classList.contains('mmark') ? (d.classList.contains('imp') ? 2 : d.classList.contains('ap') ? 3 : 4) : d.dataset.id === S.focus || d.dataset.id === F.body ? 5 : d.dataset.id === F.target ? 6 : 7;
+    for (const d of labels.children) { if (d.style.display === 'none' || d.classList.contains('mhandle')) continue; d.style.visibility = ''; const r = rect(d); if (r) items.push({ d, r, p: pri(d) }); }
+    items.sort((a, b) => a.p - b.p); const placed = [];
+    // discs of bodies big on screen
+    const discs = IDS.map(id => bodies[id]).filter(o => o.scr && o.scr.z < 1 && o.scr.r > 6).map(o => ({ id: o.lab.dataset.id, x: o.scr.x + 8, y: o.scr.y - 8, r: o.scr.r, d: V.len(V.sub(o.rel, camRel)) }));
+    for (const it of items) { const r = it.r, d = it.d; let hide = placed.some(q => r.l < q.r && q.l < r.r && r.t < q.b && q.t < r.b);
+      if (!hide && d.classList.contains('mlab') && d !== craftLab) { const id = d.dataset.id, o = bodies[id]; if (o) { const myD = V.len(V.sub(o.rel, camRel)); hide = discs.some(c => c.id !== id && c.d < myD && Math.hypot((r.l + r.r) / 2 - c.x, (r.t + r.b) / 2 - c.y) < c.r + 10) || (d.classList.contains('dim') && id !== S.focus); } }
+      if (hide) d.style.visibility = 'hidden'; else placed.push(r); }
   }
   function pickTraj(x, y) { let best = null; for (const p of trajPick) { const d = Math.hypot(p.x - x, p.y - y); if (d < 14 && (!best || d < best.d)) best = { d, t: p.t }; } return best; }
   function key(code, e) {
@@ -412,9 +441,10 @@ export function createSolarMap(opts) {
     if (code === 'Delete' && S.sel) { getF().removeNode(S.sel); S.sel = null; S.panelMode = null; renderPanel(); return true; }
     return false;
   }
-  function show(on) { S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on); if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist()); if (!S.inited) { S.inited = true; S.dist = S.distT = niceDist('craft'); } $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); } }
+  function show(on) { if (on && !S.on) { S.inited = true; { const F = getF(), o = P.orbitOf(F.v), Rb = B[F.body].R, far = isFinite(o.ra) && o.ra < B[F.body].soi ? Math.max(o.ra, V.len(F.v.r)) : 0; // f3: frame the whole orbit around the body
+      if (far) { S.focus = F.body; S.pan = [0, 0, 0]; S.trans = null; S.dist = S.distT = Math.max(Rb * 3.2, far * 2.7); } else { S.focus = 'craft'; S.dist = S.distT = niceDist('craft'); } } S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; S.idle = 3; ui.querySelector('#mapMore').classList.add('hidden'); } S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on); if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist());  $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); } }
   function reset() { S.focus = 'craft'; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.panelMode = null; S.plan = null; S.pred = null; S.inited = false; renderPanel(); }
-  return { scene, camera, update, show, reset, key, patchAt, get conic() { return S.conic; }, setConic: c => { S.conic = c; const b = document.querySelector('#mapBar [data-a=conic]'); if (b) b.textContent = c === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; }, setFocus, setView, cycle, zoomBy, runPlanner, selectNode, addNodeAt, warpNext, state: S,
-    setCam: (q, dist) => { if (q) S.q.set(q[0], q[1], q[2], q[3]).normalize(); if (dist) { S.dist = S.distT = dist; } },
+  return { scene, camera, update, show, reset, key, patchAt, get conic() { return S.conic; }, setConic: c => { S.conic = c; const b = document.querySelector('#mapMore [data-a=conic]'); if (b) b.textContent = c === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; }, setFocus, setView, resetView, cycle, zoomBy, runPlanner, selectNode, addNodeAt, warpNext, state: S,
+    setCam: (q, dist) => { if (q) { const b = new THREE.Vector3(0, 0, 1).applyQuaternion(new THREE.Quaternion(q[0], q[1], q[2], q[3]).normalize()); S.yaw = S.yawT = Math.atan2(b.y, b.x); S.pitch = S.pitchT = Math.asin(Math.max(-1, Math.min(1, b.z))); S.idle = -1e9; applyYP(); } if (dist) { S.dist = S.distT = dist; } },
     openPlanner: tg => { S.panelMode = 'plan'; runPlanner(tg); }, get panelMode() { return S.panelMode; }, get plan() { return S.plan; } };
 }
