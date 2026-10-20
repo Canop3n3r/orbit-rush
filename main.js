@@ -1468,9 +1468,8 @@ renderer.setAnimationLoop(() => {
   const O = focus === v ? v.r : booster.r;
   if (!placeBodies(O, th)) { earth.position.set(-O[0], -O[1], -O[2]); earth.rotation.z = th; }
   if (W1) { earth.updateMatrixWorld(); W1.frame(rdt > 0 && pdt > rdt * 4.01 ? 0 : pdt, camera); } // clouds drift on sim time, frozen above 4x warp
-  { const ts = window.__tiles && window.__tiles.stats, on = !!(ts && ts.on), sc = on ? 1 - 4000 / R : 1; // private Google tiles: sink the LOD globe under the real terrain (it occluded the tiles)
-    if (earthLOD.group.scale.x !== sc) earthLOD.group.scale.setScalar(sc); }
-  lodFrame();
+  const tilesOn = !!(window.__tiles && window.__tiles.stats && window.__tiles.stats.on); // private Google tiles own the ground while they show (the LOD globe hid them)
+  if (tilesOn) earthLOD.group.visible = false; else { if (window.__tiles) earthLOD.group.visible = true; lodFrame(); }
   { const ao = state === 'flight' && !!(F && F.autoOn) && !(director && director.active === false && false); if (ao !== document.body.classList.contains('autoOn')) document.body.classList.toggle('autoOn', ao); } // f5: manual controls hide while AUTO flies
   setRel(rocketG, base, O); toQ(v.q, rocketG.quaternion);
   worldVis(base, O, nose);
