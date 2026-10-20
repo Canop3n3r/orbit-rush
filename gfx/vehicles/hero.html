@@ -73,7 +73,7 @@ function setStage(id, h, rV) { clearStage(); let lift = 0; const small = h < 10;
   // flame trench: a recessed dark slot cut into the pad edge (no strip lying on the ground)
   const tr = new THREE.Mesh(new THREE.BoxGeometry(rV * 2.4, 0.05, padR * 0.9), darkM); tr.position.set(0, lift + 0.01, padR * 0.5); stage.add(tr);
   const lip = new THREE.Mesh(new THREE.BoxGeometry(rV * 2.4 + 1.2, 0.6, 0.6), concM); lip.position.set(0, lift + 0.3, padR * 0.95); stage.add(lip);
-  if (id.startsWith('titan-')) { const tw = build('catch-tower', { open: 0.9 }); stage.add(tw); lift = tw.children[0].userData.mountY; }
+  if (id.startsWith('colossus')) { const tw = build('catch-tower', { open: 0.9 }); stage.add(tw); lift = tw.children[0].userData.mountY; }
   else if (id !== 'catch-tower') { const TH = h * 1.08, W = Math.max(5, h * 0.075), TX = -(rV + W / 2 + 4); lattice(stage, TH, W, TX, 0);
     const arm = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(TX) - rV - W / 2 + 0.6, 2.2, 2.4), steelM); arm.position.set(TX + W / 2 + (Math.abs(TX) - rV - W / 2) / 2, h * 0.86, 0); stage.add(arm);
     for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.78, k = Math.min(0.8, rV * 0.3), c = new THREE.Mesh(new THREE.BoxGeometry(k, k * 2, k), steelM); c.position.set(Math.cos(a) * (rV + k * 0.5), lift + k, Math.sin(a) * (rV + k * 0.5)); stage.add(c); } }
@@ -88,7 +88,7 @@ const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 30
 const { bloom } = await import('three/addons/tsl/display/BloomNode.js'); const { pass } = await import('three/tsl');
 const pp = new THREE.PostProcessing(renderer), sp = pass(scene, camera), col = sp.getTextureNode('output'), bl = bloom(col, 0.35, 0.4, 1.4);
 pp.outputNode = q.has('nobloom') ? col : col.add(bl);
-const RADIUS = { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'titan-ss-v3': 4.5, 'titan-ss-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['deltoid-2-heavy9','deltoid-2-light3'].map(i => [i, 1.75])) };
+const RADIUS = { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['deltoid-2-heavy9','deltoid-2-light3'].map(i => [i, 1.75])) };
 let cur = null;
 // shot: { id, opts, hero:true (auto-frame 85 % of the height, low 3/4) | cam/aim in vehicle heights, fov, sunAz (deg, from camera), only, legs, bare (no set) }
 async function shot(s) { if (cur) { dispose(cur); cur = null; } const h = VEHICLES[s.id].height, rV = RADIUS[s.id] || 2;
