@@ -1,40 +1,40 @@
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f4';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f4';
-import * as C from './physics/patched.js?v=f4';
+import * as P from './physics.js?v=f4.1';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f4.1';
+import * as C from './physics/patched.js?v=f4.1';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 import { newCareer, canFly, applyFlight } from './missions/campaign/state.js';
 import { saveTo, loadFrom } from './missions/campaign/save.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName } from './brand/index.js?v=f4';
-import { createSolarMap } from './solarmap.js?v=f4';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f4';
-import { FX } from './fx.js?v=f4';
-import { createAcademy } from './academy-ui.js?v=f4';
-import { createMobile, isTouch } from './mobile.js?v=f4';
-import { localize } from './wording.js?v=f4';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f4';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f4';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName } from './brand/index.js?v=f4.1';
+import { createSolarMap } from './solarmap.js?v=f4.1';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f4.1';
+import { FX } from './fx.js?v=f4.1';
+import { createAcademy } from './academy-ui.js?v=f4.1';
+import { createMobile, isTouch } from './mobile.js?v=f4.1';
+import { localize } from './wording.js?v=f4.1';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f4.1';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f4.1';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f4';
-import * as GX from './gfx/gfx.js?v=f4';
-import { Director, MISSIONS } from './fun/director.js?v=f4';
-import * as PR from './fun/progress.js?v=f4';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f4';
-import { createAudio } from './fun/audio.js?v=f4';
-import { createCompact } from './fun/compact.js?v=f4';
-import { createHome } from './fun/home.js?v=f4';
-import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f4';
-import { createFunUI } from './fun/ui.js?v=f4';
-import { buildLOD as heroLOD } from './gfx/vehicles/vehicles.js?v=f4';
-import { dispose as heroDispose } from './gfx/vehicles/kit.js?v=f4';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f4.1';
+import * as GX from './gfx/gfx.js?v=f4.1';
+import { Director, MISSIONS } from './fun/director.js?v=f4.1';
+import * as PR from './fun/progress.js?v=f4.1';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f4.1';
+import { createAudio } from './fun/audio.js?v=f4.1';
+import { createCompact } from './fun/compact.js?v=f4.1';
+import { createHome } from './fun/home.js?v=f4.1';
+import { SHOWROOM, bars as showBars, missionLabel } from './fun/showroom.js?v=f4.1';
+import { createFunUI } from './fun/ui.js?v=f4.1';
+import { buildLOD as heroLOD } from './gfx/vehicles/vehicles.js?v=f4.1';
+import { dispose as heroDispose } from './gfx/vehicles/kit.js?v=f4.1';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -649,7 +649,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f4', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f4.1', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -699,7 +699,7 @@ const hooks = {
   sound: (k, f) => { if (k === 'ignite') { burst(0.6, 1.2, 500); if (F.alt < 200) ignitionClouds(v); } else if (k === 'beep') beep(f); else if (k === 'orbit') { beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); } },
   stage: b => { b.mesh = detachStage(b.stageIndex ?? 0); booster = b; stagingDrama(v.r, v.v, P.noseOf(v)); },
   drop: d => { if (opHooks) try { opHooks.drop(d); } catch (e) {} d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
-  ship: s => { if (s.lz) return; shipVis = makeShip(s); }, // RTLS: the landing zone is the pad area, no droneship
+  ship: s => { if (s.lz) { shipVis = makeLZ(s); return; } shipVis = makeShip(s); }, // RTLS: the landing zone is the pad area, no droneship
   shipMoved: s => shipVis && onSurface(shipVis, s.ef, 0),
   jettison: () => { heroFairing(false); const f = SG[SG.length - 1].userData.fair; if (f) { f.visible = false; const p = V.sub(v.r, V.scale(P.noseOf(v), -10)); for (let k = 0; k < 12; k++) smoke.spawn(p, jit(v.v, 15), 1.5, 1, 3, 0xffffff, null, 0.1); } beep(990); },
   // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
@@ -982,7 +982,7 @@ $('academyBtn').onclick = e => { e.currentTarget.blur(); academy.openMenu(); };
 $('deoBtn').onclick = e => { e.currentTarget.blur(); press('KeyO'); };
 $('chuteBtn').onclick = e => { e.currentTarget.blur(); press('KeyP'); };
 const zoomLim = d => Math.min(5000, Math.max(20, d));
-renderer.domElement.addEventListener('wheel', e => { if (camMode === 'map') return; if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * (1 + e.deltaY * 0.001))); else camDist = zoomLim(camDist * (1 + e.deltaY * 0.001 * SET.sens.zoom)); }, { passive: true });
+renderer.domElement.addEventListener('wheel', e => { if (camMode === 'map') return; camUserT = performance.now(); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * (1 + e.deltaY * 0.001))); else camDist = zoomLim(camDist * (1 + e.deltaY * 0.001 * SET.sens.zoom)); }, { passive: true });
 const pts = new Map();
 renderer.domElement.addEventListener('pointerdown', e => { pts.set(e.pointerId, [e.clientX, e.clientY]); });
 addEventListener('pointerup', e => pts.delete(e.pointerId));
@@ -1097,6 +1097,13 @@ function showEnd() {
   $('shareBtn').textContent = 'Share score';
   $('end').classList.remove('hidden');
 }
+function makeLZ(s) { // f4.1 RTLS landing zone: a concrete disc with a ring and cross, 1.6 km from the pad
+  const g = new THREE.Group(), cm = new THREE.MeshStandardMaterial({ color: 0x9a9a96, roughness: 0.9 }), wm = new THREE.MeshBasicMaterial({ color: 0xf2f2f2 });
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(45, 47, 0.8, 48), cm); pad.position.y = 0; g.add(pad);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(30, 33, 48), wm); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.42; g.add(ring);
+  for (const r of [0, Math.PI / 2]) { const bar = new THREE.Mesh(new THREE.PlaneGeometry(40, 3), wm); bar.rotation.set(-Math.PI / 2, 0, r); bar.position.y = 0.43; g.add(bar); }
+  return onSurface(g, s.ef, 0);
+}
 function makeShip(s) {
   const g = new THREE.Group();
   const sea = new THREE.Mesh(new THREE.CircleGeometry(400, 48), new THREE.MeshStandardMaterial({ color: 0x184a80, roughness: 0.3 })); sea.rotation.x = -Math.PI / 2; sea.position.y = 0.3; g.add(sea);
@@ -1133,7 +1140,7 @@ function emit(veh, group, dt, bottom, dir) {
   // dense humid low air when transonic or at high thrust, widening and fading with altitude. No random kicks, no spiral.
   const sm = pl.smoke, tr = group.userData.trail || (group.userData.trail = { last: null });
   const Mach = veh.tel && veh.tel.mach || 0, hum = Math.max(0, 1 - h / 12000), cond = hum * Math.min(1, Math.max(Mach > 0.7 ? (Mach - 0.7) / 0.4 : 0, thr > 0.6 ? (thr - 0.6) * 1.5 : 0) * (Mach < 2.2 ? 1 : 0.3));
-  if (sm > 0.03 && h < 45000) {
+  if (sm > 0.03 && h < 40000) { // f4.1: no smoke/condensation above 40 km
     const vAir = V.sub(veh.v, siteVel(veh)), sp0 = V.len(vAir), back = sp0 > 30 ? V.scale(vAir, -1 / sp0) : V.scale(dir, -1);
     const at = V.addS(bottom, back, len * 0.5), lw = tr.last && V.addS(tr.last, siteVel(veh), dt), last = lw && V.len(V.sub(at, lw)) < 400 ? lw : V.addS(at, vAir, -dt); // the previous point rode the rotating air for dt (else: a sawtooth/corkscrew)
     const seg = V.sub(at, last), dist = V.len(seg), wid = (3 + 5 * sm) * (1 + h / 9000) * (1 + 0.6 * cond), N = Math.min(TOUCH ? 10 : 18, Math.ceil(dist / Math.max(1.5, wid * 0.45)) + 1), sz = Math.max(wid, dist / N * 1.6);
@@ -1143,11 +1150,11 @@ function emit(veh, group, dt, bottom, dir) {
       const vel = ground ? V.add(wind, [rnd(60), rnd(60), rnd(60)]) : wind;
       smoke.spawn(pos, vel, Math.max(1.5, (4 + 3 * cond) * (0.6 + 0.4 * sm) * lifeK * (1 - Math.min(0.6, h / 60000))), sz, wid * (2.6 + 1.4 * cond) * (1 + ground), cond > 0.3 ? cA : 0xffe4c4, cB, 0.35); }
   }
-  tr.last = sm > 0.03 && h < 45000 ? (() => { const va = V.sub(veh.v, siteVel(veh)), s0 = V.len(va); return V.addS(bottom, s0 > 30 ? V.scale(va, -1 / s0) : V.scale(dir, -1), len * 0.5); })() : null;
-  const n = Math.min(6, Math.ceil(dt * 120));
+  tr.last = sm > 0.03 && h < 40000 ? (() => { const va = V.sub(veh.v, siteVel(veh)), s0 = V.len(va); return V.addS(bottom, s0 > 30 ? V.scale(va, -1 / s0) : V.scale(dir, -1), len * 0.5); })() : null;
+  const n = h < 40000 ? Math.min(6, Math.ceil(dt * 120)) : 0; // f4.1: in vacuum the plume mesh is the glow; no flame particles (they read as dotted puffs)
   for (let i = 0; i < n; i++) {
     const sp = 60 + Math.random() * 40, spread = 6 + (1 - p) * 30;
-    const fv = jit(V.addS(veh.v, dir, -sp), spread); fire.spawn(V.addS(V.addS(bottom, dir, -2), fv, -dt * (i + 1) / n), fv, 0.25 + Math.random() * 0.25, 2.5, 6 + (1 - p) * 10, 0xffd9a0, 0x200800, 2);
+    const fv = jit(V.addS(veh.v, dir, -sp), spread); fire.spawn(V.addS(V.addS(V.addS(bottom, dir, -2), fv, -dt), dir, -sp * dt * i / n), fv, /* f4.1: fully pre-step (update() moves it fv·dt this frame) — else it leads the nozzle by up to v·dt */ 0.25 + Math.random() * 0.25, 2.5, 6 + (1 - p) * 10, 0xffd9a0, 0x200800, 2);
     if (false) {
       const gk = h < 60 ? 1 : 0, up = V.norm(veh.r), wind = siteVel(veh);
       const base = V.add(wind, V.scale(V.sub(veh.v, wind), 0.15));
@@ -1417,6 +1424,10 @@ renderer.setAnimationLoop(() => {
   } else {
     if (focus === v) tgtV.set(nose[0], nose[1], nose[2]).multiplyScalar(stackL() * camAim - tel.ycom);
     else tgtV.set(booster.dir[0], booster.dir[1], booster.dir[2]).multiplyScalar(15);
+    if (focus === v && state === 'flight' && camMode === 'chase') { // f4.1: chase distance follows the rocket's size (never a dot); eases back after a user zoom
+      const Ls = stackL(), want = Math.max(30, Math.min(160, Ls * 2.6 + 20)), maxD = Math.max(80, Ls * 9 + 60);
+      if (camDist > maxD) camDist = maxD; if (performance.now() - camUserT > 8000) camDist += (want - camDist) * Math.min(1, rdt * 0.8);
+    }
     if (SET.camStyle === 'locked' && focus === v && state === 'flight') { // locked: the camera turns with the craft (its axes, nose up on screen)
       const ax = V.qrot(v.q, [1, 0, 0]), az = V.qrot(v.q, [0, 0, 1]);
       offV.set(ax[0], ax[1], ax[2]).multiplyScalar(Math.cos(camYaw) * Math.cos(camPitch)).addScaledVector(dv3.set(az[0], az[1], az[2]), Math.sin(camYaw) * Math.cos(camPitch)).addScaledVector(dv3.set(nose[0], nose[1], nose[2]), Math.sin(camPitch));
@@ -1527,7 +1538,7 @@ const apPill = ph => { const p = (ph || '').toLowerCase(); return /boost/.test(p
 // f4 mini navball: sky/ground split by the nose pitch, roll-free; prograde marker from the velocity
 function miniBall(cv, dir, r, vel) {
   if (!cv) return; const c = cv.getContext('2d'), W = cv.width, H = cv.height, R0 = W / 2 - 2, up = V.norm(r), e = P.eastOf(r), n = V.cross(up, e);
-  const pit = Math.asin(Math.max(-1, Math.min(1, V.dot(dir, up)))), hy = Math.max(-1, Math.min(1, -pit / (Math.PI / 2))) * R0;
+  const pit = Math.asin(Math.max(-1, Math.min(1, V.dot(dir, up)))), hy = Math.max(-1, Math.min(1, pit / (Math.PI / 2))) * R0; // f4.1: nose up = horizon drops = more sky (local horizon from r)
   c.clearRect(0, 0, W, H); c.save(); c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.clip();
   c.fillStyle = '#3d7bd6'; c.fillRect(0, 0, W, H); c.fillStyle = '#8a5a2b'; c.fillRect(0, H / 2 + hy, W, H);
   c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(0, H / 2 + hy); c.lineTo(W, H / 2 + hy); c.stroke();
@@ -1538,19 +1549,22 @@ function miniBall(cv, dir, r, vel) {
   c.strokeStyle = '#9cc3ff88'; c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.stroke();
 }
 function renderSplit(O) {
-  if (!split.on || split.full === 'b' || !booster) return;
+  const son = !!(split.on && split.full !== 'b' && booster); if (document.body.classList.contains('splitOn') !== son) document.body.classList.toggle('splitOn', son); // f4.1: class follows what is drawn
+  if (!son) return;
   const R2 = paneRect(), b = booster; let br = b.r, bd = b.dir;
   if (split.replay) { const rp = split.replay; rp.k += 0.5; const f = split.rec[Math.min(split.rec.length - 1, rp.i + Math.floor(rp.k))]; if (f) { br = f.r; bd = f.dir; setRel(b.mesh, br, O); dirQ(b.mesh, bd); b.mesh.userData.plume.visible = f.thr > 0.01; } }
   const up = V.norm(br), e = P.eastOf(br), n = V.cross(up, e); if (performance.now() - split.userT > 4000) split.yaw += 0.002;
-  const tx = br[0] - O[0], ty = br[1] - O[1], tz = br[2] - O[2], d = split.dist, cp = Math.cos(split.pitch);
-  const off = V.add(V.add(V.scale(n, Math.cos(split.yaw) * d * cp), V.scale(e, Math.sin(split.yaw) * d * cp)), V.scale(up, d * Math.sin(split.pitch)));
-  cam2.position.set(tx + off[0], ty + off[1], tz + off[2]); cam2.up.set(up[0], up[1], up[2]); cam2.lookAt(tx + bd[0] * 15, ty + bd[1] * 15, tz + bd[2] * 15);
+  const landed = b.state !== 'flying', pz = landed ? Math.max(0.18, split.pitch) : split.pitch; // f4.1: never under the ground
+  if (landed) bd = up; // the landed booster stands up: frame its middle, camera upright
+  const lift = landed ? 20 : 0, tx = br[0] - O[0] + up[0] * lift, ty = br[1] - O[1] + up[1] * lift, tz = br[2] - O[2] + up[2] * lift, d = split.dist, cp = Math.cos(pz);
+  const off = V.add(V.add(V.scale(n, Math.cos(split.yaw) * d * cp), V.scale(e, Math.sin(split.yaw) * d * cp)), V.scale(up, d * Math.sin(pz)));
+  cam2.position.set(tx + off[0], ty + off[1], tz + off[2]); cam2.up.set(up[0], up[1], up[2]); cam2.lookAt(landed ? tx : tx + bd[0] * 15, landed ? ty : ty + bd[1] * 15, landed ? tz : tz + bd[2] * 15);
   cam2.aspect = R2.w / R2.h; cam2.updateProjectionMatrix();
   const fxV = fx.root ? fx.root.visible : null; if (fx.root) fx.root.visible = false; // Low look in the pane: no flow particles
   // render the pane into an offscreen target (half resolution on phones), then composite it over the main view
   const sc = TOUCH ? 0.5 : Math.min(1, renderer.getPixelRatio()), tw = Math.max(16, Math.round(R2.w * sc)), th2 = Math.max(16, Math.round(R2.h * sc));
-  if (!split.rt) { split.rt = new THREE.RenderTarget(tw, th2, { samples: TOUCH ? 0 : 4 }); split.qm = new THREE.MeshBasicMaterial({ map: split.rt.texture, depthTest: false, depthWrite: false });
-    split.qs = new THREE.Scene(); split.qs.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), split.qm)); split.qc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); }
+  if (!split.rt) { split.rt = new THREE.RenderTarget(tw, th2, { samples: TOUCH ? 0 : 4 }); split.qm = new THREE.MeshBasicMaterial({ map: split.rt.texture, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+    split.qs = new THREE.Scene(); const qm = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), split.qm); if (renderer.backend && renderer.backend.isWebGPUBackend) qm.scale.y = -1; /* f4.1: WebGPU render-target textures come out flipped: the pane showed the ground at the top */ split.qs.add(qm); split.qc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); }
   if (split.rt.width !== tw || split.rt.height !== th2) split.rt.setSize(tw, th2);
   renderer.setRenderTarget(split.rt); renderer.render(scene, cam2); renderer.setRenderTarget(null);
   const ac0 = renderer.autoClear; renderer.autoClear = false; renderer.setViewport(R2.x, R2.y, R2.w, R2.h);
@@ -1575,7 +1589,7 @@ function updateSun(O, U, h, k, isMap) {
   skyC.copy(cNight).lerp(cSky, day).lerp(cHor, dusk * 0.55).multiplyScalar(1 - k);
   scene.background = isMap ? skyC.setRGB(0, 0, 0.01) : skyC;
   // aerial perspective near the ground: exponential haze in the sky colour, thinning with altitude
-  scene.fog.color.copy(skyC).lerp(cHaze, 0.35 * day); scene.fog.density = isMap ? 0 : 2.2e-5 * Math.exp(-h / 8000) * (h < 40000 ? 1 : 0);
+  scene.fog.color.copy(skyC).lerp(cHaze, 0.35 * day); scene.fog.density = isMap ? 0 : 2.2e-5 * Math.exp(-h / 4500) * (h < 40000 ? 1 : 0); // f4.1: high up the camera looks down through thin air (no grey slab at 22 km)
   sunL.intensity = 3.0 * sunK; sunL.color.setRGB(1, 0.85 + 0.15 * (1 - dusk), 0.7 + 0.3 * (1 - dusk));
   hemi.intensity = (0.25 + 0.75 * day) * (1 - k * 0.75); scene.environmentIntensity = (0.35 + 0.65 * day) * (1 - 0.6 * k) * (0.3 + 0.7 * sunK);
   sunSprite.visible = !isMap && sunK > 0.02; sunSprite.position.copy(camera.position).addScaledVector(sunDirV, 5e7); sunSprite.scale.setScalar(5e7 * (0.12 + 0.1 * k)); sunSprite.material.opacity = sunK;
@@ -1909,4 +1923,7 @@ function plumeAudit() {
   for (const p of smoke.d) { if (p.life <= 0) continue; const d = [p.x - base[0], p.y - base[1], p.z - base[2]], along = V.dot(d, vh); if (along > 60 || along < -400) continue; const lat = V.len(V.addS(d, vh, -along)); if (p.max - p.life > 2.5) continue; n++; s2 += lat * lat; mx = Math.max(mx, lat); }
   out.smoke = { samp: smoke.d.filter(p => { if (p.life <= 0 || p.max - p.life > 2.5) return false; const al = V.dot([p.x - base[0], p.y - base[1], p.z - base[2]], vh); return al < 60 && al > -400; }).slice(0, 10).map(p => { const d = [p.x - base[0], p.y - base[1], p.z - base[2]], al = V.dot(d, vh); return [+(p.max - p.life).toFixed(1), Math.round(al), Math.round(V.len(V.addS(d, vh, -al)))]; }), n, rms: n ? +Math.sqrt(s2 / n).toFixed(1) : 0, max: +mx.toFixed(1) }; return out;
 }
-window.__game = { audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };
+window.__game = { exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
+    const va = V.sub(v.v, siteVel(v)), sp = V.len(va), vh = sp > 1 ? V.scale(va, 1 / sp) : P.noseOf(v), nz = V.sub(v.r, V.scale(P.noseOf(v), P.massProps(v).ycom)); let ahead = 0, maxA = -1e9, n = 0; const dbg = [];
+    for (const sys of [fire, smoke]) for (const q of sys.d) { if (q.life <= 0 || Math.hypot(q.x, q.y, q.z) - P.R_E < 300) continue; /* ignore the pad cloud */ const a = V.dot([q.x - nz[0], q.y - nz[1], q.z - nz[2]], vh); if (V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]) > 3000) continue; n++; if (a > maxA) maxA = a; if (a > 2) { ahead++; if (dbg.length < 6) dbg.push({ sys: sys === fire ? 'fire' : 'smoke', a: +a.toFixed(0), age: +(q.max - q.life).toFixed(2), c: q.c0 && q.c0.toString(16), d: q.drag, rva: +V.dot([q.vx - v.v[0], q.vy - v.v[1], q.vz - v.v[2]], vh).toFixed(0), an: +V.dot(P.noseOf(v), vh).toFixed(3), r: +V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]).toFixed(0) }); } }
+    return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };

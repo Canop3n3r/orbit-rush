@@ -2,15 +2,15 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=f4';
-import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f4';
-import { elements, timeToAp } from './kepler.js?v=f4';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f4';
-import { massOf } from './vehicle.js?v=f4';
-import { atmosphere } from './atmosphere.js?v=f4';
-import { cd0 } from './aero.js?v=f4';
-import { hoverslamSolve } from './hoverslam.js?v=f4';
-import { sampleAscent } from '../timelines/ascent.js?v=f4';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f4.1';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f4.1';
+import { elements, timeToAp } from './kepler.js?v=f4.1';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f4.1';
+import { massOf } from './vehicle.js?v=f4.1';
+import { atmosphere } from './atmosphere.js?v=f4.1';
+import { cd0 } from './aero.js?v=f4.1';
+import { hoverslamSolve } from './hoverslam.js?v=f4.1';
+import { sampleAscent } from '../timelines/ascent.js?v=f4.1';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -151,16 +151,16 @@ export function boosterAutopilot(b, dtHint = 0.02) {
     if (b._bT <= 0) { b._bT = 0.3; const im = predictImpact(b);
       if (im) { const e = sub(b.tgtAt ? b.tgtAt(im.t) : b.tgtR, im.r), u2 = norm(im.r), eh = sub(e, scale(u2, dot(e, u2))), E = len(eh);
         b._bbV = E > 1 ? scale(eh, 1 / E) : b._bbV; b.impErr = E;
-        if (E < 300 || (b._bbE != null && E > b._bbE + 30)) b.bbDone = true; b._bbE = E; } }
+        if (E < 80 || (b._bbE != null && E > b._bbE + 30)) b.bbDone = true; b._bbE = E; } }
     if (s.fuel <= keep) b.bbDone = true;
-    if (!b.bbDone && b._bbV) { b.n = Math.min(3, b.nMax); b.throttle = Math.min(1, Math.max(0.25, (b._bbE ?? 1e4) / 8000)); b.dir = norm(add(b._bbV, scale(up, 0.08))); b.phase = 'boostback'; b.boostback = (b.boostback || 0) + dtHint; return; }
+    if (!b.bbDone && b._bbV) { b.n = Math.min(3, b.nMax); b.throttle = Math.min(1, Math.max(0.08, (b._bbE ?? 1e4) / 8000)); b.dir = norm(add(b._bbV, scale(up, 0.08))); b.phase = 'boostback'; b.boostback = (b.boostback || 0) + dtHint; return; }
   }
   if (vr > 0 || s.fuel <= 0) { b.throttle = 0; if (b.tgtR) b.fin = null; b.phase = s.fuel <= 0 ? 'no fuel' : 'coast'; return; }
   // f4 terminal guidance toward b.tgtR (ECI point on the surface/deck, set by flight.js every step)
   const tg = b.tgtR ? horizErr(b, up) : null; b.tgtErr = tg ? len(tg.d) : null;
-  if (tg && h < 30000 && !b._hs) { // grid-fin glide: steer the predicted impact onto the target
+  if (tg && h < 30000 && !b._hs) { // grid-fin glide (f4.1: RTLS steers from the end of the entry burn): steer the predicted impact onto the target
     b._gT = (b._gT ?? 0) - dtHint;
-    if (b._gT <= 0) { b._gT = 0.4; const im = predictImpact(b); if (im) { const e = sub(b.tgtAt ? b.tgtAt(im.t) : b.tgtR, im.r), eh = sub(e, scale(up, dot(e, up))); b._finV = scale(eh, 1 / Math.max(2500, len(eh))); b.impErr = len(eh); } }
+    if (b._gT <= 0) { b._gT = 0.4; const im = predictImpact(b); if (im) { const e = sub(b.tgtAt ? b.tgtAt(im.t) : b.tgtR, im.r), eh = sub(e, scale(up, dot(e, up))); b._finV = scale(eh, 1 / Math.max(b.rtls ? 1700 : 2500, len(eh))); b.impErr = len(eh); } }
     b.fin = b._finV || null;
   } else if (b.tgtR) b.fin = null;
   // (1) entry burn, decided from the live predicted peaks
@@ -170,12 +170,12 @@ export function boosterAutopilot(b, dtHint = 0.02) {
       b._eNeed = pk.q > ENTRY_Q_MAX * 0.9 || pk.qdot > ENTRY_QDOT_MAX * 0.9; }
     const sE = b.stages[0], mE = (sE.dry + sE.fuel) * 1000, aE = sE.eng.tv * 1000 / mE, gE = muOf(b) / dot(b.r, b.r);
     const keep = sE.dry * (Math.exp(Math.max(0, 1.6 * Math.sqrt(2 * gE * 0) + 600) / (sE.eng.ispSl * 9.80665)) - 1); // ~600 m/s landing-burn budget
-    if (b._eNeed && sE.fuel > keep * (b.rtls ? 1.8 : 1.1) && b.rtls && b.tgtR && !b.manual) { // f4 RTLS: steer the entry burn so the impact stays on the landing zone
+    if (b._eNeed && sE.fuel > keep * (b.rtls ? 2.8 : 1.1) && b.rtls && b.tgtR && !b.manual) { // f4 RTLS: steer the entry burn so the impact stays on the landing zone
       b._ieT = (b._ieT ?? 0) - dtHint;
       if (b._ieT <= 0) { b._ieT = 0.5; const im = predictImpact(b); if (im) { const e = sub(b.tgtAt ? b.tgtAt(im.t) : b.tgtR, im.r), u2 = norm(im.r), eh = sub(e, scale(u2, dot(e, u2))), E = len(eh); b.impErr = E; b._ieV = E > 1 ? scale(eh, Math.min(0.4, E / 4000) / E) : null; } }
       if (b._ieV) b.dir = norm(add(b.dir, b._ieV));
     }
-    if (b._eNeed && sE.fuel > keep * (b.rtls ? 1.8 : 1.1)) { b.n = Math.min(3, b.nMax); b.throttle = 1; b.phase = 'entry burn'; b.entryBurned = (b.entryBurned || 0) + dtHint; return; }
+    if (b._eNeed && sE.fuel > keep * (b.rtls ? 2.8 : 1.1)) { b.n = Math.min(3, b.nMax); b.throttle = 1; b.phase = 'entry burn'; b.entryBurned = (b.entryBurned || 0) + dtHint; return; }
     if (b.entryBurned) b.entryDone = true;
   }
   if (h <= 25000) b.entryDone = true;

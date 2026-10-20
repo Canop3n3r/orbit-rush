@@ -676,3 +676,7 @@ details.bset{display:contents}details.bset[open]>summary{display:none}
 @media (orientation:landscape){#split:not(.portrait) .spBtns{top:calc(64px + var(--sat,0px));right:auto;left:10px}}
 /* f4: in split screen each pane has its own mini navball; the big one would sit across the pane border */
 body.splitOn #nav, body.splitOn #navCue{display:none!important}
+/* f4.1: in side-by-side split screen, messages live in the upper-stage (left) pane, clear of the booster pane's buttons */
+@media (orientation:landscape){body.splitOn:not(.mapOn) #topStack{left:25%!important;top:calc(112px + env(safe-area-inset-top,0px))!important;max-width:46vw!important}}
+/* f4.1: one telemetry layout at a time — while split, only the pane cards (no engineer tiles / classic tele / big navball) */
+body.splitOn #engS, body.splitOn #tele, body.splitOn #nav, body.splitOn #navCue{display:none!important}

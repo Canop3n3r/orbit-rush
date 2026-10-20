@@ -1,9 +1,9 @@
 // f2h: every showroom rocket flies its role with AUTO (or its one-tap mission). Run: node tests/showroom.mjs
-import * as P from '../physics.js?v=f4';
-import { Flight, simulateAuto } from '../flight.js?v=f4';
-import { validate, aeroBalance, designStats } from '../parts.js?v=f4';
-import { Director } from '../fun/director.js?v=f4';
-import { SHOWROOM, bars } from '../fun/showroom.js?v=f4';
+import * as P from '../physics.js?v=f4.1';
+import { Flight, simulateAuto } from '../flight.js?v=f4.1';
+import { validate, aeroBalance, designStats } from '../parts.js?v=f4.1';
+import { Director } from '../fun/director.js?v=f4.1';
+import { SHOWROOM, bars } from '../fun/showroom.js?v=f4.1';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
 const T0 = P.tFromDate(Date.UTC(2026, 9, 19, 15)), km = x => (x / 1000).toFixed(0) + ' km';
 ok(SHOWROOM.length >= 8 && SHOWROOM.length <= 12, `${SHOWROOM.length} prebuilt rockets`);
@@ -25,7 +25,7 @@ for (const r of SHOWROOM) {
   const res = simulateAuto(r.design, { dt: 1 / 20, tMax: 3000 });
   if (r.check === 'space') ok(!res.dead && res.ap > 100000, `${r.name} reaches space with AUTO (Ap ${km(res.ap)})`);
   if (r.check === 'orbit') ok(res.orbit && res.pe > P.ORBIT_PE, `${r.name} reaches orbit with AUTO (${km(res.ap)} × ${km(res.pe)})`);
-  if (r.check === 'booster') { const rb = simulateAuto(r.design, { dt: 1 / 20, reserve: 16 }); ok(rb.orbit && rb.boosterLanded, `${r.name}: orbit and the booster lands itself`); }
+  if (r.check === 'booster') { const rb = simulateAuto(r.design, { dt: 1 / 20, ...(r.design.recovery === 'rtls' ? {} : { reserve: 16 }) }) /* f4.1: RTLS boosters stage on AUTO's own boostback reserve */; ok(rb.orbit && rb.boosterLanded, `${r.name}: orbit and the booster lands itself`); }
   if (r.check === 'hop') ok(!res.dead && res.ap > 20000 && res.ap < 100000, `${r.name} hops to ${km(res.ap)} (suborbital)`);
 }
 console.log(`showroom: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
