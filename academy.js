@@ -75,7 +75,7 @@ export const LESSONS = [
       { text: 'Press SPACE to light the engines.', keys: ['Space'], done: c => c.F.ignited },
       { text: 'Liftoff! The clamps let go once thrust beats weight. Throttle with Shift / Ctrl (or ↑ / ↓); Z is full, X is cut.', hl: ['thr', 'alt'], keys: ['Shift', 'Ctrl', 'Z', 'X'], done: c => c.F.flags.liftoff && c.F.alt > 200 },
       { text: c => `Climb to 1 km — ALT reads ${km(c.F.alt)}.`, hl: ['alt'], done: c => c.F.flags.maxAlt >= 1000 },
-      { text: 'Stage: press SPACE twice. The booster drops away and the upper stage lights.', hl: ['stage'], keys: ['Space', 'Space'], done: c => c.v.cur >= 1 },
+      { text: 'Stage: press SPACE. The booster drops away and the upper stage lights.', hl: ['stage'], keys: ['Space'], done: c => c.v.cur >= 1 },
     ],
     pass: c => flying(c) && c.F.flags.maxAlt >= 1000 && c.v.cur >= 1,
     concept: {
