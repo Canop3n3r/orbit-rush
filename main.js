@@ -743,7 +743,8 @@ const hooks = {
   soi: (from, to) => { if (!PROG.visited.includes(to)) { PROG.visited.push(to); PR.save(localStorage, PROG); fun.reveal(to); } else fun.call('🪐', 'Entering ' + P.BODIES[to].name + ' space', '#9cc3ff'); },
   chute: st => { if (st === 'failed') for (let k = 0; k < 30; k++) smoke.spawn(V.sub(v.r, V.scale(P.noseOf(v), -stackL() * 0.5)), jit(v.v, 12), 2, 1, 4, 0xff7a3c, null, 0.6); },
   recovered: () => { const up = V.norm(v.r); for (let k = 0; k < 60; k++) smoke.spawn(v.r, V.add(siteVel(v), V.add(V.scale(up, 4 + Math.random() * 10), [rnd(10), rnd(10), rnd(10)])), 2 + Math.random() * 2, 2, 9, 0xeaf4ff, null, 0.9); },
-  end: (ms, cond) => later(() => { if (cond()) { if (academy && academy.active) academy.onEnd(); else showEnd(); } }, ms),
+  end: (ms, cond) => later(() => { if (opSess && !F.flags.dead) return; if (cond()) { // QA f5a.2: an ops contract owns its ending (no card at orbit mid-contract)
+    if (academy && academy.active) academy.onEnd(); else showEnd(); } }, ms),
 };
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
 // f4.2: the detached side pair is one group (both columns + struts). Make one holder per side booster: a deep copy
@@ -1784,7 +1785,7 @@ const cx = createCompact({ touch: TOUCH, onSpeedTap: () => fun.cycleSpeed(), onM
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
   for (const id of ['hint', 'toasts', 'callout']) { const e = document.getElementById(id); if (e) st.appendChild(e); } }
 // f4: recovery missions (missions/*.js) run through the shared runner session; S.task drives a compact HUD prompt
-loadMissions().then(l => { opsList = l; }).catch(e => console.warn('[Orbit Rush] missions', e));
+const opsReady = loadMissions().then(l => { opsList = l; return l; }).catch(e => console.warn('[Orbit Rush] missions', e));
 loadBrand().then(() => applyBrandDom()).catch(() => {});
 // career (PR #9): money / reputation / unlocks, saved in localStorage via the campaign save module
 let lastOp = null;
@@ -1792,7 +1793,9 @@ const LADDER_OPS = () => LADDER.filter(c => c.how === 'op').map(c => c.op);
 function ctxCareerLock(id) { if (LADDER_OPS().includes(id)) { const c = LADDER.find(x => x.op === id); return careerUI.state.done[c.id] || !careerUI.locked('missions', id) ? null : lockWhy('missions', id); }
   const t = CAREER.find(x => x.contracts.includes(id)), sid = t && Object.keys(MODEL_OF).find(k => MODEL_OF[k] === t.vehicleId); return sid ? lockWhy('vehicles', sid) : null; }
 function startOp(contractId, viaLadder) {
-  const mid = missionOf(contractId), m = opsList.find(x => x.id === mid); if (!m) return;
+  const mid = missionOf(contractId); let m = opsList.find(x => x.id === mid);
+  if (!m && !opsList.length) { fun.call('⏳', 'Loading the contract…', '#9cc3ff'); opsReady.then(() => { if (opsList.length) startOp(contractId, viaLadder); }); return; } // QA f5a.2: never drop into Build while missions load
+  if (!m) return; lastOp = null;
   if (!viaLadder) { const why = ctxCareerLock(contractId); if (why) { fun.call('🔒', why, '#ffb35c'); return; } } // f5b: one career, gated by the ladder
   opContract = contractId; opHooks = missionHooks(m, () => F); opFlightOpts = missionFlightOpts(m);
   setDesign(missionDesign(m)); launch(); opFlightOpts = null; applyMission(m, F); opSess = missionSession(m).attach(F);
@@ -1804,11 +1807,14 @@ function opEnd(why) {
   const r = evalOp(S.m, F, S), ok = r.objectives.filter(o => o.pass).length; lastOp = { id: S.m.id, ok: !!r.complete };
   let line = `${opName(S.m)}: ${ok}/${r.objectives.length} objectives · score ${r.score.toLocaleString()}`;
   fun.call(r.complete ? '🏆' : '⚠️', line, r.complete ? '#7dffa6' : '#ffb35c', true); opSess = null; opHooks = null;
+  if (F.setExec) try { F.setExec(false); } catch (e) { }
+  later(() => { if (!F.ended) showEnd(); }, 1500); // QA f5a.2: finishing the contract records it on the ladder (recordFlight reads lastOp) and shows the card
 }
 function opTick() {
   const S = opSess, el = document.getElementById('opTask'); if (!S) { if (el) el.hidden = true; return; }
   S.tick(F);
-  if (el) { const t = S.task; el.hidden = !t; if (t) el.innerHTML = t.kind === 'execute-node' ? `<b>▶ Burn ${t.burn}${t.of ? '/' + t.of : ''}</b> ${t.label} <small>${F.nodes.length ? 'X / ◆ Execute' : ''}</small>` : `<b>▶</b> ${t.label || t.kind}`; }
+  const tk = S.task; if (tk && tk.kind === 'execute-node' && F.flags.orbit && F.nodes.length && !F.exec && F.setExec) F.setExec(true); // QA f5a.2: career ops fly their nodes on AUTO (the toast promises it)
+  if (el) { const t = S.task; el.hidden = !t; if (t) el.innerHTML = t.kind === 'execute-node' ? `<b>▶ Burn ${t.burn}${t.of ? '/' + t.of : ''}</b> ${t.label} <small>${F.nodes.length ? (F.exec ? 'AUTO burns' : TOUCH ? 'MAP ▸ ◆ Node ▸ ▶ Execute' : '9 / ◆ Execute') : ''}</small>` : `<b>▶</b> ${t.label || t.kind}`; }
   if (S.done || S.failed || F.flags.dead) opEnd();
 }
 function startMission(id) {
@@ -1999,6 +2005,7 @@ function recordFlight(score) {
   let op = lastOp; if (opSess) { try { const e = evalOp(opSess.m, F, opSess); op = { id: opSess.m.id, ok: !!e.complete }; } catch (e) { } }
   const sh = SHOW.find(x => x.name === design.name);
   try { out.ladder = careerUI.record({ ...r, vehicle: sh ? sh.id : null, op: op ? op.id : null, opOk: !!(op && op.ok) }); } catch (e) { console.warn('[Orbit Rush] ladder', e); }
+  lastOp = null;
   return out;
 }
 function savePhoto(req) {
