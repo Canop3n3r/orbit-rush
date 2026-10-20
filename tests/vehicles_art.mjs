@@ -5,11 +5,15 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 const dir = new URL('../gfx/vehicles/', import.meta.url), BAN = /spacex|falcon|merlin|raptor|dragon|starship|super ?heavy|starlink|tesla|kestrel|elon|mechazilla/i;
 for (const f of readdirSync(dir)) { const s = readFileSync(new URL(f, dir), 'utf8'); s.split('\n').forEach((l, i) => ok(!BAN.test(l.replace(/function \w+|\w+\(|\b(falcon9|falcon1|falconHeavy|starship|superHeavy)\b/g, '')) || /^\s*\/\//.test(l) === false && false, `${f}:${i + 1} brand word: ${l.trim().slice(0, 80)}`)); }
 const v = readFileSync(new URL('vehicles.js', dir), 'utf8');
-for (const id of ['sparrow-1', 'heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'titan-ss-v3', 'titan-ss-v4', 'catch-tower']) ok(v.includes(`'${id}':`), 'model id ' + id);
+for (const id of ['sparrow-1', 'heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'colossus-v3', 'colossus-v4', 'catch-tower']) ok(v.includes(`'${id}':`), 'model id ' + id);
+// real-name guard: patterns live OUTSIDE the public repo (REALNAMES env or the studio's private list); skipped when absent
+const realHit = (() => { const f = process.env.REALNAMES || '/workspace/wk/realnames.txt'; let ci = [], cs = [];
+  try { let sec = ''; for (const l of readFileSync(f, 'utf8').split('\\n')) { if (/^# ci$/.test(l)) { sec = 'ci'; continue; } if (/^# cs/.test(l)) { sec = 'cs'; continue; } if (l.startsWith('#') || !l.trim()) continue; (sec === 'ci' ? ci : cs).push(new RegExp(l, sec === 'ci' ? 'i' : '')); } } catch { return () => false; }
+  return t => ci.some(r => r.test(t)) || cs.some(r => r.test(t)); })();
 { const c = readFileSync(new URL('co_nosa.js', dir), 'utf8'); for (const id of ['saturnine-v', 'space-truck']) ok(c.includes(`'${id}':`), 'co-nosa model id ' + id); ok(!/\b(nasa|saturn|apollo|boeing|rocketdyne|shuttle|rockwell|endeavour|discovery|atlantis|columbia|challenger)\b/i.test(c.replace(/saturnine/gi, '')), 'co_nosa.js: no real agency/vehicle names'); }
 const d = readFileSync(new URL('decals.js', dir), 'utf8'); ok(/setBrandPack/.test(d) && /function generic/.test(d), 'decal slots with generic default');
-{ const c = readFileSync(new URL('co_jaxo.js', dir), 'utf8'); for (const id of ['h-too','h-too-2024']) ok(c.includes(`'${id}':`), 'co_jaxo id ' + id); ok(!/\b(jaxa|nasda|isas|mitsubishi|mhi|tanegashima|h-ii\w*|le-\d+|srb-a|kibo|htv)\b/i.test(c), 'co_jaxo.js: no real names'); }
-{ const c = readFileSync(new URL('co_htree.js', dir), 'utf8'); for (const id of ['h-tree-22','h-tree-24','h-tree-30']) ok(c.includes(`'${id}':`), 'co_htree id ' + id); ok(!/\b(jaxa|h3|h-iii|le-9|srb-3|mitsubishi|mhi|tanegashima)\b/i.test(c), 'co_htree.js: no real names'); }
+{ const c = readFileSync(new URL('co_jaxo.js', dir), 'utf8'); for (const id of ['h-too','h-too-2024']) ok(c.includes(`'${id}':`), 'co_jaxo id ' + id); ok(!realHit(c), 'co_jaxo.js: no real names'); }
+{ const c = readFileSync(new URL('co_htree.js', dir), 'utf8'); for (const id of ['h-tree-22','h-tree-24','h-tree-30']) ok(c.includes(`'${id}':`), 'co_htree id ' + id); ok(!realHit(c), 'co_htree.js: no real names'); }
 // public-name audit: rocketdb/tools/namecheck.py (PRIVATE, never in this repo) checks every model id, display/src string and stage-group
 // name, plus a whole-file real-name-stem scan. Path: ROCKETDB env or the studio checkout; the check is skipped when the file is absent.
 { const { spawnSync } = await import('node:child_process'); const { existsSync, readdirSync } = await import('node:fs');
