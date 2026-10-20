@@ -8,7 +8,7 @@
 // shade, a cloud/haze sky, a launch tower or mount beside the vehicle and ground detail around a right-sized pad.
 import * as THREE from 'three/webgpu';
 import * as GX from '../gfx.js?v=f2';
-import { VEHICLES, build, setLegs, dispose } from './vehicles.js?v=f5.2.1';
+import { VEHICLES, build, setLegs, dispose } from './vehicles.js?v=f5.2';
 const q = new URLSearchParams(location.search);
 const renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL: q.has('webgl') });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = q.has('gameexp') ? 1.05 : 0.9;
@@ -60,11 +60,7 @@ function lattice(g, H, W, x, z) { const lv = Math.max(3, W * 0.9), n = Math.floo
   br.count = k; g.add(br); }
 // per-vehicle set: pad radius from the vehicle, a service tower (Heron family), the catch tower + mount (titan)
 function clearStage() { for (const c of stage.children.slice()) dispose(c); }
-const TABLE = /^(baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
-const TABLE = /^(baltic-hammer|redrock|junebug|pegacorn|dark-dart)/; // ids that stand on a launch table instead of a tower
-const TABLE = /^(diamantine|baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
-const TABLE = /^(scoutling|vantguard|baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
-const TABLE = /^(vantguard|baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
+const TABLE = /^(baltic-hammer|redrock|junebug|pegacorn|dark-dart|diamantine|scoutling|vantguard)/; // ids that stand on a launch table instead of a tower (one list: merged copies)
 function setStage(id, h, rV) { clearStage(); let lift = 0; const small = h < 10;
   const padR = small ? 4 : Math.max(18, rV * 6);
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(padR, padR * 1.06, small ? 0.4 : 1.2, 48), concM); pad.position.y = small ? 0.2 : 0.6; stage.add(pad); lift = small ? 0.4 : 1.2;
@@ -92,11 +88,11 @@ const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 30
 const { bloom } = await import('three/addons/tsl/display/BloomNode.js'); const { pass } = await import('three/tsl');
 const pp = new THREE.PostProcessing(renderer), sp = pass(scene, camera), col = sp.getTextureNode('output'), bl = bloom(col, 0.35, 0.4, 1.4);
 pp.outputNode = q.has('nobloom') ? col : col.add(bl);
-const RADIUS = { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 };
-const RADIUS = { ...Object.fromEntries(['dark-dart'].map(i => [i, 1.0])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 };
-const RADIUS = { ...Object.fromEntries(['europia'].map(i => [i, 2.0])), ...Object.fromEntries(['vegara','vegara-c'].map(i => [i, 1.7])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['arion-5','arion-62','arion-64'].map(i => [i, 2.7])) };
-const RADIUS = { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['new-glendale'].map(i => [i, 3.5])) };
-const RADIUS = { 'moonhammer': 8.4, 'mogutny': 6.0, 'mogutny-glider': 6.0, 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, 'rodnik': 1.47, 'rodnik-2': 1.47, 'lastochka': 1.47, 'pervy': 1.47 };
+const RADIUS = { ...Object.fromEntries(['atlantean-centaurus'].map(i => [i, 1.6])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 };
+Object.assign(RADIUS, { ...Object.fromEntries(['dark-dart'].map(i => [i, 1.0])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 }); // merged copy
+Object.assign(RADIUS, { ...Object.fromEntries(['europia'].map(i => [i, 2.0])), ...Object.fromEntries(['vegara','vegara-c'].map(i => [i, 1.7])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['arion-5','arion-62','arion-64'].map(i => [i, 2.7])) }); // merged copy
+Object.assign(RADIUS, { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['new-glendale'].map(i => [i, 3.5])) }); // merged copy
+Object.assign(RADIUS, { 'moonhammer': 8.4, 'mogutny': 6.0, 'mogutny-glider': 6.0, 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, 'rodnik': 1.47, 'rodnik-2': 1.47, 'lastochka': 1.47, 'pervy': 1.47 }); // merged copy
 let cur = null;
 // shot: { id, opts, hero:true (auto-frame 85 % of the height, low 3/4) | cam/aim in vehicle heights, fov, sunAz (deg, from camera), only, legs, bare (no set) }
 async function shot(s) { if (cur) { dispose(cur); cur = null; } const h = VEHICLES[s.id].height, rV = RADIUS[s.id] || 2;
@@ -104,7 +100,8 @@ async function shot(s) { if (cur) { dispose(cur); cur = null; } const h = VEHICL
   cur = build(s.id, { detail: s.lo ? 'lo' : 'hi', ...(s.opts || {}) }); cur.position.y = s.id === 'catch-tower' ? 0 : lift; stage.add(cur);
   if (s.only) for (const c of cur.children) c.visible = c.name === s.only;
   if (s.legs !== undefined) for (const L of cur.userData.legs || []) setLegs(L, s.legs);
-  const base = s.hero ? 0 : cur.position.y, H = s.hero ? cur.position.y + h : h; // hero: frame the whole stack incl. mount camera.fov = s.fov || 30; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  const base = s.hero ? 0 : cur.position.y, H = s.hero ? cur.position.y + h : h; camera.fov = s.fov || 30; // hero: frame the whole stack incl. mount
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   const yaw = (s.yaw ?? 40) * Math.PI / 180; let target, pos;
   if (s.hero) { // fit: vertical span (base..tip) = 85 % of the frame, camera low (slight upward tilt)
     const span = H / 0.85, d = span / (2 * Math.tan(camera.fov * Math.PI / 360)); target = new THREE.Vector3(0, base + H * 0.5, 0);
