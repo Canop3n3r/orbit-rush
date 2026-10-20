@@ -2,7 +2,7 @@
 // pressure, layered explosions (crack + boom + debris rattle), part-snap clicks, UI ticks and a fanfare, and a
 // remembered mute that the engine rumble shares through the master gain.
 export function createAudio(getCtx) {
-  const KEY = 'orbitrush.mute.f3'; // f3: new key, so nobody stays stuck on a mute set while audio was broken let muted = (() => { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } })();
+  const KEY = 'orbitrush.mute.f3'; /* f3: new key, nobody stays stuck on a mute set while audio was broken */ let muted = (() => { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } })();
   let wind = null, windF = null;
   const A = () => getCtx(), M = () => getCtx() && getCtx().master;
   function noise(sec) { const ac = A().ac, b = ac.createBuffer(1, Math.max(1, ac.sampleRate * sec) | 0, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; }

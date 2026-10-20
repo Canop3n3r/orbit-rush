@@ -11,4 +11,6 @@ for (const d of [SHOWROOM.find(r => r.id === 'kestrel').design, TEMPLATES.find(t
 }
 const off = simulateAuto(SHOWROOM.find(r => r.id === 'kestrel').design, { dt: 1 / 20, autoStage: false });
 ok(!off.boosterLanded, 'with auto-staging off the booster burns dry (manual staging path unchanged)');
+import { readFileSync } from 'fs';
+ok(!/master\.connect\(master\)/.test(readFileSync(new URL('../main.js', import.meta.url), 'utf8')), 'audio master gain goes to the speakers (not wired to itself)');
 console.log(`f3: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
