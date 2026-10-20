@@ -18,15 +18,15 @@ export const MISSIONS = [
     countdown: { propLoadGo: -3180, s1Rp1Load: -3000, s1LoxLoad: -2700, s2Rp1Load: -2100, s2LoxLoad: -1110, engineChill: -420, finalChecks: -59, goForLaunch: -45, pressurize: -20, ignition: -6 },
     events: { maxq: 68, beco: 144, stage1Sep: 147, flip: 152, boostback: 163, boostbackEnd: 228, meco: 231, stage2Sep: 234, ses1: 240, fairing: 255, entryBurn: 379, entryBurnEnd: 389, landingBurn: 443, boosterLanded: 460, seco: 508 },
     recovery: 'side boosters return to two landing zones; core expended or drone ship' },
-  // Block 3 (catalog v3) data: spec:timeline-titan-ss-catch#v3-f14 (most nominal v3 booster: full boostback, 11/13-engine landing burn).
+  // Block 3 (catalog v3) data: spec:timeline-colossus-catch#v3-f14 (most nominal v3 booster: full boostback, 11/13-engine landing burn).
   // No v3 booster catch has occurred (v3 flights 1-3 all ended in sea splashdown), so boosterLanded = landing-burn shutdown (catch proxy, est).
-  { id: 'titan-ss-catch', vehicle: 'titan-ss-v3', src: 'spec:timeline-titan-ss-catch#v3-f14',
+  { id: 'colossus-catch', vehicle: 'colossus-v3', src: 'spec:timeline-colossus-catch#v3-f14',
     note: 'v3 event times sourced; no v3 catch yet, catch time is a proxy; Block 1 catch flight kept as fallback',
     countdown: { propLoadGo: -3000, boosterLox: -2193, boosterFuel: -2100, shipLox: -2053, shipFuel: -2051, engineChill: -1300, boosterLoadDone: -170, shipLoadDone: -130, goForLaunch: -30, flameDiverter: -17, ignition: -3 },
     events: { maxq: 58, meco: 140, stage1Sep: 142, boostback: 147, boostbackEnd: 187, landingBurn: 395, boosterLanded: 421, seco: 491, orbitInsertion: 1528, deployStart: 2058, deployEnd: 3890 },
     est: ['boosterLanded'],
     alt: { v3f12: { maxq: 45, meco: 142, stage1Sep: 144, boostback: 150, landingBurn: 394, seco: 491 }, v3f13: { maxq: 58, meco: 138, stage1Sep: 141, boostback: 145, landingBurn: 387, seco: 485 } },
-    fallback: { src: 'spec:timeline-titan-ss-catch#b1-f5', maxq: 62, meco: 153, stage1Sep: 158, boostback: 163, boostbackEnd: 219, landingBurn: 388, boosterLanded: 412, seco: 505, boostbackApogee: 96000 },
+    fallback: { src: 'spec:timeline-colossus-catch#b1-f5', maxq: 62, meco: 153, stage1Sep: 158, boostback: 163, boostbackEnd: 219, landingBurn: 388, boosterLanded: 412, seco: 505, boostbackApogee: 96000 },
     state: { est: 'altitudes/velocities not published in sourced tables' }, recovery: 'v3: booster sea splashdown (no catch yet); target profile: tower-arm catch' },
 ];
 // Events AUTO is compared against (±15 %).

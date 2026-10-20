@@ -22,7 +22,7 @@ ok(!s.unlocked.includes('heron-9'), 'later tiers stay locked');
 const order = ['roadster-helio', 'gto-comsat', 'constellation-batch', 'rideshare', 'sso-rideshare', 'crew-dock', 'station-rendezvous', 'tower-catch', 'super-heavy-catch', 'ship-transfer', 'lunar-landing', 'mars-ship'];
 for (const id of order) { ok(canFly(s, id).ok, `can fly ${id} (money ${s.money}, rep ${s.rep})`); s = applyFlight(s, id, { complete: true, score: 10000 }); }
 ok(s.unlocked.join() === CAREER.filter(t => !t.unlock.future).map(t => t.vehicleId).join(), 'full career: every flown tier unlocked, in order');
-ok(!s.unlocked.includes('titan-ss-v4'), 'future tier never unlocks'); ok(s.flights.length === 14 && s.flights.every((f, i) => f.n === i + 1), 'flight-number history 1..14');
+ok(!s.unlocked.includes('colossus-v4'), 'future tier never unlocks'); ok(s.flights.length === 14 && s.flights.every((f, i) => f.n === i + 1), 'flight-number history 1..14');
 ok(available(s).length > 0, 'contracts available at the end');
 let broke = newCareer(); for (let i = 0; i < 8; i++) broke = applyFlight(broke, 'first-orbit', { complete: false, score: 0 });
 ok(broke.money === STIPEND_FLOOR && broke.flights.some(f => f.stipend > 0), `stipend tops money back up to the cheapest contract (${broke.money})`);
@@ -47,16 +47,16 @@ const tamper = f => { const d = JSON.parse(txt); f(d.career, d); return load(JSO
 ok(!tamper(c => { c.money = -5; }).ok, 'rejects negative money');
 ok(!tamper(c => { c.money += 1000; }).ok, 'rejects money not matching history');
 ok(!tamper(c => { c.rep = 999; }).ok, 'rejects edited reputation');
-ok(!tamper(c => { c.unlocked = ['sparrow-1', 'titan-ss-v3']; }).ok, 'rejects unlocks out of order');
-ok(!tamper(c => { c.unlocked.push('titan-ss-v4'); }).ok, 'rejects unlocking the future tier');
+ok(!tamper(c => { c.unlocked = ['sparrow-1', 'colossus-v3']; }).ok, 'rejects unlocks out of order');
+ok(!tamper(c => { c.unlocked.push('colossus-v4'); }).ok, 'rejects unlocking the future tier');
 ok(!tamper(c => { c.flights[0].score = 1e9; }).ok, 'rejects absurd scores');
 ok(!tamper(c => { c.flights.splice(1, 1); }).ok, 'rejects a gap in flight numbers');
 ok(!tamper(c => { c.flights[0].mission = 'mars-ship'; }).ok, 'rejects a flight on a locked vehicle');
 ok(!tamper(c => { c.done['mars-ship'] = 99999; }).ok, 'rejects forged completions');
-ok(!tamper(c => { c.flights[0].vehicle = 'titan-ss-v3'; }).ok, 'rejects vehicle mismatch');
+ok(!tamper(c => { c.flights[0].vehicle = 'colossus-v3'; }).ok, 'rejects vehicle mismatch');
 ok(!tamper((c, d) => { d.sum = '00000000'; }).ok, 'rejects bad checksum');
 // a consistent forged history still has to be a legal career: replay rejects an impossible one
-ok(!tamper((c, d) => { c.flights = [{ n: 1, mission: 'lunar-landing', vehicle: 'titan-ss-v3', ok: true, score: 1 }]; }).ok, 'rejects an impossible history');
+ok(!tamper((c, d) => { c.flights = [{ n: 1, mission: 'lunar-landing', vehicle: 'colossus-v3', ok: true, score: 1 }]; }).ok, 'rejects an impossible history');
 for (const bad of ['', 'null', '{', '[]', '{"v":99}', '{"format":"x","v":2}', JSON.stringify({ v: 2, format: SAVE_KEY })]) ok(!load(bad).ok, 'corrupt input rejected: ' + bad.slice(0, 20));
 const v1 = JSON.stringify({ v: 1, money: 50, flights: [{ mission: 'first-orbit', ok: true, score: 7000 }] }), M = load(v1);
 ok(M.ok && M.migrated && M.career.flights[0].n === 1 && M.career.unlocked.includes('heron-heavy'), 'v1 save migrates to v2 via MIGRATIONS[1]');

@@ -7,8 +7,8 @@ import { SPACEY_CATALOG_IDS } from '../vehicles/roster/spacey.js';
 import { modelPayload, TOL } from '../vehicles/roster/loss.js';
 const G0 = 9.80665, E = {};
 // Body diameters for catalog entries without `diam` (adapter-only; catalog untouched): spec:sparrow-1 1.7 m,
-// spec:heron-9 3.7 m (all heron variants), spec:titan-ss-v3 / titan-ss-v4 9 m. A 3.7 m default had given sparrow-1 ~7x its frontal area.
-const DIAM = { 'sparrow-1': 1.7, 'heron-9-v11': 3.7, 'heron-9-crew': 3.7, 'heron-heavy': 3.7, 'titan-ss-v3': 9, 'titan-ss-v4': 9 };
+// spec:heron-9 3.7 m (all heron variants), spec:colossus-v3 / colossus-v4 9 m. A 3.7 m default had given sparrow-1 ~7x its frontal area.
+const DIAM = { 'sparrow-1': 1.7, 'heron-9-v11': 3.7, 'heron-9-crew': 3.7, 'heron-heavy': 3.7, 'colossus-v3': 9, 'colossus-v4': 9 };
 for (const [k, e] of Object.entries(ENGINES)) E[k] = { ...e };
 for (const id of SPACEY_CATALOG_IDS) {
   const c = VEHICLES.find(v => v.id === id); if (!c) { console.log('  ? missing catalog id', id); continue; }

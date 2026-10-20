@@ -2,8 +2,8 @@
 // planner-built transfer nodes executed as finite burns, mid-course corrections, SOI warps, capture, Moon
 // landing) and tells the renderer which cinematic camera suits each phase. The player can take over anytime
 // (takeOver()); nothing here bypasses the physics. DOM-free, so tests/fun.mjs runs it headlessly.
-import * as P from '../physics.js?v=f5.1d';
-import * as C from '../physics/patched.js?v=f5.1d';
+import * as P from '../physics.js?v=f5.1e';
+import * as C from '../physics/patched.js?v=f5.1e';
 const V = P.V;
 export const MISSIONS = {
   orbit: { name: 'Orbit & home', icon: '🛰️', tpl: 'Orbit & home', target: null, blurb: 'Fly to orbit, then bring the capsule home under parachutes.' },
@@ -15,7 +15,7 @@ export const MISSIONS = {
 // phase → camera: the renderer picks chase / wide / map cams from this
 export const CAMS = { hop: 'chase', coast: 'wide', ascent: 'chase', plan: 'map', burn: 'wide', correct: 'wide', cruise: 'map', capture: 'wide', brake: 'chase', descent: 'chase', home: 'chase', done: 'wide' };
 export const MAX_CORR_WAIT = 400 * 86400; // s: never wait longer than this for a course-correction node
-const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'capture', 'brake', 'descent', 'home', 'done'];
+const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'lift', 'capture', 'brake', 'descent', 'home', 'done'];
 const WARP_BURN = () => 4;
 export class Director {
   constructor(F, id, opts = {}) {
@@ -25,14 +25,15 @@ export class Director {
   }
   get cam() { return CAMS[this.phase] || 'chase'; }
   get label() {
-    const L = { ascent: 'Climbing to orbit', plan: 'Plotting the transfer', burn: 'Transfer burn', correct: 'Course correction', cruise: 'Cruising to ' + (this.target ? P.BODIES[this.target].name : ''), capture: 'Capture burn', brake: 'Braking from orbit', descent: 'Powered descent', home: 'Coming home', done: this.result || 'Mission complete' };
+    const L = { ascent: 'Climbing to orbit', plan: 'Plotting the transfer', burn: 'Transfer burn', correct: 'Course correction', cruise: 'Cruising to ' + (this.target ? P.BODIES[this.target].name : ''), capture: 'Capture burn', lift: 'Raising periapsis', brake: 'Braking from orbit', descent: 'Powered descent', home: 'Coming home', done: this.result || 'Mission complete' };
     return L[this.phase] || this.phase;
   }
   get progress() { return ORDER.indexOf(this.phase) / (ORDER.length - 1); }
   takeOver() { const F = this.F; this.active = false; F.setExec(false); F.setAuto(false, true); this.say('You have control — mission autopilot off'); }
   set(ph, msg) { this.phase = ph; this.t = 0; this.log.push(ph); if (msg) this.say(msg); }
   finish(res, ok = true) { this.result = res; this.ok = ok; this.set('done', res); this.active = false; }
-  execNext(node) { const F = this.F; F.addNode(node); F.setExec(true); }
+  dvCap() { return 900; }
+  execNext(node) { const F = this.F; if (this.target && this.target !== 'moon') node.cl = true; F.addNode(node); F.setExec(true); } // f5.1e: closed-loop guidance for interplanetary burns
   tick(dt) { // once per frame, before F.advance
     const F = this.F, v = F.v;
     if (!this.active) return;
@@ -76,10 +77,10 @@ export class Director {
             const pr = C.predict('sun', v.r, v.v, F.tAbs, { maxPatches: 3 }), ca = C.closestApproach(pr, this.target);
             if (!ca.inside) { this.corrections++;
               let cn = C.correctionNode('sun', v.r, v.v, F.tAbs, this.target, { peAlt: 300000, tol: 3e6, starts: [5 * 86400, 30 * 86400], scaleV: 2, byT: F.tAbs + 4e7 });
-              if (!(cn && cn.node && cn.good && cn.dv < 900)) { // QA f5.1c P1 (Venus ~1 in 3 missed): wider search; a flyby only needs to enter the SOI
+              if (!(cn && cn.node && cn.good && cn.dv < this.dvCap())) { // QA f5.1c P1 (Venus ~1 in 3 missed): wider search; a flyby only needs to enter the SOI
                 const c2 = C.correctionNode('sun', v.r, v.v, F.tAbs, this.target, { peAlt: 300000, tol: this.m.capture || this.m.land ? 3e6 : 3e7, starts: [2 * 86400, 10 * 86400, 30 * 86400, 60 * 86400], scaleV: 4, byT: F.tAbs + 6e7 });
-                if (c2 && c2.node && c2.dv < 900 && (!cn || !cn.node || cn.dv >= 900 || (c2.good && !cn.good))) cn = c2; }
-              if (cn && cn.node && cn.dv < 900 && cn.node.t - F.tAbs < MAX_CORR_WAIT) { this.execNext(cn.node); this.set('correct', 'Course correction ' + cn.dv.toFixed(0) + ' m/s'); break; } }
+                if (c2 && c2.node && c2.dv < this.dvCap() && (!cn || !cn.node || cn.dv >= this.dvCap() || (c2.good && !cn.good))) cn = c2; }
+              if (cn && cn.node && cn.dv < this.dvCap() && cn.node.t - F.tAbs < MAX_CORR_WAIT) { this.execNext(cn.node); this.set('correct', 'Course correction ' + cn.dv.toFixed(0) + ' m/s'); break; } }
           }
           if (!F.warpToSOI()) this.finish('Missed ' + P.BODIES[this.target].name, false);
         }
@@ -93,6 +94,7 @@ export class Director {
           else this.finish(o.e < 1 ? `In orbit around ${P.BODIES[F.body].name}!` : `Flew past ${P.BODIES[F.body].name}`);
         }
         break;
+      case 'lift': if (v.thrust > 0 && !F.warpTarget) F.setWarp(4, true); if (!F.exec && !F.nodes.length) this.arrive(); else if (!F.exec && F.nodes.length) F.setExec(true); break;
       case 'brake': {
         v.sas = 'retrograde';
         const ang = Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), V.scale(P.progradeOf(v), -1)))));
@@ -120,6 +122,12 @@ export class Director {
     this.say('Welcome to ' + b.name + '!');
     if (!(this.m.land || this.m.capture)) { this.finish('Flew past ' + b.name + '!'); return; }
     const tp = C.timeToPe(v.r, v.v, b.mu), sp = P.propagate(v.r, v.v, tp, b.mu), rp = V.len(sp.r), ra = b.R + (this.m.land ? 1500000 : Math.max(2e6, b.R * 2));
+    if (F.body !== 'moon' && rp < b.R + 100000 && !this._lift) { // f5.1e: arriving low or on a collision course — raise periapsis first (a small radial burn soon), then capture
+      const want = b.R + Math.max(300000, (b.atm ? 150000 : 0) + 200000), tn = F.tAbs + Math.min(3600, tp * 0.2); let best = null;
+      for (let k = -80; k <= 80; k++) for (let j = -4; j <= 4; j++) { const nd = { t: tn, pro: j * 50, nrm: 0, rad: k * 25 }, s0 = P.propagate(v.r, v.v, tn - F.tAbs, b.mu), dv = C.nodeVector(s0.r, s0.v, nd), v1 = V.add(s0.v, dv);
+        const tp1 = C.timeToPe(s0.r, v1, b.mu), s1 = P.propagate(s0.r, v1, tp1, b.mu), err = Math.abs(V.len(s1.r) - want) / 1000 + C.nodeDv(nd) * 0.02;
+        if (!best || err < best.err) best = { nd, err }; }
+      if (best) { this._lift = true; this.execNext(best.nd); this.set('lift', 'Raising periapsis before the capture'); return; } }
     if (rp < b.R) { this.finish('On a collision course with ' + b.name, false); return; }
     F.addNode({ t: F.tAbs + tp, pro: Math.sqrt(b.mu * (2 / rp - 2 / (rp + ra))) - V.len(sp.v) }); F.setExec(true);
     this.set('capture', 'Capture burn at periapsis');

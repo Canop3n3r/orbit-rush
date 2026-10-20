@@ -12,9 +12,9 @@ export const CAREER = [
     unlock: { rep: 25, after: ['roadster-helio'] }, contracts: ['constellation-batch', 'rideshare', 'sso-rideshare'] },
   { tier: 4, vehicleId: 'heron-9-crew', firstFlight: '2020-05-30', note: 'spec:heron-9-crew first crewed flight',
     unlock: { rep: 45, after: ['constellation-batch'] }, contracts: ['crew-dock', 'station-rendezvous'] },
-  { tier: 5, vehicleId: 'titan-ss-v3', firstFlight: '2026-05-22', note: 'spec:titan-ss#v3 first flight (Flight 12); earlier blocks flew from 2023-04-20, first catch 2024-10-13',
+  { tier: 5, vehicleId: 'colossus-v3', firstFlight: '2026-05-22', note: 'spec:colossus#v3 first flight (Flight 12); earlier blocks flew from 2023-04-20, first catch 2024-10-13',
     unlock: { rep: 70, after: ['station-rendezvous'] }, contracts: ['tower-catch', 'refuel', 'super-heavy-catch', 'ship-transfer', 'lunar-landing', 'mars-ship'] },
-  { tier: 6, vehicleId: 'titan-ss-v4', firstFlight: null, note: 'spec:titan-ss#v4 not flown (in development): locked as a future tier',
+  { tier: 6, vehicleId: 'colossus-v4', firstFlight: null, note: 'spec:colossus#v4 not flown (in development): locked as a future tier',
     unlock: { future: true }, contracts: [] },
 ];
 // Contract terms per mission (game balance). cost = launch cost charged when you fly; reward/rep on success.

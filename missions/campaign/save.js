@@ -5,6 +5,7 @@
 // check is what makes edits pointless). Older versions go through MIGRATIONS before validation.
 import { CONTRACTS } from './career.js';
 import { replay } from './state.js';
+import { canonicalVehicleId } from '../../vehicles/id_aliases.js';
 export const SAVE_KEY = 'orbitrush.campaign', VERSION = 2, MAX_SCORE = 100000, MAX_BYTES = 512 * 1024, MAX_FLIGHTS = 5000;
 const fnv = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, '0'); };
 const body = c => JSON.stringify({ money: c.money, rep: c.rep, unlocked: c.unlocked, done: c.done, flights: c.flights });
@@ -53,8 +54,11 @@ export function load(text) {
     try { d = mg(d); migrated = true; } catch (e) { return { ok: false, err: ['migration failed: ' + e.message] }; } }
   if (!migrated && d.format !== SAVE_KEY) return { ok: false, err: ['wrong format'] };
   const career = sanitize(d.career); if (!career) return { ok: false, err: ['bad career shape'] };
-  const err = validateCareer(career); if (err.length) return { ok: false, err };
   if (d.sum !== fnv(body(career))) return { ok: false, err: ['checksum mismatch'] };
+  const canon = x => (typeof x === 'string' ? canonicalVehicleId(x) : x); // retired catalog ids in old saves (hashed aliases)
+  if (Array.isArray(career.unlocked)) career.unlocked = career.unlocked.map(canon);
+  if (Array.isArray(career.flights)) for (const f of career.flights) if (f && typeof f === 'object' && f.vehicle) f.vehicle = canon(f.vehicle);
+  const err = validateCareer(career); if (err.length) return { ok: false, err };
   return { ok: true, career, migrated };
 }
 export const saveTo = (store, c) => { try { store.setItem(SAVE_KEY, serialize(c)); return true; } catch (e) { return false; } };

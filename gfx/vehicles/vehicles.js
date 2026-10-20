@@ -7,12 +7,43 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { Kit, xf, mat, compact, compactStages, FOLD_HEAVY, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=f5.1d';
+import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=art1';
 export { dispose, release, geometryCacheSize };
-import * as PR from './profiles.js?v=f5.1d';
-import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f5.1d';
+import * as PR from './profiles.js?v=art1';
+import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
 export { setLegs, mat };
-import { CO_NOSA } from './co_nosa.js?v=f5.1d'; // co-nosa-1: NOSA heritage vehicles
+import { CO_CIVSPACE } from './co_civspace.js?v=art1'; // co-civspace-1: NOSA heritage vehicles
+import { CO_ALBION } from './co_albion.js?v=art1';
+import { CO_EUROPIA } from './co_europia.js?v=art1';
+import { CO_VEGARA } from './co_vegara.js?v=art1';
+import { CO_ARION } from './co_arion.js?v=art1';
+import { CO_BLUEHZ } from './co_bluehz.js?v=art1';
+import { CO_BOLT } from './co_bolt.js?v=art1';
+import { CO_CONVEX } from './co_convex.js?v=art1';
+import { CO_DOUGWING } from './co_dougwing.js?v=art1';
+import { CO_GAULOIS } from './co_gaulois.js?v=art1';
+import { CO_JADELANTERN2 } from './co_jadelantern2.js?v=art1';
+import { CO_JADELANTERN } from './co_jadelantern.js?v=art1';
+import { CO_IRG } from './co_irg.js?v=art1';
+import { CO_ISRA } from './co_isra.js?v=art1';
+import { CO_TSURUGI } from './co_tsurugi.js?v=art1';
+import { CO_JAXO } from './co_jaxo.js?v=art1';
+import { CO_MOGUTNY } from './co_mogutny.js?v=art1';
+import { CO_MOONHAMMER } from './co_moonhammer.js?v=art1';
+import { CO_KRASNAYA } from './co_krasnaya.js?v=art1'; // co-krasnaya-1: R-7 family
+import { CO_TAIGA } from './co_taiga.js?v=art1';
+import { CO_KRUNOV } from './co_krunov.js?v=art1';
+import { CO_LINGVOLT } from './co_lingvolt.js?v=art1';
+import { CO_MARTELL } from './co_martell.js?v=art1';
+import { CO_VANTGUARD } from './co_vantguard.js?v=art1';
+import { CO_CIVSPACE2 } from './co_civspace2.js?v=art1';
+import { CO_ORBITRON } from './co_orbitron.js?v=art1';
+import { CO_ORIGINALS } from './co_originals.js?v=art1';
+import { CO_ROCKETWELL } from './co_rocketwell.js?v=art1'; // co-rocketwell-1
+import { CO_SOUTHSTAR } from './co_southstar.js?v=art1';
+import { CO_VULC } from './co_vulc.js?v=art1';
+import { CO_ULX, ULX_IDS } from './co_ulx.js?v=art1';
+import { CO_BALTIC } from './co_baltic.js?v=art1';
 const PI = Math.PI;
 // ---- kerolox booster core (9 engines, octaweb, legs, grid fins) ----
 function core9(detail, o = {}) {
@@ -58,12 +89,11 @@ function sparrow(o) { const d = o.detail, k = new Kit(d), r = 0.835;
   tube(k, r, r, 1.2, 15.75, 'carbon'); const b = k.build('booster');
   const u = new Kit(d); bell(u, 0.42, 1.0, 0, 16.0, 0, { ext: true, rt: 0.12, head: 0.3 }); tube(u, r, r, 2.4, 16.95, 'silver'); decal(u, 'upper.side', r, 17.2, 1.4, 0, 1.2); const U = u.build('upper');
   const f = fairing(d, 18.85, 0.75, 0.6, 1.85, 0.66, 0.6); return group('sparrow', [b, U, f], 21.3); }
-function heronHeavy(o) { const d = o.detail === 'hi' ? 'mid' : 'lo', // hi = mid-detail cores (≤20k tris, ≤30 meshes); mid/lo = lo cores, folded harder in build()
+function heronHeavy(o) { const d = o.detail === 'hi' ? 'mid' : o.detail, // phone budget: hi = mid-detail cores (≤20k tris, ≤30 meshes)
    c = core9(d, o), u = upper(d, { y0: 46.0 }), f = fairing(d, u.userData.top), kids = [c, u, f];
   for (const s of [-1, 1]) { const b = core9(d, { ...o, nose: true, H: 40.9 }); b.name = s < 0 ? 'side0' : 'side1'; b.position.x = s * 3.86; b.rotation.y = s < 0 ? PI : 0; kids.push(b); }
   const k = new Kit(d); for (const s of [-1, 1]) { for (const y of [4.5, 38.5]) strut(k, [s * 1.8, y, 0], [s * 2.05, y, 0], 0.3, 'dark'); if (k.hi) strut(k, [s * 1.8, 37, 0.6], [s * 2.05, 39, 0.6], 0.12, 'grey'); }
-  kids.push(k.build('struts')); // struts stay their own stage (staging detaches them)
-  return group('heron-heavy', kids, f.userData.top); }
+  kids.push(k.build('struts')); return group('heron-heavy', kids, f.userData.top); }
 function colossusBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.boosterH || 72.3;
   const pos = ringPos([[3, 0.95, PI / 6], [10, 2.55], [20, 3.85, PI / 20]]);
   for (const [x, z] of pos) bell(k, 0.62, 1.55, x, 0, z, { rt: 0.26, head: k.hi ? 0.9 : 0 });
@@ -160,14 +190,31 @@ export const VEHICLES = {
   'colossus-v4': { height: 142, build: o => colossus({ ...o, boosterH: 81, shipH: 61, gridFins: 3 }), src: 'specs sheet (colossus) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
   'catch-tower': { height: 164, build: catchTower, src: 'public ~146 m tower (art estimate)', est: ['all'] },
   'payload-roadster': { height: 3.2, build: roadster, src: 'generic roadster-style car (art)', est: ['all'] },
-  ...CO_NOSA,
+  ...CO_CIVSPACE, ...CO_ALBION, ...CO_EUROPIA, ...CO_VEGARA, ...CO_ARION, ...CO_BLUEHZ, ...CO_BOLT, ...CO_CONVEX, ...CO_DOUGWING, ...CO_GAULOIS, ...CO_JADELANTERN2, ...CO_JADELANTERN, ...CO_IRG, ...CO_ISRA, ...CO_TSURUGI, ...CO_JAXO, ...CO_KRASNAYA, ...CO_MOGUTNY, ...CO_MOONHAMMER, ...CO_TAIGA, ...CO_KRUNOV, ...CO_LINGVOLT, ...CO_MARTELL, ...CO_VANTGUARD, ...CO_CIVSPACE2, ...CO_ORBITRON, ...CO_ORIGINALS, ...CO_ROCKETWELL, ...CO_SOUTHSTAR, ...CO_VULC, ...CO_ULX, ...CO_BALTIC,
   'payload-flatsat-stack': { height: 5.6, build: satStack, src: 'specs sheet flatsat-style flat-pack stack (art)', est: ['plate size'] },
 };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
-  if (id === 'heron-heavy' && det !== 'hi') compactStages(g, ['legs'], det === 'lo' ? { ...FOLD_HEAVY, bell: 'dark', bellx: 'dark' } : FOLD_HEAVY);
-  else if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
-  else if (/^heron-9/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
+  else if (/^heron-9|^dark-dart$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^europia$|^vegara$|^vegara-c$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^new-glendale/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^titanus-4$|^atlantean-crew$|^atlantean-upper$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^deltoid-2-heavy9$|^deltoid-2-light3$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^diamantine-a$|^diamantine-b$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^jade-lantern-2f$|^jade-lantern-3b$|^jade-lantern/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^new-shepherdish$|^featherwing-1$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^polar-slinger$|^monsoon-heavy$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^tsurugi-22$|^tsurugi-24$|^tsurugi-30$|^tsubame$|^tsubame-2024$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^mogutny$|^moonhammer$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^taiga-1$|^taiga-a5$|^gorynych/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^scoutling$|^scoutling-x1$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^titanus-2$|^titanus-2-icbm$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^vantguard$|^saturnine-1/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^pegacorn$|^antarion$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^selene$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^steppe-arrow-2$|^steppe-arrow-3$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^vulcanis-2s$|^vulcanis-4l$|^vulcanis-6l$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)

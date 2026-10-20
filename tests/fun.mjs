@@ -2,13 +2,13 @@
 // capture, Venus flyby, orbit-and-home), take-over, progress (contracts, unlocks, achievements, daily, streak,
 // medals, corrupt storage), lore/POIs, the ghost-trajectory track, the plume/vapor mappings, test stand
 // hold-down, and the warp limit while a booster flies (split-screen staging).
-import * as P from '../physics.js?v=f5.1d';
-import * as FX from '../fxmap.js?v=f5.1d';
-import { Flight, assessDesign, BOOSTER_WARP, simulateAuto } from '../flight.js?v=f5.1d';
-import { TEMPLATES } from '../parts.js?v=f5.1d';
-import { Director, MISSIONS } from '../fun/director.js?v=f5.1d';
-import * as PR from '../fun/progress.js?v=f5.1d';
-import { ATLAS, POIS, nearestPoi, gcDist } from '../fun/lore.js?v=f5.1d';
+import * as P from '../physics.js?v=f5.1e';
+import * as FX from '../fxmap.js?v=f5.1e';
+import { Flight, assessDesign, BOOSTER_WARP, simulateAuto } from '../flight.js?v=f5.1e';
+import { TEMPLATES } from '../parts.js?v=f5.1e';
+import { Director, MISSIONS } from '../fun/director.js?v=f5.1e';
+import * as PR from '../fun/progress.js?v=f5.1e';
+import { ATLAS, POIS, nearestPoi, gcDist } from '../fun/lore.js?v=f5.1e';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('FAIL', m); } };
 const T0 = P.tFromDate(Date.UTC(2026, 9, 19, 15)), tpl = n => TEMPLATES.find(t => t.name === n);
 function fly(id, maxF = 2e6) { const said = []; const F = new Flight(tpl(MISSIONS[id].tpl), {}, { t0: T0 }); const D = new Director(F, id, { say: m => said.push(m) });
@@ -18,6 +18,10 @@ function fly(id, maxF = 2e6) { const said = []; const F = new Flight(tpl(MISSION
   ok(['ascent', 'plan', 'burn', 'cruise', 'capture', 'brake', 'descent', 'done'].every(p => D.log.includes(p)), 'Moon phases: ' + D.log.join('>')); ok(F.goals.moon && F.goals.moon.landed, 'Moon landing goal'); }
 { const { F, D } = fly('mars'); ok(D.ok && F.body === 'mars', 'one-tap Mars: ' + D.result); const o = P.orbitOf(F.v); ok(o.e < 1, `captured at Mars (e ${o.e.toFixed(2)})`); }
 { const { F, D } = fly('venus'); ok(D.ok && F.goals.venus && F.goals.venus.flyby, 'one-tap Venus flyby: ' + D.result); }
+// f5.1e: closed-loop burn guidance — Venus one-tap hits on every launch date tried (was ~2 in 3)
+for (const id of ['venus', 'mars']) { let hit = 0; const N = 8, out = []; for (let k = 0; k < N; k++) { const F = new Flight(tpl(MISSIONS[id].tpl), {}, { t0: T0 + k * 2.9 * 86400 }); const D = new Director(F, id, {});
+    for (let i = 0; i < 2e6 && D.active; i++) { D.tick(1 / 30); F.advance(1 / 30); } if (D.ok) hit++; else out.push(k + ': ' + D.result); }
+  ok(hit === N, `${id} one-tap across ${N} launch dates: ${hit}/${N} ${out.join('; ')}`); }
 { const { F, D } = fly('orbit'); ok(D.ok && F.flags.recovered, 'one-tap orbit & home: ' + D.result); }
 { const F = new Flight(tpl('Moon lander'), {}, { t0: T0 }), D = new Director(F, 'moon');
   for (let i = 0; i < 900; i++) { D.tick(1 / 30); F.advance(1 / 30); } D.takeOver(); ok(!D.active && !F.autoOn && !F.exec, 'take over: director, AUTO and node execution all off');

@@ -2,10 +2,10 @@
 // return (live entry burn → grid-fin coast → landing burn) including an off-nominal steep/fast entry, the low-TWR
 // fallback, and a one-tap Moon landing (airless: deorbit + hoverslam, no entry burn).
 // Run: node tests/hoverslam.mjs
-import * as P from '../physics.js?v=f5.1d';
-import { Flight, PRESETS, simulateAuto, landingCheck } from '../flight.js?v=f5.1d';
-import { TEMPLATES } from '../parts.js?v=f5.1d';
-import { Director, MISSIONS } from '../fun/director.js?v=f5.1d';
+import * as P from '../physics.js?v=f5.1e';
+import { Flight, PRESETS, simulateAuto, landingCheck } from '../flight.js?v=f5.1e';
+import { TEMPLATES } from '../parts.js?v=f5.1e';
+import { Director, MISSIONS } from '../fun/director.js?v=f5.1e';
 const { V } = P;
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
 // 1-D drop: mass m (kg) with fuel mf, thrust T, isp, from h0 at v0 down, gravity g, simple drag k·v²/m

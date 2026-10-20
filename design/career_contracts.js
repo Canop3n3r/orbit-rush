@@ -71,10 +71,10 @@ export const CONTRACTS = [
       { company: 'calt', vehicle: 'jade-lantern-5', note: 'orbiter, lander and rover in one launch (2020)' },
       { company: 'ulx', vehicle: 'atlantean-v', note: 'car-sized rovers landed on Mars (2011, 2020)' },
       { company: 'blueh', vehicle: 'new-glendale', note: 'twin small Mars orbiters (2025)' },
-      { company: 'spacey', vehicle: 'titan-ss', note: 'fully reusable Mars ship (planned, never flown: ESTIMATE)' }] },
+      { company: 'spacey', vehicle: 'colossus', note: 'fully reusable Mars ship (planned, never flown: ESTIMATE)' }] },
 ];
 
 // Inspiration ids above (neutral, from the studio roster plan; tier-S rows land with roster PRs #15-#25).
 export const INSPIRATION_COMPANIES = ['spacey', 'baltic', 'nosa', 'other', 'redstar', 'blueh', 'rockwell', 'calt', 'ulx'];
 export const INSPIRATION_VEHICLES = ['hopper-h', 'baltic-hammer', 'redrock', 'featherwing-1', 'sparrow-1', 'rodnik', 'jade-lantern-2f', 'jade-lantern-5', 'moonhammer', 'heron-9', 'heron-heavy',
-  'new-glendale', 'heron-9-crew', 'space-truck', 'long-stride-2f', 'saturnine-v', 'long-stride-5', 'super-lift', 'n-won', 'atlantean-v', 'titan-ss'];
+  'new-glendale', 'heron-9-crew', 'space-truck', 'long-stride-2f', 'saturnine-v', 'long-stride-5', 'super-lift', 'n-won', 'atlantean-v', 'colossus'];

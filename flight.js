@@ -1,9 +1,9 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.1d';
-import * as C from './physics/patched.js?v=f5.1d';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.1d';
+import * as P from './physics.js?v=f5.1e';
+import * as C from './physics/patched.js?v=f5.1e';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.1e';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -206,7 +206,7 @@ export class Flight {
   }
   checkSOI() { const nb = P.soiOf(this.body, this.v.r, this.tAbs); if (nb !== this.body) { this.switchBody(nb); return true; } return false; }
   // ---------- maneuver nodes: { t (game clock, absolute), pro, nrm, rad (m/s) } ----------
-  addNode(n) { const node = { t: n.t, pro: n.pro || 0, nrm: n.nrm || 0, rad: n.rad || 0 }; this.nodes.push(node); this.nodes.sort((a, b) => a.t - b.t); return node; }
+  addNode(n) { const node = { t: n.t, pro: n.pro || 0, nrm: n.nrm || 0, rad: n.rad || 0 }; if (n.cl) node.cl = true; this.nodes.push(node); this.nodes.sort((a, b) => a.t - b.t); return node; }
   removeNode(n) { const i = this.nodes.indexOf(n); if (i >= 0) this.nodes.splice(i, 1); if (!this.nodes.length) { this.exec = false; if (this.v.sas === 'node') this.v.sas = 'stab'; } }
   nodeBurnTime(n) { return P.burnTimeFor(this.v, C.nodeDv(n)); }
   // Δv still to do on the next node (vector, current body frame). Before the burn starts it tracks the predicted
@@ -232,6 +232,26 @@ export class Flight {
     const d = n.done || { pro: 0, nrm: 0, rad: 0 };
     return C.nodeVector(v.r, v.v, { pro: n.pro - d.pro, nrm: n.nrm - d.nrm, rad: n.rad - d.rad });
   }
+  // Closed-loop node guidance (f5.1e, Venus accuracy): aim at the post-burn orbit itself (angular momentum h* and eccentricity
+  // vector e*, both invariant along the conic) instead of integrating pro/nrm/rad open-loop. At position r the target conic's
+  // velocity is v* = h* × (μ(e* + r̂)) / |h*|²; steer along vg = v* − v and stop when vg is spent. Finite-burn and frame errors self-correct.
+  closedLoop(n, dt, m0) {
+    const v = this.v, mu = P.muOf(v);
+    if (!n.tgt) { if (this.nodeOnLaterPatch(n)) return false; const s = P.propagate(v.r, v.v, n.t - this.tAbs, mu), vn = V.add(s.v, C.nodeVector(s.r, s.v, n));
+      const h = V.cross(s.r, vn), e = V.sub(V.scale(V.cross(vn, h), 1 / mu), V.norm(s.r)); n.tgt = { h, e, body: this.body }; }
+    if (n.tgt.body !== this.body) { delete n.cl; return false; }
+    const { h, e } = n.tgt, h2 = V.dot(h, h), hn = V.scale(h, 1 / Math.sqrt(h2)), rp = V.sub(v.r, V.scale(hn, V.dot(v.r, hn)));
+    const vs = V.scale(V.cross(h, V.add(e, V.norm(rp))), mu / h2), vg = V.sub(vs, v.v), g = V.len(vg);
+    const bt = this.nodeBurnTime(n), inWin = this.tAbs >= n.t - bt / 2 - 60;
+    if (v.thrust > 0 && !v.clamped && inWin && dt > 0 && !n.started) { n.started = true; n.done = { pro: 0, nrm: 0, rad: 0 }; n.vg0 = vg; }
+    if (n.started && !n.vg0) n.vg0 = vg;
+    v.nodeDir = g > 1e-6 ? V.scale(vg, 1 / g) : null; n.vgLeft = g;
+    if (n.started) n.gmin = Math.min(n.gmin ?? g, g);
+    if (n.started && (g < Math.max(0.5, 1e-3 * V.len(n.vg0)) || g > n.gmin + 1 || V.dot(vg, n.vg0) <= 0)) {
+      this.toast(`Maneuver complete (${g.toFixed(1)} m/s left)`, '#7dffa6'); if (this.exec) { v.ut = 0; v.throttle = 0; }
+      this.exec = false; this.removeNode(n); if (v.sas === 'node') v.sas = 'stab'; v.sasHold = null; }
+    return true;
+  }
   nodeLeft(n) { const d = n.done || { pro: 0, nrm: 0, rad: 0 }; return { pro: n.pro - d.pro, nrm: n.nrm - d.nrm, rad: n.rad - d.rad }; }
   updateNode(dt, m0) {
     const n = this.nodes[0], v = this.v; if (!n) { v.nodeDir = null; return; }
@@ -242,6 +262,7 @@ export class Flight {
       const f = C.nodeFrame(v.r, v.v), a = V.scale(P.noseOf(v), v.thrust / m0 * dt);
       n.done.pro += V.dot(a, f.pro); n.done.nrm += V.dot(a, f.nrm); n.done.rad += V.dot(a, f.rad);
     }
+    if (n.cl && !n.later && this.closedLoop(n, dt, m0)) return; // closed-loop (h, e) guidance through the burn
     const rem = this.nodeRemaining(n); v.nodeDir = rem && V.len(rem) > 1e-6 ? V.norm(rem) : null; if (!rem) { if (this.exec && this.tAbs > n.t + 600) { this.exec = false; v.ut = 0; this.removeNode(n); } return; } // f5a.2: an unexecutable past node no longer stalls AUTO
     const L = this.nodeLeft(n), left = Math.hypot(L.pro, L.nrm, L.rad), along = L.pro * n.pro + L.nrm * n.nrm + L.rad * n.rad;
     if (n.started && (left < 0.3 || along <= 0)) {
@@ -257,7 +278,7 @@ export class Flight {
   }
   updateExec() {
     const n = this.nodes[0], v = this.v; if (!this.exec || !n) return;
-    const L = this.nodeLeft(n), dv = Math.hypot(L.pro, L.nrm, L.rad), bt = 0, a = P.thrustAccel(v);
+    const L = this.nodeLeft(n), dv = n.cl && n.vgLeft != null ? n.vgLeft : Math.hypot(L.pro, L.nrm, L.rad), bt = 0, a = P.thrustAccel(v);
     const ang = v.nodeDir ? Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), v.nodeDir)))) : 1;
     const go = this.tAbs >= n.t - (n.started ? 1e9 : this.nodeBurnTime(n) / 2);
     if (!go) { v.ut = 0; if (!this.warpTarget && this.tAbs < n.t - this.nodeBurnTime(n) / 2 - NODE_LEAD - 5 && ang < 0.1) this.warpToNode(true); return; }

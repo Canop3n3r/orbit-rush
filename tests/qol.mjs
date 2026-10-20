@@ -1,12 +1,12 @@
 // Milestone Q (quality of life) tests: settings/keys/units, undo, handle layout, radial boosters, per-body Δv,
 // Δv map, quicksave snapshots, impact prediction and nodes on later patches. Run: node tests/qol.mjs
-import * as P from '../physics.js?v=f5.1d';
-import * as C from '../physics/patched.js?v=f5.1d';
-import { TEMPLATES, cloneDesign, analyze, validate, designStats, insertPart, setSymmetry, radialGroup } from '../parts.js?v=f5.1d';
-import { Flight, simulateAuto } from '../flight.js?v=f5.1d';
-import { DEFAULTS, bindKey, makeTranslator, resetKeys, fmtDist, fmtSpeed, History, keyOf } from '../settings.js?v=f5.1d';
-import { layoutHandles } from '../maplayout.js?v=f5.1d';
-import { dvMap } from '../physics/dvmap.js?v=f5.1d';
+import * as P from '../physics.js?v=f5.1e';
+import * as C from '../physics/patched.js?v=f5.1e';
+import { TEMPLATES, cloneDesign, analyze, validate, designStats, insertPart, setSymmetry, radialGroup } from '../parts.js?v=f5.1e';
+import { Flight, simulateAuto } from '../flight.js?v=f5.1e';
+import { DEFAULTS, bindKey, makeTranslator, resetKeys, fmtDist, fmtSpeed, History, keyOf } from '../settings.js?v=f5.1e';
+import { layoutHandles } from '../maplayout.js?v=f5.1e';
+import { dvMap } from '../physics/dvmap.js?v=f5.1e';
 let pass = 0, fail = 0;
 const ok = (c, n, x = '') => { if (c) { pass++; console.log('  ✔', n, x); } else { fail++; console.log('  ✘', n, x); } };
 const T = n => cloneDesign(TEMPLATES.find(t => t.name === n));

@@ -1,4 +1,4 @@
-// co-nosa-1: NOSA (parody national agency) heritage vehicles, rocketdb tier S. Original geometry, no logos/names.
+// co-civspace-1: civil space agency heritage vehicles, rocketdb tier S. Original geometry, no logos/names.
 // Dimensions: game-studio rocketdb (GCAT stage table) + design.md; the stack breakdown is art-fitted to the 110.6 m total.
 import * as THREE from 'three/webgpu';
 import { Kit, xf, weakDisposeListeners } from './kit.js?v=art1';
@@ -13,6 +13,8 @@ function lmat(key) { if (LOCAL.has(key)) return LOCAL.get(key); let m;
     if (key === 'x-foam2') for (let y = 0; y < 512; y += 16) { x.fillStyle = 'rgba(60,25,8,0.35)'; x.fillRect(0, y, 256, 3); }
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.userData.cached = true; m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.92, metalness: 0 }); }
   else if (key === 'x-bellblack') m = new THREE.MeshStandardMaterial({ color: 0x2a2826, roughness: 0.5, metalness: 0.8, side: THREE.DoubleSide });
+  else if (key === 'x-salmon' || key === 'x-salmon2') m = new THREE.MeshStandardMaterial({ color: key === 'x-salmon' ? 0xc98a5e : 0xb07650, roughness: 0.7, metalness: 0.15 }); // ULX: kerosene core paint
+  else if (key === 'x-bellchar') m = new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 0.8, metalness: 0.2, side: THREE.DoubleSide }); // ablative bell
   else if (key === 'x-tile') m = new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.85, metalness: 0.05 });
   else if (key === 'x-rcc') m = new THREE.MeshStandardMaterial({ color: 0x55585c, roughness: 0.7, metalness: 0.1 });
   else m = new THREE.MeshStandardMaterial({ color: 0xf0eee8, roughness: 0.55 });
@@ -44,14 +46,14 @@ function sic(d, o) { const k = new Kit(d), b0 = 5.2; // body starts above the ha
   const g = k.build('stage1'); for (const m of g.children) if (m.name.endsWith(':bell')) m.material = lmat('x-bellblack'); g.userData.top = Y.ic; return g; } // K-1: dark regen tubes
 function sii(d) { const k = new Kit(d);
   tube(k, R1, R1, Y.is - Y.ic, Y.ic, 'paint:0,0'); band(k, R1, Y.ic + 0.2, 0.5); stringers(k, R1, Y.ic, Y.is - Y.ic, 36); // interstage (falls away after ignition)
-  for (const [x, z] of ringPos([[4, 2.65, PI / 4], [1, 0]])) bell(k, 1.0, 3.1, x, Y.ic + 1.0, z, { ext: false, head: 0.9, rt: 0.3 }); // 5 upper-stage bells (inside the interstage)
+  for (const [x, z] of ringPos([[4, 2.65, PI / 4], [1, 0]])) bell(k, 1.0, 3.1, x, Y.ic + 1.0, z, { ext: false, head: 0.9, rt: 0.3 }); // 5 hydrogen upper-stage bells (inside the interstage)
   tube(k, R1, R1, Y.ii - Y.is, Y.is, 'paint:0,0'); band(k, R1, Y.ii - 3.6, 3.6); // all white, black forward skirt band
   ring(k, R1, Y.is + 9, 0.03); ring(k, R1, Y.is + 17, 0.03);
   decal(k, 'upper.side', R1, Y.is + 6, 9, PI, 0.45);
   const g = k.build('stage2'); g.userData.top = Y.ii; return g; }
 function sivb(d) { const k = new Kit(d);
   tube(k, R1, R3, Y.tp - Y.ii, Y.ii, 'paint:0,0'); stringers(k, (R1 + R3) / 2, Y.ii + 0.5, 4, 20); // conical aft interstage 10.06 -> 6.6 m
-  bell(k, 1.0, 3.1, 0, Y.tp - 3.2, 0, { head: 0.9, rt: 0.3 }); // one upper-stage bell
+  bell(k, 1.0, 3.1, 0, Y.tp - 3.2, 0, { head: 0.9, rt: 0.3 }); // one hydrogen upper-stage bell
   tube(k, R3, R3, Y.ivb - Y.tp, Y.tp, 'paint:0,0'); quads(k, R3, Y.tp, 4.2, 0, 2); band(k, R3, Y.ivb - 0.8, 0.8); // aft roll quadrants
   for (const a of [PI / 2, 3 * PI / 2]) k.add(new THREE.BoxGeometry(1.4, 1.1, 1.2), 'paint:0,0', xf([Math.cos(a) * (R3 + 0.5), Y.tp + 0.8, Math.sin(a) * (R3 + 0.5)], [0, -a, 0])); // APS pods
   k.add(new THREE.BoxGeometry(0.3, Y.ivb - Y.tp - 1, 0.5), 'paint:0,0', xf([R3 + 0.2, (Y.tp + Y.ivb) / 2, 0]));
@@ -132,8 +134,8 @@ function orbiter(d) { const k = new Kit(d), y0 = 7.6, L = 37.2, top = y0 + L, fy
   k.pop(); return kbuild(k, 'orbiter'); }
 export function spaceTruck(o) { const d = o.detail; const g = group('space-truck', [srb(d, -1), srb(d, 1), et(d), orbiter(d)], ETT + 1.5);
   if (o.plume) { const p = plume(5, [[-6.6, 0], [6.6, 0]], 2.4, 70 * o.plume); g.add(p); const q = plume(3, [[0, OZ + 1.3], [-1.35, OZ - 0.6], [1.35, OZ - 0.6]], 1.1, 30 * o.plume); q.position.y = 4.5; g.add(q); } return g; }
-export const CO_NOSA = {
-  'space-truck': { height: 57.6, build: spaceTruck, src: 'rocketdb space-truck, GCAT: SRB 45.5 x 3.71 m, ET 47 x 8.4 m, orbiter 37.2 m; stack 56.1 m', est: ['orbiter planform', 'attach placement'] },
-  'saturnine-v': { height: 110.6, build: saturnine, src: 'rocketdb saturnine-v, GCAT: 110.6 m, 10.06 m; stage1 42.1, stage2 24.8, stage3 6.6 m dia; stack split art-fitted', est: ['IU/SLA/CSM/LES split', 'fin shape'] },
+export const CO_CIVSPACE = {
+  'space-truck': { height: 57.6, build: spaceTruck, src: 'rocketdb space-truck (GCAT): SRB 45.5 x 3.71 m, ET 47 x 8.4 m, orbiter 37.2 m; stack 56.1 m', est: ['orbiter planform', 'attach placement'] },
+  'saturnine-v': { height: 110.6, build: saturnine, src: 'rocketdb saturnine-v (GCAT): 110.6 m, 10.06 m; stage1 42.1, stage2 24.8, stage3 6.6 m dia; stack split art-fitted', est: ['IU/SLA/CSM/LES split', 'fin shape'] },
 };
 export { group, lmat, kbuild, plume }; // shared helpers for the other co_* company files

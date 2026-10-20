@@ -8,7 +8,7 @@
 // shade, a cloud/haze sky, a launch tower or mount beside the vehicle and ground detail around a right-sized pad.
 import * as THREE from 'three/webgpu';
 import * as GX from '../gfx.js?v=f2';
-import { VEHICLES, build, setLegs, dispose } from './vehicles.js?v=f5.1d';
+import { VEHICLES, build, setLegs, dispose } from './vehicles.js?v=f5.1e';
 const q = new URLSearchParams(location.search);
 const renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL: q.has('webgl') });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = q.has('gameexp') ? 1.05 : 0.9;
@@ -61,6 +61,10 @@ function lattice(g, H, W, x, z) { const lv = Math.max(3, W * 0.9), n = Math.floo
 // per-vehicle set: pad radius from the vehicle, a service tower (Heron family), the catch tower + mount (titan)
 function clearStage() { for (const c of stage.children.slice()) dispose(c); }
 const TABLE = /^(baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
+const TABLE = /^(baltic-hammer|redrock|junebug|pegacorn|dark-dart)/; // ids that stand on a launch table instead of a tower
+const TABLE = /^(diamantine|baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
+const TABLE = /^(scoutling|vantguard|baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
+const TABLE = /^(vantguard|baltic-hammer|redrock|junebug)/; // ids that stand on a launch table instead of a tower
 function setStage(id, h, rV) { clearStage(); let lift = 0; const small = h < 10;
   const padR = small ? 4 : Math.max(18, rV * 6);
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(padR, padR * 1.06, small ? 0.4 : 1.2, 48), concM); pad.position.y = small ? 0.2 : 0.6; stage.add(pad); lift = small ? 0.4 : 1.2;
@@ -89,6 +93,10 @@ const { bloom } = await import('three/addons/tsl/display/BloomNode.js'); const {
 const pp = new THREE.PostProcessing(renderer), sp = pass(scene, camera), col = sp.getTextureNode('output'), bl = bloom(col, 0.35, 0.4, 1.4);
 pp.outputNode = q.has('nobloom') ? col : col.add(bl);
 const RADIUS = { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 };
+const RADIUS = { ...Object.fromEntries(['dark-dart'].map(i => [i, 1.0])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2 };
+const RADIUS = { ...Object.fromEntries(['europia'].map(i => [i, 2.0])), ...Object.fromEntries(['vegara','vegara-c'].map(i => [i, 1.7])), 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['arion-5','arion-62','arion-64'].map(i => [i, 2.7])) };
+const RADIUS = { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, ...Object.fromEntries(['new-glendale'].map(i => [i, 3.5])) };
+const RADIUS = { 'moonhammer': 8.4, 'mogutny': 6.0, 'mogutny-glider': 6.0, 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron-9-crew': 1.85, 'heron-heavy': 1.83, 'colossus-v3': 4.5, 'colossus-v4': 4.5, 'catch-tower': 6, 'payload-roadster': 1.2, 'payload-flatsat-stack': 1.5, 'saturnine-v': 5.03, 'space-truck': 4.2, 'rodnik': 1.47, 'rodnik-2': 1.47, 'lastochka': 1.47, 'pervy': 1.47 };
 let cur = null;
 // shot: { id, opts, hero:true (auto-frame 85 % of the height, low 3/4) | cam/aim in vehicle heights, fov, sunAz (deg, from camera), only, legs, bare (no set) }
 async function shot(s) { if (cur) { dispose(cur); cur = null; } const h = VEHICLES[s.id].height, rV = RADIUS[s.id] || 2;
@@ -101,6 +109,10 @@ async function shot(s) { if (cur) { dispose(cur); cur = null; } const h = VEHICL
   if (s.hero) { // fit: vertical span (base..tip) = 85 % of the frame, camera low (slight upward tilt)
     const span = H / 0.85, d = span / (2 * Math.tan(camera.fov * Math.PI / 360)); target = new THREE.Vector3(0, base + H * 0.5, 0);
     pos = new THREE.Vector3(Math.sin(yaw) * d, base + H * 0.5 - d * Math.tan(5 * Math.PI / 180) * 1.0, Math.cos(yaw) * d); pos.y = Math.max(1.6, pos.y - H * 0.18); }
+  else if (s.fit) { // fit: frame only the visible stage (s.only) from direction s.fit [x,y,z], 80 % of frame height
+    const bb = new THREE.Box3(); cur.updateMatrixWorld(true); for (const c of cur.children) if (c.visible) bb.expandByObject(c);
+    const sz = bb.getSize(new THREE.Vector3()), dd = Math.max(sz.y, sz.x * 0.75) / 0.8 / (2 * Math.tan(camera.fov * Math.PI / 360)) + sz.z / 2; target = bb.getCenter(new THREE.Vector3());
+    pos = target.clone().add(new THREE.Vector3(...s.fit).normalize().multiplyScalar(dd)); }
   else { pos = new THREE.Vector3(...s.cam.map(v => v * h)).add(new THREE.Vector3(0, base, 0)); target = new THREE.Vector3(...s.aim.map(v => v * h)).add(new THREE.Vector3(0, base, 0)); }
   camera.position.copy(pos); camera.lookAt(target);
   // key from the camera's side (sunAz from the view direction), low golden sun; rim from behind the vehicle

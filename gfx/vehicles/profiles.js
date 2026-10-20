@@ -32,7 +32,7 @@ export const NOSES = {
   'heron-9-crew.capsule': () => capsule(1.85),
   'colossus.shipnose': () => ogive(4.5, 16, 0, 18, 0.12),
 };
-// ---- co-nosa (NOSA house, rocketdb tier S) ----
+// ---- co-civspace (NOSA house, rocketdb tier S) ----
 // Saturnine V command module: blunt 3.9 m heat shield, ~33° half-angle cone to a docking tunnel (tip +Y)
 export function crewCone(r = 1.96, y0 = 0, h = 3.23) { return [[0, y0], [r * 0.985, y0], [r, y0 + 0.12], [r * 0.97, y0 + 0.3], [r * 0.35, y0 + h * 0.86], [r * 0.3, y0 + h * 0.9], [r * 0.26, y0 + h * 0.98], [r * 0.18, y0 + h], [0, y0 + h + 0.01]]; }
 // escape-tower motor: cylinder + ogive nose cap with a slim spike (base radius r)
@@ -44,3 +44,34 @@ export const TRUCK = { etR: 4.2, etNose: 12.0, srbR: 1.86, srbNose: 6.0, orbR: 2
 NOSES['space-truck.et'] = () => ogive(TRUCK.etR, TRUCK.etNose, 0, 18, 0.03);
 NOSES['space-truck.srb'] = () => ogive(TRUCK.srbR, TRUCK.srbNose, 0, 18, 0.1);
 NOSES['space-truck.orbiter'] = () => ogive(TRUCK.orbR, TRUCK.orbNose, 0, 18, 0.12);
+// ---- co-arion (Arion Space parody): 5.4 m fairings, solid-booster noses (tips +Y)
+export const ARION = { r: 2.7, srb5: 1.53, srb6: 1.7 };
+NOSES['arion-5.fairing'] = () => fairing(2.7, 9.5, 7.0, 0, 2.69, 18, 0.05);
+NOSES['arion-5.srbnose'] = () => ogive(1.53, 4.2, 0, 14, 0.12);
+NOSES['arion-6.srbnose'] = () => ogive(1.7, 3.2, 0, 14, 0.12);
+// ---- co-bolt (Bolt Labyrinth parody): small-launcher fairing (tip +Y)
+export const BOLT = { r: 0.6, fr: 0.6, cyl: 0.9, nose: 1.6 };
+NOSES['electrino.fairing'] = () => fairing(BOLT.fr, BOLT.cyl, BOLT.nose, 0, BOLT.r * 0.999, 18, 0.05);
+// ---- co-krasnaya (R-7 family parody): core "waisted" profile, strap-on cone, crew shroud, cargo fairing (tips +Y) ----
+export const R7 = { coreTop: 27.8, sr: 1.34, sTip: 19.6, off: 2.45 };
+export function rkCore(y0 = 1.5) { return [[0, y0], [1.03, y0], [1.2, 10], [1.4, 17], [1.475, 21], [1.475, 25], [1.33, R7.coreTop]]; }
+export function r7Strap(y0 = 1.5) { const out = [[0, y0], [R7.sr, y0], [R7.sr, 6.0]]; for (let i = 1; i <= 8; i++) { const t = i / 8; out.push([R7.sr * (1 - t) + 0.18 * t - 0.12 * Math.sin(t * Math.PI), 6.0 + t * (R7.sTip - 6.0)]); } out.push([0.05, R7.sTip + 0.15]); return out; }
+// crew shroud: cylinder 1.5 m radius, cone to the escape tower base
+export function rkShroud(y0 = 0) { return [[0, y0], [1.5, y0], [1.5, y0 + 4.2], [1.1, y0 + 6.4], [0.55, y0 + 8.2], [0.32, y0 + 8.6], [0, y0 + 8.7]]; }
+NOSES['rodnik.strap'] = () => r7Strap(0);
+NOSES['rodnik.shroud'] = () => rkShroud();
+NOSES['rodnik-2.fairing'] = () => fairing(2.05, 4.5, 4.4, 0, 1.33, 18, 1.2);
+NOSES['lastochka.shroud'] = () => ogive(1.3, 3.2, 0, 18, 0.12);
+// ---- co-originals (Orbit Rush Originals house line): Selene + Red Arrow fairings, entry capsule (tips +Y)
+export const ORIG = { r: 1.5, fr: 1.75 };
+NOSES['selene.fairing'] = () => fairing(ORIG.fr, 4.6, 4.2, 0, ORIG.r, 18, 0.8);
+NOSES['ares.fairing'] = () => fairing(ORIG.fr, 3.4, 4.0, 0, ORIG.r, 18, 0.8);
+NOSES['ares.capsule'] = () => capsule(1.25);
+// ---- co-unilift (heavy-lift alliance house): 4 m / 5 m fairings, solid-booster nose (tips +Y) ----
+export const ULX = { f4: { r: 2.1, nose: 5.6 }, f5: { r: 2.7, nose: 7.4 }, d5: { r: 2.56, nose: 6.6 } };
+export function srbNose(r = 0.79, L = 2.6) { return ogive(r, L, 0, 14, 0.12); }
+NOSES['atlantean-v.f4'] = () => fairing(ULX.f4.r, 6.5, ULX.f4.nose, 0, 1.53, 18, 1.3);
+NOSES['atlantean-v.f5'] = () => fairing(ULX.f5.r, 12, ULX.f5.nose, 0, 1.9, 18, 0.5);
+NOSES['atlantean-v.srb'] = () => srbNose();
+NOSES['deltoid-4.f5'] = () => fairing(ULX.d5.r, 7.7, ULX.d5.nose, 0, 2.55, 18, 0.1);
+NOSES['deltoid-4.cbcnose'] = () => ogive(2.55, 5.0, 0, 18, 0.1);

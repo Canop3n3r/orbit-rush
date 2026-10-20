@@ -64,38 +64,38 @@ export const VEHICLES = [
     // Documented exception (owner decision): 63.8 t is an advertised theoretical max, structurally limited and never flown (spec:heron-heavy),
     // so payload is checked against a 50-64 t band instead of +/-8 %.
     modes: [{ mode: 'expendable', payloadLEO: 63800, payloadBand: [50000, 64000], reserve: [0, 0, 2500], src: 'spec:heron-heavy#leo-expendable', est: ['reserve'] }] },
-  { id: 'titan-ss-v3', src: 'spec:titan-ss#v3', lat: 26, est: ['lat'],
+  { id: 'colossus-v3', src: 'spec:colossus#v3', lat: 26, est: ['lat'],
     stages: [
       { engines: { 'meth-3': 33 }, dry: 275000, prop: 3650000, recovery: 'boostback + tower catch' },
       { engines: { 'meth-3': 3, 'meth-3v': 3 }, dry: 170000, prop: 1600000, recovery: 'belly-flop entry, flip, catch / landing', est: ['dry'] },
     ], fairing: 0,
-    modes: [{ mode: 'fully-reusable', payloadLEO: 100000, reserve: [450000, 60000], src: 'spec:titan-ss#v3-payload', est: ['reserve'] }] },
-  { id: 'titan-ss-v4', src: 'spec:titan-ss#v4 (planned)', lat: 26, est: ['lat'],
+    modes: [{ mode: 'fully-reusable', payloadLEO: 100000, reserve: [450000, 60000], src: 'spec:colossus#v3-payload', est: ['reserve'] }] },
+  { id: 'colossus-v4', src: 'spec:colossus#v4 (planned)', lat: 26, est: ['lat'],
     stages: [
       { engines: { 'meth-3': 33 }, dry: 320000, prop: 4050000, recovery: 'boostback + tower catch', est: ['dry'] },
       { engines: { 'meth-3': 3, 'meth-3v': 6 }, dry: 185000, prop: 2300000, recovery: 'belly-flop entry, flip, catch', est: ['dry'] },
     ], fairing: 0,
-    modes: [{ mode: 'fully-reusable', payloadLEO: 200000, reserve: [450000, 70000], src: 'spec:titan-ss#v4-payload', est: ['reserve'] }] },
+    modes: [{ mode: 'fully-reusable', payloadLEO: 200000, reserve: [450000, 70000], src: 'spec:colossus#v4-payload', est: ['reserve'] }] },
 ];
 
-// Mission variants of the Mk III super-heavy stack (data only; spec:titan-ss-missions). Built from titan-ss-v3 so shared
+// Mission variants of the Mk III super-heavy stack (data only; spec:colossus-missions). Built from colossus-v3 so shared
 // numbers stay in one place; only the listed fields differ. Kept out of VEHICLES because their "payload" is not a LEO
 // payload quote (propellant cargo, surface payloads), so the LEO ±8 % check does not apply; see tests/mission_vehicles.mjs.
-const V3 = VEHICLES.find(v => v.id === 'titan-ss-v3');
-const variant = (id, src, ship, extra) => ({ id, base: 'titan-ss-v3', src, lat: V3.lat, est: ['lat'], fairing: 0,
+const V3 = VEHICLES.find(v => v.id === 'colossus-v3');
+const variant = (id, src, ship, extra) => ({ id, base: 'colossus-v3', src, lat: V3.lat, est: ['lat'], fairing: 0,
   stages: [{ ...V3.stages[0] }, { ...V3.stages[1], ...ship }], ...extra });
 export const MISSION_VARIANTS = [
-  // Propellant carrier: cargo is transferable propellant. ~150 t per flight sourced (spec:titan-ss-missions#tanker); dry EST.
-  variant('titan-ss-tanker', 'spec:titan-ss-missions#tanker', { recovery: 'belly-flop entry, flip, catch' },
+  // Propellant carrier: cargo is transferable propellant. ~150 t per flight sourced (spec:colossus-missions#tanker); dry EST.
+  variant('colossus-tanker', 'spec:colossus-missions#tanker', { recovery: 'belly-flop entry, flip, catch' },
     { role: 'tanker', cargoProp: 150000, cargoPropRange: [100000, 150000], reserve: V3.modes[0].reserve, est: ['lat', 'reserve'] }),
   // Orbital depot: stays in LEO, stores transferred propellant; capacity and dry mass unsourced (EST: ~ship tank capacity).
-  variant('titan-ss-depot', 'spec:titan-ss-missions#depot', { recovery: 'none (stays in orbit)', dry: 150000, est: ['dry'] },
+  variant('colossus-depot', 'spec:colossus-missions#depot', { recovery: 'none (stays in orbit)', dry: 150000, est: ['dry'] },
     { role: 'depot', storageCap: 1600000, tankersPerFill: [4, 16], est: ['lat', 'storageCap'] }),
   // Lunar lander: no heat shield/flaps; refilled in LEO. Tank ~1,200 t sourced; dry ~85–100 t EST; surface payload ~100 t EST.
-  variant('titan-ss-lunar', 'spec:titan-ss-missions#lunar', { recovery: 'none (stays in lunar space)', dry: 100000, dryRange: [85000, 100000], prop: 1200000, est: ['dry'] },
+  variant('colossus-lunar', 'spec:colossus-missions#lunar', { recovery: 'none (stays in lunar space)', dry: 100000, dryRange: [85000, 100000], prop: 1200000, est: ['dry'] },
     { role: 'lunar-lander', payloadSurface: 100000, dvNeed: 5900, tankersPerFill: [4, 16], est: ['lat', 'payloadSurface', 'dvNeed'] }),
   // Mars ship: >100 t to Mars surface after orbital refill (sourced architecture figure); ship dry EST from Mk III.
-  variant('titan-ss-mars', 'spec:titan-ss-missions#mars', { recovery: 'aerobraked entry, propulsive landing on Mars' },
+  variant('colossus-mars', 'spec:colossus-missions#mars', { recovery: 'aerobraked entry, propulsive landing on Mars' },
     { role: 'mars-transport', payloadSurface: 100000, dvNeed: 4200, est: ['lat', 'dvNeed'] }),
 ];
 // Payload items (not vehicles): mass carried by a vehicle mode; the catalog has no payload registry, so this is a plain list.
