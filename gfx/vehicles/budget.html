@@ -3,11 +3,17 @@
 </head><body><script type="module">
 // perf budget probe (tests/vehicles_budget.cjs): tris + meshes per vehicle/LOD, shared geometry, dispose leak check
 import * as THREE from 'three/webgpu';
-import { build, VEHICLES, dispose, geometryCacheSize, setLegs } from './vehicles.js?v=f4.2';
+import { build, buildLOD, VEHICLES, dispose, geometryCacheSize, setLegs } from './vehicles.js?v=art1';
 const renderer = new THREE.WebGPURenderer({ forceWebGL: true }); renderer.setSize(64, 64); document.body.appendChild(renderer.domElement); await renderer.init();
 const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1e4); cam.position.set(0, 50, 300);
 const out = { rows: [], mem: [] }, count = g => { let n = 0; g.traverse(m => { if (!m.isMesh) return; for (let p = m; p; p = p.parent) if (!p.visible) return; n++; }); return n; }; // visible meshes = draw calls
-for (const id of Object.keys(VEHICLES)) for (const detail of ['hi', 'mid', 'lo']) { const g = build(id, { detail }); out.rows.push({ id, detail, tris: g.userData.tris, meshes: count(g) }); dispose(g); }
+// every LOD with and without the legs option (QA rockets-3: the viewer/game pass legs:0, which used to add meshes on lo)
+for (const id of Object.keys(VEHICLES)) for (const detail of ['hi', 'mid', 'lo']) for (const legs of [undefined, 0, 1]) { const g = build(id, { detail, legs }); out.rows.push({ id, detail, legs: legs ?? '-', tris: g.userData.tris, meshes: count(g) }); dispose(g); }
+// phone path: buildLOD(id, {phone:true}) near level must be the mid build
+// packed legs: bounding box must follow deployment (QA rockets-3b)
+out.packBounds = []; for (const id of ['heron-9', 'heron-heavy']) for (const detail of ['mid', 'lo']) { const g = build(id, { detail, legs: 0 }), L = [g.userData.legs].flat()[0], m = L.getObjectByName('legs:packed'), y0 = m.geometry.boundingBox.min.y; setLegs(L, 1); const y1 = m.geometry.boundingBox.min.y, cy = m.geometry.boundingSphere.center.y; out.packBounds.push({ id, detail, y0, y1, culled: m.frustumCulled, cy }); dispose(g); }
+out.armBounds = []; for (const id of ['heron-9', 'heron-9-crew']) { const g = build(id, { detail: 'hi', legs: 0 }), L = [g.userData.legs].flat()[0], m = L.getObjectByName('arms'), y0 = m.geometry.boundingBox.min.y; setLegs(L, 1); out.armBounds.push({ id, y0, y1: m.geometry.boundingBox.min.y, culled: m.frustumCulled }); dispose(g); }
+out.phone = []; for (const id of Object.keys(VEHICLES)) { const L = buildLOD(id, { phone: true, legs: 0 }); out.phone.push({ id, tris: L.userData.hi.userData.tris, meshes: count(L.userData.hi) }); dispose(L.userData.hi); dispose(L.userData.lo); }
 // stages detach on every LOD; setLegs moves the (visible) leg geometry on every LOD
 const visBox = g => { const b = new THREE.Box3(); g.updateMatrixWorld(true); g.traverse(m => { let v = true; for (let p = m; p && p !== g.parent; p = p.parent) v = v && p.visible; if (m.isMesh && v) { m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); } }); return b; };
 out.stages = [];
@@ -19,5 +25,10 @@ for (const id of ['heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'tita
 { const a = build('titan-ss-v3'), b = build('titan-ss-v4'); const s = new Set(); let tot = 0; for (const g of [a, b]) g.traverse(m => { if (m.isMesh) { tot++; s.add(m.geometry); } }); out.share = { meshes: tot, unique: s.size }; dispose(a); dispose(b); }
 // leak: cycle all models 3x through the scene with dispose; geometry count must stay flat
 for (let c = 0; c < 3; c++) { for (const id of Object.keys(VEHICLES)) { const g = build(id); scene.add(g); renderer.render(scene, cam); dispose(g); } renderer.render(scene, cam); out.mem.push({ gpu: renderer.info.memory.geometries, cache: geometryCacheSize() }); }
+// rendered heap check (Playtest QA rockets-2 leak): cycle every model x hi/mid/lo through the scene with 2 rendered frames each,
+// GC (needs --js-flags=--expose-gc + --enable-precise-memory-info), heap after each cycle must stay flat
+out.heap = []; const frame = () => new Promise(r => requestAnimationFrame(() => { renderer.render(scene, cam); r(); }));
+for (let c = 0; c < 4; c++) { for (const id of Object.keys(VEHICLES)) for (const detail of ['hi', 'mid', 'lo']) { const g = build(id, { detail }); scene.add(g); await frame(); await frame(); dispose(g); }
+  await frame(); if (globalThis.gc) { gc(); gc(); } await new Promise(r => setTimeout(r, 50)); out.heap.push(performance.memory ? +(performance.memory.usedJSHeapSize / 1048576).toFixed(1) : null); }
 window.__budget = out; document.title = 'done';
 </script></body></html>

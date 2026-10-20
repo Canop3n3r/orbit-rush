@@ -7,10 +7,10 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, geometryCacheSize } from './kit.js?v=f4.2';
-export { dispose, geometryCacheSize };
-import * as PR from './profiles.js?v=f4.2';
-import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f4.2';
+import { Kit, xf, mat, compact, compactStages, FOLD_HEAVY, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=f5b.3';
+export { dispose, release, geometryCacheSize };
+import * as PR from './profiles.js?v=f5b.3';
+import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f5b.3';
 export { setLegs, mat };
 const PI = Math.PI;
 // ---- kerolox booster core (9 engines, octaweb, legs, grid fins) ----
@@ -57,11 +57,12 @@ function sparrow(o) { const d = o.detail, k = new Kit(d), r = 0.835;
   tube(k, r, r, 1.2, 15.75, 'carbon'); const b = k.build('booster');
   const u = new Kit(d); bell(u, 0.42, 1.0, 0, 16.0, 0, { ext: true, rt: 0.12, head: 0.3 }); tube(u, r, r, 2.4, 16.95, 'silver'); decal(u, 'upper.side', r, 17.2, 1.4, 0, 1.2); const U = u.build('upper');
   const f = fairing(d, 18.85, 0.75, 0.6, 1.85, 0.66, 0.6); return group('sparrow', [b, U, f], 21.3); }
-function heronHeavy(o) { const d = o.detail === 'hi' ? 'mid' : o.detail, // phone budget: hi = mid-detail cores (≤20k tris, ≤30 meshes)
+function heronHeavy(o) { const d = o.detail === 'hi' ? 'mid' : 'lo', // hi = mid-detail cores (≤20k tris, ≤30 meshes); mid/lo = lo cores, folded harder in build()
    c = core9(d, o), u = upper(d, { y0: 46.0 }), f = fairing(d, u.userData.top), kids = [c, u, f];
   for (const s of [-1, 1]) { const b = core9(d, { ...o, nose: true, H: 40.9 }); b.name = s < 0 ? 'side0' : 'side1'; b.position.x = s * 3.86; b.rotation.y = s < 0 ? PI : 0; kids.push(b); }
   const k = new Kit(d); for (const s of [-1, 1]) { for (const y of [4.5, 38.5]) strut(k, [s * 1.8, y, 0], [s * 2.05, y, 0], 0.3, 'dark'); if (k.hi) strut(k, [s * 1.8, 37, 0.6], [s * 2.05, 39, 0.6], 0.12, 'grey'); }
-  kids.push(k.build('struts')); return group('heron-heavy', kids, f.userData.top); }
+  kids.push(k.build('struts')); // struts stay their own stage (staging detaches them)
+  return group('heron-heavy', kids, f.userData.top); }
 function titanBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.boosterH || 72.3;
   const pos = ringPos([[3, 0.95, PI / 6], [10, 2.55], [20, 3.85, PI / 20]]);
   for (const [x, z] of pos) bell(k, 0.62, 1.55, x, 0, z, { rt: 0.26, head: k.hi ? 0.9 : 0 });
@@ -162,9 +163,19 @@ export const VEHICLES = {
 };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
-  if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy'); shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
+  if (id === 'heron-heavy' && det !== 'hi') compactStages(g, ['legs'], det === 'lo' ? { ...FOLD_HEAVY, bell: 'dark', bellx: 'dark' } : FOLD_HEAVY);
+  else if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
+  else if (/^heron-9/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)
 // o.phone: the near level uses 'mid' (titan ~11k instead of ~53k tris)
 export function buildLOD(id, o = {}) { const lod = new THREE.LOD(), hi = build(id, { ...o, detail: o.phone ? 'mid' : 'hi' }), lo = build(id, { ...o, detail: 'lo' }), h = VEHICLES[id].height;
   lod.addLevel(hi, 0); lod.addLevel(lo, Math.max(60, h * 6)); lod.userData = { ...hi.userData, hi, lo }; lod.name = id; return lod; }
+// prewarm(ids, o): build LODs off the critical path (one per idle slice) so titan hi (58-70 ms on the main thread,
+// Playtest QA rockets-2) is never built mid-flight. Returns a Map id -> Promise<LOD>; take() hands one out.
+const WARM = new Map();
+export function prewarm(ids, o = {}) { const idle = globalThis.requestIdleCallback || (f => setTimeout(f, 16)); let chain = Promise.resolve();
+  for (const id of ids) if (!WARM.has(id + (o.phone ? ':p' : ''))) { const p = chain = chain.then(() => new Promise(r => idle(() => r(buildLOD(id, o))))); WARM.set(id + (o.phone ? ':p' : ''), p); }
+  return WARM; }
+export async function takeWarm(id, o = {}) { const k = id + (o.phone ? ':p' : ''), p = WARM.get(k); WARM.delete(k); return p ? p : buildLOD(id, o); }
