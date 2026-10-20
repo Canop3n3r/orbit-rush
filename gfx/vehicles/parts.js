@@ -55,7 +55,7 @@ export function legs(KitC, detail, r, len, y, n = 4, a0 = PI / 4) {
     k.add(new THREE.CylinderGeometry(0.62, 0.72, 0.26, k.hi ? 16 : 8), K('dark'), xf([0.2, len + 0.02, 0], [0, 0, PI / 2])); // foot pad (crush core)
     k.add(new THREE.BoxGeometry(0.3, 0.5, 1.2), K('dark'), xf([0.1, 0.25, 0])); // hinge clevis
     piv.add(k.build('leg')); g.add(piv); g.userData.pivots.push(piv);
-    if (lean) continue; if (!g.userData.armMesh) { const uni = unit.toNonIndexed(), geo = mergeGeometries(Array.from({ length: 2 * n }, () => uni.clone())); geo.userData.noShare = true; const am = new THREE.Mesh(geo, mat('grey')); am.frustumCulled = false; am.name = 'arms'; g.add(am);
+    if (lean) continue; if (!g.userData.armMesh) { const uni = unit.toNonIndexed(), geo = mergeGeometries(Array.from({ length: 2 * n }, () => uni.clone())); geo.userData.noShare = true; const am = new THREE.Mesh(geo, mat('grey')); am.name = 'arms'; g.add(am);
       g.userData.armMesh = am; g.userData.armBase = { pos: uni.attributes.position.array.slice(), nor: uni.attributes.normal.array.slice(), nv: uni.attributes.position.count }; uni.dispose(); }
     g.userData.arms.push({ piv, idx: i, A: new THREE.Vector3(Math.cos(a) * (r - 0.1), y + len * 0.42, Math.sin(a) * (r - 0.1)), tipL: new THREE.Vector3(0.24, len * 0.86, 0) }); }
   setLegs(g, 0); if (detail !== 'hi') packLegs(g); return g;
@@ -80,7 +80,7 @@ export function setLegs(g, t) { for (const p of g.userData.pivots) p.rotation.z 
     // rockets-3: arms are 2 InstancedMeshes per leg set (was 2 meshes per leg) -> -6 draw calls on hi
     // rockets-3: all telescoping arms live in ONE mesh whose vertices are rewritten here (was 2 meshes per leg -> -7 draw calls)
     armWrite(g, 2 * m.idx, _M.compose(m.A, q, _S.set(0.16, L * 0.55, 0.16))); armWrite(g, 2 * m.idx + 1, _M.compose(_P.copy(m.A).addScaledVector(_d, L * 0.5), q, _S.set(0.1, L * 0.5, 0.1))); }
-  if (g.userData.armMesh) { const a = g.userData.armMesh.geometry.attributes; a.position.needsUpdate = a.normal.needsUpdate = true; } }
+  if (g.userData.armMesh) { const G = g.userData.armMesh.geometry, a = G.attributes; a.position.needsUpdate = a.normal.needsUpdate = true; G.computeBoundingBox(); G.computeBoundingSphere(); } } // arms bounds follow the deploy (culling on)
 function armWrite(g, copy, M) { const B = g.userData.armBase, a = g.userData.armMesh.geometry.attributes, P = a.position.array, N = a.normal.array, o = copy * B.nv * 3, nm = _NM.getNormalMatrix(M);
   for (let v = 0; v < B.nv; v++) { const j = v * 3; _P.fromArray(B.pos, j).applyMatrix4(M).toArray(P, o + j); _S2.fromArray(B.nor, j).applyMatrix3(nm).normalize().toArray(N, o + j); } }
 const _NM = new THREE.Matrix3(), _S2 = new THREE.Vector3();
