@@ -50,8 +50,10 @@ export function legs(KitC, detail, r, len, y, n = 4, a0 = PI / 4) {
     const k = new KitC(detail), lean = detail !== 'hi', K = key => lean ? 'carbon' : key; // mid/lo: one material per leg, no telescoping arms (draw calls)
     // tapered triangular-section leg: wide at the hinge, narrow at the foot; sits flush (0.22 m proud of the hull)
     const sh = new THREE.Shape(); sh.moveTo(-0.95, 0); sh.lineTo(0.95, 0); sh.lineTo(0.42, len); sh.lineTo(-0.42, len); sh.closePath();
-    const lg = new THREE.ExtrudeGeometry(sh, { depth: 0.55, bevelEnabled: false }); k.add(lg, K('carbon'), new THREE.Matrix4().makeRotationY(PI / 2));
+    const lg = new THREE.ExtrudeGeometry(sh, detail === 'hi' ? { depth: 0.51, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.04, bevelSegments: 1 } : { depth: 0.55, bevelEnabled: false }); // plan #4: hi bevel catches edge light k.add(lg, K('carbon'), new THREE.Matrix4().makeRotationY(PI / 2));
     k.add(new THREE.BoxGeometry(0.06, len * 0.92, 0.1), K('grey'), xf([0.48, len * 0.5, 0])); // centre spine / arm recess
+    if (detail === 'hi') for (const sg of [-1, 1]) { const hs = new THREE.Shape(); hs.moveTo(0, 0); hs.lineTo(sg * 0.9, 0); hs.lineTo(sg * 0.4, len); hs.lineTo(0, len); hs.closePath(); // plan #4: shallow centre crease,
+      k.add(new THREE.ExtrudeGeometry(hs, { depth: 0.03, bevelEnabled: false }), K('carbon'), new THREE.Matrix4().makeTranslation(0.55, 0, 0).multiply(new THREE.Matrix4().makeRotationY(PI / 2 - sg * 0.12))); } // two tilted faces -> light/dark split from low angles
     k.add(new THREE.CylinderGeometry(0.62, 0.72, 0.26, k.hi ? 16 : 8), K('dark'), xf([0.2, len + 0.02, 0], [0, 0, PI / 2])); // foot pad (crush core)
     k.add(new THREE.BoxGeometry(0.3, 0.5, 1.2), K('dark'), xf([0.1, 0.25, 0])); // hinge clevis
     piv.add(k.build('leg')); g.add(piv); g.userData.pivots.push(piv);
