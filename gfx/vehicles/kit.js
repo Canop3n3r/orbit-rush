@@ -11,7 +11,7 @@ export function mat(key) {
   let m; const S = THREE.MeshStandardMaterial, P = THREE.MeshPhysicalMaterial;
   const [k, arg] = key.split(':');
   switch (k) {
-    case 'paint': { const [soot, top] = (arg || '0,0').split(',').map(Number); m = new P({ map: T.paint({ soot, sootTop: top }), roughness: 0.5, metalness: 0.02, clearcoat: 0.15, clearcoatRoughness: 0.5 }); break; }
+    case 'paint': { const [soot, top] = (arg || '0,0').split(',').map(Number); m = new P({ map: T.paint({ soot, sootTop: top }), roughness: 0.45, metalness: 0.0, clearcoat: 0.3, clearcoatRoughness: 0.35 }); break; }
     case 'silver': m = new S({ map: T.paint({ base: '#c9ccd0', rings: 8 }), roughness: 0.35, metalness: 0.7 }); break;
     case 'carbon': m = new S({ map: T.carbon(), roughness: 0.48, metalness: 0.25 }); break;
     case 'ti': m = new S({ color: 0x77726c, roughness: 0.55, metalness: 1, alphaMap: T.gridFin(), alphaTest: 0.5, side: THREE.DoubleSide }); break;

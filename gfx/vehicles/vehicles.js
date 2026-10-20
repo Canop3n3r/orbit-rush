@@ -63,12 +63,12 @@ function titanBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.boo
   const pos = ringPos([[3, 0.95, PI / 6], [10, 2.55], [20, 3.85, PI / 20]]);
   for (const [x, z] of pos) bell(k, 0.62, 1.55, x, 0, z, { rt: 0.26, head: k.hi ? 0.9 : 0 });
   tube(k, r, r, 0.4, 1.4, 'dark'); tube(k, r * 1.02, r, 3.2, 1.4, 'steel'); // engine skirt + shielding
-  tube(k, r, r, H - 4.6 - 1.8, 4.6, 'steel'); if (o.frost ?? 1) tube(k, r * 1.004, r * 1.004, H - 4.6 - 1.8, 4.6, 'frost', { open: true }); // cryo frost: LOX (lower) and CH4 (upper) tanks, clear at the common dome ring(k, r, 30, 0.03, 'grey'); ring(k, r, 52, 0.03, 'grey');
+  tube(k, r, r, H - 4.6 - 1.8, 4.6, 'steel'); if (o.frost ?? 0) tube(k, r * 1.004, r * 1.004, H - 4.6 - 1.8, 4.6, 'frost', { open: true }); // cryo frost: LOX (lower) and CH4 (upper) tanks, clear at the common dome ring(k, r, 30, 0.03, 'grey'); ring(k, r, 52, 0.03, 'grey');
   if (k.hi) for (const a of [PI / 2 - 0.18, PI / 2 + 0.18]) k.add(new THREE.BoxGeometry(0.35, H - 8, 0.5), 'steel', xf([Math.cos(a) * (r + 0.15), H / 2, Math.sin(a) * (r + 0.15)], [0, -a, 0])); // chines
   decal(k, 'titanbooster.side', r, 40, 6, 0, 0.9);
   // vented hot-staging ring
   tube(k, r, r, 1.8, H - 1.8, 'dark'); if (k.hi) for (let i = 0; i < 24; i++) { const a = i / 24 * 2 * PI; k.add(new THREE.BoxGeometry(0.25, 1.4, 0.9), 'steel', xf([Math.cos(a) * r, H - 0.9, Math.sin(a) * r], [0, -a, 0])); }
-  gridFins(k, r + 0.05, H - 5.5, 2.4, 3.2, 4, PI / 4, o.fins ?? 1);
+  gridFins(k, r + 0.05, H - 5.5, 2.4, 3.2, o.gridFins || 3, PI / 2, o.fins ?? 1); // brief: v3/v4 boosters carry 3 grid fins
   const g = k.build('booster'); g.userData.height = H; return g; }
 function ship(detail, y0, L = 52.1) { const k = new Kit(detail), r = 4.5, nose = 16, cyl = L - nose - 2;
   // windward = -Z half (theta pi/2 .. 3pi/2 in three's cylinder/lathe convention); tile edge lines at +-X
@@ -83,8 +83,8 @@ function ship(detail, y0, L = 52.1) { const k = new Kit(detail), r = 4.5, nose =
     k.add(new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }), 'steel');
     k.add(new THREE.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: false }), 'tiles', xf([0, 0, -0.07]));
     k.add(new THREE.CylinderGeometry(0.35, 0.35, h, 10), 'steel', xf([0.1, h / 2, 0.2])); k.pop(); };
-  for (const s of [-1, 1]) { flap(y0 + 1.5, 11, 4.2, 2.6, s, r); // aft
-    flap(y0 + 2 + cyl + 4, 7, 2.8, 1.2, s, 4.05, 0); } // forward (on the nose, smaller, slightly leeward on v3)
+  for (const s of [-1, 1]) { flap(y0 + 1.5, 11, 5.0, 3.4, s, r); // aft
+    flap(y0 + 2 + cyl + 3.5, 9, 3.4, 1.6, s, 4.1, 0); } // forward (on the nose, smaller, slightly leeward on v3)
   decal(k, 'ship.side', r, y0 + 20, 6, -PI / 2, 0.9); // leeward steel side
   const g = k.build('upper'); g.userData.top = y0 + 2 + cyl + nose; return g; }
 function titan(o) { const b = titanBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1); return group('titan', [b, s], s.userData.top); }
@@ -137,8 +137,8 @@ export const VEHICLES = {
   'heron-9-v11': { height: 68.4, build: o => heron({ ...o, v11: true }), src: 'specs/heron.md (v1.1)', est: ['height (art)'] },
   'heron-9-crew': { height: 65.7, build: o => heron({ ...o, crew: true }), src: 'specs sheet (heron-9-crew, capsule-2): 65.7 m, capsule 4 m dia, 8.1 m with trunk' },
   'heron-heavy': { height: 70, build: heronHeavy, src: 'specs sheet (heron-heavy): 70 m, 12.2 m wide' },
-  'titan-ss-v3': { height: 124.4, build: o => titan({ ...o, boosterH: 72.3, shipH: 52.1 }), src: 'specs sheet (titan-ss) Block 3: booster 72.3 m, ship 52.1 m (ESTIMATE), 9 m', est: ['shipH'] },
-  'titan-ss-v4': { height: 142, build: o => titan({ ...o, boosterH: 81, shipH: 61 }), src: 'specs sheet (titan-ss) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
+  'titan-ss-v3': { height: 124.4, build: o => titan({ ...o, boosterH: 72.3, shipH: 52.1, gridFins: 3 }), src: 'specs sheet (titan-ss) Block 3: booster 72.3 m, ship 52.1 m (ESTIMATE), 9 m', est: ['shipH'] },
+  'titan-ss-v4': { height: 142, build: o => titan({ ...o, boosterH: 81, shipH: 61, gridFins: 3 }), src: 'specs sheet (titan-ss) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
   'catch-tower': { height: 164, build: catchTower, src: 'public ~146 m tower (art estimate)', est: ['all'] },
   'payload-roadster': { height: 3.2, build: roadster, src: 'generic roadster-style car (art)', est: ['all'] },
   'payload-flatsat-stack': { height: 5.6, build: satStack, src: 'specs sheet flatsat-style flat-pack stack (art)', est: ['plate size'] },

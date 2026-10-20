@@ -26,7 +26,7 @@ export function carbon() { return once('carbon', () => { const [c, x] = canvas(1
   for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) { const l = ((i + j) % 4 < 2) ? 34 : 22; x.fillStyle = `rgb(${l},${l},${l + 2})`; x.fillRect(i * 8 + 1, j * 8 + 1, 6, 6); }
   return fin(c, { rep: [8, 8] }); }); }
 // stainless steel (giant steel vehicles): brushed streaks + weld rings + slight heat staining
-export function steelSkin(seed = 5) { return once('steel' + seed, () => { const [c, x] = canvas(256, 512), r = rng(seed); x.fillStyle = '#c4c7cb'; x.fillRect(0, 0, 256, 512);
+export function steelSkin(seed = 5) { return once('steel' + seed, () => { const [c, x] = canvas(256, 512), r = rng(seed); x.fillStyle = '#a9adb2'; x.fillRect(0, 0, 256, 512);
   for (let i = 0; i < 2500; i++) { const l = 160 + r() * 60; x.fillStyle = `rgba(${l},${l},${l + 4},0.35)`; x.fillRect(r() * 256, r() * 512, 1, 6 + r() * 30); }
   for (let i = 0; i < 8; i++) { x.fillStyle = 'rgba(60,52,44,0.55)'; x.fillRect(0, i * 64, 256, 2); x.fillStyle = 'rgba(255,255,255,0.25)'; x.fillRect(0, i * 64 + 2, 256, 1); x.fillStyle = 'rgba(60,52,44,0.3)'; x.fillRect((i * 97) % 256, i * 64, 2, 64); }
   for (let i = 0; i < 26; i++) { const g = x.createRadialGradient(r() * 256, r() * 512, 0, r() * 256, r() * 512, 20 + r() * 50); g.addColorStop(0, 'rgba(150,120,80,0.12)'); g.addColorStop(1, 'rgba(150,120,80,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 512); }
@@ -55,7 +55,7 @@ export function solarCells() { return once('solar', () => { const [c, x] = canva
   for (let i = 0; i <= 256; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 128); x.stroke(); } for (let j = 0; j <= 128; j += 16) { x.beginPath(); x.moveTo(0, j); x.lineTo(256, j); x.stroke(); } return fin(c); }); }
 // frost bands (alpha) for a cryogenic tank barrel: v = 0 bottom .. 1 top; bands = [[v0, v1], ...]
 export function frost(bands = [[0.04, 0.5], [0.56, 0.86]]) { return once('frost' + bands, () => { const [c, x] = canvas(64, 512), r = rng(11); x.fillStyle = '#000'; x.fillRect(0, 0, 64, 512);
-  for (const [a, b] of bands) { const y0 = 512 * (1 - b), y1 = 512 * (1 - a), g = x.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.08, 'rgba(255,255,255,0.55)'); g.addColorStop(0.92, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, y0, 64, y1 - y0); }
+  for (const [a, b] of bands) { const y0 = 512 * (1 - b), y1 = 512 * (1 - a), g = x.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.08, 'rgba(255,255,255,0.32)'); g.addColorStop(0.92, 'rgba(255,255,255,0.38)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, y0, 64, y1 - y0); }
   for (let i = 0; i < 400; i++) { x.fillStyle = `rgba(0,0,0,${r() * 0.35})`; x.fillRect(r() * 64, r() * 512, 1 + r() * 3, 2 + r() * 14); } // runs and thin patches
   const t = fin(c, { srgb: false }); t.wrapT = THREE.ClampToEdgeWrapping; return t; }); }
 // engine skirt: dark grey with soot streaks and panel bolts
