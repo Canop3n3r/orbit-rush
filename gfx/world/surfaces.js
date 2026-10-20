@@ -39,7 +39,7 @@ export function earthSurfaceMaterial(t, tier = 'high', U = surfaceUniforms()) {
   m.colorNode = m.colorNode.mul(mix(float(1), cshadow, smoothstep(-0.1, 0.1, ndl)));
   // night lights: contrast curve (tight cores, faint suburbs), sodium/LED mix, dimmed under cloud, gone in daylight
   const nightK = smoothstep(0.08, -0.18, ndl), lum = dot(night, vec3(0.33));
-  const cores = pow(saturate(lum.mul(1.4)), float(1.8)).mul(vec3(1.0, 0.78, 0.45)).mul(2.6);
+  const cores = pow(saturate(lum.mul(2.2)), float(1.3)).mul(vec3(1.0, 0.78, 0.45)).mul(3.6);
   const glow = saturate(lum.sub(0.04)).mul(vec3(0.9, 0.6, 0.3)).mul(0.6);
   const cloudOver = float(1).sub(saturate(texture(t.clouds, wrapU(uv.add(U.cloudUV))).r.sub(0.18).mul(1.6)).mul(0.7));
   m.emissiveNode = cores.add(glow).mul(nightK).mul(cloudOver).mul(float(1).sub(ocean.mul(0.9)));

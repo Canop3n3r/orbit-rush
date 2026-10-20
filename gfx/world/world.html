@@ -53,7 +53,7 @@ if (shot === 'pad' || shot === 'ascent') {
   scene.environment = GX.envTexture(); scene.environmentIntensity = 0.4;
 }
 // camera per shot: [alt km, back distance km along -heading, heading az deg, look pitch deg]
-const C = { ascent: [3.2, 0, 150, 6], night: [420, 0, 70, -17], pad: [0.012, 0.2, 200, 9], '10km': [10, 0, 120, -12], '100km': [100, 0, 105, -14], orbit: [420, 0, 70, -17], moon: [3, 0, 120, -14], mars: [6, 0, 110, -12] }[shot];
+const C = { ascent: [3.2, 0, 150, 6], night: [420, 0, 300, -24], pad: [0.012, 0.2, 200, 9], '10km': [10, 0, 120, -12], '100km': [100, 0, 105, -14], orbit: [420, 0, 70, -17], moon: [3, 0, 120, -14], mars: [6, 0, 110, -12] }[shot];
 const ha = THREE.MathUtils.degToRad(C[2]), fwd = north.clone().multiplyScalar(Math.cos(ha)).add(east.clone().multiplyScalar(Math.sin(ha)));
 cam.position.copy(site).addScaledVector(up, C[0]).addScaledVector(fwd, -C[1]); cam.up.copy(up);
 const pitch = THREE.MathUtils.degToRad(C[3]); cam.lookAt(cam.position.clone().add(fwd.clone().multiplyScalar(Math.cos(pitch)).addScaledVector(up, Math.sin(pitch))));
