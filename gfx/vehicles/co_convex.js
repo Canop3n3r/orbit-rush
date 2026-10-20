@@ -1,4 +1,4 @@
-// co-convex-1: Convex Astronautics (parody) — Titanus IV (3.05 m core, 2 stages, two big solid motors, 5.1 m long fairing) and
+// co-convex-1: ConVar Astro (parody) — Titanus IV (3.05 m core, 2 stages, two big solid motors, 5.1 m long fairing) and
 // Atlantean (1.5-stage balloon-tank: jettisoned booster skirt with 2 engines + sustainer; crew capsule + tower, or slim upper stage).
 // rocketdb titanus-4 / atlantean (GCAT) + design.md; splits art-fitted. No logos/names.
 import { stage, nose, fairing, srm, capsule, tower, kb, Kit, tube, bell, ring, PI, isHi, livery } from './co_gen.js?v=art1';
