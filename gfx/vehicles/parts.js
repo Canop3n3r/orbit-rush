@@ -66,11 +66,11 @@ export function legs(KitC, detail, r, len, y, n = 4, a0 = PI / 4) {
 // kept as a base copy; setLegs rotates the pivots and rewrites the vertices, so deployment stays smooth on every LOD.
 function packLegs(g) { const parts = [];
   for (const piv of g.userData.pivots) { piv.updateMatrixWorld(true); const inv = piv.matrixWorld.clone().invert(), gs = [];
-    piv.traverse(o => { if (!o.isMesh) return; let x = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); for (const k of Object.keys(x.attributes)) if (!['position', 'normal'].includes(k)) x.deleteAttribute(k); gs.push(x.applyMatrix4(inv.clone().multiply(o.matrixWorld))); });
-    const one = gs.length > 1 ? mergeGeometries(gs) : gs[0]; parts.push({ piv, pos: one.attributes.position.array.slice(), nor: one.attributes.normal.array.slice(), nv: one.attributes.position.count });
+    piv.traverse(o => { if (!o.isMesh) return; let x = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); for (const k of Object.keys(x.attributes)) if (!['position', 'normal', 'uv'].includes(k)) x.deleteAttribute(k); if (!x.attributes.uv) x.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(x.attributes.position.count * 2), 2)); /* packed legs keep uv: the carbon material samples it (was a missing-uv warning) */ gs.push(x.applyMatrix4(inv.clone().multiply(o.matrixWorld))); });
+    const one = gs.length > 1 ? mergeGeometries(gs) : gs[0]; parts.push({ piv, pos: one.attributes.position.array.slice(), nor: one.attributes.normal.array.slice(), uv: one.attributes.uv.array.slice(), nv: one.attributes.position.count });
     for (const x of gs) x.dispose(); if (one !== gs[0]) one.dispose(); piv.traverse(o => { if (o.isMesh && !o.geometry.userData.shared) o.geometry.dispose(); }); piv.clear(); }
   const tot = parts.reduce((s, p) => s + p.nv, 0), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tot * 3), 3)); geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tot * 3), 3));
-  geo.userData.noShare = true; let off = 0; for (const p of parts) { p.off = off; off += p.nv; }
+  const UV = new Float32Array(tot * 2); geo.userData.noShare = true; let off = 0; for (const p of parts) { p.off = off; UV.set(p.uv, off * 2); off += p.nv; } geo.setAttribute('uv', new THREE.BufferAttribute(UV, 2)); // uv is static (deploy only moves position/normal)
   const m = new THREE.Mesh(geo, mat('carbon')); m.name = 'legs:packed'; g.add(m); g.userData.pack = { mesh: m, parts }; setLegs(g, g.userData.t || 0); }
 function packWrite(g) { const { mesh, parts } = g.userData.pack, a = mesh.geometry.attributes, P = a.position.array, N = a.normal.array;
   for (const p of parts) { p.piv.updateMatrix(); const M = p.piv.matrix, nm = _NM.getNormalMatrix(M);
