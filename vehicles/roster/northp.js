@@ -9,7 +9,7 @@ export const ENGINES_NORTHP = {
   'np-e6': { tSl: 0, tVac: 18.0, ispSl: 0, ispVac: 250.0, src: 'spec:engines#np-e6' },
 };
 export const ROSTER_NORTHP = [
-  { id: 'unhaish', name: "Galaxy-ish (Unha)", company: 'northp', src: 'spec:unhaish', area: 4.5, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'unhaish', name: "Galaxy-ish", company: 'northp', src: 'spec:unhaish', area: 4.5, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'np-e1': 4}, dry: 5000, prop: 55000, burn: 120.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb f708c45)' },
       { engines: {'np-e2': 1}, dry: 1500, prop: 6000, burn: 176.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb f708c45)' },
