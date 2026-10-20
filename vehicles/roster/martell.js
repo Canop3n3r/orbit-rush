@@ -34,5 +34,5 @@ export const ROSTER_MARTELL = [
       { engines: {'mm-e9': 1}, dry: 1030, prop: 9770, burn: 150.0, group: 2, recovery: 'expended', src: 'GCAT' },
       { engines: {'mm-e10': 4}, dry: 360, prop: 340, burn: 550.0, group: 3, restart: true, restartSrc: "spec:athenix#restart (vendor family brief: orbit-adjust module, multiple orbits, 2-orbit 3-hour timelines)", recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 726, orbit: { hp: 677, ha: 682, inc: 98.2 }, src: "spec:athenix#ref (flown: imaging satellite and its orbit, GCAT satcat)", est: [] , knownGap: "model +117 %: rocketdb DELTA_V.md flags this variant SHORT (8,988 m/s ideal) against its GCAT figure, so stage data and reference are inconsistent; fairing mass unsourced (0); final stage restartable: coast-and-restart flown; SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 726, orbit: { hp: 677, ha: 682, inc: 98.2 }, src: "spec:athenix#ref (flown: imaging satellite and its orbit, GCAT satcat)", est: [] , knownGap: "model +117 %: fairing mass unsourced (0); final stage restartable: coast-and-restart flown; SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
 ];
