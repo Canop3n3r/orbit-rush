@@ -57,7 +57,7 @@ print(json.dumps(out))`;
 { const c = readFileSync(new URL('co_taiga.js', dir), 'utf8'); for (const id of ['taiga-1','taiga-a5']) ok(c.includes(`'${id}':`), 'co_taiga id ' + id); ok(!realHit(c), 'co_taiga.js: no real names'); }
 { const c = readFileSync(new URL('co_lingvolt.js', dir), 'utf8'); for (const id of ['scoutling','scoutling-x1']) ok(c.includes(`'${id}':`), 'co_lingvolt id ' + id); ok(!realHit(c), 'co_lingvolt.js: no real names'); }
 { const c = readFileSync(new URL('co_vantguard.js', dir), 'utf8'); for (const id of ['vantguard']) ok(c.includes(`'${id}':`), 'co_vantguard id ' + id); ok(!realHit(c), 'co_vantguard.js: no real names'); }
-{ const c = readFileSync(new URL('co_ssb.js', dir), 'utf8'); for (const id of ['cosmokart-1','cosmokart-1b','cosmokart-2','cosmokart-3m','whirligig-2','whirligig-3','riverbend']) ok(c.includes(`'${id}':`), 'co_ssb id ' + id); ok(!realHit(c), 'co_ssb.js: no real names'); }
+{ const c = readFileSync(new URL('co_ssb.js', dir), 'utf8'); for (const id of ['cosmokart-1', 'cosmokart-1b', 'cosmokart-2', 'cosmokart-3m', 'whirligig-2', 'whirligig-3', 'riverbend', 'kometa']) ok(c.includes(`'${id}':`), 'co_ssb id ' + id); ok(!realHit(c), 'co_ssb.js: no real names'); }
 console.log(`vehicles_art: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
 // noses/fairings: every profile's narrowest point is its highest point (tips point +Y, away from the engines)
 const PR = await import('../gfx/vehicles/profiles.js');
