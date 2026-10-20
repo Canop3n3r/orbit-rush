@@ -1,0 +1,102 @@
+// UI budget smoke (Playtest QA Bot) — step 1 of playtest/ui_ideal_path_2026-10-20.md (sections 6 + 8).
+//   node tests/smoke/ui_budget_smoke.cjs [baseUrl] [--strict] [--vp 390x844,844x390] [--shots dir] [--json out.json]
+// Per screen it measures controls / words / UI coverage (and taps open→liftoff) and compares them with the spec budgets.
+// Counting rules = playtest/ui_audit_menus.cjs: only controls/text that are topmost at their centre count; UI% = 8 px grid
+// of points whose topmost element has an opaque-ish surface (or is a control). Default = report-only (always exit 0,
+// prints PASS/FAIL per budget). --strict exits 1 if any budget fails. Needs playwright-core (PW_CORE=) + Chrome (CHROME=).
+const PW = process.env.PW_CORE || (() => { try { return require.resolve('playwright-core'); } catch (e) { return '/workspace/pwt/node_modules/playwright-core'; } })();
+const { chromium } = require(PW);
+const args = process.argv.slice(2), flag = k => { const i = args.indexOf(k); return i >= 0 ? (args.splice(i, 1), true) : false; };
+const opt = k => { const i = args.indexOf(k); return i >= 0 ? args.splice(i, 2)[1] : null; };
+const strict = flag('--strict'), shots = opt('--shots'), jsonOut = opt('--json');
+const vps = (opt('--vp') || '390x844,844x390').split(',');
+const base = args[0] || 'https://canop3n3r.github.io/orbit-rush/';
+const GPU = ['--use-angle=swiftshader', '--ignore-gpu-blocklist'];
+
+// Budgets (spec section 6). ui = [phone, desktop] max UI%. null = not budgeted.
+const B = {
+  first_run:    { controls: 5, words: 3, ui: [12, 8], note: '0 extra screens: must already be Home' },
+  home:         { controls: 5, words: 3, ui: [12, 8] },
+  settings:     { controls: 8, words: 30, ui: [70, 70] },
+  missions_hub: { controls: 11, words: 20, ui: [35, 25] },
+  build:        { controls: 14, words: 12, ui: [35, 25], below: 0 },
+  hud_auto:     { controls: 5, words: 6, ui: [10, 6] },
+  orbit_toast:  { words: 5, ui: [6, 6] },
+  map:          { controls: 6, words: 10, ui: [10, 6] },
+  photo:        { controls: 3, words: 0, ui: [8, 8] },
+  end_card:     { controls: 3, words: 6, ui: [15, 10] },
+};
+
+function measure() {
+  const top = e => { const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false; if (r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) return false;
+    const x = Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), y = Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2)); const h = document.elementFromPoint(x, y); return h && (h === e || e.contains(h) || h.contains(e)); };
+  const ctl = [...document.querySelectorAll('button,select,input,a[href],[role=button]')].filter(top);
+  const below = [...document.querySelectorAll('button,select,input')].filter(e => { const r = e.getBoundingClientRect(); if (!r.width) return false; for (let p = e; p; p = p.parentElement) { const c = getComputedStyle(p); if (c.display === 'none' || c.visibility === 'hidden') return false; } return r.top >= innerHeight; }).length;
+  let words = 0; const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const e = n.parentElement; if (!e || /SCRIPT|STYLE|OPTION/.test(e.tagName) || !top(e)) continue; words += (n.textContent.match(/[A-Za-z0-9][\w'.:%/-]*/g) || []).length; }
+  const solid = e => { for (let p = e; p && p !== document.body; p = p.parentElement) { if (p.tagName === 'CANVAS') return false; const c = getComputedStyle(p), r = p.getBoundingClientRect(); const full = r.width * r.height > innerWidth * innerHeight * 0.9; const bg = c.backgroundColor.match(/[\d.]+/g); const a = bg ? (bg.length > 3 ? +bg[3] : 1) : 0; if ((a > 0.15 || c.backgroundImage !== 'none' || c.backdropFilter !== 'none') && !(full && a < 0.5 && c.backdropFilter === 'none')) return true; if (/BUTTON|INPUT|SELECT/.test(p.tagName)) return true; } return false; };
+  let ui = 0, tot = 0; for (let y = 4; y < innerHeight; y += 8) for (let x = 4; x < innerWidth; x += 8) { tot++; const e = document.elementFromPoint(x, y); if (e && solid(e)) ui++; }
+  const fr = document.getElementById('frSb'); const modal = [...document.querySelectorAll('.modal')].some(m => !m.classList.contains('hidden') && m.offsetParent) || !!(fr && fr.offsetParent);
+  return { controls: ctl.length, belowFold: below, words, uiPct: Math.round(1000 * ui / tot) / 10, modal };
+}
+
+async function runVp(br, vp) {
+  const [W, H] = vp.split('x').map(Number), phone = Math.min(W, H) < 600, tag = phone ? (W < H ? 'pp' : 'pl') : 'd' + W;
+  const ctx = await br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } });
+  const pg = await ctx.newPage(); const ev = (f, a) => pg.evaluate(f, a), wait = ms => pg.waitForTimeout(ms); const M = {}, rows = [];
+  const m = async l => { try { M[l] = await ev(measure); if (shots) await pg.screenshot({ path: `${shots}/uib_${tag}_${l}.png` }); } catch (e) { M[l] = { err: e.message.split('\n')[0] }; } };
+  const hide = () => ev(() => document.querySelectorAll('.modal').forEach(x => x.classList.add('hidden')));
+  const step = async (l, f, ms) => { try { await f(); await wait(ms); await m(l); } catch (e) { M[l] = { err: e.message.split('\n')[0] }; } };
+  const load = async () => { await pg.goto(base, { waitUntil: 'load' }); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await wait(2500); };
+
+  // taps open→liftoff (fresh storage): tap the most "go" control on screen each step, real taps, until liftoff (≤6 taps, 10 s/step)
+  await load();
+  let taps = 0, path = [];
+  try {
+    for (; taps < 6;) {
+      const up = await ev(() => { const F = window.__game.F; return !!(F && (F.flags.liftoff || (F.alt || 0) > 20)); }); if (up) break;
+      const sel = await ev(() => { const vis = e => e && e.offsetParent && (() => { const r = e.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return h && (h === e || e.contains(h)); })();
+        const ids = ['frSb', 'hLaunch', 'hFly', 'launchBtn']; for (const i of ids) if (vis(document.getElementById(i))) return '#' + i;
+        const st = [...document.querySelectorAll('button')].find(b => /^\s*(STAGE|LAUNCH|IGNITE)/i.test(b.textContent) && vis(b)); if (st) { st.setAttribute('data-uib', st.textContent.trim().split(/\s+/)[0]); return '[data-uib]'; } return null; });
+      if (!sel) break; const b = await pg.$(sel); const bx = await b.boundingBox(); phone ? await pg.touchscreen.tap(bx.x + bx.width / 2, bx.y + bx.height / 2) : await pg.mouse.click(bx.x + bx.width / 2, bx.y + bx.height / 2);
+      taps++; path.push(sel === '[data-uib]' ? await ev(() => document.querySelector('[data-uib]').getAttribute('data-uib')) : sel); await ev(() => { const e = document.querySelector('[data-uib]'); e && e.removeAttribute('data-uib'); });
+      await pg.waitForFunction(() => { const F = window.__game.F; return F && (F.flags.liftoff || (F.alt || 0) > 20); }, null, { timeout: 4000 }).catch(() => {});
+    }
+  } catch (e) { path.push('ERR ' + e.message.split('\n')[0]); }
+  const lifted = await ev(() => { const F = window.__game.F; return !!(F && (F.flags.liftoff || (F.alt || 0) > 20)); }).catch(() => false);
+
+  // screens (same flow as playtest/ui_audit_menus.cjs + ui_audit.cjs), fresh storage
+  await ctx.clearCookies(); await ev(() => localStorage.clear()); await load();
+  await m('first_run');
+  await step('home', async () => { await ev(() => { for (const s of ['#frSb', '#acClose', '#lessonSkip']) { const b = document.querySelector(s); b && b.offsetParent && b.click(); } }); await hide(); }, 1000);
+  await step('settings', async () => { await ev(() => document.getElementById('hGear').click()); await wait(600); await ev(() => { const b = [...document.querySelectorAll('#hGearM button')].find(b => /settings/i.test(b.textContent)); b && b.click(); }); }, 1000);
+  await step('missions_hub', async () => { await hide(); await ev(() => { const g = document.getElementById('hGearM'); g && g.offsetParent && document.getElementById('hGear').click(); document.getElementById('hnMis').click(); }); }, 1200);
+  await step('build', async () => { await hide(); await ev(() => document.getElementById('hnBuild').click()); }, 2500);
+  await step('hud_auto', async () => { await hide(); await ev(() => document.getElementById('homeBack').click()); await wait(800); await ev(() => document.getElementById('hFly').click()); await wait(3000);
+    await ev(() => { const G = window.__game; G.press('Space'); }); await wait(300); await ev(() => { const F = window.__game.F; F.setAuto(true); for (let i = 0; i < 60 * 40; i++) F.advance(1 / 60); }); }, 2500);
+  await step('orbit_toast', () => ev(() => { const F = window.__game.F; for (let i = 0; i < 60 * 900 && !F.flags.orbit; i++) F.advance(1 / 60); }), 1500);
+  await step('map', async () => { await wait(3000); await hide(); await ev(() => { const e = document.getElementById('end'); e && e.classList.add('hidden'); window.__game.press('KeyM'); }); }, 2500); // orbit popup may land late; the map budget is measured without it
+  await step('photo', async () => { await ev(() => window.__game.press('KeyM')); await wait(400); await ev(() => window.__game.fun.photo.toggle()); }, 1500);
+  await step('end_card', async () => { await ev(() => { window.__game.fun.photo.toggle(); window.__game.F.deorbit(); }); await wait(300); await ev(() => { const F = window.__game.F; for (let i = 0; i < 60 * 2700 && !F.flags.recovered && !F.flags.dead; i++) F.advance(1 / 60); }); await wait(1500);
+    await ev(() => { const F = window.__game.F, e = document.getElementById('end'); if (e && (F.flags.recovered || F.flags.dead)) e.classList.remove('hidden'); }); }, 2500); // undo the map-step hide
+  await ctx.close();
+
+  const di = phone ? 0 : 1;
+  const chk = (screen, metric, val, max) => rows.push({ vp, screen, metric, val, max, ok: val != null && val <= max });
+  for (const [s, b] of Object.entries(B)) { const r = M[s]; if (!r || r.err) { rows.push({ vp, screen, metric: 'measure', val: r ? r.err : 'missing', max: '-', ok: false }); continue; }
+    if (b.controls != null) chk(s, 'controls', r.controls, b.controls); if (b.words != null) chk(s, 'words', r.words, b.words);
+    if (b.ui) chk(s, 'ui%', r.uiPct, b.ui[di]); if (b.below != null) chk(s, 'belowFold', r.belowFold, b.below);
+    if (s === 'first_run') rows.push({ vp, screen: s, metric: 'welcome', val: r.modal ? 'yes' : 'no', max: 'no', ok: !r.modal }); }
+  rows.push({ vp, screen: 'taps_to_liftoff', metric: 'taps(fresh)', val: lifted ? taps : `>${taps}`, max: 2, ok: lifted && taps <= 2, info: path.join(' → ') });
+  return { vp, metrics: M, taps: { taps, lifted, path }, rows };
+}
+
+(async () => {
+  const br = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: GPU });
+  const all = []; for (const vp of vps) all.push(await runVp(br, vp)); await br.close();
+  const rows = all.flatMap(a => a.rows); let fails = 0;
+  console.log(`UI budget smoke · ${base} · ${strict ? 'STRICT' : 'report-only'}`);
+  for (const r of rows) { if (!r.ok) fails++; console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.vp.padEnd(8)} ${r.screen.padEnd(16)} ${r.metric.padEnd(12)} ${String(r.val).padStart(6)} / ≤${r.max}${r.info ? '  ' + r.info : ''}`); }
+  console.log(`${rows.length - fails}/${rows.length} budgets pass`);
+  if (jsonOut) require('fs').writeFileSync(jsonOut, JSON.stringify(all, null, 1));
+  process.exit(strict && fails ? 1 : 0);
+})().catch(e => { console.error('FATAL', e.message); process.exit(strict ? 1 : 0); });

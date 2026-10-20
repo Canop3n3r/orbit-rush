@@ -17,3 +17,11 @@ Needs playwright-core (`PW_CORE=` path) and Chrome (`CHROME=` path).
 | end_card_compact | `#end` ≤45% of the screen, ≤8 body lines, covers ≤20% of `rocketBox()` (if on screen) |
 
 Software GL note: `no_shock_cone` reads 8.9–13.6% on f3 between runs (threshold 12%), so it's borderline/flaky on SwiftShader.
+
+# UI budget smoke (Playtest QA Bot): step 1 of the UI ideal path
+
+    node tests/smoke/ui_budget_smoke.cjs [baseUrl] [--strict] [--vp 390x844,844x390] [--shots dir] [--json out.json]
+
+Checks each screen's controls, words, UI coverage and taps from open to liftoff against the budgets in `playtest/ui_ideal_path_2026-10-20.md` §6. It uses the `ui_audit_menus.cjs` counting rules: topmost-at-centre controls and text, and an 8 px opaque-UI grid. It runs at 390x844 and 844x390 touch by default.
+**Report-only by default**: it prints PASS/FAIL per budget and always exits 0. `--strict` exits 1 on any FAIL. Budgets move to strict as the UI PRs land.
+Screens: first_run (must already be Home; no welcome), home, settings, missions_hub, build, hud_auto, orbit_toast, map, photo, end_card, plus taps_to_liftoff (real taps on a fresh profile, ≤2). It takes ~2.5 min on SwiftShader. Coverage is a grid estimate (±3%).
