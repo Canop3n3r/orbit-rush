@@ -772,3 +772,6 @@ body.touch:not(.home) #build.builder{bottom:calc(84px + env(safe-area-inset-bott
 @media (orientation:portrait){body.touch:not(.home) #build.builder{height:calc(58vh - 84px)!important;max-height:calc(58vh - 84px)!important}}
 body #hFly{min-height:64px;height:64px}
 body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #hNext{display:none!important}
+.bMore>summary{cursor:pointer;font:700 14px var(--ui);padding:8px 4px;list-style:none;opacity:.85}.bMore>summary::-webkit-details-marker{display:none}
+#build>#homeBack{margin:2px 0 4px}
+@media (orientation:landscape) and (max-height:500px){body.touch:not(.home) #build.builder{left:calc(8px + env(safe-area-inset-left,0px))!important;right:auto!important;width:46vw!important;max-width:46vw!important;top:8px!important;height:auto!important}}

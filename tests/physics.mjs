@@ -1,9 +1,9 @@
 // Physics v2 tests: full-scale gravity and orbits, the 1976 standard atmosphere, Mach drag, aerodynamic
 // stability (CoP vs CoM), 6-DOF rigid-body attitude, Earth rotation, engines, and AUTO to orbit at full scale.
 // Run: node tests/physics.mjs   (exits non-zero on failure)
-import * as P from '../physics.js?v=f5.1b';
-import { TEMPLATES, buildVehicle, aeroBalance, cloneDesign } from '../parts.js?v=f5.1b';
-import { simulateAuto, PHYS_DT } from '../flight.js?v=f5.1b';
+import * as P from '../physics.js?v=f5.1c';
+import { TEMPLATES, buildVehicle, aeroBalance, cloneDesign } from '../parts.js?v=f5.1c';
+import { simulateAuto, PHYS_DT } from '../flight.js?v=f5.1c';
 const { V, R, MU } = P;
 let pass = 0, fail = 0;
 const ok = (c, name, extra = '') => { if (c) { pass++; console.log('  ✔', name, extra); } else { fail++; console.log('  ✘', name, extra); } };
