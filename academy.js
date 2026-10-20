@@ -60,7 +60,7 @@ export function setupSOI(F) {
   if (ix > 0) F.coastTo(pr.patches[ix - 1].t1 - 3 * 3600); F.v.sas = 'prograde'; return F;
 }
 const reachesMoon = F => { const pr = C.predict(F.body, F.v.r, F.v.v, F.tAbs, { maxPatches: 3 }); return pr.patches.some(p => p.body === 'moon'); };
-export const Q_LIMIT = 32000; // Pa: lesson 4's Max-Q budget (Falcon 9-class rockets peak around 30–35 kPa)
+export const Q_LIMIT = 32000; // Pa: lesson 4's Max-Q budget (Medium-lift orbital rockets peak around 30–35 kPa)
 
 // ---------- lessons ----------
 // start: { mode: 'flight' (on the pad unless setup moves it) | 'build', design, setup(F) applied on every launch }
@@ -151,7 +151,7 @@ export const LESSONS = [
       body: c => { const t = c.F && c.F.tel, h = 11000, at = P.atmosphere(h), vq = 450;
         return `<p>The air load on the rocket is the <b>dynamic pressure</b>:</p><div class="eq">q = ½ ρ v²</div>
         <p>Density ρ falls fast with height while speed v grows, so q peaks once: <b>Max-Q</b>, typically around 10–14 km. At ${km(h)} (ρ = ${f0(at.rho, 3)} kg/m³) and ${vq} m/s: q = <b data-v="qEx">${f0(calc.dynamicPressure(at.rho, vq) / 1000, 1)} kPa</b>.
-        Falcon 9-class rockets peak around 30–35 kPa and throttle down to stay there.</p>
+        Medium-lift orbital rockets peak around 30–35 kPa and throttle down to stay there.</p>
         <p><b>Mach</b> = v / a, with a the speed of sound (${f0(at.a)} m/s at ${km(h)}). Drag rises steeply near Mach 1 (the transonic drag rise) and falls off when supersonic: see the plot.</p>
         ${t ? `<p class="k">Now: ρ ${t.rho.toExponential(2)} kg/m³ · v ${f0(t.vAir)} m/s → q ${f0(calc.dynamicPressure(t.rho, t.vAir) / 1000, 1)} kPa · Mach ${f0(t.mach, 2)}</p>` : ''}`; },
     },
