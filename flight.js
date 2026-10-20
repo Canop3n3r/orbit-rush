@@ -836,7 +836,7 @@ export class Flight {
     if (f.space) s += 1000;
     if (f.orbit) { s += 3000; if (isFinite(o.ap)) s += Math.max(0, 1500 - Math.abs(o.ap - o.pe) / 100); s += fuelLeft * 800; }
     if (f.recovered) s += 4000;
-    s *= mult; s += f.boosterBonus + this.goalScore(); if (f.dead) s *= 0.5;
+    s *= mult; s += f.boosterBonus + ((this.flagsB && this.flagsB.boosterBonus) || 0) + this.goalScore(); // f5: Heavy side booster B scores too if (f.dead) s *= 0.5;
     return Math.round(s);
   }
   finish() { if (!this.ended) { this.finalScore = this.score(); this.ended = true; this.autoWarp = false; this.warpI = 0; } return this.finalScore; }
