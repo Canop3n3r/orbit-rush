@@ -28,7 +28,7 @@ ok(L.ALL.vehicles.every(v => L.START.vehicles.includes(v) || L.unlockedBy('vehic
   const s3 = L.blank(); for (const c of L.LADDER) if (!L.rungLocked(c)) s3.done[c.id] = 1;
   const o3 = L.record(s3, { landed: 'moon', visited: ['mars', 'venus'], vehicle: 'selene' }); ok(o3.earned.length === 0 && !s3.done.moon, 'a locked rung cannot be earned even when its test passes'); }
 { // f5: the old showroom id still loads (save alias)
-  const { migrate } = await import('../fun/ladder.js?v=f5.1a'); const r13 = t => t.replace(/[a-z]/g, ch => String.fromCharCode(97 + (ch.charCodeAt(0) - 84) % 26));
+  const { migrate } = await import('../fun/ladder.js?v=f5.1b'); const r13 = t => t.replace(/[a-z]/g, ch => String.fromCharCode(97 + (ch.charCodeAt(0) - 84) % 26));
   const m = migrate({ v: 2, done: {}, unlocked: { vehicles: ['pip', r13('xrfgery')] } });
   if (m.unlocked.vehicles.includes('swift') && m.unlocked.vehicles.length === 2) { pass++; console.log('ok vehicle alias migrates'); } else { fail++; console.log('FAIL vehicle alias'); }
 }

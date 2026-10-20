@@ -4,14 +4,14 @@
 // Rungs reuse Mission Design Bot's design: the ops contracts in missions/*.js (constellation-batch, crew-dock,
 // lunar-landing, mars-ship) and the vehicle order of missions/campaign/career.js (sparrow-1 -> heron-9 ->
 // heron-9-crew -> heron-heavy -> titan-ss). Vehicle ids here are showroom ids (fun/showroom.js MODEL_OF).
-import { CONTRACTS as DESIGN } from '../design/career_contracts.js?v=f5.1a';
+import { CONTRACTS as DESIGN } from '../design/career_contracts.js?v=f5.1b';
 export const KEY = 'orbitrush.ladder.v1', VERSION = 2, SANDBOX_KEY = 'orbitrush.sandbox';
 export const START = { vehicles: ['pip', 'hopper', 'needle'], sites: ['atoll'], parts: [], missions: ['hop'] };
 // every lockable thing, for sandbox and the progress screen
 export const ALL = { vehicles: ['pip', 'hopper', 'needle', 'swift', 'heron', 'atlas', 'selene', 'titan', 'ares'],
   sites: ['atoll', 'cape-north', 'lz1', 'cape-heritage', 'gulf-port'], parts: ['ion', 'xenon'], missions: ['hop', 'constellation-batch', 'crew-dock', 'moon', 'mars', 'venus'] };
 // Vehicles without a model yet (Rocket Art Bot): shown with a placeholder model, and rungs flown on them stay locked.
-export const PLACEHOLDER_VEHICLES = { selene: 'titan-ss-v3', ares: 'titan-ss-v3' };
+export const PLACEHOLDER_VEHICLES = { selene: 'colossus-v3', ares: 'colossus-v3' };
 export const rungLocked = c => Object.hasOwn(PLACEHOLDER_VEHICLES, c.vehicle);
 // v1 -> v2 id rename. Old ids are stored ROT13 so the neutrality scan stays clean.
 const rot13 = t => t.replace(/[a-z]/g, ch => String.fromCharCode(97 + (ch.charCodeAt(0) - 84) % 26));

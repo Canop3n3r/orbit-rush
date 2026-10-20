@@ -30,5 +30,17 @@ export const NOSES = {
   'heron-heavy.sidenose': () => ogive(1.83, 6.2),
   'sparrow-1.fairing': () => fairing(0.75, 0.3, 1.65, 0, 0.66),
   'heron-9-crew.capsule': () => capsule(1.85),
-  'titan.shipnose': () => ogive(4.5, 16, 0, 18, 0.12),
+  'colossus.shipnose': () => ogive(4.5, 16, 0, 18, 0.12),
 };
+// ---- co-nosa (NOSA house, rocketdb tier S) ----
+// Saturnine V command module: blunt 3.9 m heat shield, ~33° half-angle cone to a docking tunnel (tip +Y)
+export function crewCone(r = 1.96, y0 = 0, h = 3.23) { return [[0, y0], [r * 0.985, y0], [r, y0 + 0.12], [r * 0.97, y0 + 0.3], [r * 0.35, y0 + h * 0.86], [r * 0.3, y0 + h * 0.9], [r * 0.26, y0 + h * 0.98], [r * 0.18, y0 + h], [0, y0 + h + 0.01]]; }
+// escape-tower motor: cylinder + ogive nose cap with a slim spike (base radius r)
+export function escapeNose(r = 0.33, L = 1.6, y0 = 0) { return ogive(r, L, y0, 12, 0.18); }
+NOSES['saturnine-v.cm'] = () => crewCone();
+NOSES['saturnine-v.les'] = () => escapeNose();
+// Space Truck Stack (orbiter + tank + twin boosters): tank ogive 8.4 m, booster nose, orbiter nose (all tips +Y)
+export const TRUCK = { etR: 4.2, etNose: 12.0, srbR: 1.86, srbNose: 6.0, orbR: 2.6, orbNose: 6.5 };
+NOSES['space-truck.et'] = () => ogive(TRUCK.etR, TRUCK.etNose, 0, 18, 0.03);
+NOSES['space-truck.srb'] = () => ogive(TRUCK.srbR, TRUCK.srbNose, 0, 18, 0.1);
+NOSES['space-truck.orbiter'] = () => ogive(TRUCK.orbR, TRUCK.orbNose, 0, 18, 0.12);

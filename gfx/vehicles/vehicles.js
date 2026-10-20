@@ -7,11 +7,12 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { Kit, xf, mat, compact, compactStages, FOLD_HEAVY, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=f5.1a';
+import { Kit, xf, mat, compact, compactStages, FOLD_HEAVY, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=f5.1b';
 export { dispose, release, geometryCacheSize };
-import * as PR from './profiles.js?v=f5.1a';
-import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f5.1a';
+import * as PR from './profiles.js?v=f5.1b';
+import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f5.1b';
 export { setLegs, mat };
+import { CO_NOSA } from './co_nosa.js?v=f5.1b'; // co-nosa-1: NOSA heritage vehicles
 const PI = Math.PI;
 // ---- kerolox booster core (9 engines, octaweb, legs, grid fins) ----
 function core9(detail, o = {}) {
@@ -63,13 +64,13 @@ function heronHeavy(o) { const d = o.detail === 'hi' ? 'mid' : 'lo', // hi = mid
   const k = new Kit(d); for (const s of [-1, 1]) { for (const y of [4.5, 38.5]) strut(k, [s * 1.8, y, 0], [s * 2.05, y, 0], 0.3, 'dark'); if (k.hi) strut(k, [s * 1.8, 37, 0.6], [s * 2.05, 39, 0.6], 0.12, 'grey'); }
   kids.push(k.build('struts')); // struts stay their own stage (staging detaches them)
   return group('heron-heavy', kids, f.userData.top); }
-function titanBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.boosterH || 72.3;
+function colossusBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.boosterH || 72.3;
   const pos = ringPos([[3, 0.95, PI / 6], [10, 2.55], [20, 3.85, PI / 20]]);
   for (const [x, z] of pos) bell(k, 0.62, 1.55, x, 0, z, { rt: 0.26, head: k.hi ? 0.9 : 0 });
   tube(k, r, r, 0.4, 1.4, 'dark'); tube(k, r * 1.02, r, 3.2, 1.4, 'steel'); // engine skirt + shielding
   tube(k, r, r, H - 4.6 - 1.8, 4.6, 'steel'); if (o.frost ?? 0) tube(k, r * 1.004, r * 1.004, H - 4.6 - 1.8, 4.6, 'frost', { open: true }); // cryo frost: LOX (lower) and CH4 (upper) tanks, clear at the common dome ring(k, r, 30, 0.03, 'grey'); ring(k, r, 52, 0.03, 'grey');
   if (k.hi) for (const a of [PI / 2 - 0.18, PI / 2 + 0.18]) k.add(new THREE.BoxGeometry(0.35, H - 8, 0.5), 'steel', xf([Math.cos(a) * (r + 0.15), H / 2, Math.sin(a) * (r + 0.15)], [0, -a, 0])); // chines
-  decal(k, 'titanbooster.side', r, 40, 6, 0, 0.9);
+  decal(k, 'colossusbooster.side', r, 40, 6, 0, 0.9);
   if (k.hi) { for (const a of [PI * 0.25, PI * 1.25]) raceway(k, r, 6, H - 3, a, 'steel'); for (const y of [12, 30, 52]) ring(k, r, y, 0.035, 'grey'); // conduit raceways, weld lands
     for (let i = 0; i < 4; i++) { const a = i * PI / 2 + PI / 4; k.add(new THREE.BoxGeometry(1.4, 1.0, 0.25), 'dark', xf([Math.cos(a) * (r + 0.1), 3.6, Math.sin(a) * (r + 0.1)], [0, -a + PI / 2, 0])); } } // QD / ground-service plates
   // vented hot-staging ring
@@ -95,7 +96,7 @@ function ship(detail, y0, L = 52.1) { const k = new Kit(detail), r = 4.5, nose =
   if (k.hi) { for (const a of [PI * 0.1, -PI * 0.1]) raceway(k, r, y0 + 3, y0 + 2 + cyl, a, 'steel'); for (const y of [y0 + 2.2, y0 + 2 + cyl * 0.42, y0 + 2 + cyl - 0.3]) ring(k, r, y, 0.04, 'grey'); // raceways, aft dome / common dome / forward weld lands
     k.add(new THREE.BoxGeometry(1.6, 1.2, 0.2), 'dark', xf([0, y0 + 2 + cyl - 3, r + 0.05])); } // payload/door hatch outline
   const g = k.build('upper'); g.userData.top = y0 + 2 + cyl + nose; return g; }
-function titan(o) { const b = titanBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1); return group('titan', [b, s], s.userData.top); }
+function colossus(o) { const b = colossusBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1); return group('colossus', [b, s], s.userData.top); }
 // ---- ground systems: catch tower with chopsticks + orbital launch mount ----
 function catchTower(o) { const k = new Kit(o.detail), W = 12, H = 146, TX = -24, lv = 9, n = Math.floor(H / lv);
   tube(k, 30, 32, 2, -2, 'concrete', { seg: 48 });
@@ -155,10 +156,11 @@ export const VEHICLES = {
   'heron-9-v11': { height: 68.4, build: o => heron({ ...o, v11: true }), src: 'specs/heron.md (v1.1)', est: ['height (art)'] },
   'heron-9-crew': { height: 65.7, build: o => heron({ ...o, crew: true }), src: 'specs sheet (heron-9-crew, capsule-2): 65.7 m, capsule 4 m dia, 8.1 m with trunk' },
   'heron-heavy': { height: 70, build: heronHeavy, src: 'specs sheet (heron-heavy): 70 m, 12.2 m wide' },
-  'titan-ss-v3': { height: 124.4, build: o => titan({ ...o, boosterH: 72.3, shipH: 52.1, gridFins: 3 }), src: 'specs sheet (titan-ss) Block 3: booster 72.3 m, ship 52.1 m (ESTIMATE), 9 m', est: ['shipH'] },
-  'titan-ss-v4': { height: 142, build: o => titan({ ...o, boosterH: 81, shipH: 61, gridFins: 3 }), src: 'specs sheet (titan-ss) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
+  'colossus-v3': { height: 124.4, build: o => colossus({ ...o, boosterH: 72.3, shipH: 52.1, gridFins: 3 }), src: 'specs sheet (colossus) Block 3: booster 72.3 m, ship 52.1 m (ESTIMATE), 9 m', est: ['shipH'] },
+  'colossus-v4': { height: 142, build: o => colossus({ ...o, boosterH: 81, shipH: 61, gridFins: 3 }), src: 'specs sheet (colossus) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
   'catch-tower': { height: 164, build: catchTower, src: 'public ~146 m tower (art estimate)', est: ['all'] },
   'payload-roadster': { height: 3.2, build: roadster, src: 'generic roadster-style car (art)', est: ['all'] },
+  ...CO_NOSA,
   'payload-flatsat-stack': { height: 5.6, build: satStack, src: 'specs sheet flatsat-style flat-pack stack (art)', est: ['plate size'] },
 };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
