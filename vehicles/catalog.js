@@ -117,3 +117,5 @@ export { ROSTER_RLAB, ENGINES_RLAB } from './roster/rlab.js';
 export { ROSTER_ARION, ENGINES_ARION } from './roster/arion.js';
 // Roster company 'calt' (data only, neutral ids; spec:loss-model): see vehicles/roster/calt.js
 export { ROSTER_CALT, ENGINES_CALT } from './roster/calt.js';
+// Roster company 'krunich' (data only, neutral ids; spec:loss-model): see vehicles/roster/krunich.js
+export { ROSTER_KRUNICH, ENGINES_KRUNICH } from './roster/krunich.js';
