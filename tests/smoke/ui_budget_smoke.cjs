@@ -91,7 +91,8 @@ async function runVp(br, vp) {
   // screens (same flow as playtest/ui_audit_menus.cjs + ui_audit.cjs), fresh storage
   await ctx.clearCookies(); await ev(() => localStorage.clear()); await load();
   await m('first_run');
-  await step('home', async () => { await ev(() => { for (const s of ['#frSb', '#acClose', '#lessonSkip']) { const b = document.querySelector(s); b && b.offsetParent && b.click(); } }); await hide(); }, 1000);
+  // f5.1c: the welcome's #frSb is "🚀 Fly now" (launches), so close the welcome without launching to measure Home; taps_to_liftoff above still taps #frSb for real
+  await step('home', async () => { await ev(() => { const fr = document.getElementById('firstRun'); if (fr) fr.classList.add('hidden'); const b = document.getElementById('frSb'); if (b && b.offsetParent && !/fly now/i.test(b.textContent)) b.click(); for (const s of ['#acClose', '#lessonSkip']) { const c = document.querySelector(s); c && c.offsetParent && c.click(); } }); await hide(); }, 1000);
   await step('settings', async () => { await ev(() => document.getElementById('hGear').click()); await wait(600); await ev(() => { const b = [...document.querySelectorAll('#hGearM button')].find(b => /settings/i.test(b.textContent)); b && b.click(); }); }, 1000);
   await step('missions_hub', async () => { await hide(); await ev(() => { const g = document.getElementById('hGearM'); g && g.offsetParent && document.getElementById('hGear').click(); document.getElementById('hnMis').click(); }); }, 1200);
   await step('build', async () => { await hide(); await ev(() => document.getElementById('hnBuild').click()); }, 2500);
