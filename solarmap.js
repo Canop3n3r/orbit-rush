@@ -31,7 +31,7 @@ export function createSolarMap(opts) {
     var stars = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xaab4d0, size: 1, sizeAttenuation: false, depthWrite: false })); stars.frustumCulled = false; scene.add(stars); }
   // ---------- bodies ----------
   const sphere = new THREE.SphereGeometry(1, 64, 32); sphere.rotateX(Math.PI / 2);
-  const earthSphere = new THREE.SphereGeometry(1, 96, 48); earthSphere.rotateX(Math.PI / 2); earthSphere.rotateZ(GX.EARTH_TEX_ROT); let earthAtmo = null; // poles on ±z (body frames have z = pole)
+  const earthSphere = new THREE.SphereGeometry(1, 96, 48); earthSphere.rotateX(Math.PI / 2); earthSphere.applyMatrix4(GX.earthTexMatrix()); let earthAtmo = null; // poles on ±z (body frames have z = pole)
   const dotGeo = new THREE.SphereGeometry(1, 12, 8);
   const bodies = {};
   for (const id of IDS) {

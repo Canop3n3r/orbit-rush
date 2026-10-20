@@ -5,8 +5,9 @@ import * as THREE from 'three/webgpu';
 import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass } from 'three/tsl';
 export { GFX, GFX_ORDER } from './presets.js?v=f5';
 import { GFX } from './presets.js?v=f5';
-import { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth } from './earthmap.js?v=f5';
-export { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth };
+import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5';
+export { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth };
+export const earthTexMatrix = () => new THREE.Matrix4().fromArray(EARTH_TEX_M4);
 export function softwareGPU() {
   try { const c = document.createElement('canvas'), gl = c.getContext('webgl2') || c.getContext('webgl'); if (!gl) return true;
     const e = gl.getExtension('WEBGL_debug_renderer_info'), r = e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
