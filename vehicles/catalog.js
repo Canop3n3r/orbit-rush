@@ -102,3 +102,24 @@ export const MISSION_VARIANTS = [
 export const PAYLOADS = [
   { id: 'roadster-payload', mass: 1300, massRange: [1250, 1350], kind: 'demo mass (car + mount)', carrier: 'heron-heavy', orbit: 'heliocentric', src: 'spec:roadster-payload' },
 ];
+
+// Roster company 'nosa' (data only, neutral ids; spec:loss-model): see vehicles/roster/nosa.js
+export { ROSTER_NOSA, ENGINES_NOSA } from './roster/nosa.js';
+// Roster company 'rockwell' (data only, neutral ids; spec:loss-model): see vehicles/roster/rockwell.js
+export { ROSTER_ROCKWELL, ENGINES_ROCKWELL } from './roster/rockwell.js';
+// Roster company 'redstar' (data only, neutral ids; spec:loss-model): see vehicles/roster/redstar.js
+export { ROSTER_REDSTAR, ENGINES_REDSTAR } from './roster/redstar.js';
+// Roster company 'ulx' (data only, neutral ids; spec:loss-model): see vehicles/roster/ulx.js
+export { ROSTER_ULX, ENGINES_ULX } from './roster/ulx.js';
+// Roster company 'rlab' (data only, neutral ids; spec:loss-model): see vehicles/roster/rlab.js
+export { ROSTER_RLAB, ENGINES_RLAB } from './roster/rlab.js';
+// Roster company 'arion' (data only, neutral ids; spec:loss-model): see vehicles/roster/arion.js
+export { ROSTER_ARION, ENGINES_ARION } from './roster/arion.js';
+// Roster company 'calt' (data only, neutral ids; spec:loss-model): see vehicles/roster/calt.js
+export { ROSTER_CALT, ENGINES_CALT } from './roster/calt.js';
+// Roster company 'krunich' (data only, neutral ids; spec:loss-model): see vehicles/roster/krunich.js
+export { ROSTER_KRUNICH, ENGINES_KRUNICH } from './roster/krunich.js';
+// Roster company 'blueh' (data only, neutral ids; spec:loss-model): see vehicles/roster/blueh.js
+export { ROSTER_BLUEH, ENGINES_BLUEH } from './roster/blueh.js';
+// Roster company 'gaulois' (data only, neutral ids; spec:loss-model): see vehicles/roster/gaulois.js
+export { ROSTER_GAULOIS, ENGINES_GAULOIS } from './roster/gaulois.js';
