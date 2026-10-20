@@ -1,7 +1,7 @@
 // f5.2 (QA f5.1h): mission/rung card defaults and the picker (no duplicates, 1-word sections, locked folded)
-import { cardChoice, qualifying } from '../fun/mispick.js?v=f5.3b4';
-import { pickerHTML, HOUSES } from '../fun/picker.js?v=f5.3b4';
-import { SHOWROOM } from '../fun/showroom.js?v=f5.3b4';
+import { cardChoice, qualifying } from '../fun/mispick.js?v=f5.3b5';
+import { pickerHTML, HOUSES } from '../fun/picker.js?v=f5.3b5';
+import { SHOWROOM } from '../fun/showroom.js?v=f5.3b5';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('FAIL', m); } };
 for (const id of ['orbit', 'moon', 'mars', 'venus']) { const q = qualifying(id, SHOWROOM, []);
   const pip = cardChoice(q, { name: 'Pip', ok: true, sub: true });
