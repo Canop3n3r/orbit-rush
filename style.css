@@ -628,3 +628,11 @@ details.bset{display:contents}details.bset[open]>summary{display:none}
   #build #presets{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:8px}
   #build #presets>*{flex:0 0 auto}
 }
+/* f4: compact phone end card (QA: <= 45% of a 390x844 screen) */
+@media (orientation:portrait) and (max-width:600px){
+  #end{padding:10px 12px!important;max-height:44dvh!important;overflow:auto}
+  #end h2{font-size:19px!important;margin:0 0 2px!important}
+  #endBody{font:12px/1.45 monospace!important}
+  #end .endMain,#end .endShare{margin-top:6px!important;gap:6px!important}
+  #end .endShare button,#end .endMain button{min-height:44px;padding:4px 8px}
+}

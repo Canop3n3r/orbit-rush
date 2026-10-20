@@ -204,10 +204,10 @@ export class FX {
       if (this.gpu) { renderer.compute(F.computeNode); this.compute++; } else F.stepCPU(U.dt.value);
     }
     // --- shock cone + compressed-air glow ---
-    const shockI = Q.shock ? 0.12 * s.shock + 0.5 * s.glow : 0; // f3: a faint collar at the nose, never a sky-wide cone
+    const shockI = Q.shock ? 0.08 * s.shock + 0.4 * s.glow : 0; // f3: a faint collar at the nose, never a sky-wide cone
     this.shock.visible = shockI > 0.02;
     if (this.shock.visible) {
-      const H = Math.min(L * 0.25, 2.5 * ctx.d + 3), tn = Math.min(0.55, Math.tan(s.machAngle));
+      const H = Math.min(L * 0.18, 1.8 * ctx.d + 2), tn = Math.min(0.45, Math.tan(s.machAngle));
       this.shock.position.copy(apex); qFrom(this.shock, d); this.shock.scale.set(tn * H, H, tn * H);
       this.shockU.inten.value = Math.min(1.2, shockI);
       this.shockU.color.value.setRGB(0.62 + 0.38 * s.glow, 0.76 - 0.2 * s.glow, 1.0 - 0.6 * s.glow);
