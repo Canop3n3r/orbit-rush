@@ -1,6 +1,6 @@
-// co-baltic-1: Baltic Test Range (parody, historic) — A-Four: 14 m single-stage liquid rocket, fat ogive body with boat tail, four big
-// trapezoid fins, single engine, nose payload; classic black/white roll-quadrant test paint (generic, no insignia). A-Four Tandem:
-// shortened nose carrying a slim finned second stage. Dimensions: rocketdb a-four (GCAT) + design.md; art-fitted. No logos/names.
+// co-baltic-1: Baltic Test Range (parody, historic) — Baltic Hammer: 14 m single-stage liquid rocket, fat ogive body with boat tail, four big
+// trapezoid fins, single engine, nose payload; classic black/white roll-quadrant test paint (generic, no insignia). Baltic Hammer Tandem:
+// shortened nose carrying a slim finned second stage. Dimensions: rocketdb baltic-hammer (GCAT) + design.md; art-fitted. No logos/names.
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=art1';
 import * as PR from './profiles.js?v=art1';
@@ -21,9 +21,9 @@ function upper(d, y0) { const k = new Kit(d), r = 0.15; tube(k, 0.42, r, 0.4, y0
   tube(k, r, r, 4.3, y0 + 0.4, 'paint:0,0', { seg: k.hi ? 12 : 6 }); lathe(k, PR.ogive(r, 0.8, y0 + 4.7, 8, 0.02), 'paint:0,0', { seg: k.hi ? 12 : 6 });
   for (let i = 0; i < 3; i++) { const s = new THREE.Shape([[r, 0], [0.42, 0], [0.42, 0.25], [r, 0.7]].map(([x, y]) => new THREE.Vector2(x, y))), g = new THREE.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: false }); k.add(g, 'dark', xf([0, y0 + 0.4, 0], [0, i * 2 * PI / 3, 0])); }
   const g = k.build('upper'); g.userData.top = y0 + 5.5; return g; }
-function afour(o, tandem) { const d = o.detail, b = body(d), top = tandem ? upper(d, b.userData.top) : warhead(d);
-  const g = group(tandem ? 'a-four-tandem' : 'a-four', [b, top], top.userData.top); if (o.plume) g.add(plume(0, [[0, 0]], 0.35, 9 * o.plume)); return g; }
+function hammer(o, tandem) { const d = o.detail, b = body(d), top = tandem ? upper(d, b.userData.top) : warhead(d);
+  const g = group(tandem ? 'baltic-hammer-tandem' : 'baltic-hammer', [b, top], top.userData.top); if (o.plume) g.add(plume(0, [[0, 0]], 0.35, 9 * o.plume)); return g; }
 export const CO_BALTIC = {
-  'a-four': { height: 14.0, build: o => afour(o, false), src: 'rocketdb a-four (GCAT): 14 m x 1.65 m, fin span 3.56 m, single engine', est: ['body profile', 'fin planform'] },
-  'a-four-tandem': { height: 16.5, build: o => afour(o, true), src: 'rocketdb a-four tandem config: shortened nose + slim 5.5 m finned upper', est: ['upper length'] },
+  'baltic-hammer': { height: 14.0, build: o => hammer(o, false), src: 'rocketdb baltic-hammer (GCAT): 14 m x 1.65 m, fin span 3.56 m, single engine', est: ['body profile', 'fin planform'] },
+  'baltic-hammer-tandem': { height: 16.5, build: o => hammer(o, true), src: 'rocketdb baltic-hammer tandem config: shortened nose + slim 5.5 m finned upper', est: ['upper length'] },
 };
