@@ -9,11 +9,12 @@ export const MISSIONS = {
   orbit: { name: 'Orbit & home', icon: '🛰️', tpl: 'Orbit & home', target: null, blurb: 'Fly to orbit, then bring the capsule home under parachutes.' },
   moon: { name: 'Moon landing', icon: '🌕', tpl: 'Moon lander', target: 'moon', land: true, blurb: 'Transfer burn, capture into lunar orbit, powered landing.' },
   mars: { name: 'Mars', icon: '🔴', tpl: 'Mars explorer', target: 'mars', capture: true, blurb: 'Wait for the window, cross the Sun’s gravity well, arrive at Mars.' },
+  hop: { name: 'Hop & land', icon: '🦗', tpl: 'Grasshopper', target: null, hop: 3000, land: true, blurb: 'Straight up to 3 km, engine off, fall back and hoverslam onto the pad.' },
   venus: { name: 'Venus flyby', icon: '🟡', tpl: 'Mars explorer', target: 'venus', blurb: 'Fall inward toward the Sun and swing past Venus.' },
 };
 // phase → camera: the renderer picks chase / wide / map cams from this
-export const CAMS = { ascent: 'chase', plan: 'map', burn: 'wide', correct: 'wide', cruise: 'map', capture: 'wide', brake: 'chase', descent: 'chase', home: 'chase', done: 'wide' };
-const ORDER = ['ascent', 'plan', 'burn', 'correct', 'cruise', 'capture', 'brake', 'descent', 'home', 'done'];
+export const CAMS = { hop: 'chase', coast: 'wide', ascent: 'chase', plan: 'map', burn: 'wide', correct: 'wide', cruise: 'map', capture: 'wide', brake: 'chase', descent: 'chase', home: 'chase', done: 'wide' };
+const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'capture', 'brake', 'descent', 'home', 'done'];
 export class Director {
   constructor(F, id, opts = {}) {
     this.F = F; this.id = id; this.m = MISSIONS[id]; this.phase = 'ascent'; this.t = 0; this.log = ['ascent']; this.active = true; this.opts = opts;
@@ -34,7 +35,15 @@ export class Director {
     if (!this.active) return;
     if (F.flags.dead) { this.active = false; this.result = 'Lost: ' + F.flags.dead; this.ok = false; return; }
     this.t += dt;
+    if (this.m.hop && this.phase === 'ascent') this.set('hop', 'Hop! Straight up to ' + (this.m.hop / 1000).toFixed(0) + ' km');
     switch (this.phase) {
+      case 'hop': { // vertical climb; cut when the ballistic apex reaches the target height
+        const up = V.norm(v.r), va = P.airVel(v), vs = V.dot(va, up), R = V.len(v.r), g = P.BODIES[F.body].mu / (R * R);
+        if (!F.ignited) { F.stagePress(); this.alt0 = F.alt - v.tel.ycom; }
+        v.sas = 'stab'; v.steerDir = up; v.ut = 1;
+        if (F.alt + Math.max(vs, 0) ** 2 / (2 * g) >= this.m.hop) { v.ut = 0; v.steerDir = null; this.set('coast', 'Engine off — coasting to the top'); }
+        break; }
+      case 'coast': { const up = V.norm(v.r); v.ut = 0; v.sas = 'stab'; v.steerDir = up; if (V.dot(P.airVel(v), up) < -2) this.set('descent', 'Falling — hoverslam onto the pad'); break; }
       case 'ascent':
         if (!F.ignited) { F.stagePress(); F.setAuto(true, true); }
         else if (!F.autoOn && !F.flags.orbit) F.setAuto(true, true);
@@ -78,7 +87,7 @@ export class Director {
         const ang = Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), V.scale(P.progradeOf(v), -1)))));
         if (ang < 0.05 || this.t > 60) this.set('descent', 'Powered descent');
         break; }
-      case 'descent': if (F.flags.landed || F.parked) this.finish('Landed on the ' + P.BODIES[F.body].name + '!'); else this.land(); break;
+      case 'descent': if (F.flags.landed || F.parked) this.finish(this.m.hop ? 'Hopped and landed!' : 'Landed on the ' + P.BODIES[F.body].name + '!'); else this.land(); break;
       case 'home': if (F.flags.recovered) this.finish('Orbit and home!'); break;
     }
   }
@@ -107,8 +116,10 @@ export class Director {
   land() { // hoverslam (suicide burn) from the shared solver: coast, light as late as possible at ~88% throttle, cut at touchdown
     const F = this.F, v = F.v, b = P.BODIES[F.body], R = V.len(v.r), g = b.mu / (R * R);
     const h = F.alt - v.tel.ycom, up = V.norm(v.r), va = P.airVel(v), sp = V.len(va), vs = V.dot(va, up), a = P.thrustAccel(v);
-    v.sas = 'retrograde';
-    const sol = P.hoverslamSolve({ h, vDown: vs < 0 ? sp : 0, m: 1, Tmax: a, thrMin: 0.05, g, burning: !!v._hs, lit: v.ignAlt != null });
+    if (this.m.hop) { v.sas = 'stab'; v.steerDir = up; } else v.sas = 'retrograde';
+    const aE = F.body === 'earth' ? P.maxThrust(v, P.atmosphere(Math.max(0, F.alt)).p) / (P.massOf(v) * 1000) : a; // sea-level thrust on Earth
+    const hG = this.m.hop ? F.alt - (this.alt0 ?? 0) - v.tel.ycom : h; // hop: height above the pad it left
+    const sol = P.hoverslamSolve({ h: hG, vDown: vs < 0 ? sp : 0, m: 1, Tmax: aE, thrMin: 0.05, g, burning: !!v._hs, lit: v.ignAlt != null });
     F.landCue = { burnIn: sol.ignite ? 0 : sol.tIgn, lowTWR: sol.lowTWR, noLand: sol.noLand, thr: sol.throttle, twr: sol.twr };
     if (sol.lowTWR && !this._warned) { this._warned = true; F.toast && F.toast(sol.noLand ? 'TWR too low to land: braking as hard as possible' : 'Low TWR: controlled descent instead of a hoverslam', '#ffb347'); }
     // warp while far from the burn, never during it

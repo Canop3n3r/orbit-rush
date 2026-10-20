@@ -18,6 +18,7 @@ for (const r of SHOWROOM) {
     const id = r.check.slice(8), F = new Flight(r.design, {}, { t0: T0 }), D = new Director(F, id, { say: () => {} });
     for (let i = 0; i < 2e6 && D.active; i++) { D.tick(1 / 30); F.advance(1 / 30); }
     ok(D.ok && !F.flags.dead, `${r.name} — one-tap ${id}: ${D.result}`);
+    if (id === 'hop') { ok(F.flags.landed && F.flags.touchdown < 6, `${r.name} touches down at ${F.flags.touchdown.toFixed(1)} m/s (hoverslam)`); ok((F.flags.maxAlt || 0) > 2000, `${r.name} hopped to ${km(F.flags.maxAlt || 0)}`); }
     if (r.alt) { const F2 = new Flight(r.design, {}, { t0: T0 }), D2 = new Director(F2, r.alt, { say: () => {} }); for (let i = 0; i < 2e6 && D2.active; i++) { D2.tick(1 / 30); F2.advance(1 / 30); } ok(D2.ok, `${r.name} — one-tap ${r.alt}: ${D2.result}`); }
     continue;
   }

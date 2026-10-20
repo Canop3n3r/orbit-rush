@@ -19,7 +19,7 @@ export const SHOWROOM = [
   { id: 'ares', name: 'Red Arrow', role: 'Mars lander stack (also Venus)', check: 'mission:mars', difficulty: 0.8, mission: 'mars', alt: 'venus', tpl: 'Mars explorer' },
   { id: 'titan', name: 'Colossus', role: 'Super-heavy · 5-engine cluster', check: 'orbit', difficulty: 0.6, mission: null,
     design: { name: 'Colossus', parts: [P('fairing'), P('sat'), P('sat'), P('probe'), P('tank-w'), P('mule', 5), P('dec'), P('tank-w'), P('tank-w'), P('tank-w'), P('bison', 5), P('fins')] } },
-  { id: 'hopper', name: 'Grasshopper', role: 'Stubby test hopper · short hop', check: 'hop', difficulty: 0.2, mission: null,
+  { id: 'hopper', name: 'Grasshopper', role: 'Test hopper · hop and land on the pad', check: 'mission:hop', difficulty: 0.2, mission: 'hop',
     design: { name: 'Grasshopper', parts: [P('chute'), P('crew'), P('tank-n'), P('mule'), P('fins')] } },
 ];
 for (const r of SHOWROOM) if (r.tpl) { const t = T(r.tpl); r.design = { ...cloneDesign(t), name: r.name }; r.tplName = r.tpl; }
@@ -29,4 +29,4 @@ export function bars(r) {
   const s = designStats(r.design), thrust = s.twr * s.mass * 9.81; // kN at liftoff
   return { power: clamp((Math.log10(Math.max(100, thrust)) - 2.4) / (4.3 - 2.4)), range: clamp(s.total / 16000), difficulty: clamp(r.difficulty) };
 }
-export const missionLabel = { orbit: 'Orbit & home', moon: 'Moon landing', mars: 'Mars', venus: 'Venus flyby' };
+export const missionLabel = { hop: 'Hop & land', orbit: 'Orbit & home', moon: 'Moon landing', mars: 'Mars', venus: 'Venus flyby' };

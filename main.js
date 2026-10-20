@@ -1547,7 +1547,7 @@ const cx = createCompact({ touch: TOUCH, onSpeedTap: () => fun.cycleSpeed(), onM
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
   for (const id of ['hint', 'toasts', 'callout']) { const e = document.getElementById(id); if (e) st.appendChild(e); } }
 function startMission(id) {
-  const m = MISSIONS[id], t = TEMPLATES.find(x => x.name === m.tpl); if (!t) return;
+  const m = MISSIONS[id], t = TEMPLATES.find(x => x.name === m.tpl) || (SHOWROOM.find(x => x.name === m.tpl) || {}).design; if (!t) return;
   setDesign(cloneDesign(t)); launch(); director = new Director(F, id, { say: msg => fun.call(m.icon, msg, '#ffe9b0') });
   fun.call(m.icon, m.name + ' — mission director has the stick', '#ffe9b0', true); camDist = 120; camYaw = 0.9; camPitch = 0.08;
 }
