@@ -60,10 +60,16 @@ function lattice(g, H, W, x, z) { const lv = Math.max(3, W * 0.9), n = Math.floo
   br.count = k; g.add(br); }
 // per-vehicle set: pad radius from the vehicle, a service tower (Heron family), the catch tower + mount (titan)
 function clearStage() { for (const c of stage.children.slice()) dispose(c); }
+const TABLE = /^(a-four|redrock|junoish)/; // ids that stand on a launch table instead of a tower
 function setStage(id, h, rV) { clearStage(); let lift = 0; const small = h < 10;
   const padR = small ? 4 : Math.max(18, rV * 6);
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(padR, padR * 1.06, small ? 0.4 : 1.2, 48), concM); pad.position.y = small ? 0.2 : 0.6; stage.add(pad); lift = small ? 0.4 : 1.2;
   if (small) return lift;
+  if (TABLE.test(id)) { // early-rocket launch table: 4 steel legs, ring top, blast-deflector cone under; no tower (rockets like A-Four, Redrock)
+    const tH = Math.max(1.0, rV * 1.4), top = new THREE.Mesh(new THREE.CylinderGeometry(rV * 1.25, rV * 1.25, 0.18, 24, 1, false), steelM); top.position.y = lift + tH; stage.add(top);
+    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.78, l = new THREE.Mesh(new THREE.BoxGeometry(0.22, tH, 0.22), steelM); l.position.set(Math.cos(a) * rV * 1.15, lift + tH / 2, Math.sin(a) * rV * 1.15); stage.add(l); }
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(rV * 0.8, tH * 0.8, 16), darkM); cone.position.y = lift + tH * 0.4; stage.add(cone);
+    return lift + tH + 0.09; }
   // flame trench: a recessed dark slot cut into the pad edge (no strip lying on the ground)
   const tr = new THREE.Mesh(new THREE.BoxGeometry(rV * 2.4, 0.05, padR * 0.9), darkM); tr.position.set(0, lift + 0.01, padR * 0.5); stage.add(tr);
   const lip = new THREE.Mesh(new THREE.BoxGeometry(rV * 2.4 + 1.2, 0.6, 0.6), concM); lip.position.set(0, lift + 0.3, padR * 0.95); stage.add(lip);
