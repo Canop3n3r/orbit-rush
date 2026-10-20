@@ -253,6 +253,8 @@ const tileGeo = new THREE.BufferGeometry();
   tileGeo.setIndex(idx);
   const nrm = new Float32Array(n * 3); for (let k = 0; k < n; k++) nrm[k * 3 + 1] = 1; tileGeo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3)); } // normals exist before the first compile
 const tile = new THREE.Mesh(tileGeo, GX.tileMaterial()); tile.frustumCulled = false; earth.add(tile);
+// Google Photorealistic 3D Tiles near the pad: private build only, off unless window.ORBIT_TILES or ?tiles=<site>
+let TILES = null; { const tf = params.get('tiles') ?? window.ORBIT_TILES; if (tf && tf !== '0' && tf !== 'off') import('./gfx/tiles3d.js?v=f4').then(m => { TILES = m.createTiles({ earth, camera, renderer, onSurface, padEF: [1, 0, 0], ground: tile, R, site: m.tilesSite(params), phone: TOUCH || innerWidth < 700 }); window.__tiles = TILES; }).catch(e => console.warn('[Orbit Rush] 3D tiles unavailable:', e.message)); }
 let tileC = null, earthPx = null; GX.earthPixels(gfxQ).then(px => { earthPx = px; tileC = null; });
 const tileRGBA = [0, 0, 0, 0];
 function updateTile(ef) {
@@ -1435,6 +1437,7 @@ renderer.setAnimationLoop(() => {
   const hs = skyAlt(h), k = Math.min(1, Math.max(0, hs / 70000));
   const lit = updateSun(O, U, hs, k, isMap); // sun direction, eclipse, sky colour, scattering, lights
   stars.material.opacity = isMap ? 1 : Math.min(1, Math.max(0, k * 1.4 - 0.3) + (1 - lit.day) * (1 - k) * 0.8);
+  if (TILES) TILES.update({ alt: h, hidden: isMap || !earth.visible || (F && F.body && F.body !== 'earth'), light: 0.25 + 0.75 * lit.day });
   updateCine(rdt, h, isMap);
   updateChunks(pdt, O);
   fire.update(pdt, O, camera.quaternion, wE); smoke.update(pdt, O, camera.quaternion, wE);
