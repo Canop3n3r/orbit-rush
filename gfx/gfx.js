@@ -2,7 +2,7 @@
 // Earth day/night/clouds/ocean glint + analytic atmospheric scattering, Sun + bloom, Milky Way, HDR tone mapping,
 // PBR environment, quality presets (low keeps phones and software GPUs working). No physics here.
 import * as THREE from 'three/webgpu';
-import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, uv, vertexColor, mx_noise_float, positionLocal, pass } from 'three/tsl';
+import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass } from 'three/tsl';
 export { GFX, GFX_ORDER } from './presets.js?v=f4';
 import { GFX } from './presets.js?v=f4';
 import { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth } from './earthmap.js?v=f4';
@@ -58,13 +58,18 @@ export function atmoMaterial(o = {}) {
   const center = uniform(new THREE.Vector3()), sunDir = uniform(new THREE.Vector3(1, 0, 0)), Rp = uniform(o.R || 1), Ra = uniform(o.Ra || 1.02), gain = uniform(o.gain ?? 1);
   const m = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
   const Vd = normalize(positionWorld.sub(cameraPosition)), oc = center.sub(cameraPosition);
-  const tca = dot(oc, Vd), b = length(cross(Vd, oc)); // impact parameter
+  // f4.1 root fix (22 km wash-out + 100 km double halo): the closest approach must lie AHEAD of the camera. For rays whose
+  // tangent point is behind (tca < 0, e.g. looking up from inside the air) the nearest point is the camera itself; the old
+  // code used the line's impact parameter, so upward rays at 22 km read as grazing the limb and the whole sky went white.
+  const tca = dot(oc, Vd), bLine = length(cross(Vd, oc)), b = select(tca.greaterThan(0.0), bLine, length(oc));
   const tan = cameraPosition.add(Vd.mul(max(tca, 0.0))), s = dot(normalize(tan.sub(center)), sunDir);
-  const hgt = saturate(b.sub(Rp).div(Ra.sub(Rp))), dens = pow(float(1).sub(hgt), 2.6).mul(smoothstep(Rp.mul(0.995), Rp, b));
+  // exponential falloff with a ~8 km scale height (a thin limb, not a 110 km slab); rays that hit the planet get nothing
+  // (no second band drawn across the ground when depth precision is poor)
+  const hgt = saturate(b.sub(Rp).div(Ra.sub(Rp))), dens = exp(hgt.mul(-13.0)).mul(smoothstep(Rp.mul(0.99985), Rp.mul(1.00015), b));
   const blue = vec3(...(o.day || [0.32, 0.58, 1.0])), red = vec3(...(o.dusk || [1.0, 0.42, 0.14]));
   const col = mix(red, blue, smoothstep(-0.05, 0.35, s)).mul(smoothstep(-0.32, 0.08, s));
   const fwd = pow(saturate(dot(Vd, sunDir)), 12).mul(vec3(1.0, 0.75, 0.45)).mul(smoothstep(-0.2, 0.1, s));
-  m.colorNode = vec4(col.add(fwd).mul(dens).mul(gain).mul(2.4), 1);
+  m.colorNode = vec4(min(col.add(fwd).mul(dens).mul(gain).mul(1.1), vec3(0.75)), 1); // capped below the bloom threshold: the limb never blooms
   m.userData = { center, sunDir, Rp, Ra, gain };
   return m;
 }
@@ -136,7 +141,7 @@ export function makePost(renderer, scene, camera) {
       if (post) return;
       try { const { bloom } = await import('three/addons/tsl/display/BloomNode.js');
         const p = new THREE.PostProcessing(renderer), sp = pass(scene, camera), c = sp.getTextureNode('output');
-        bloomNode = bloom(c, 0.55, 0.35, 0.82); p.outputNode = c.add(bloomNode); post = p; } catch (e) { console.warn('[Orbit Rush] bloom unavailable:', e.message); post = null; }
+        bloomNode = bloom(c, 0.55, 0.35, 1.25); /* f4.1: threshold above sky/limb HDR levels (only sun, plume, flashes bloom) */ p.outputNode = c.add(bloomNode); post = p; } catch (e) { console.warn('[Orbit Rush] bloom unavailable:', e.message); post = null; }
     },
     get on() { return !!post; },
     set strength(s) { if (bloomNode) bloomNode.strength.value = s; },
