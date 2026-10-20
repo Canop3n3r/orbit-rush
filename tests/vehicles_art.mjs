@@ -9,6 +9,7 @@ for (const id of ['sparrow-1', 'heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-
 { const c = readFileSync(new URL('co_nosa.js', dir), 'utf8'); for (const id of ['saturnine-v', 'space-truck']) ok(c.includes(`'${id}':`), 'co-nosa model id ' + id); ok(!/\b(nasa|saturn|apollo|boeing|rocketdyne|shuttle|rockwell|endeavour|discovery|atlantis|columbia|challenger)\b/i.test(c.replace(/saturnine/gi, '')), 'co_nosa.js: no real agency/vehicle names'); }
 const d = readFileSync(new URL('decals.js', dir), 'utf8'); ok(/setBrandPack/.test(d) && /function generic/.test(d), 'decal slots with generic default');
 { const c = readFileSync(new URL('co_krasnaya.js', dir), 'utf8'); for (const id of ['soyuzny', 'soyuzny-2', 'vostochka', 'sputnyk-r7']) ok(c.includes(`'${id}':`), 'co-krasnaya model id ' + id); ok(!/\b(soyuz|vostok|sputnik|korolev|progress|roscosmos|energia|baikonur)\b/i.test(c), 'co_krasnaya.js: no real names'); }
+{ const c = readFileSync(new URL('co_nwon.js', dir), 'utf8'); for (const id of ['n-won']) ok(c.includes(`'${id}':`), 'co_nwon id ' + id); ok(!/\b(n-1|n1|nk-\d+|soyuz|korolev|energia|blok|lok|lk|baikonur|roscosmos)\b/i.test(c), 'co_nwon.js: no real names'); }
 console.log(`vehicles_art: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
 // noses/fairings: every profile's narrowest point is its highest point (tips point +Y, away from the engines)
 const PR = await import('../gfx/vehicles/profiles.js');
