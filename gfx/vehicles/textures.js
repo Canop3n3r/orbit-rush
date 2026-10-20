@@ -15,7 +15,7 @@ export function paint({ soot = 0, sootTop = 0, base = '#eeeeea', rings = 6, seed
     x.fillStyle = 'rgba(0,0,0,0.18)'; for (let i = 1; i < rings; i++) x.fillRect(0, (i / rings) * 512, 256, 2);
     x.fillStyle = 'rgba(0,0,0,0.06)'; for (let i = 0; i < 16; i++) x.fillRect(i * 16, 0, 1, 512);
     x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, 8, 256, 1); // raceway shadow line hint
-    if (soot > 0) { const g = x.createLinearGradient(0, 512, 0, 512 * (1 - 0.85 * soot)); g.addColorStop(0, `rgba(22,19,16,${Math.min(1, 1.1 * soot)})`); g.addColorStop(0.35, `rgba(40,34,28,${0.85 * soot})`); g.addColorStop(0.7, `rgba(60,52,44,${0.4 * soot})`); g.addColorStop(1, 'rgba(60,50,40,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 512);
+    if (soot > 0) { const g = x.createLinearGradient(0, 512, 0, 512 * (1 - 0.85 * soot)); g.addColorStop(0, `rgba(38,35,32,${Math.min(1, 1.0 * soot)})`); g.addColorStop(0.3, `rgba(70,66,62,${0.85 * soot})`); g.addColorStop(0.65, `rgba(105,100,95,${0.5 * soot})`); g.addColorStop(1, 'rgba(60,50,40,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 512);
       for (let i = 0; i < 140; i++) { const X = r() * 256, L = 60 + r() * 330 * soot; const s = x.createLinearGradient(0, 512, 0, 512 - L); s.addColorStop(0, `rgba(20,16,12,${0.45 * soot})`); s.addColorStop(1, 'rgba(20,16,12,0)'); x.fillStyle = s; x.fillRect(X, 512 - L, 2 + r() * 5, L); } }
     if (sootTop > 0) { const g = x.createLinearGradient(0, 0, 0, 90); g.addColorStop(0, `rgba(40,34,28,${0.6 * sootTop})`); g.addColorStop(1, 'rgba(40,34,28,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 90); }
     return fin(c);

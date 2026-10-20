@@ -18,3 +18,10 @@ for (const [id, f] of Object.entries(PR.NOSES)) { const p = f().filter((q, i) =>
   const tail = p.slice(-6); let dec = true; for (let i = 1; i < tail.length; i++) if (tail[i][0] > tail[i - 1][0] + 1e-9) dec = false; ok(dec, `${id}: radius shrinks toward the tip`); }
 ok(Math.abs(PR.ogive(2, 5)[0][0] - 2) < 1e-9 && PR.ogive(2, 5).at(-1)[0] < 0.01, 'ogive: r at base, ~0 at tip');
 console.log(`vehicles_art (noses): ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
+// heron-9 fairing dimensions (specs sheet: 5.2 m diameter, ~13 m long, wider than the 3.66 m stage)
+{ const F = PR.HERON_FAIRING, p = PR.NOSES['heron-9.fairing'](), rMax = Math.max(...p.map(q => q[0])), L = p.at(-1)[1] - p[0][1];
+  ok(Math.abs(2 * rMax - 5.2) < 0.01, `fairing diameter 5.2 m (got ${(2 * rMax).toFixed(2)})`);
+  ok(Math.abs(L - 13.1) < 0.2, `fairing length ~13.1 m (got ${L.toFixed(2)})`);
+  ok(2 * F.rBase > 3.6 && 2 * F.rBase < 3.75 && rMax > F.rBase, 'boattail from the 3.66 m stage out to the wider fairing');
+  ok(F.nose / (2 * F.r) > 1.2, 'ogive nose at least 1.2 calibers (not a blunt capsule)');
+  console.log(`vehicles_art (fairing): ${pass} passed, ${fail} failed`); if (fail) process.exit(1); }

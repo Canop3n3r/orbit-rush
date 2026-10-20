@@ -12,13 +12,20 @@ const q = new URLSearchParams(location.search);
 const renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL: q.has('webgl') });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = q.has('gameexp') ? 1.05 : 0.82; // hero: a touch under the game so white paint keeps its panel detail
 renderer.setSize(innerWidth, innerHeight); document.body.prepend(renderer.domElement); await renderer.init();
-const scene = new THREE.Scene(); scene.background = new THREE.Color(0x7ab8ff); scene.fog = new THREE.FogExp2(0xa9c8e8, 0.0009);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x7ab8ff); scene.fog = new THREE.FogExp2(0xb9d0e6, 0.00035);
 scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x334433, 1.0));
 const sunL = new THREE.DirectionalLight(0xfff4e6, 3.0); scene.add(sunL); sunL.position.set(0.9, 0.35, 0.3);
-scene.environment = GX.envTexture();
+const env = GX.envTexture(); scene.environment = env; scene.background = env; scene.backgroundIntensity = 1.0; // the game's sky panorama: blue zenith, bright horizon, sun spot
+// grazing light: steep, from almost straight above and behind, so weld rings, panel lines and soot streaks catch it
+const graze = new THREE.DirectionalLight(0xdfe8ff, 1.3); graze.position.set(-0.25, 1, -0.35); scene.add(graze);
+// pad: concrete deck, flame trench, a low apron ring, simple service blocks (stands in for the game's launch complex)
+{ const pm = new THREE.MeshStandardMaterial({ map: GX.concreteTexture(), roughness: 0.9, color: 0xd0ccc4 }); pm.map.repeat.set(6, 6);
+  const deck = new THREE.Mesh(new THREE.CylinderGeometry(34, 38, 3, 48), pm); deck.position.y = -1.5; scene.add(deck);
+  const tr = new THREE.Mesh(new THREE.BoxGeometry(9, 0.2, 40), new THREE.MeshStandardMaterial({ color: 0x1b1a19, roughness: 1 })); tr.position.set(0, 0.02, 22); scene.add(tr);
+  const bm = new THREE.MeshStandardMaterial({ color: 0xbdb8ae, roughness: 0.85 }); for (const [x, z, w, h, d] of [[-70, 60, 26, 9, 16], [90, -80, 22, 14, 22], [-120, -140, 40, 6, 14]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bm); b.position.set(x, h / 2, z); scene.add(b); } }
 const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: GX.glowTexture(), color: new THREE.Color(6, 5.4, 4.6), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); scene.add(sun);
 const conc = GX.concreteTexture(); conc.repeat.set(24, 24);
-const ground = new THREE.Mesh(new THREE.CircleGeometry(1500, 64), new THREE.MeshStandardMaterial({ map: conc, roughness: 0.92 })); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; scene.add(ground);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(4000, 64), new THREE.MeshStandardMaterial({ map: conc, roughness: 0.92 })); ground.rotation.x = -Math.PI / 2; ground.position.y = -3.0; scene.add(ground);
 const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 20000);
 // same bloom node as GX.makePost but with a higher threshold (gfx.js hardcodes 0.82) so lit white paint keeps
 // its detail; only the sun, glints and hot metal bloom. gfx.js is imported, not edited.
@@ -29,6 +36,7 @@ let cur = null;
 // shot: { id, opts, cam:[x,y,z] (in vehicle heights), aim:[x,y,z] (heights), fov, sun:[x,y,z] }
 async function shot(s) { if (cur) scene.remove(cur); const h = VEHICLES[s.id].height;
   cur = build(s.id, { detail: s.lo ? 'lo' : 'hi', ...(s.opts || {}) }); scene.add(cur);
+  if (s.only) for (const c of cur.children) c.visible = c.name === s.only; // e.g. booster alone (landed-booster photos)
   if (s.legs !== undefined) for (const L of cur.userData.legs || []) setLegs(L, s.legs);
   camera.fov = s.fov || 35; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   camera.position.set(...s.cam.map(v => v * h)); camera.lookAt(new THREE.Vector3(...s.aim.map(v => v * h)));
