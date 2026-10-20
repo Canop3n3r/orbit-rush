@@ -9,7 +9,7 @@ function solids(d, name, pos, r, L, nL) { const k = new Kit(d), seg = isHi(k) ? 
   for (const [x, z] of pos) { k.add(new THREE.LatheGeometry([[0.4, 0], [0.62, -0.3], [0.7, -1.0]].map(([a, y]) => new THREE.Vector2(a * r / 0.5 * 0.5, y + 1.0)), seg), 'bell', xf([x, 0.3, z]));
     tube(k, r, r, L - nL - 1.0, 1.3, 'paint:0,0', { x, z, seg }); lathe(k, PR.ogive(r, nL, L - nL + 0.3, isHi(k) ? 8 : 4, 0.08), 'paint:0,0', { seg, m: xf([x, 0, z]) }); }
   return kb(k, name, L + 0.3); }
-function pslv(o) { const d = o.detail, R = 1.4, grey = livery(0xb9b4aa), off = R + 0.5 + 0.08;
+function polarSlinger(o) { const d = o.detail, R = 1.4, grey = livery(0xb9b4aa), off = R + 0.5 + 0.08;
   const a = stage(d, 's1', { r: R, h: 20.0, y0: 2.0, eng: [[1, 0, 0.8, 1.8]], key: grey, skirt: R * 1.04, bands: [[19.2, 0.8], [8, 0.3, 'paint:0,0']], decalY: 12 });
   const s = solids(d, 'srbA', ringPos([[6, off, PI / 6]]), 0.5, 12.0, 1.6);
   const b = stage(d, 's2', { r: R, h: 10.8, y0: a.userData.top, eng: [[1, 0, 0.6, 1.5]], drop: 1.2, bands: [[0, 0.8], [10.0, 0.4]] });
@@ -24,6 +24,6 @@ function lvmTree(o) { const d = o.detail, R = 2.0, off = R + 1.6 + 0.1;
   const f = fairing(d, 'payload', { r: 2.5, rb: R, cyl: 4.0, nose: 5.0, y0: b.userData.top });
   const g = group('lvm-tree', [a, ...s, b, f], f.userData.top); if (o.plume) g.add(plume(0, [[off, 0], [-off, 0]], 1.5, 55 * o.plume)); return g; }
 export const CO_ISRA = {
-  'polar-slinger': { height: 45.4, build: pslv, src: 'rocketdb polar-slinger (GCAT XL-type): 2.8 m s1 20 m + 6 strap-on solids 12 m, s2 12.8 m, s3, s4, 3.2 m fairing', est: ['s3/s4 split'] },
+  'polar-slinger': { height: 45.4, build: polarSlinger, src: 'rocketdb polar-slinger (GCAT XL-type): 2.8 m s1 20 m + 6 strap-on solids 12 m, s2 12.8 m, s3, s4, 3.2 m fairing', est: ['s3/s4 split'] },
   'lvm-tree': { height: 43.9, build: lvmTree, src: 'rocketdb lvm-tree (GCAT): 4 m core 21 m (2 engines), 2 x 3.2 m solids 25 m, cryo upper, 5 m fairing', est: ['fairing'] },
 };
