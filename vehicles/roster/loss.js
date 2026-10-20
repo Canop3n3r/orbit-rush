@@ -40,14 +40,23 @@ export function sim(v, E, P, vt, v0, { nograv = false, steer = true, dt = 0.25 }
 // choices searched per payload (best of a fixed grid): the model asks "can ANY such trajectory reach the source orbit?",
 // so gravity and turning losses come out of the physics instead of an imposed profile. Drag: the area/m0 Δv (DRAG_C, EST)
 // applied along the velocity over the first DRAG_T s (EST). Success: perigee ≥ hp and apogee ≥ ha of the source orbit.
+// integrated drag (spec:loss-model#drag): D = ½ρv²·Cd·A along the air-relative velocity. ρ: exponential fit to the 1976 standard
+// atmosphere (ρ0 1.225 kg/m³, scale height 7.2 km below 90 km, EST); Cd(Mach) generic slender-rocket curve 0.30 → 0.55 at M 1.2 →
+// 0.25 above M 4 (ESTIMATE); speed of sound 320 m/s (EST). Applied as a deceleration resolved on the inertial velocity (small-angle).
+export let DRAG_PHYS = false; // evaluated 2026-10-20, not adopted: Cd unsourced, and it moved large-vehicle passes more than the small-solid gaps (spec:loss-model#drag)
+const cdOf = M => M < 0.8 ? 0.30 : M < 1.2 ? 0.30 + (M - 0.8) / 0.4 * 0.25 : M < 4 ? 0.55 - (M - 1.2) / 2.8 * 0.30 : 0.25;
+const dragAcc = (h, va, A, m) => { if (h > 90000) return 0; const rho = 1.225 * Math.exp(-h / 7200); return 0.5 * rho * va * va * cdOf(va / 320) * A / m; };
 export const DRAG_T = 120, GT_ALT = 45000, PARK = 120000; // PARK m: lowest transfer perigee for a restart (EST) // m: gravity turn below, linear-tangent steering above (EST)
 // trajectory grid (gamebot-specs/roster-gaps): kick 0.25–15° step 0.25°, β0 −20–85° step 2.5°, gravity-turn ceiling 30/45/60 km
 const KICKS = Array.from({ length: 60 }, (_, i) => (i + 1) * 0.25 * Math.PI / 180), BETAS = Array.from({ length: 43 }, (_, i) => (-20 + 2.5 * i) * Math.PI / 180), GTS = [30000, 45000, 60000];
-export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 0.5, coastF = false) {
+export function fly(v, E, P, orbit, v0, drag0, kick, beta0, gtAlt = GT_ALT, dt = 0.5, coastF = false) {
   const S = v.stages.map(s => ({ ...s, left: s.prop, mdot: s.prop / s.burn, sl: ispOf(s.engines, E, 'sl'), vac: ispOf(s.engines, E, 'vac'), g: s.group }));
   const maxg = Math.max(...S.map(s => s.g)), fair = v.fairing || 0, rpT = RE + orbit.hp * 1e3, raT = RE + orbit.ha * 1e3;
   let upT = 0, tu0 = null;
-  let m = S.reduce((a, s) => a + s.prop + s.dry, 0) + P + fair, r = RE, vr = 0, vh = v0, t = 0, tu = 0, grp = 0, kicked = false, coasted = false, gl = 0, sl = 0, ideal = 0;
+  let drag = drag0; const al = v.airLaunch; // sourced drop state {alt m, speed m/s air-relative, horizontal}; guided from release (no kick)
+  let m = S.reduce((a, s) => a + s.prop + s.dry, 0) + P + fair, r = RE + (al ? al.alt : 0), vr = 0, vh = v0 * r / RE + (al ? al.speed : 0), t = 0, tu = 0, grp = 0, kicked = !!al, coasted = false, gl = 0, sl = 0, ideal = 0;
+  if (al) drag *= al.rhoRatio; // drag Δv scaled by the density ratio at the drop altitude (US Standard Atmosphere 1976)
+  const fAt = v.fairingAt ?? 1; let fairOn = fair > 0, ph = 0, ph0 = 0, spinB = null; // fairingAt: group lit when the fairing goes (sourced sequence)
   for (;;) {
     const act = S.filter(s => s.g <= grp && s.left > 1e-6 && t >= (s.igniteAt || 0)); // igniteAt (s, sourced sequence): air-lit strap-ons
     if (!act.length && S.some(s => s.g <= grp && s.left > 1e-6)) { const g = MU / (r * r); vr += (vh * vh / r - g) * dt; vh -= vr * vh / r * dt; r += vr * dt; gl += g * dt; t += dt; continue; } // coasting to a timed ignition
@@ -57,20 +66,23 @@ export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 
       if (coastF && grp + 1 === maxg && !coasted) { const en = (vr * vr + vh * vh) / 2 - MU / r, hh = r * vh;
         if (en < 0) { const sma = -MU / (2 * en), e = Math.sqrt(Math.max(0, 1 + 2 * en * hh * hh / (MU * MU))), ra = sma * (1 + e);
           if (ra > r) { r = ra; vr = 0; vh = hh / ra; t = Math.max(t, DRAG_T); coasted = true; if (tu0 === null) tu0 = t; } } }
-      grp++; if (fair) { m -= fair * (grp === 1); } continue; }
+      grp++; if (fairOn && grp >= fAt) { m -= fair; fairOn = false; }
+      const nx = S.filter(s => s.g === grp); if (nx.length && nx.every(s => s.spin)) { spinB = null; ph0 = ph; } continue; }
     let T = 0; for (const s of act) { const isp = s.g === 0 ? s.vac - (s.vac - s.sl) * Math.exp(-t / 45) : s.vac; T += Math.min(s.mdot, s.left / dt) * isp * G0; }
     const a = T / m, g = MU / (r * r), wa = vh - v0 * r / RE, sp = Math.hypot(vr, wa);
     let ur, uh; // thrust direction (radial, horizontal)
-    if (grp === 0 && r - RE < gtAlt) {
+    if (grp === 0 && !al && r - RE < gtAlt) {
       if (sp < 60 || !kicked) { ur = 1; uh = 0; if (sp >= 60) { kicked = true; const vv = sp; vr = vv * Math.cos(kick); vh = vv * Math.sin(kick) + v0 * r / RE; } }
       else { ur = vr / sp; uh = wa / sp; }
     } else {
       if (tu0 === null) { tu0 = t; upT = S.reduce((a, s) => a + s.left / s.mdot * (s.g <= grp ? 1 : 0), 0) + S.filter(s => s.g > grp).reduce((a, s) => a + s.burn, 0); } // remaining burn time (overlapping groups counted once by their longest stage EST)
-      const b = coasted ? 0 : Math.atan(Math.tan(beta0) * (1 - Math.min(tu / upT, 1))); ur = Math.sin(b); uh = Math.cos(b); tu += dt; }
-    const vi = Math.hypot(vr, vh), dr = t < DRAG_T ? drag / DRAG_T : 0;
+      const spinNow = act.length && act.every(s => s.spin); // spin-stabilised (sourced `spin`): no steering during the burn
+      if (spinNow && spinB === null) { spinB = coasted ? 0 : Math.atan(Math.tan(beta0) * (1 - Math.min(tu / upT, 1))); ph0 = ph; } // attitude frozen at ignition
+      const b = spinNow ? spinB + (ph - ph0) : coasted ? 0 : Math.atan(Math.tan(beta0) * (1 - Math.min(tu / upT, 1))); ur = Math.sin(b); uh = Math.cos(b); tu += dt; }
+    const vi = Math.hypot(vr, vh), dr = DRAG_PHYS ? dragAcc(r - RE, Math.hypot(vr, wa), v.area, m) * vi / Math.max(Math.hypot(vr, wa), 1e-6) : t < DRAG_T ? drag / DRAG_T : 0;
     const ar = a * ur - g + vh * vh / r - dr * vr / vi, ah = a * uh - vr * vh / r - dr * vh / vi;
     gl += g * (vr / vi) * dt; sl += a * (1 - (ur * vr + uh * vh) / vi) * dt; ideal += a * dt;
-    r += vr * dt; vr += ar * dt; vh += ah * dt; t += dt;
+    ph += vh / r * dt; r += vr * dt; vr += ar * dt; vh += ah * dt; t += dt;
     if (r < RE - 1) return { ok: false, gl, sl };
     for (const s of act) { const bb = Math.min(s.mdot * dt, s.left); s.left -= bb; m -= bb; if (s.left <= 1e-6) s.left = 0; }
     for (const s of S) if (s.left === 0 && !s.dropped && t >= (s.jettisonAt || 0)) { m -= s.dry; s.dropped = true; } // jettisonAt (s, sourced sequence): spent strap-ons carried until jettison
