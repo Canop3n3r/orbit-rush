@@ -17,6 +17,7 @@ Needs playwright-core (`PW_CORE=` path) and Chrome (`CHROME=` path).
 | end_card_compact | `#end` ≤45% of the screen, ≤8 body lines, covers ≤20% of `rocketBox()` (if on screen) |
 
 Software GL note: `no_shock_cone` reads 8.9–13.6% on f3 between runs (threshold 12%), so it's borderline/flaky on SwiftShader.
+Since f5a (clouds drift on sim time, bigger smoke trail) the raw FX-on/off diff read 21.8–26.4% with no shock cone at all: two FX-on frames 300 ms apart already differ by ~30%. The check now takes a third FX-on frame and counts only pixels that change with FX *and* stay put between the two FX-on frames (`fxCoverPct`); `rawPct` and `motionPct` are logged too. Live f5a.1: 5.7% (raw 25.2, motion 30.8).
 
 # UI budget smoke (Playtest QA Bot): step 1 of the UI ideal path
 
@@ -26,4 +27,4 @@ Checks each screen's controls, words, UI coverage and taps from open to liftoff 
 **Report-only by default**: it prints PASS/FAIL per budget and always exits 0. `--strict` exits 1 on any FAIL. Budgets move to strict as the UI PRs land.
 Screens: first_run (must already be Home; no welcome), home, settings, missions_hub, build, hud_auto, orbit_toast, map, photo, end_card, plus taps_to_liftoff (real taps on a fresh profile, ≤2). It takes ~2.5 min on SwiftShader. Coverage is a grid estimate (±3%).
 
-Rev 2 spec-gap checks (ideal path rev 2): `end_card hud_hidden` (no flight-HUD control visible) + `over_rocket` (card bbox must not contain the rocket's screen centre; viewport centre until `__game.rocketScreen()` exists), `home launch_h` (≥64 px) + `thumb_zone` (bottom 25% portrait / bottom-right quadrant landscape), `picker group_words` (company chips `[data-company]`/`.co-chip` ≤2 words), `home builder_gated` (builder hidden unless Sandbox on). Checks whose UI doesn't exist yet print SKIP with a note and never fail.
+Rev 2 spec-gap checks (ideal path rev 2): `end_card hud_hidden` (no flight-HUD control visible, touch HUD `#mtop/#mleft/#mright/#mThr` included; a control counts when the hit point is itself, a child, or its own container) + `over_rocket` (card bbox must not contain the rocket's screen centre; viewport centre until `__game.rocketScreen()` exists), `home launch_h` (≥64 px) + `thumb_zone` (bottom 25% portrait / bottom-right quadrant landscape), `picker group_words` (company chips `[data-company]`/`.co-chip` ≤2 words), `home builder_gated` (builder hidden unless Sandbox on). Checks whose UI doesn't exist yet print SKIP with a note and never fail.

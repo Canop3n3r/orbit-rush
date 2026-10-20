@@ -49,8 +49,11 @@ function extra() {
   const rocket = rc && isFinite(rc.x) ? { x: rc.x, y: rc.y, src: 'projected' } : { x: innerWidth / 2, y: innerHeight / 2, src: 'viewport-centre' };
   const end = document.getElementById('end'); let endUp = vis(end), endCover = null;
   if (endUp) { const r = end.getBoundingClientRect(); endCover = rocket.x >= r.left && rocket.x <= r.right && rocket.y >= r.top && rocket.y <= r.bottom; }
-  const hudSel = '#hud button,#touch button,#warpBar button,#ctl button,#navball,#bars,#tele';
-  const hudVis = [...document.querySelectorAll(hudSel)].filter(e => vis(e) && top(e)).map(e => (e.id || e.textContent.trim().split(/\s+/)[0] || e.tagName).slice(0, 10));
+  // touch HUD lives in #mob (#mtop/#mleft/#mright); count a control if it's visible and not covered by another surface (same
+  // rule as measure(): the hit element may be the control's own container when HUD controls go pointer-events:none)
+  const hudSel = '#hud button,#touch button,#warpBar button,#ctl button,#navball,#bars,#tele,#mtop button,#mleft,#mright button,#mThr,#mWarp,#mMap,#mStage,#mAuto,#mChute';
+  const shown = e => { if (top(e)) return true; const r = e.getBoundingClientRect(); const h = document.elementFromPoint(Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2))); return !!h && h.contains(e); };
+  const hudVis = [...new Set(document.querySelectorAll(hudSel))].filter(e => vis(e) && shown(e)).map(e => (e.id || e.textContent.trim().split(/\s+/)[0] || e.tagName).slice(0, 10));
   const L = ['hLaunch', 'launch', 'hFly', 'launchBtn'].map(i => document.getElementById(i)).find(vis); let launch = null;
   if (L) { const r = L.getBoundingClientRect(); launch = { id: L.id, h: Math.round(r.height), cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; }
   const groups = [...document.querySelectorAll('[data-company],.co-chip,.company-chip')].filter(vis).map(e => ({ t: (e.getAttribute('aria-label') || e.textContent || '').trim(), w: ((e.textContent || '').match(/[A-Za-z0-9][\w'.:%/-]*/g) || []).length }));
