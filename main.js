@@ -1,44 +1,44 @@
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5b';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5b';
-import * as C from './physics/patched.js?v=f5b';
+import * as P from './physics.js?v=f5b.1';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5b.1';
+import * as C from './physics/patched.js?v=f5b.1';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5b';
-import { createCareerUI } from './fun/career-ui.js?v=f5b';
-import { SITE_NAMES, LADDER } from './fun/ladder.js?v=f5b';
-import { createSolarMap } from './solarmap.js?v=f5b';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5b';
-import { FX } from './fx.js?v=f5b';
-import { createAcademy } from './academy-ui.js?v=f5b';
-import { createMobile, isTouch } from './mobile.js?v=f5b';
-import { localize } from './wording.js?v=f5b';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5b';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5b';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5b.1';
+import { createCareerUI } from './fun/career-ui.js?v=f5b.1';
+import { SITE_NAMES, LADDER } from './fun/ladder.js?v=f5b.1';
+import { createSolarMap } from './solarmap.js?v=f5b.1';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5b.1';
+import { FX } from './fx.js?v=f5b.1';
+import { createAcademy } from './academy-ui.js?v=f5b.1';
+import { createMobile, isTouch } from './mobile.js?v=f5b.1';
+import { localize } from './wording.js?v=f5b.1';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5b.1';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5b.1';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5b';
-import * as GX from './gfx/gfx.js?v=f5b';
-import { Director, MISSIONS } from './fun/director.js?v=f5b';
-import * as PR from './fun/progress.js?v=f5b';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5b';
-import { createAudio } from './fun/audio.js?v=f5b';
-import { createCompact } from './fun/compact.js?v=f5b';
-import { createHome } from './fun/home.js?v=f5b';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5b';
-import { createFunUI } from './fun/ui.js?v=f5b';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm } from './gfx/vehicles/vehicles.js?v=f5b';
-import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5b';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5b.1';
+import * as GX from './gfx/gfx.js?v=f5b.1';
+import { Director, MISSIONS } from './fun/director.js?v=f5b.1';
+import * as PR from './fun/progress.js?v=f5b.1';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5b.1';
+import { createAudio } from './fun/audio.js?v=f5b.1';
+import { createCompact } from './fun/compact.js?v=f5b.1';
+import { createHome } from './fun/home.js?v=f5b.1';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5b.1';
+import { createFunUI } from './fun/ui.js?v=f5b.1';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm } from './gfx/vehicles/vehicles.js?v=f5b.1';
+import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5b.1';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5b';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5b.1';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -679,7 +679,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5b', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5b.1', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
