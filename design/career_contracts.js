@@ -22,14 +22,14 @@ export const CONTRACTS = [
     cost: 2, reward: { cash: 10, sci: 2, rep: 2 }, unlock: { missions: ['karman-line'] },
     inspiration: [
       { company: 'spacey', vehicle: 'hopper-h', note: 'low-altitude test hops of a landing booster prototype (2012-2014)' },
-      { company: 'baltic', vehicle: 'a-four', note: 'early liquid-fuel test launches from a coastal range (1942)' },
+      { company: 'baltic', vehicle: 'baltic-hammer', note: 'early liquid-fuel test launches from a coastal range (1942)' },
       { company: 'nosa', vehicle: 'redrock', note: 'short crewed up-and-down lob (1961)' }] },
   { id: 'karman-line', rung: 'karman', mission: null, vehicle: 'needle', site: 'atoll',
     goal: { text: 'Cross 100 km: you are in space', kind: 'apogee-min', m: 100000 },
     cost: 5, reward: { cash: 20, sci: 8, rep: 5 }, unlock: { sites: ['cape-north'], missions: ['first-orbit'] },
     inspiration: [
-      { company: 'baltic', vehicle: 'a-four', note: 'first object to cross 100 km (1944)' },
-      { company: 'other', vehicle: 'spacecraft-uno', note: 'first privately built crewed craft past 100 km, twice in two weeks (2004)' }] },
+      { company: 'baltic', vehicle: 'baltic-hammer', note: 'first object to cross 100 km (1944)' },
+      { company: 'other', vehicle: 'featherwing-1', note: 'first privately built crewed craft past 100 km, twice in two weeks (2004)' }] },
   { id: 'first-orbit', rung: 'orbit', mission: 'first-orbit', vehicle: 'needle', site: 'atoll',
     goal: { text: 'Reach a stable orbit', kind: 'orbit' },
     cost: 10, reward: { cash: 40, sci: 12, rep: 10 }, unlock: { vehicles: ['swift'], missions: ['booster-landing'] },
@@ -55,20 +55,20 @@ export const CONTRACTS = [
       { company: 'spacey', vehicle: 'heron-9-crew', note: 'first commercial crew flight to the station (2020-05-30, spec:heron-9-crew)' },
       { company: 'redstar', vehicle: 'rodnik', note: 'decades of crew ferry flights to stations' },
       { company: 'rockwell', vehicle: 'space-truck', note: 'winged orbiter that assembled the station (1998-2011)' },
-      { company: 'calt', vehicle: 'long-stride-2f', note: 'crew launches to a national station (from 2003)' }] },
+      { company: 'calt', vehicle: 'jade-lantern-2f', note: 'crew launches to a national station (from 2003)' }] },
   { id: 'lunar-landing', rung: 'moon', mission: 'lunar-landing', vehicle: 'selene', locked: 'placeholder model (Rocket Art Bot)', site: 'cape-heritage',
     goal: { text: 'Land on the Moon', kind: 'landed', body: 'moon' },
     cost: 200, reward: { cash: 250, sci: 60, rep: 25 }, unlock: { vehicles: ['titan', 'ares'], sites: ['gulf-port'], missions: ['mars-ship'] },
     inspiration: [
       { company: 'nosa', vehicle: 'saturnine-v', note: 'six crewed Moon landings (1969-1972)' },
-      { company: 'calt', vehicle: 'long-stride-5', note: 'robotic lunar sample return (2020)' },
+      { company: 'calt', vehicle: 'jade-lantern-5', note: 'robotic lunar sample return (2020)' },
       { company: 'rockwell', vehicle: 'super-lift', note: 'uncrewed lunar test flight (2022)' },
-      { company: 'redstar', vehicle: 'n-won', note: 'the Moon rocket that never succeeded (what-if)' }] },
+      { company: 'redstar', vehicle: 'moonhammer', note: 'the Moon rocket that never succeeded (what-if)' }] },
   { id: 'mars-ship', rung: 'mars', mission: 'mars-ship', vehicle: 'ares', locked: 'placeholder model (Rocket Art Bot)', site: 'gulf-port',
     goal: { text: 'Reach Mars', kind: 'visited', body: 'mars' },
     cost: 250, reward: { cash: 400, sci: 100, rep: 30 }, unlock: { missions: ['venus'] },
     inspiration: [
-      { company: 'calt', vehicle: 'long-stride-5', note: 'orbiter, lander and rover in one launch (2020)' },
+      { company: 'calt', vehicle: 'jade-lantern-5', note: 'orbiter, lander and rover in one launch (2020)' },
       { company: 'ulx', vehicle: 'atlantean-v', note: 'car-sized rovers landed on Mars (2011, 2020)' },
       { company: 'blueh', vehicle: 'new-glendale', note: 'twin small Mars orbiters (2025)' },
       { company: 'spacey', vehicle: 'titan-ss', note: 'fully reusable Mars ship (planned, never flown: ESTIMATE)' }] },
@@ -76,5 +76,5 @@ export const CONTRACTS = [
 
 // Inspiration ids above (neutral, from the studio roster plan; tier-S rows land with roster PRs #15-#25).
 export const INSPIRATION_COMPANIES = ['spacey', 'baltic', 'nosa', 'other', 'redstar', 'blueh', 'rockwell', 'calt', 'ulx'];
-export const INSPIRATION_VEHICLES = ['hopper-h', 'a-four', 'redrock', 'spacecraft-uno', 'sparrow-1', 'rodnik', 'heron-9', 'heron-heavy',
+export const INSPIRATION_VEHICLES = ['hopper-h', 'baltic-hammer', 'redrock', 'featherwing-1', 'sparrow-1', 'rodnik', 'jade-lantern-2f', 'jade-lantern-5', 'moonhammer', 'heron-9', 'heron-heavy',
   'new-glendale', 'heron-9-crew', 'space-truck', 'long-stride-2f', 'saturnine-v', 'long-stride-5', 'super-lift', 'n-won', 'atlantean-v', 'titan-ss'];
