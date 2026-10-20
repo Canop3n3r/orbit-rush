@@ -736,6 +736,7 @@ export class Flight {
   stepBooster(b, dt) {
     const bh0 = V.len(b.r) - R;
     if (b.manual) {
+      b.tgtR = null; b.tgtAt = null;
       const va = P.airVel(b, b.r, b.v);
       if (b.retro && V.len(va) > 3) { const tgt = V.norm(V.scale(va, -1)), ax = V.cross(b.dir, tgt), s = V.len(ax), ang = Math.atan2(s, V.dot(b.dir, tgt)), rate = 1.2 * dt; if (s > 1e-9) b.dir = V.norm(V.qrot(V.qAxisAngle(ax, Math.min(ang, rate)), b.dir)); }
       const inp = b.input || {}, up = V.norm(b.r), east = P.eastOf(b.r), north = V.cross(up, east);
@@ -743,14 +744,15 @@ export class Flight {
       if (inp.yaw) b.dir = V.norm(V.qrot(V.qAxisAngle(up, -inp.yaw * 0.7 * dt), b.dir));
       b.throttle = b.stages[0].fuel > 0 ? b.ut : 0; b.n = b.nSel ? Math.min(b.nSel, b.nMax) : bh0 > 12000 ? Math.min(3, b.nMax) : 1;
       b.phase = b.throttle > 0 ? 'burning' : 'falling';
-    } else P.boosterAutopilot(b, dt);
+    } else { b.tgtR = this.ship ? shipPos(this.ship, b.clock, b.earthRot !== false) : null; b.tgtAt = this.ship ? (t => shipPos(this.ship, t, b.earthRot !== false)) : null; P.boosterAutopilot(b, dt); }
     b.deck = this.ship && surfDist(b.r, shipPos(this.ship, b.clock, b.earthRot !== false)) < 40 ? DECK : 0; // aim at the deck only when over it (same test as the contact check)
     const e = P.stepPoint(b, dt);
     const bh = V.len(b.r) - R, sp = V.len(P.airVel(b, b.r, b.v)); b.maxH = Math.max(b.maxH, bh);
     if (burnedUp(b, bh, sp)) { b.state = 'lost'; this.flags.booster = 'burned up on reentry (do an entry burn)'; this.call('boosterLost', b, true); this.toast('Booster burned up', '#ff6262'); return; }
     const ship = this.ship;
-    if (ship && !b.manual && bh < 9000 && !ship.moved) { // the droneship repositions under the falling booster
-      ship.ef = V.norm(V.rotZ(b.r, b.earthRot === false ? 0 : -P.OMEGA_E * b.clock)); ship.moved = true; this.call('shipMoved', ship);
+    if (ship && !b.manual && bh < 30000 && V.dot(b.v, b.r) < 0 && !ship.moved) { // the droneship holds station at the predicted impact; terminal guidance does the rest
+      const im = P.predictImpact(b), at = im ? im.r : b.r, t = im ? im.t : b.clock;
+      ship.ef = V.norm(V.rotZ(at, b.earthRot === false ? 0 : -P.OMEGA_E * t)); ship.moved = true; this.call('shipMoved', ship);
     }
     if (b.state === 'flying') {
       const nearShip = ship && surfDist(b.r, shipPos(ship, b.clock, b.earthRot !== false)) < 40;

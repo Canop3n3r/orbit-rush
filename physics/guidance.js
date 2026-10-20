@@ -3,7 +3,7 @@
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
 import { R_E, MU_E, KARMAN } from './constants.js?v=f3';
-import { add, scale, dot, cross, len, norm, clamp } from './vec.js?v=f3';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f3';
 import { elements, timeToAp } from './kepler.js?v=f3';
 import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f3';
 import { massOf } from './vehicle.js?v=f3';
@@ -137,7 +137,14 @@ export function boosterAutopilot(b, dtHint = 0.02) {
   const up = norm(b.r), h = len(b.r) - R_E, va = airVel(b, b.r, b.v), sp = len(va), vr = dot(va, up);
   const s = b.stages[0], g = muOf(b) / dot(b.r, b.r), deck = b.deck ?? 0;
   if (!b.manual) b.dir = sp > 2 ? scale(va, -1 / sp) : up;
-  if (vr > 0 || s.fuel <= 0) { b.throttle = 0; b.phase = s.fuel <= 0 ? 'no fuel' : 'coast'; return; }
+  if (vr > 0 || s.fuel <= 0) { b.throttle = 0; if (b.tgtR) b.fin = null; b.phase = s.fuel <= 0 ? 'no fuel' : 'coast'; return; }
+  // f4 terminal guidance toward b.tgtR (ECI point on the surface/deck, set by flight.js every step)
+  const tg = b.tgtR ? horizErr(b, up) : null; b.tgtErr = tg ? len(tg.d) : null;
+  if (tg && h < 30000 && !b._hs) { // grid-fin glide: steer the predicted impact onto the target
+    b._gT = (b._gT ?? 0) - dtHint;
+    if (b._gT <= 0) { b._gT = 0.4; const im = predictImpact(b); if (im) { const e = sub(b.tgtAt ? b.tgtAt(im.t) : b.tgtR, im.r), eh = sub(e, scale(up, dot(e, up))); b._finV = scale(eh, 1 / Math.max(2500, len(eh))); b.impErr = len(eh); } }
+    b.fin = b._finV || null;
+  } else if (b.tgtR) b.fin = null;
   // (1) entry burn, decided from the live predicted peaks
   if (!b.entryDone && h < 90000 && h > 25000 && vr < -150) {
     b._eT = (b._eT ?? 0) - dtHint;
@@ -153,7 +160,7 @@ export function boosterAutopilot(b, dtHint = 0.02) {
   const atm = atmosphere(Math.max(h, 0)), pr = Math.min(1, atm.p / 101325), m = (s.dry + s.fuel) * 1000 + (b.extra || 0) * 1000;
   const isp = s.eng.ispVac - (s.eng.ispVac - s.eng.ispSl) * pr, T1 = s.eng.tv * 1000 * isp / s.eng.ispVac;
   const qd = 0.5 * atm.rho * sp * sp, aDrag = qd * (b.cdA || 0) * cd0(sp / atm.a) / m * 0.5; // count half the current drag: it fades as the burn slows the booster
-  const vDown = vr < 0 ? sp : 0, hp = h - deck; // retro thrust kills the whole air-relative velocity
+  const vDown = vr < 0 ? (b.tgtR && !b.manual ? -vr : sp) : 0, hp = h - deck; // retro thrust kills the whole air-relative velocity
   const pick = n => hoverslamSolve({ h: hp, vDown, m, Tmax: T1 * n, thrMin: 0.4, g, aDrag, burning: !!b._hs, lit: b.ignAlt != null });
   let n = b._hs ? b.n : 1, sol = pick(n);
   if (!b._hs && (sol.lowTWR || sol.dStop > 0.8 * hp) && b.nMax > 1) { const s3 = pick(Math.min(3, b.nMax)); if (s3.ignite || sol.lowTWR) { n = Math.min(3, b.nMax); sol = s3; } }
@@ -163,8 +170,13 @@ export function boosterAutopilot(b, dtHint = 0.02) {
   if (sol.ignite && sol.throttle > 0 && (b.entryDone || h < 25000)) {
     if (!b._hs) { b._hs = true; if (b.ignAlt == null) { b.ignAlt = hp; b.ignV = vDown; } }
     b.landing = true; b.n = n; b.throttle = sol.throttle; b.phase = sol.lowTWR ? 'controlled descent (low TWR)' : 'landing burn';
+    if (tg && !b.manual && sp > 2) { // divert: ZEM/ZEV lateral acceleration, folded into the thrust direction (tilt ≤ 20°)
+      const tgo = Math.max(1.5, 2 * Math.max(hp, 1) / Math.max(vDown, 3)), vh = sub(va, scale(up, dot(va, up)));
+      const aH = sub(scale(tg.d, 6 / (tgo * tgo)), scale(vh, 4 / tgo)), aT = Math.max(1, T1 * n * b.throttle / m), k = Math.min(len(aH) / aT, 0.36);
+      const retro = scale(va, -1 / sp), hd = len(aH) > 1e-6 ? scale(aH, k / len(aH)) : [0, 0, 0]; b.dir = norm(add(retro, hd)); }
   } else { b._hs = false; b.n = 1; b.throttle = 0; b.phase = b.ignAlt != null && hp < 5 ? 'touchdown' : (h > 25000 ? 'coast' : 'grid-fin glide'); }
 }
+function horizErr(b, up) { const e = sub(b.tgtR, b.r); return { d: sub(e, scale(up, dot(e, up))) }; }
 // Ballistic impact (drag, no thrust). Returns { r (ECI), t (clock at impact) } or null.
 export function predictImpact(b) {
   const c = { ...b, r: [...b.r], v: [...b.v], stages: b.stages.map(s => ({ ...s })), throttle: 0 };
