@@ -16,6 +16,7 @@ export const MISSIONS = {
 export const CAMS = { hop: 'chase', coast: 'wide', ascent: 'chase', plan: 'map', burn: 'wide', correct: 'wide', cruise: 'map', capture: 'wide', brake: 'chase', descent: 'chase', home: 'chase', done: 'wide' };
 export const MAX_CORR_WAIT = 400 * 86400; // s: never wait longer than this for a course-correction node
 const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'capture', 'brake', 'descent', 'home', 'done'];
+const WARP_BURN = () => 4;
 export class Director {
   constructor(F, id, opts = {}) {
     this.F = F; this.id = id; this.m = MISSIONS[id]; this.phase = 'ascent'; this.t = 0; this.log = ['ascent']; this.active = true; this.opts = opts;
@@ -62,7 +63,7 @@ export class Director {
       case 'burn': case 'correct':
         // f4 (QA): a correction node far beyond the cruise (seen: ~9,749 days out) would stall the mission; drop it and keep cruising
         if (this.phase === 'correct' && F.nodes.length && F.nodes[0].t - F.tAbs > MAX_CORR_WAIT) { F.setExec(false); F.nodes.splice(0); this.set('cruise', 'Correction skipped — cruising on'); break; }
-        if (v.thrust > 0 && !F.warpTarget) F.setWarp(4, true);
+        if (v.thrust > 0 && !F.warpTarget) F.setWarp(WARP_BURN(this), true);
         if (!F.exec && !F.nodes.length) this.afterBurn();
         else if (!F.exec && F.nodes.length) F.setExec(true);
         break;
@@ -74,7 +75,10 @@ export class Director {
           if (F.body === 'sun' && this.corrections < 4) {
             const pr = C.predict('sun', v.r, v.v, F.tAbs, { maxPatches: 3 }), ca = C.closestApproach(pr, this.target);
             if (!ca.inside) { this.corrections++;
-              const cn = C.correctionNode('sun', v.r, v.v, F.tAbs, this.target, { peAlt: 300000, tol: 3e6, starts: [5 * 86400, 30 * 86400], scaleV: 2, byT: F.tAbs + 4e7 });
+              let cn = C.correctionNode('sun', v.r, v.v, F.tAbs, this.target, { peAlt: 300000, tol: 3e6, starts: [5 * 86400, 30 * 86400], scaleV: 2, byT: F.tAbs + 4e7 });
+              if (!(cn && cn.node && cn.good && cn.dv < 900)) { // QA f5.1c P1 (Venus ~1 in 3 missed): wider search; a flyby only needs to enter the SOI
+                const c2 = C.correctionNode('sun', v.r, v.v, F.tAbs, this.target, { peAlt: 300000, tol: this.m.capture || this.m.land ? 3e6 : 3e7, starts: [2 * 86400, 10 * 86400, 30 * 86400, 60 * 86400], scaleV: 4, byT: F.tAbs + 6e7 });
+                if (c2 && c2.node && c2.dv < 900 && (!cn || !cn.node || cn.dv >= 900 || (c2.good && !cn.good))) cn = c2; }
               if (cn && cn.node && cn.dv < 900 && cn.node.t - F.tAbs < MAX_CORR_WAIT) { this.execNext(cn.node); this.set('correct', 'Course correction ' + cn.dv.toFixed(0) + ' m/s'); break; } }
           }
           if (!F.warpToSOI()) this.finish('Missed ' + P.BODIES[this.target].name, false);
@@ -82,6 +86,7 @@ export class Director {
         break;
       case 'capture':
         if (v.thrust > 0 && !F.warpTarget) F.setWarp(4, true);
+        if (!F.exec && F.nodes.length && (F.nodes[0].t < F.tAbs - 600 || this.t > 5)) F.nodes.splice(0); // QA f5.1c P1: exec stopped with a stale node (already captured) — never sit in capture forever
         if (!F.exec && !F.nodes.length) {
           const o = P.orbitOf(v);
           if (this.m.land && o.e < 0.9) { if (v.cur < F.lastPow && F.canStage()) { F.stageArm = -1; F.realT = Math.max(F.realT, 100); F.stage(); } v.sas = 'retrograde'; v.sasHold = null; this.set('brake', 'In lunar orbit — braking for the landing'); }
