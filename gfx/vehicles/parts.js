@@ -69,11 +69,11 @@ function packLegs(g) { const parts = [];
     for (const x of gs) x.dispose(); if (one !== gs[0]) one.dispose(); piv.traverse(o => { if (o.isMesh && !o.geometry.userData.shared) o.geometry.dispose(); }); piv.clear(); }
   const tot = parts.reduce((s, p) => s + p.nv, 0), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tot * 3), 3)); geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tot * 3), 3));
   geo.userData.noShare = true; let off = 0; for (const p of parts) { p.off = off; off += p.nv; }
-  const m = new THREE.Mesh(geo, mat('carbon')); m.name = 'legs:packed'; m.frustumCulled = false; g.add(m); g.userData.pack = { mesh: m, parts }; setLegs(g, g.userData.t || 0); }
+  const m = new THREE.Mesh(geo, mat('carbon')); m.name = 'legs:packed'; g.add(m); g.userData.pack = { mesh: m, parts }; setLegs(g, g.userData.t || 0); }
 function packWrite(g) { const { mesh, parts } = g.userData.pack, a = mesh.geometry.attributes, P = a.position.array, N = a.normal.array;
   for (const p of parts) { p.piv.updateMatrix(); const M = p.piv.matrix, nm = _NM.getNormalMatrix(M);
     for (let v = 0; v < p.nv; v++) { const j = v * 3, o = (p.off + v) * 3; _P.fromArray(p.pos, j).applyMatrix4(M).toArray(P, o); _S2.fromArray(p.nor, j).applyMatrix3(nm).normalize().toArray(N, o); } }
-  a.position.needsUpdate = a.normal.needsUpdate = true; mesh.geometry.computeBoundingSphere(); }
+  a.position.needsUpdate = a.normal.needsUpdate = true; mesh.geometry.computeBoundingBox(); mesh.geometry.computeBoundingSphere(); } // bounds follow the deploy (raycast/culling)
 export function setLegs(g, t) { for (const p of g.userData.pivots) p.rotation.z = -t * 2.0; g.userData.t = t; if (g.userData.pack) packWrite(g);
   for (const m of g.userData.arms || []) { m.piv.updateMatrix(); _B.copy(m.tipL).applyMatrix4(m.piv.matrix); _d.subVectors(_B, m.A); const L = _d.length(); _d.normalize();
     const q = new THREE.Quaternion().setFromUnitVectors(_up, _d);
