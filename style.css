@@ -460,7 +460,7 @@ body.touch #split button{min-width:var(--tap);min-height:var(--tap)}
 body.touch .builder #launchBtn{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:6}
 
 /* ===================== f1u compact remaster: the rocket is the hero ===================== */
-body.cx #pilot,body.cx #mhud,body.cx #mtop,body.cx #topStack,body.cx #navMode,body.cx #navCue,body.cx #bars,body.cx #warpBar,body.cx.touch #badge{display:none!important}
+body.cx #pilot,body.cx:not(.eng) #mhud,body.cx #mtop,body.cx #topStack,body.cx #navMode,body.cx #navCue,body.cx #bars,body.cx #warpBar,body.cx.touch #badge{display:none!important}
 body.cx:not(.eng) #tele,body.cx:not(.eng) #heat{display:none!important}
 body.cx.touch.sheet #tele{display:block!important}
 #hud.hidden ~ #strip,#hud.hidden ~ #hintS,body.photo #strip,body.photo #hintS,body.photo #craftTag{display:none!important}
