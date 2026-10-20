@@ -44,3 +44,6 @@ export const TRUCK = { etR: 4.2, etNose: 12.0, srbR: 1.86, srbNose: 6.0, orbR: 2
 NOSES['space-truck.et'] = () => ogive(TRUCK.etR, TRUCK.etNose, 0, 18, 0.03);
 NOSES['space-truck.srb'] = () => ogive(TRUCK.srbR, TRUCK.srbNose, 0, 18, 0.1);
 NOSES['space-truck.orbiter'] = () => ogive(TRUCK.orbR, TRUCK.orbNose, 0, 18, 0.12);
+// ---- co-bolt (Bolt Labyrinth parody): small-launcher fairing (tip +Y)
+export const BOLT = { r: 0.6, fr: 0.6, cyl: 0.9, nose: 1.6 };
+NOSES['electrino.fairing'] = () => fairing(BOLT.fr, BOLT.cyl, BOLT.nose, 0, BOLT.r * 0.999, 18, 0.05);

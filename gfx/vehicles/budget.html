@@ -11,7 +11,7 @@ for (const id of Object.keys(VEHICLES)) for (const detail of ['hi', 'mid', 'lo']
 // stages detach on every LOD; setLegs moves the (visible) leg geometry on every LOD
 const visBox = g => { const b = new THREE.Box3(); g.updateMatrixWorld(true); g.traverse(m => { let v = true; for (let p = m; p && p !== g.parent; p = p.parent) v = v && p.visible; if (m.isMesh && v) { m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); } }); return b; };
 out.stages = [];
-for (const id of ['heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'titan-ss-v3', 'titan-ss-v4', 'sparrow-1', 'saturnine-v', 'space-truck']) for (const detail of ['hi', 'mid', 'lo']) { const g = build(id, { detail }), st = g.userData.stages, r = { id, detail, stages: {}, legs: [] };
+for (const id of ['heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'titan-ss-v3', 'titan-ss-v4', 'sparrow-1', 'saturnine-v', 'space-truck', 'electrino','electrino-recovery']) for (const detail of ['hi', 'mid', 'lo']) { const g = build(id, { detail }), st = g.userData.stages, r = { id, detail, stages: {}, legs: [] };
   for (const [n, s] of Object.entries(st)) { let m = 0; s.traverse(o => o.isMesh && m++); const own = s.parent === g; s.removeFromParent(); const out2 = !g.children.includes(s); let rest = 0; g.traverse(o => o.isMesh && rest++); g.add(s); r.stages[n] = { meshes: m, own, detached: out2, rest }; }
   for (const L of g.userData.legs) { setLegs(L, 0); const a = visBox(L).min.y; setLegs(L, 1); const b = visBox(L).min.y; setLegs(L, 0); r.legs.push(+(a - b).toFixed(2)); }
   out.stages.push(r); dispose(g); }
