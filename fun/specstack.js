@@ -52,7 +52,7 @@ export function specDesign(v, name, model) {
 export const LOAD = { 'thorin': 0.5, 'thorin-toaster': 0.5, 'cosmokart-1': 0.5, 'cosmokart-1b': 0.5, 'electrino': 0.5, 'titanus-4': 0.5, 'arion-6:b4': 0.5, 'atlantean-v:v5': 0.5 };
 // f5.3: every roster-matched model whose stack reaches orbit on AUTO and matches the model's stages (tests/specstack.mjs).
 // dark-dart and scoutling (and the three shape mismatches: jade-lantern-5, moonhammer, gorynych-m) keep the matched showroom stack.
-export const SPEC_OK = ['space-truck", "saturnine-v", "thorin", "thorin-toaster", "thorin-agenta", "thorin-capable", "thorin-capablestar", "deltoid", "deltoid-3", "cosmokart-1", "cosmokart-1b", "cosmokart-2", "cosmokart-3m", "whirligig-2", "whirligig-3", "riverbend", "arion-5", "arion-62", "arion-64", "new-glendale", "electrino", "titanus-4", "jade-lantern-5b", "polar-slinger", "tsubame", "rodnik", "titanus-2", "pegacorn", "antarion", "steppe-arrow-2", "atlantean-v-401", "atlantean-v-501", "atlantean-v-551", "deltoid-4-heavy'];
+export const SPEC_OK = ['space-truck', 'saturnine-v', 'thorin', 'thorin-toaster', 'thorin-agenta', 'thorin-capable', 'thorin-capablestar', 'deltoid', 'deltoid-3', 'cosmokart-1', 'cosmokart-1b', 'cosmokart-2', 'cosmokart-3m', 'whirligig-2', 'whirligig-3', 'riverbend', 'arion-5', 'arion-62', 'arion-64', 'new-glendale', 'electrino', 'titanus-4', 'jade-lantern-5b', 'polar-slinger', 'tsubame', 'rodnik', 'titanus-2', 'pegacorn', 'antarion', 'steppe-arrow-2', 'atlantean-v-401', 'atlantean-v-501', 'atlantean-v-551', 'deltoid-4-heavy'];
 export const specFor = id => (SPEC_OK.includes(id) ? rosterFor(id) : null);
 
 // the payload a real-spec rocket carries, in tonnes (shown on its cards)
