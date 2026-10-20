@@ -141,6 +141,7 @@ export function autoGuide(v) {
 // peak (Sutton–Graves) heating still ahead; the 3-engine burn runs only while either would exceed its safe limit
 // (with a 10% margin), so a nominal path may skip it and a steep / fast / off-target one gets just enough.
 export const ENTRY_Q_MAX = 35;        // kPa peak dynamic pressure down to ENTRY_FLOOR (below it the drag-limited fall is the same either way)
+export const ENTRY_START = 62000;     // m: the entry burn may begin below this (real boosters light ~70 km on the way down)
 export const ENTRY_FLOOR = 20000;     // m: the entry corridor the burn protects
 export const ENTRY_QDOT_MAX = 1.0e5;  // W/m² peak stagnation heating (≈ the 1.7 km/s @ 30 km burn-up line, with margin)
 export const sgHeat = (rho, V) => 1.74e-4 * Math.sqrt(Math.max(rho, 0)) * V * V * V;
@@ -180,7 +181,8 @@ export function boosterAutopilot(b, dtHint = 0.02) {
     b.fin = b._finV || null;
   } else if (b.tgtR) b.fin = null;
   // (1) entry burn, decided from the live predicted peaks
-  if (!b.entryDone && h < 90000 && h > 25000 && vr < (b.rtls ? -500 : -150)) { // f4: an RTLS booster falls almost straight down; start once it is really falling (no hover chatter)
+  const eStart = (() => { const sE = b.stages[0]; return sE.eng && 3 * sE.eng.tv * 1000 / ((sE.dry + sE.fuel) * 1000) > 2.5 * g ? ENTRY_START : 90000; })(); // a weak (low-TWR) entry burn needs the whole window
+  if (!b.entryDone && h < eStart && h > 25000 && (vr < (b.rtls ? -500 : -150) || b.entryBurned)) { // once lit, the entry burn runs until the predicted peaks are safe (no on/off chatter at the gate) // f4: an RTLS booster falls almost straight down; start once it is really falling (no hover chatter)
     b._eT = (b._eT ?? 0) - dtHint;
     if (b._eT <= 0) { b._eT = 0.5; const pk = predictEntryPeaks(b); b.entryPeak = pk;
       b._eNeed = pk.q > ENTRY_Q_MAX * 0.9 || pk.qdot > ENTRY_QDOT_MAX * 0.9; }
@@ -205,6 +207,16 @@ export function boosterAutopilot(b, dtHint = 0.02) {
   if (!b._hs && (sol.lowTWR || sol.dStop > 0.8 * hp) && b.nMax > 1) { const s3 = pick(Math.min(3, b.nMax)); if (s3.ignite || sol.lowTWR) { n = Math.min(3, b.nMax); sol = s3; } }
   // late in a 3-engine burn drop to the centre engine once one engine can finish it at ≤ THR_AIM
   if (b._hs && n > 1) { const s1 = hoverslamSolve({ h: hp, vDown, m, Tmax: T1, thrMin: 0.4, g, aDrag, burning: true, lit: true }); if (s1.aReq < s1.aMax * 0.85) { n = 1; sol = s1; } }
+  // landing-burn timing: the solve above only counts (half) today's drag, so high up in thin air it would light far too early
+  // (rideshare RTLS lit at ~30 km). Look ahead along a drag-only fall and wait for the altitude where the solve, fed the
+  // predicted state, first asks for ignition (refreshed every 0.5 s; skipped once lit, near the ground or under manual control).
+  if (!sol.ignite) b._hIgn = null; // stale look-ahead: recompute when the solve next asks for ignition
+  if (!b._hs && b.ignAlt == null && sol.ignite && !b.manual && hp > 3000) { // only the high, thin-air ignitions; the last 3 km stay with the solve
+    b._lT = (b._lT ?? 0) - dtHint;
+    if (b._lT <= 0 || b._hIgn == null) { b._lT = 0.5; b._hIgn = predictIgnAlt(b, Math.min(3, b.nMax || 1), T1, m, deck); }
+    if (b._hIgn != null && hp > Math.max(3000, b._hIgn + Math.max(vDown, 50) * 0.6)) sol = { ...sol, ignite: false, throttle: 0, tIgn: (hp - b._hIgn) / Math.max(vDown, 50) };
+    else if (b._hIgn != null && b.nMax > 1) { n = Math.min(3, b.nMax); sol = pick(n); } // the look-ahead assumed the 3-engine burn
+  }
   b.hs = sol; b.burnIn = sol.ignite ? 0 : sol.tIgn; b.lowTWR = sol.lowTWR; if (sol.legs) b.legs = true;
   if (sol.ignite && sol.throttle > 0 && (b.entryDone || h < 25000)) {
     if (!b._hs) { b._hs = true; if (b.ignAlt == null) { b.ignAlt = hp; b.ignV = vDown; } }
@@ -214,6 +226,21 @@ export function boosterAutopilot(b, dtHint = 0.02) {
       const aH = sub(scale(tg.d, 6 / (tgo * tgo)), scale(vh, 4 / tgo)), aT = Math.max(1, T1 * n * b.throttle / m), k = Math.min(len(aH) / aT, hp < 400 ? 0.12 : b.rtls ? 0.5 : 0.36);
       const retro = scale(va, -1 / sp), hd = len(aH) > 1e-6 ? scale(aH, k / len(aH)) : [0, 0, 0]; b.dir = norm(add(retro, hd)); }
   } else { b._hs = false; b.n = 1; b.throttle = 0; b.phase = b.ignAlt != null && hp < 5 ? 'touchdown' : (h > 25000 ? 'coast' : 'grid-fin glide'); }
+}
+function predictIgnAlt(b, n, T1, m, deck) { // highest point of the drag-only fall from which a retro burn (n engines, 85 %) WITH the drag below still stops by the ground
+  const clone = x => ({ ...x, r: [...x.r], v: [...x.v], stages: x.stages.map(s => ({ ...s })) });
+  const c = clone(b); c.throttle = 0; let last = null;
+  const stops = st => { const p = clone(st); p.n = n; p.throttle = 0.8;
+    for (let k = 0; k < 600; k++) { const up = norm(p.r), va = airVel(p, p.r, p.v), sp = len(va), hp = len(p.r) - R_E - deck;
+      if (dot(va, up) > -3 || sp < 5) return hp > 30; if (hp < 30) return false; p.dir = scale(va, -1 / sp); if (stepPoint(p, hp > 3000 ? 0.25 : 0.1)) return false; }
+    return false; };
+  for (let i = 0, k = 0; i < 2000; i++) {
+    const up = norm(c.r), va = airVel(c, c.r, c.v), sp = len(va), hp = len(c.r) - R_E - deck; if (hp < 200) return last;
+    c.dir = scale(va, -1 / Math.max(sp, 1));
+    if (dot(va, up) < 0 && (k++ % 4 === 0)) { if (!stops(c)) return last ?? hp; last = hp; }
+    if (stepPoint(c, hp > 15000 ? 1 : 0.25)) return last;
+  }
+  return null;
 }
 function horizErr(b, up) { const e = sub(b.tgtR, b.r); return { d: sub(e, scale(up, dot(e, up))) }; }
 // Ballistic impact (drag, no thrust). Returns { r (ECI), t (clock at impact) } or null.
