@@ -147,3 +147,5 @@ export { SPACEY_CATALOG_IDS } from './roster/spacey.js';
 export { ROSTER_LEVANT, ENGINES_LEVANT } from './roster/levant.js';
 // Roster company 'cnfoll' (data only, neutral ids; spec:loss-model): see vehicles/roster/cnfoll.js
 export { ROSTER_CNFOLL, ENGINES_CNFOLL } from './roster/cnfoll.js';
+// Roster company 'firefly' (data only, neutral ids; spec:loss-model): see vehicles/roster/firefly.js
+export { ROSTER_FIREFLY, ENGINES_FIREFLY } from './roster/firefly.js';
