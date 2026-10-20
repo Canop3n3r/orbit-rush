@@ -29,11 +29,14 @@ export const VEHICLES = [
     // game-flight data (spec:ascent-heron-9#game): body/fairing diameters sourced; AUTO throttle-bucket floor 0.8 EST
     diam: 3.7, fairingDiam: 5.2, thrustAnchor: 'sl', qFloor: 0.8, burnTime: 162,
     stages: [
-      { engines: { 'kero-d': 9 }, dry: 25600, prop: 395700, recovery: 'propulsive: drone ship / return to site, or expended' },
-      { engines: { 'kero-dv': 1 }, dry: 3900, prop: 92670, recovery: 'expended' },
-    ], fairing: 1900, fairingRecovery: 'parachute + water',
-    modes: [{ mode: 'expendable', payloadLEO: 22800, src: 'spec:heron-9#leo-expendable' },
-            { mode: 'drone-ship', payloadLEO: 17400, reserve: [42000, 0], src: 'spec:heron-9#leo-reusable', est: ['reserve'] }] },
+      // Block 5 mass set (spec:heron-9#b5-tanks): empty mass + LOX/RP-1 tank capacities from one source; the older
+      // web-table set (S1 25.6 / 395.7 t, S2 3.9 / 92.67 t, fairing 1.9 t) is kept only for derived vehicles below.
+      { engines: { 'kero-d': 9 }, dry: 22200, prop: 410900, recovery: 'propulsive: drone ship / return to site, or expended' },
+      { engines: { 'kero-dv': 1 }, dry: 4000, prop: 107500, recovery: 'expended' },
+    ], fairing: 1700, fairingRecovery: 'parachute + water',
+    // S2 reserve 2.5 t (EST, spec:heron-9#s2-reserve): unusable residuals (~1 %) + deorbit/passivation burn (~100-150 m/s).
+    modes: [{ mode: 'expendable', payloadLEO: 22800, reserve: [0, 2500], src: 'spec:heron-9#leo-expendable', est: ['reserve'] },
+            { mode: 'drone-ship', payloadLEO: 17400, reserve: [42000, 2500], src: 'spec:heron-9#leo-reusable', est: ['reserve'] }] },
   { id: 'heron-9-v11', src: 'spec:heron-9#v1.1', lat: 28.5, liftoff: 506000, payloadGTO: 4850,
     stages: [
       { engines: { 'kero-d': 9 }, dry: 28000, prop: 400000, ispOverride: [282, 311], recovery: 'expended (landing tests)', est: ['dry', 'prop'] },

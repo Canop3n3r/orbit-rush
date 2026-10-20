@@ -18,7 +18,8 @@ const TOL = 0.15, within = (a, b) => Math.abs(a / b - 1) <= TOL, pct = (a, b) =>
   const mdot = s0.eng.tv * 1000 * s0.n / (s0.eng.ispVac * G0), tb = s0.fuelMax * 1000 / mdot;
   console.log(`  · mass flow ${(mdot / 1000).toFixed(3)} t/s; full-throttle burnout of ${s0.fuelMax} t: ${tb.toFixed(1)} s (sourced stage burn ${cat.burnTime} s)`);
   ok(Math.abs(tb / 150 - 1) <= 0.08, `heron-9 S1 full-throttle burnout ${tb.toFixed(1)} s vs ~150 s (±8%: ${((tb / 150 - 1) * 100).toFixed(1)}%)`);
-  ok(Math.abs(massOf(v) - 536.3) < 1 && s0.fuelMax === 395.7, `heron-9 liftoff mass ${massOf(v).toFixed(1)} t with sourced 395.7 t S1 propellant`);
+  const mExp = cat.stages.reduce((t, x) => t + x.dry + x.prop, 0) / 1000 + 17.4 + cat.fairing / 1000;
+  ok(Math.abs(massOf(v) - mExp) < 1 && s0.fuelMax === 410.9 && v.stages[1].fuelMax === 107.5, `heron-9 liftoff mass ${massOf(v).toFixed(1)} t with the Block 5 mass set (S1 410.9 t, S2 107.5 t; expected ${mExp.toFixed(1)} t)`);
   ok(v.qFloor === 0.8 && qCap(40000, v.qFloor) === 0.8 && qCap(40000) === 0.4 && qCap(20000, 0.8) === 1, 'AUTO throttle-down floor 0.8 for heron-9 (default 0.4 unchanged)');
 }
 for (const [id, tab] of Object.entries(ASCENT)) {
