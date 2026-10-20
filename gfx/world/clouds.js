@@ -11,11 +11,12 @@ const hg = (c, g) => float(1 - g * g).div(pow(float(1 + g * g).sub(c.mul(2 * g))
 export function cloudUniforms(o = {}) {
   return { center: uniform(new THREE.Vector3()), sunDir: uniform(new THREE.Vector3(1, 0, 0)), R: uniform(o.R ?? 6371),
     base: uniform(o.base ?? CLOUD_LAYER.base), top: uniform(o.top ?? CLOUD_LAYER.top), coverage: uniform(o.coverage ?? 1.0),
-    density: uniform(o.density ?? 0.8), time: uniform(0), offset: uniform(new THREE.Vector2(o.offsetU ?? 0, 0)), wind: uniform(new THREE.Vector3(0.004, 0, 0.0)), sunCol: uniform(new THREE.Color(1.0, 0.96, 0.9)), exposure: uniform(o.exposure ?? 1.0) };
+    density: uniform(o.density ?? 0.8), time: uniform(0), offset: uniform(new THREE.Vector2(o.offsetU ?? 0, 0)), wind: uniform(new THREE.Vector3(0.004, 0, 0.0)), sunCol: uniform(new THREE.Color(1.0, 0.96, 0.9)), exposure: uniform(o.exposure ?? 1.0),
+    frame: uniform(new THREE.Matrix3()) }; // world dir -> texture-sphere frame (identity in world.html; the game's Earth is Z-up and spins)
 }
 // coverage 0..1 at unit direction d (weather map, contrast-boosted, wind-advected)
 function coverageAt(weather, U, d) {
-  const uv0 = dirUV(d).add(U.offset).add(U.wind.xy.mul(U.time)), uv = vec2(uv0.x.fract(), uv0.y).toVar(); // wrap in u (textures clamp by default)
+  const uv0 = dirUV(U.frame.mul(d)).add(U.offset).add(U.wind.xy.mul(U.time)), uv = vec2(uv0.x.fract(), uv0.y).toVar(); // wrap in u (textures clamp by default)
   return saturate(texture(weather, uv).r.sub(0.08).mul(1.5).mul(U.coverage));
 }
 function densityAt(weather, U, p, oct) { // p relative to centre, km
