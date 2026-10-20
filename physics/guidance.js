@@ -70,6 +70,11 @@ export function autoGuide(v) {
   let ph = v.guid || 'ascent';
   if (o.pe >= TARGET_PE && h > KARMAN) ph = 'done';
   else if (ph === 'done') ph = o.ap >= TARGET_AP - 3000 ? 'coast' : 'ascent';
+  // direct insertion (v.direct): the upper stage burns straight through to orbit (one long burn, no coast-then-circularize),
+  // as the real two-stage flights do; SECO lands at insertion instead of after a half-orbit coast
+  if (v.direct && v.cur > 0 && ph === 'ascent' && h > KARMAN - 20000 && o.ap >= TARGET_AP - 1000) ph = 'insert';
+  if (ph === 'insert' && o.ap < TARGET_AP - 20000 && o.pe < 0) ph = 'ascent';
+  if (!v.direct && ph === 'insert') ph = 'ascent';
   if (ph === 'ascent' && h > 5000 && o.ap >= TARGET_AP - 1000) { // coast only if the circularization burn fits before apoapsis
     const tAp = timeToAp(v.r, v.v), tb = burnTimeFor(v, circBurn(v).dv);
     if (tb * 0.5 + 15 < tAp) ph = 'coast';
@@ -113,6 +118,10 @@ export function autoGuide(v) {
     // optional data table (timelines/ascent.js): stage-1 pitch/throttle vs time since liftoff (v.ascentMet), additive
     const tab = v.ascentTable && v.cur === 0 && v.ascentMet != null ? sampleAscent(v.ascentTable, v.ascentMet) : null;
     if (tab) { pitch = tab.pitch; thr = tMax > 0 ? Math.min(tab.throttle, G_LIMIT * 9.80665 * m / tMax) : tab.throttle; }
+  } else if (ph === 'insert') { // hold the climb toward the insertion altitude while building horizontal speed
+    const hT = (TARGET_AP + TARGET_PE) / 2, vrDes = clamp((hT - h) / 80, -150, 150);
+    pitch = holdPitch(v, f, vrDes, 0.05); thr = 1;
+    const tMax = s && s.eng ? s.eng.tv * 1000 * s.n : 0; if (tMax > 0) thr = Math.min(1, G_LIMIT * 9.80665 * m / tMax);
   } else if (ph === 'coast' || ph === 'done') { pitch = pgIn; thr = 0; }
   else { pitch = holdPitch(v, f, 0, 0.05); thr = 1; }
   const lim2 = qPa > 15000 ? 0.08 : qPa > 3000 ? 0.2 : qPa > 500 ? 0.5 : 1.4;
