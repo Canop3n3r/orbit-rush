@@ -1,6 +1,6 @@
-// co-gls-1 branch: Jade Sky Academy (parody state launch academy) — jade-crane 5 (5 m hydrogen core with 2 bells, four 3.35 m
-// kerosene boosters with conical noses (2 bells each), 5 m hydrogen upper, 5.2 m ogive fairing) and jade-crane 5B (no upper stage,
-// very long 20 m fairing for heavy LEO modules). Dimensions: rocketdb jade-crane-5 (GCAT) + design.md; splits art-fitted. No logos/names.
+// co-gls-1 branch: Jade Sky Academy (parody state launch academy) — Jade Lantern 5 (5 m hydrogen core with 2 bells, four 3.35 m
+// kerosene boosters with conical noses (2 bells each), 5 m hydrogen upper, 5.2 m ogive fairing) and Jade Lantern 5B (no upper stage,
+// very long 20 m fairing for heavy LEO modules). Dimensions: rocketdb jade-lantern-5 (GCAT) + design.md; splits art-fitted. No logos/names.
 import * as THREE from 'three/webgpu';
 import { Kit, xf, weakDisposeListeners } from './kit.js?v=art1';
 import * as PR from './profiles.js?v=art1';
@@ -37,12 +37,11 @@ function fairing(d, y0, cyl) { const k = new Kit(d), p = PR.fairing(RF, cyl, 6.6
 const ANG = [PI / 4, 3 * PI / 4, 5 * PI / 4, 7 * PI / 4];
 function ls5(o, b) { const d = o.detail, c = core(d, b ? 31.0 : 31.3), kids = [c, ...ANG.map((a, i) => booster(d, 'side' + i, a))];
   let top = c.userData.top; if (!b) { const u = upper(d, top); kids.push(u); top = u.userData.top; }
-  const f = fairing(d, top, b ? 13.0 : 5.4); kids.push(f); const g = group(b ? 'jade-crane-5b' : 'jade-crane-5', kids, f.userData.top);
+  const f = fairing(d, top, b ? 13.0 : 5.4); kids.push(f); const g = group(b ? 'jade-lantern-5b' : 'jade-lantern-5', kids, f.userData.top);
   if (o.plume) { g.add(plume(0, ANG.map(a => [Math.cos(a) * BOFF, Math.sin(a) * BOFF]), 1.5, 60 * o.plume)); g.add(plume(0, [[1.05, 0], [-1.05, 0]], 0.8, 30 * o.plume)); } return g; }
-// display names: the only place they live (cheap to rename later). PENDING: the Titlecase public names from the rocketdb audit go here, but
-// the shared pre-push list still bans the Titlecase token; ids stand in until the specs bot regenerates that list.
-export const NAMES = {'jade-crane-5': 'jade-crane 5', 'jade-crane-5b': 'jade-crane 5B'};
-export const CO_JADECRANE = {
-  'jade-crane-5': { name: NAMES['jade-crane-5'], height: 57.2, build: o => ls5(o, false), src: 'rocketdb jade-crane-5 (GCAT): core 31.7 x 5.0 m, 4 boosters 27.6 x 3.35 m, upper 10.6 m, 5.2 m fairing', est: ['fairing length', 'interstage split'] },
-  'jade-crane-5b': { name: NAMES['jade-crane-5b'], height: 53.1, build: o => ls5(o, true), src: 'rocketdb jade-crane-5 (5B config): no upper stage, ~20 m fairing', est: ['fairing length'] },
+// display names: the only place they live (cheap to rename later)
+export const NAMES = {'jade-lantern-5': 'Jade Lantern 5', 'jade-lantern-5b': 'Jade Lantern 5B'};
+export const CO_JADELANTERN = {
+  'jade-lantern-5': { name: NAMES['jade-lantern-5'], height: 57.2, build: o => ls5(o, false), src: 'rocketdb jade-lantern-5 (GCAT): core 31.7 x 5.0 m, 4 boosters 27.6 x 3.35 m, upper 10.6 m, 5.2 m fairing', est: ['fairing length', 'interstage split'] },
+  'jade-lantern-5b': { name: NAMES['jade-lantern-5b'], height: 53.1, build: o => ls5(o, true), src: 'rocketdb jade-lantern-5 (5B config): no upper stage, ~20 m fairing', est: ['fairing length'] },
 };

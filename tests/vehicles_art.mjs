@@ -12,8 +12,8 @@ const realHit = (() => { const f = process.env.REALNAMES || '/workspace/wk/realn
   return t => ci.some(r => r.test(t)) || cs.some(r => r.test(t)); })();
 { const c = readFileSync(new URL('co_nosa.js', dir), 'utf8'); for (const id of ['saturnine-v', 'space-truck']) ok(c.includes(`'${id}':`), 'co-nosa model id ' + id); ok(!/\b(nasa|saturn|apollo|boeing|rocketdyne|shuttle|rockwell|endeavour|discovery|atlantis|columbia|challenger)\b/i.test(c.replace(/saturnine/gi, '')), 'co_nosa.js: no real agency/vehicle names'); }
 const d = readFileSync(new URL('decals.js', dir), 'utf8'); ok(/setBrandPack/.test(d) && /function generic/.test(d), 'decal slots with generic default');
-{ const c = readFileSync(new URL('co_jadecrane.js', dir), 'utf8'); for (const id of ['jade-crane-5','jade-crane-5b']) ok(c.includes(`'${id}':`), 'co_jadecrane id ' + id); ok(!realHit(c), 'co_jadecrane.js: no real names'); }
-{ const c = readFileSync(new URL('co_jadecrane2.js', dir), 'utf8'); for (const id of ['jade-crane-2f','jade-crane-3b']) ok(c.includes(`'${id}':`), 'co_jadecrane2 id ' + id); ok(!realHit(c), 'co_jadecrane2.js: no real names'); }
+{ const c = readFileSync(new URL('co_jadelantern.js', dir), 'utf8'); for (const id of ['jade-lantern-5','jade-lantern-5b']) ok(c.includes(`'${id}':`), 'co_jadelantern id ' + id); ok(!realHit(c), 'co_jadelantern.js: no real names'); }
+{ const c = readFileSync(new URL('co_jadelantern2.js', dir), 'utf8'); for (const id of ['jade-lantern-2f','jade-lantern-3b']) ok(c.includes(`'${id}':`), 'co_jadelantern2 id ' + id); ok(!realHit(c), 'co_jadelantern2.js: no real names'); }
 // public-name audit: rocketdb/tools/namecheck.py (PRIVATE, never in this repo) checks every model id, display/src string and stage-group
 // name, plus a whole-file real-name-stem scan. Path: ROCKETDB env or the studio checkout; the check is skipped when the file is absent.
 { const { spawnSync } = await import('node:child_process'); const { existsSync, readdirSync } = await import('node:fs');
