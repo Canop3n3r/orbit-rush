@@ -16,11 +16,11 @@ export const ROSTER_NORTHP = [
       { engines: {'np-e3': 1}, dry: 50, prop: 150, burn: 27.0, group: 2, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
     ],
     modes: [{ variant: 'leo', payload: 50, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:pine-crest-1#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model -40 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
-  { id: 'starstream', name: "Starstream-ish", company: 'northp', src: 'spec:starstream', area: 4.5, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'lumen-trail', name: "Lumen Trail", company: 'northp', src: 'spec:lumen-trail', area: 4.5, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'np-e4': 4}, dry: 5000, prop: 55000, burn: 120.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
       { engines: {'np-e5': 1}, dry: 1500, prop: 6000, burn: 176.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
       { engines: {'np-e6': 1}, dry: 500, prop: 3500, burn: 27.0, group: 2, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
     ],
-    modes: [{ variant: 'leo', payload: 50, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:starstream#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)']  , knownGap: "UNMODELLED: rocketdb has no vacuum Isp for np-e4, np-e6 (no invented figure); data request" }] },
+    modes: [{ variant: 'leo', payload: 50, orbit: { hp: 185, ha: 185, inc: 51.6 }, src: 'spec:lumen-trail#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)']  , knownGap: "UNMODELLED: rocketdb has no vacuum Isp for np-e4, np-e6 (no invented figure); data request" }] },
 ];
