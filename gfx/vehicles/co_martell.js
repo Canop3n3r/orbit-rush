@@ -1,4 +1,4 @@
-// co-martell-1: Martell Aerospace (parody) — Titanus II: 3.05 m two-stage hypergolic rocket. 'titanus-2' = crew launcher (white/grey,
+// co-martell-1: Martell Marietta (parody) — Titanus II: 3.05 m two-stage hypergolic rocket. 'titanus-2' = crew launcher (white/grey,
 // adapter + two-seat capsule); 'titanus-2-icbm' = dark missile with re-entry nose. rocketdb titanus-2 (GCAT) + design.md. No logos/names.
 import { stage, nose, capsule, kb, Kit, tube, ring, PI, livery, isHi } from './co_gen.js?v=art1';
 import { group, plume } from './co_nosa.js?v=art1';
