@@ -6,11 +6,11 @@
 // Markers and node handles are HTML (crisp, finger-sized). Mouse and touch.
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as GX from './gfx/gfx.js?v=f4.2';
-import * as P from './physics.js?v=f4.2';
-import * as C from './physics/patched.js?v=f4.2';
-import { fmtDur } from './flight.js?v=f4.2';
-import { layoutHandles } from './maplayout.js?v=f4.2';
+import * as GX from './gfx/gfx.js?v=f5b.3';
+import * as P from './physics.js?v=f5b.3';
+import * as C from './physics/patched.js?v=f5b.3';
+import { fmtDur } from './flight.js?v=f5b.3';
+import { layoutHandles } from './maplayout.js?v=f5b.3';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
 const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : a >= 1e7 ? (m / 1e3).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' km' : a >= 1e4 ? (m / 1e3).toFixed(1) + ' km' : m.toFixed(0) + ' m'; };
@@ -31,7 +31,7 @@ export function createSolarMap(opts) {
     var stars = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xaab4d0, size: 1, sizeAttenuation: false, depthWrite: false })); stars.frustumCulled = false; scene.add(stars); }
   // ---------- bodies ----------
   const sphere = new THREE.SphereGeometry(1, 64, 32); sphere.rotateX(Math.PI / 2);
-  const earthSphere = new THREE.SphereGeometry(1, 96, 48); earthSphere.rotateX(Math.PI / 2); earthSphere.rotateZ(GX.EARTH_TEX_ROT); let earthAtmo = null; // poles on ±z (body frames have z = pole)
+  const earthSphere = new THREE.SphereGeometry(1, 96, 48); earthSphere.rotateX(Math.PI / 2); earthSphere.applyMatrix4(GX.earthTexMatrix()); let earthAtmo = null; // poles on ±z (body frames have z = pole)
   const dotGeo = new THREE.SphereGeometry(1, 12, 8);
   const bodies = {};
   for (const id of IDS) {

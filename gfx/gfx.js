@@ -2,11 +2,12 @@
 // Earth day/night/clouds/ocean glint + analytic atmospheric scattering, Sun + bloom, Milky Way, HDR tone mapping,
 // PBR environment, quality presets (low keeps phones and software GPUs working). No physics here.
 import * as THREE from 'three/webgpu';
-import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass } from 'three/tsl';
-export { GFX, GFX_ORDER } from './presets.js?v=f4.2';
-import { GFX } from './presets.js?v=f4.2';
-import { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth } from './earthmap.js?v=f4.2';
-export { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth };
+import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass, attribute } from 'three/tsl';
+export { GFX, GFX_ORDER } from './presets.js?v=f5b.3';
+import { GFX } from './presets.js?v=f5b.3';
+import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5b.3';
+export { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth };
+export const earthTexMatrix = () => new THREE.Matrix4().fromArray(EARTH_TEX_M4);
 export function softwareGPU() {
   try { const c = document.createElement('canvas'), gl = c.getContext('webgl2') || c.getContext('webgl'); if (!gl) return true;
     const e = gl.getExtension('WEBGL_debug_renderer_info'), r = e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
@@ -21,7 +22,7 @@ export function tex(name, q, srgb = true) {
   const file = name + (name === 'earth_spec' || name === 'saturn_ring' ? '' : GFX[q].tex);
   const key = file + srgb; if (cache.has(key)) return cache.get(key);
   const url = new URL('../assets/tex/' + file + (name === 'saturn_ring' ? '.png' : name === 'earth_spec' ? '_1k.jpg' : '.jpg'), import.meta.url).href;
-  const t = loader.load(url); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; cache.set(key, t); return t;
+  const t = loader.load(url); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.wrapS = THREE.RepeatWrapping; /* f5: planetLOD chunks carry u past 0..1 at the antimeridian */ cache.set(key, t); return t;
 }
 // image data of the Earth day map (for the high-res ground tile's colours), resolved once loaded
 export function earthPixels(q) {
@@ -30,6 +31,13 @@ export function earthPixels(q) {
     s.src = new URL('../assets/tex/earth_spec_1k.jpg', import.meta.url).href; }; img.onerror = () => res(null); img.src = new URL('../assets/tex/earth_day_1k.jpg', import.meta.url).href; });
 }
 // ---------- materials ----------
+// f5 (B): one water look for every Earth surface (planetLOD chunks + the 150 km ground tile): the water mask drives
+// a clear sea blue, low roughness (sun glint) and a sky-tinted fresnel sheen, so land vs water stays readable at any height
+export function waterLook(dayRgb, w, ndl) {
+  const Vv = normalize(cameraPosition.sub(positionWorld)), fres = pow(float(1).sub(saturate(dot(normalWorld, Vv))), 3.0), dayK = smoothstep(-0.15, 0.3, ndl);
+  const sea = mix(vec3(0.010, 0.045, 0.115), dayRgb.mul(vec3(0.8, 1.0, 1.35)), 0.35);
+  return { color: sea, rough: float(0.3), sheen: vec3(0.10, 0.20, 0.38).mul(fres.mul(0.8).add(0.12)).mul(dayK).mul(w) };
+}
 // sunPos: a vec3 uniform in world space (far away in flight; the Sun mesh position on the map)
 export function earthMaterial(q, sunPos) {
   const m = new THREE.MeshStandardNodeMaterial();
@@ -37,11 +45,11 @@ export function earthMaterial(q, sunPos) {
   const L = normalize(sunPos.sub(positionWorld)), ndl = dot(normalWorld, L), Vv = normalize(cameraPosition.sub(positionWorld));
   const fres = pow(float(1).sub(saturate(dot(normalWorld, Vv))), 2.5);
   const dayK = smoothstep(-0.2, 0.35, ndl), nightK = smoothstep(0.1, -0.2, ndl);
-  m.colorNode = mix(day.rgb, day.rgb.mul(vec3(0.75, 0.9, 1.1)), spec.mul(0.5)); // deeper blue oceans
-  m.roughnessNode = mix(float(0.9), float(0.28), spec); m.metalnessNode = float(0.0);
+  const wl = waterLook(day.rgb, spec, ndl); m.colorNode = mix(day.rgb, wl.color, spec); // f5: shared water look
+  m.roughnessNode = mix(float(0.9), wl.rough, spec); m.metalnessNode = float(0.0);
   const haze = vec3(0.28, 0.52, 1.0).mul(pow(fres, 1.8)).mul(dayK).mul(0.55); // aerial perspective toward the limb
   const dusk = vec3(1.0, 0.45, 0.15).mul(fres).mul(smoothstep(-0.25, 0.0, ndl).mul(smoothstep(0.3, 0.0, ndl))).mul(0.6);
-  m.emissiveNode = night.rgb.mul(vec3(1.0, 0.8, 0.55)).mul(nightK).mul(1.4).add(haze).add(dusk);
+  m.emissiveNode = night.rgb.mul(vec3(1.0, 0.8, 0.55)).mul(nightK).mul(1.4).add(haze).add(dusk).add(wl.sheen);
   return m;
 }
 export function cloudMaterial(q, sunPos) {
@@ -131,7 +139,11 @@ export function tileMaterial() {
   const r0 = mx_noise_float(p.mul(0.00006)), r1 = mx_noise_float(p.mul(0.00035)), r2 = mx_noise_float(p.mul(0.0016));
   const k = float(1).add(r0.mul(0.28)).add(r1.mul(0.22)).add(r2.mul(0.14)).add(n1.mul(0.16)).add(n2.mul(0.1)).add(n3.mul(0.12).mul(fade));
   const vc = vertexColor().rgb, tint = mix(vec3(0.82, 1.08, 0.72), vec3(1.12, 0.98, 0.78), saturate(r1.mul(0.9).add(0.5)));
-  m.colorNode = mix(vc, vc.mul(tint), saturate(r0.mul(0.6).add(0.55))).mul(k); m.roughnessNode = float(0.95).sub(n2.mul(0.05)); m.metalnessNode = float(0);
+  // f5: coastline detail below the 1k mask's ~40 km texel: noise-perturbed threshold on the interpolated mask
+  const w0 = attribute('wat', 'float'), w = smoothstep(0.42, 0.58, w0.add(r2.mul(0.22)).add(n1.mul(0.08)));
+  const wl = waterLook(vc, w, float(1)); // ndl ~ day on the ground tile (it only exists around the craft)
+  const land = mix(mix(vc, vc.mul(tint), saturate(r0.mul(0.6).add(0.55))).mul(k), vec3(0.17, 0.16, 0.09).mul(k), smoothstep(0.3, 0.7, w0)); // land carved out of a sea vertex: shore scrub, not ocean navy
+  m.colorNode = mix(land, wl.color, w); m.roughnessNode = mix(float(0.95).sub(n2.mul(0.05)), wl.rough, w); m.metalnessNode = float(0); m.emissiveNode = wl.sheen;
   return m;
 }
 // post: HDR → bloom → tone map (high preset only; otherwise renderer.render + tone mapping)

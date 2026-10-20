@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><title>leak probe</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/tsl":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.tsl.js"}}</script>
+</head><body><script type="module">
+// rendered model-cycle heap probe: ?mode=old|release  (tests/vehicles_budget.cjs + Playtest QA perf_rockets-2 leak)
+import * as THREE from 'three/webgpu'; if (new URLSearchParams(location.search).has('noown')) globalThis.__noOwnMats = 1;
+import { build, VEHICLES, dispose, release } from './vehicles.js?v=art1';
+const q = new URLSearchParams(location.search), mode = q.get('mode') || 'release';
+const renderer = new THREE.WebGPURenderer({ forceWebGL: !q.has('webgpu') }); renderer.setSize(390, 844); document.body.appendChild(renderer.domElement); await renderer.init();
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 390 / 844, 0.1, 1e4); cam.position.set(0, 50, 300); scene.add(new THREE.HemisphereLight(0xffffff, 0x333333, 1), new THREE.DirectionalLight(0xffffff, 2));
+const frame = () => new Promise(r => requestAnimationFrame(() => { renderer.render(scene, cam); r(); }));
+window.__cycle = async () => { const t0 = performance.now(); for (const id of Object.keys(VEHICLES)) for (const detail of ['hi', 'mid', 'lo']) { const g = build(id, { detail }); scene.add(g); await frame(); await frame();
+  if (mode === 'old') dispose(g); else await release(g, renderer, scene); }
+  await frame(); return { geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, ms: Math.round(performance.now() - t0), heapMB: performance.memory ? +(performance.memory.usedJSHeapSize / 1048576).toFixed(1) : null }; };
+window.__ready = true;
+</script></body></html>
