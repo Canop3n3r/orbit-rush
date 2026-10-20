@@ -23,13 +23,15 @@ function densityAt(weather, U, p, oct) { // p relative to centre, km
   const cov = coverageAt(weather, U, d).toVar();
   const topH = mix(float(0.4), float(1.0), cov).toVar(); // thick cover towers higher
   const prof = smoothstep(0.0, 0.08, h).mul(float(1).sub(smoothstep(topH.mul(0.5), topH, h)));
-  if (oct === 0) return saturate(cov.mul(prof).sub(0.27).mul(3.0)); // cheap light-sample density (no noise)
+  if (oct === 0) return cov.mul(prof); // cheap light-sample density (no noise)
   const n = saturate(fbm(p.mul(0.09).toVar().add(vec3(U.time.mul(0.02), 0, 0)), oct).mul(2.6).add(0.5)); // billow 0..1
   const fine = oct > 1 ? mx_noise_float(p.mul(0.55)).mul(0.5).add(0.5) : float(0.5);
   // coverage remap (Schneider 2015): noise survives where it exceeds (1 - coverage); fine noise erodes the edges
-  const shape = saturate(n.sub(float(1).sub(cov)).div(max(cov, 0.05)));
+  // far away (orbit) the billow noise aliases into speckle: blend to the smooth weather-map shape
+  const nearK = smoothstep(260.0, 40.0, length(cameraPosition.sub(U.center)).sub(U.R));
+  const shape = mix(smoothstep(0.4, 0.95, cov), saturate(n.sub(float(1).sub(cov)).div(max(cov, 0.05))), nearK);
   if (globalThis.W1VIEW) return vec3(cov, n, shape);
-  return saturate(shape.sub(fine.mul(0.25).mul(float(1).sub(shape))).mul(prof).mul(1.6));
+  return saturate(shape.sub(fine.mul(0.25).mul(nearK).mul(float(1).sub(shape))).mul(prof).mul(1.6));
 }
 export function volumetricCloudMaterial(weatherTex, tier = 'high', U = cloudUniforms()) {
   const T = WORLD_TIERS[tier], N = T.steps, NL = T.light;
@@ -56,16 +58,16 @@ export function volumetricCloudMaterial(weatherTex, tier = 'high', U = cloudUnif
     for (let i = 0; i < N; i++) {
       const t = t0.add(float(i).add(jitter).mul(dt)), p = ro.add(rd.mul(t)).toVar();
       const den = densityAt(weather, U, p, tier === 'high' ? 2 : 1).toVar();
-      let od = float(0); const ls = U.top.sub(U.base).mul(0.22);
+      let od = float(0); const ls = U.top.sub(U.base).mul(0.3);
       for (let k = 1; k <= NL; k++) od = od.add(densityAt(weather, U, p.add(U.sunDir.mul(ls.mul(k * k))), 0).mul(ls.mul(2 * k - 1)));
       od = od.toVar();
       const sig = U.density.mul(den).toVar(), sunUp = dot(normalize(p), U.sunDir).toVar();
       const earthShadow = smoothstep(-0.12, 0.04, sunUp);
-      const beer = exp(od.mul(U.density).negate()), powder = float(1).sub(exp(od.mul(U.density).mul(-2.0).sub(sig.mul(4.0))));
-      const sunLight = vec3(U.sunCol).mul(beer.mul(mix(float(1), powder, 0.5)).mul(phase).mul(earthShadow).mul(2.2));
+      const beer = exp(od.mul(U.density).mul(1.6).negate()), powder = float(1).sub(exp(od.mul(U.density).mul(-2.0).sub(sig.mul(4.0))));
+      const sunLight = vec3(U.sunCol).mul(beer.mul(mix(float(1), powder, 0.5)).mul(phase).mul(earthShadow).mul(0.95));
       const sunset = mix(vec3(1.0, 0.5, 0.25), vec3(1), smoothstep(0.0, 0.25, sunUp));
       const h = saturate(length(p).sub(Rb).div(U.top.sub(U.base)));
-      const amb = mix(vec3(0.20, 0.27, 0.38), vec3(0.45, 0.55, 0.72), h).mul(smoothstep(-0.2, 0.15, sunUp).mul(0.9).add(0.02));
+      const amb = mix(vec3(0.10, 0.13, 0.19), vec3(0.34, 0.42, 0.56), h).mul(smoothstep(-0.2, 0.15, sunUp).mul(0.9).add(0.02));
       const a = exp(sig.mul(dt).negate()).toVar();
       acc.addAssign(sunLight.mul(sunset).add(amb).mul(Tr).mul(float(1).sub(a)));
       Tr.mulAssign(a);
