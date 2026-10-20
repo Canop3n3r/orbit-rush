@@ -102,3 +102,6 @@ export const MISSION_VARIANTS = [
 export const PAYLOADS = [
   { id: 'roadster-payload', mass: 1300, massRange: [1250, 1350], kind: 'demo mass (car + mount)', carrier: 'heron-heavy', orbit: 'heliocentric', src: 'spec:roadster-payload' },
 ];
+
+// Roster company 'rlab' (data only, neutral ids; spec:loss-model): see vehicles/roster/rlab.js
+export { ROSTER_RLAB, ENGINES_RLAB } from './roster/rlab.js';
