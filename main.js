@@ -1,29 +1,29 @@
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f1u';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f1u';
-import * as C from './physics/patched.js?v=f1u';
-import { createSolarMap } from './solarmap.js?v=f1u';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f1u';
-import { FX } from './fx.js?v=f1u';
-import { createAcademy } from './academy-ui.js?v=f1u';
-import { createMobile, isTouch } from './mobile.js?v=f1u';
-import { localize } from './wording.js?v=f1u';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f1u';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f1u';
+import * as P from './physics.js?v=f1u2';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f1u2';
+import * as C from './physics/patched.js?v=f1u2';
+import { createSolarMap } from './solarmap.js?v=f1u2';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f1u2';
+import { FX } from './fx.js?v=f1u2';
+import { createAcademy } from './academy-ui.js?v=f1u2';
+import { createMobile, isTouch } from './mobile.js?v=f1u2';
+import { localize } from './wording.js?v=f1u2';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f1u2';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f1u2';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f1u';
-import * as GX from './gfx/gfx.js?v=f1u';
-import { Director, MISSIONS } from './fun/director.js?v=f1u';
-import * as PR from './fun/progress.js?v=f1u';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f1u';
-import { createAudio } from './fun/audio.js?v=f1u';
-import { createCompact } from './fun/compact.js?v=f1u';
-import { createFunUI } from './fun/ui.js?v=f1u';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f1u2';
+import * as GX from './gfx/gfx.js?v=f1u2';
+import { Director, MISSIONS } from './fun/director.js?v=f1u2';
+import * as PR from './fun/progress.js?v=f1u2';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f1u2';
+import { createAudio } from './fun/audio.js?v=f1u2';
+import { createCompact } from './fun/compact.js?v=f1u2';
+import { createFunUI } from './fun/ui.js?v=f1u2';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -31,7 +31,7 @@ import { createFunUI } from './fun/ui.js?v=f1u';
 const { R, ATM, V } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-export const BUILD = '2026-10-19-f1u';
+export const BUILD = '2026-10-19-f1u2';
 const DEG = 180 / Math.PI;
 
 // ---------- renderer: WebGPU first, WebGL2 fallback with a stated reason ----------
@@ -65,7 +65,7 @@ const fx = new FX({ gpu: fxGPU, quality: fxQuality });
 console.info('[Orbit Rush] Effects:', fxGPU ? 'GPU compute particles' : 'CPU particles (WebGL2 path)', '· quality', fxQuality);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x7ab8ff);
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.5, 3e8);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.5, 2e9);
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 const hemi = new THREE.HemisphereLight(0xcfe3ff, 0x334433, 1.0); scene.add(hemi);
 const sunL = new THREE.DirectionalLight(0xfff4e6, 3.0); sunL.position.set(0.9, 0.35, 0.3); scene.add(sunL);
@@ -191,6 +191,34 @@ earth.add(planet);
 const cloudGeo = new THREE.SphereGeometry(R + 7000, 192, 96); cloudGeo.rotateX(Math.PI / 2); cloudGeo.rotateZ(GX.EARTH_TEX_ROT);
 const clouds = new THREE.Mesh(cloudGeo, GX.cloudMaterial(gfxQ, sunPos));
 earth.add(clouds);
+// f1u2: the flight view only ever drew the Earth, at −O. Away from Earth, O is relative to the SOI body, so the
+// Earth sphere sat where the Moon should be (camera inside it in low lunar orbit). Now the current SOI body gets its
+// own sphere at −O and the Earth is drawn where it really is.
+const bodyTex = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 512, 256);
+  let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 900; i++) { const x = rnd() * 512, y = 20 + rnd() * 216, r = Math.pow(rnd(), 3) * 26 + 1.5, l = 150 + rnd() * 90; g.fillStyle = `rgba(${l|0},${l|0},${l|0},${0.25 + rnd() * 0.35})`; g.beginPath(); g.ellipse(x, y, r / Math.max(0.3, Math.sin(y / 256 * Math.PI)) * 0.6, r * 0.6, 0, 0, 7); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.anisotropy = 4; return t; })();
+const bodyG = new THREE.Group(); scene.add(bodyG); bodyG.visible = false;
+const bodyMat = new THREE.MeshStandardMaterial({ map: bodyTex, roughness: 0.95, metalness: 0 });
+const bodyGeo = new THREE.SphereGeometry(1, 384, 192); bodyGeo.rotateX(Math.PI / 2);
+const bodySph = new THREE.Mesh(bodyGeo, bodyMat); bodyG.add(bodySph);
+const bodyGround = new THREE.Mesh(new THREE.CircleGeometry(8000, 64), bodyMat); bodyGround.visible = false; scene.add(bodyGround);
+const _bAbs = (id, t) => { let r = [0, 0, 0]; for (let b = id; b && P.BODIES[b] && P.BODIES[b].parent; b = P.BODIES[b].parent) r = V.add(r, P.relState(b, t).r); return r; };
+let bodyCur = null;
+function placeBodies(O, th) { // returns false when the current SOI is the Earth (old path)
+  const id = F && F.body || 'earth';
+  if (id === 'earth') { bodyG.visible = bodyGround.visible = false; earth.visible = true; return false; }
+  const b = P.BODIES[id]; if (bodyCur !== id) { bodyCur = id; bodyMat.color.set(BODY_COL[id] || '#999'); bodyMat.emissive.set(id === 'sun' ? '#ffb040' : '#000'); bodyMat.emissiveIntensity = id === 'sun' ? 2 : 0;
+    // arriving at a new world: tip the chase camera so its limb is in frame (the player can still drag)
+  }
+  if (id !== 'sun' && camMode === 'chase' && performance.now() - camUserT > 8000) { const dep = Math.acos(Math.min(1, b.R / Math.max(b.R, V.len(O)))), want = Math.min(1.3, Math.max(0.12, dep - 0.12)); const nw = performance.now(), dt = Math.min(0.5, (nw - (placeBodies.t || nw)) / 1000); camPitch += (want - camPitch) * (1 - Math.exp(-dt * 2)); }
+  placeBodies.t = performance.now();
+  const Rb = b.R; bodySph.scale.setScalar(Rb - 60); bodyG.position.set(-O[0], -O[1], -O[2]); bodyG.visible = true;
+  const e = V.sub(_bAbs('earth', F.tAbs), _bAbs(id, F.tAbs)); earth.position.set(e[0] - O[0], e[1] - O[1], e[2] - O[2]); earth.rotation.z = th; earth.visible = V.len(e) > Rb * 2;
+  const alt = V.len(O) - Rb; bodyGround.visible = alt < 30000 && alt > -500;
+  if (bodyGround.visible) { const u = V.norm(O); bodyGround.position.set(u[0] * Rb - O[0], u[1] * Rb - O[1], u[2] * Rb - O[2]); bodyGround.lookAt(bodyGround.position.x + u[0], bodyGround.position.y + u[1], bodyGround.position.z + u[2]); }
+  return true;
+}
 const ATMO_R = R + 110000, atmoMat = GX.atmoMaterial({ R, Ra: ATMO_R });
 const atmo = new THREE.Mesh(new THREE.SphereGeometry(ATMO_R, 128, 64), atmoMat); atmo.frustumCulled = false; scene.add(atmo); // scene-level: placed at the Earth centre each frame
 const mwTex = GX.tex('milkyway', gfxQ); const stars = new THREE.Mesh(new THREE.SphereGeometry(1e8, 48, 24), new THREE.MeshBasicMaterial({ map: mwTex, color: new THREE.Color(1.3, 1.3, 1.4), side: THREE.BackSide, transparent: true, depthWrite: false })); stars.rotation.set(1.1, 0.4, 0.2); stars.renderOrder = -10; // f1: sky first, so it never paints over the plume and other transparent effects
@@ -593,7 +621,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f1u', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f1u2', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -730,7 +758,7 @@ function goBuild() {
   $('hud').classList.add('hidden'); mobile.show(false); $('ignite').classList.add('hidden'); $('build').classList.remove('hidden');
   refreshBuild();
 }
-let camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
+let camUserT = -1e9, camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
 $('earthRot').checked = earthRot;
 function showAz() { $('inclIn').value = launchIncl; $('azOut').textContent = `→ heading ${(launchAzimuth(launchIncl, 0, earthRot ? P.OMEGA_E * R : 0) * DEG).toFixed(1)}°`; }
 $('inclIn').onchange = e => { launchIncl = Math.max(0, Math.min(180, +e.target.value || 0)); try { localStorage.setItem(INC_KEY, String(launchIncl)); } catch (x) { } showAz(); reset(); refreshBuild(); };
@@ -904,7 +932,7 @@ addEventListener('pointerup', e => pts.delete(e.pointerId));
 addEventListener('pointercancel', e => pts.delete(e.pointerId));
 addEventListener('pointermove', e => {
   if (!pts.has(e.pointerId) || camMode === 'map') return; const [px, py] = pts.get(e.pointerId);
-  if (pts.size === 1) { const k = SET.sens.cam; camYaw -= (e.clientX - px) * 0.006 * k; camPitch = Math.max(-1.4, Math.min(1.5, camPitch + (e.clientY - py) * 0.004 * k)); }
+  if (pts.size === 1) { camUserT = performance.now(); const k = SET.sens.cam; camYaw -= (e.clientX - px) * 0.006 * k; camPitch = Math.max(-1.4, Math.min(1.5, camPitch + (e.clientY - py) * 0.004 * k)); }
   else if (pts.size === 2) { let o; for (const [id, q] of pts) if (id !== e.pointerId) o = q; const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); const f = d0 / Math.max(d1, 1); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * f)); else camDist = zoomLim(camDist * f); }
   pts.set(e.pointerId, [e.clientX, e.clientY]);
 });
@@ -1294,7 +1322,7 @@ renderer.setAnimationLoop(() => {
   const focus = (camMode === 'booster' && booster && booster.mesh && booster.mesh.visible) ? booster : v;
   const tel = v.tel, nose = P.noseOf(v), base = V.sub(v.r, V.scale(nose, tel.ycom));
   const O = focus === v ? v.r : booster.r;
-  earth.position.set(-O[0], -O[1], -O[2]); earth.rotation.z = th;
+  if (!placeBodies(O, th)) { earth.position.set(-O[0], -O[1], -O[2]); earth.rotation.z = th; }
   setRel(rocketG, base, O); toQ(v.q, rocketG.quaternion);
   worldVis(base, O, nose);
   if (state === 'flight' && !F.flags.dead && SG[v.cur]) emit(v, SG[v.cur], pdt, base, nose);
@@ -1342,8 +1370,10 @@ renderer.setAnimationLoop(() => {
     if (booster && booster.state === 'flying') { setRel(bMarker, booster.r, O); bMarker.scale.setScalar(R * mapZoom * 0.005); } else bMarker.visible = false;
   }
   stars.position.copy(camera.position);
-  const k = Math.min(1, Math.max(0, h / 70000));
-  const lit = updateSun(O, U, h, k, isMap); // sun direction, eclipse, sky colour, scattering, lights
+  // f1u2: O / v.r are relative to the current SOI body, but the sky, fog and Earth atmosphere assume Earth. Away from
+  // Earth, |O| − R_earth went negative in low lunar orbit → daytime sky + fog density e^(−h/8000) ≫ 1: a flat colour wash.
+  const hs = skyAlt(h), k = Math.min(1, Math.max(0, hs / 70000));
+  const lit = updateSun(O, U, hs, k, isMap); // sun direction, eclipse, sky colour, scattering, lights
   stars.material.opacity = isMap ? 1 : Math.min(1, Math.max(0, k * 1.4 - 0.3) + (1 - lit.day) * (1 - k) * 0.8);
   updateCine(rdt, h, isMap);
   updateChunks(pdt, O);
@@ -1373,7 +1403,7 @@ renderer.setAnimationLoop(() => {
 // ---------- f1 split-screen staging: upper stage and returning booster, both in full physics ----------
 // The booster pane renders the same scene a second time with its own camera (scissored, no bloom, flow
 // particles off = the Low look). Tap a pane to make it full screen; ⇄ switches control between the craft.
-const cam2 = new THREE.PerspectiveCamera(55, 1, 0.5, 3e8), SPLIT_KEY = 'orbitrush.split';
+const cam2 = new THREE.PerspectiveCamera(55, 1, 0.5, 2e9), SPLIT_KEY = 'orbitrush.split';
 const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: localStorage.getItem(SPLIT_KEY) !== '0', yaw: 0.9, frame: 0 };
 { const d = document.createElement('div'); d.id = 'split'; d.className = 'hidden';
   d.innerHTML = '<div id="spPane"><div id="spHud"></div><div class="spBtns"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div id="spHud1"></div></div>';
@@ -1428,12 +1458,17 @@ function renderSplit(O) {
 // ---------- gx1: sun, sky, scattering, eclipse, plume light; cinematic shake and staging drama ----------
 scene.fog = new THREE.FogExp2(0x9cc4ec, 2e-5); const cHaze = new THREE.Color(0xdde8f4);
 const skyC = new THREE.Color(), cSky = new THREE.Color(0x3d7fe0), cHor = new THREE.Color(0xff8a3c), cNight = new THREE.Color(0x02040a);
+const AIR = { earth: 1, mars: 0.35, venus: 2.5, titan: 1.4 };
+function skyAlt(h) { // altitude that drives sky colour + haze: real altitude where there is air, "deep space" otherwise
+  const b = F && F.body || 'earth'; if (b === 'earth') return h;
+  if (!AIR[b]) return 1e9; const a = F.alt; return isFinite(a) ? Math.max(0, a / AIR[b]) : 1e9;
+}
 function updateSun(O, U, h, k, isMap) {
   const sd = P.sunDir('earth', F.tAbs); sunDirV.set(sd[0], sd[1], sd[2]);
   sunL.position.copy(sunDirV); sunPos.value.copy(sunDirV).multiplyScalar(1e11);
   // eclipse: does the ray from the craft toward the Sun hit the Earth? (soft edge ~ the atmosphere's thickness)
   const cx = -O[0], cy = -O[1], cz = -O[2], tca = cx * sd[0] + cy * sd[1] + cz * sd[2], d2 = cx * cx + cy * cy + cz * cz - tca * tca;
-  const shadow = tca > 0 ? Math.min(1, Math.max(0, (R + 30000 - Math.sqrt(Math.max(0, d2))) / 60000)) : 0, sunK = 1 - shadow;
+  const shadow = F && F.body && F.body !== 'earth' ? 0 : tca > 0 ? Math.min(1, Math.max(0, (R + 30000 - Math.sqrt(Math.max(0, d2))) / 60000)) : 0, sunK = 1 - shadow;
   const el = U.x * sd[0] + U.y * sd[1] + U.z * sd[2], day = Math.min(1, Math.max(0, (el + 0.08) / 0.25)), dusk = Math.max(0, 1 - Math.abs(el - 0.02) / 0.18) * (1 - k);
   skyC.copy(cNight).lerp(cSky, day).lerp(cHor, dusk * 0.55).multiplyScalar(1 - k);
   scene.background = isMap ? skyC.setRGB(0, 0, 0.01) : skyC;
@@ -1443,7 +1478,7 @@ function updateSun(O, U, h, k, isMap) {
   hemi.intensity = (0.25 + 0.75 * day) * (1 - k * 0.75); scene.environmentIntensity = (0.35 + 0.65 * day) * (1 - 0.6 * k) * (0.3 + 0.7 * sunK);
   sunSprite.visible = !isMap && sunK > 0.02; sunSprite.position.copy(camera.position).addScaledVector(sunDirV, 5e7); sunSprite.scale.setScalar(5e7 * (0.12 + 0.1 * k)); sunSprite.material.opacity = sunK;
   const u = atmoMat.userData; atmo.position.set(cx, cy, cz); u.center.value.set(cx, cy, cz); u.sunDir.value.copy(sunDirV); u.Rp.value = R; u.Ra.value = ATMO_R;
-  u.gain.value = isMap ? 0 : Math.min(1, Math.max(0, (h - 15000) / 45000)); atmo.visible = u.gain.value > 0.01;
+  u.gain.value = isMap || (F && F.body && F.body !== 'earth') ? 0 : Math.min(1, Math.max(0, (h - 15000) / 45000)); atmo.visible = u.gain.value > 0.01;
   post.strength = 0.35 + 0.4 * k;
   return { day, sunK, dusk };
 }
@@ -1498,7 +1533,7 @@ fun = createFunUI({
   tunnelGeom: mach => { const ab = aeroBalance(design, mach); if (!ab) return null; const vv = buildVehicle(design), g = P.stackGeom(vv); const COL = { engine: '#ff9a3c', tank: '#e8e8e8', pod: '#9cc3ff', payload: '#e0b84a', fins: '#555', decoupler: '#333', fairing: '#f4f4f4', shield: '#7a4a2a', chute: '#ff7a3c', rcs: '#8a9099' };
     return { parts: g.list.map(e => ({ y: e.y, h: e.h, d: e.kind === 'fins' ? (e.d || 2) * 1.8 : e.d, col: COL[e.kind] || '#ccc' })), L: g.L, ycom: ab.ycom, ycp: ab.ycp, stable: ab.stable, margin: ab.margin }; },
 });
-const cx = createCompact({ touch: TOUCH, onSpeedTap: () => fun.cycleSpeed() });
+const cx = createCompact({ touch: TOUCH, onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on) });
 { const dm = document.getElementById('dMap'); if (dm) dm.onclick = e => { e.currentTarget.blur(); press('KeyM'); }; }
 { // top-centre stack: callout, hint, toasts never overlap each other
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
@@ -1568,22 +1603,25 @@ function rocketScreenBox() { // projected bounding box of the craft (CSS px) —
     const x = c.left + (_wp.x + 1) / 2 * c.width, y = c.top + (1 - _wp.y) / 2 * c.height; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
   return any ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
 }
+// f1u2: the rocket stays clean — the craft tag, arrows and stage/separation rings are an opt-in drawer toggle (off by default)
+const MARK = { on: (() => { try { return localStorage.getItem('orbitrush.markers') === '1'; } catch (e) { return false; } })() };
+function setMarkers(on) { MARK.on = !!on; try { localStorage.setItem('orbitrush.markers', on ? '1' : '0'); } catch (e) { } const b = $('pMark'); if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
 function worldVis(base, O, nose) {
-  const on = state === 'flight' && F && !F.flags.dead && rocketG.visible && camMode !== 'map' && !photoOn && !replay;
+  const on = MARK.on && state === 'flight' && F && !F.flags.dead && rocketG.visible && camMode !== 'map' && !photoOn && !replay;
   const now = performance.now(), L = Math.max(10, stackL());
   WV.grp.visible = on; WV.tag.classList.toggle('hidden', !on);
-  if (!on) { WV.ring.visible = false; return; }
+  if (!on) { WV.ring.visible = false; WV.seps.length = 0; for (const m of WV.sepPool) m.visible = false; return; }
   _wp.copy(rocketG.position).addScaledVector(_wd.set(nose[0], nose[1], nose[2]), (v.tel.ycom || 0));
   const vs = P.airVel(v), sp = V.len(F.flags.orbit || P.altOf(v) > 40000 ? v.v : vs);
   placeArrow(WV.pro, F.ignited && sp > 20 ? (P.altOf(v) > 40000 ? v.v : vs) : null, L, _wp);
   placeArrow(WV.tgt, v.targetDir || null, L * 0.8, _wp);
   // active stage: a soft ring at its top edge, brighter for 2 s after staging
   const g = SG[v.cur]; if (g && WV.ringOn !== v.cur) { WV.ringOn = v.cur; g.add(WV.ring); _wb.setFromObject(g); const r = Math.max(1.5, (_wb.max.x - _wb.min.x) / 2 + 0.25); WV.ring.scale.set(r, r, r * 1.6); WV.ring.position.set(0, g.userData.h, 0); }
-  if (g) { WV.ring.visible = SG.length - v.cur > 1; const k = Math.max(0, 1 - (now - WV.pulse) / 2000); WV.ringMat.opacity = 0.28 + 0.5 * k + 0.08 * Math.sin(now / 300); }
+  if (g) { WV.ring.visible = SG.length - v.cur > 1; const k = Math.max(0, 1 - (now - WV.pulse) / 2000); WV.ringMat.opacity = 0.12 + 0.25 * k; }
   // separation markers: an expanding ring where each stage let go, fading over 3 s
   WV.seps = WV.seps.filter(m => now - m.t < 3000);
   WV.seps.forEach((m, i) => { let me = WV.sepPool[i]; if (!me) { me = new THREE.Mesh(WV.sepGeo, new THREE.MeshBasicMaterial({ color: 0xffd23a, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })); WV.sepPool[i] = me; WV.grp.add(me); }
-    const k = (now - m.t) / 3000; setRel(me, m.r, O); me.lookAt(camera.position); me.scale.setScalar(L * (0.3 + 1.6 * k)); me.material.opacity = 0.7 * (1 - k); me.visible = true; });
+    const k = (now - m.t) / 3000; setRel(me, m.r, O); me.lookAt(camera.position); me.scale.setScalar(L * (0.3 + 1.6 * k)); me.material.opacity = 0.35 * (1 - k); me.visible = true; });
   for (let i = WV.seps.length; i < WV.sepPool.length; i++) WV.sepPool[i].visible = false;
   // the speed/altitude tag rides beside the craft
   if (now - WV.boxT > 90) { WV.boxT = now; WV.box = rocketScreenBox(); }
@@ -1606,7 +1644,7 @@ function stripTick() {
   if (F.flyingBooster() && b && isFinite(b.burnIn) && b.burnIn > 0.5) { evL = 'BURN T−'; ev = b.burnIn.toFixed(1) + ' s'; }
   else if (lc && !F.flags.landed && lc.burnIn > 0.5 && lc.burnIn < 600 && V.dot(P.airVel(v), V.norm(v.r)) < 0) { evL = 'BURN T−'; ev = lc.burnIn.toFixed(1) + ' s'; }
   else if (F.nodes.length) { evL = 'NODE T−'; ev = fmtDur(Math.max(0, F.nodes[0].t - (v.clock || 0))); }
-  else if (F.ignited) { const o = P.orbitOf(v); if (isFinite(o.ap)) ev = fmtKm(o.ap).replace(/\.\d$/, '') + '/' + (o.pe < -999e3 ? '—' : fmtKm(o.pe).replace(/\.\d$/, '')); }
+  else if (F.ignited) { const o = P.orbitOf(v); if (isFinite(o.ap)) { const kk = x => (x >= 1e4 ? Math.round(x / 1000) : (x / 1000).toFixed(1)).toString(); ev = kk(o.ap) + '/' + (o.pe < 0 ? '—' : kk(o.pe)); } }
   cx.update({ alt: fmtKm(P.altOf(v)), spd: sp < 1e5 ? Math.round(sp).toLocaleString() : (sp / 1000).toFixed(0) + 'k', spdL: lab, evL, ev, hint: $('hint').style.display === 'none' ? '' : $('hint').textContent });
 }
 // Navball glue: ship frame, local horizon, the marker directions and the landing burn cue
@@ -1665,4 +1703,5 @@ $('standBtn').onclick = () => testStand(); $('tunnelBtn').onclick = () => fun.op
 addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e.preventDefault(); }, true);
 refreshBuild();
 setInterval(() => { const on = state === 'flight' && !replay; if (on !== funShown) { funShown = on; fun.show(on); } }, 200);
-window.__game = { rocketBox: () => rocketScreenBox(), fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };
+setMarkers(MARK.on);
+window.__game = { bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv };

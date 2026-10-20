@@ -128,3 +128,6 @@ Each frame `v.tel` exposes Mach, dynamic pressure, AoA, g-load, density, tempera
 
 ## f1u — compact flight UI (2026-10-19)
 The rocket is the hero: thin top strip (ALT · speed · Ap/Pe or next event · warp · ☰), one-line auto-hiding hint, ~88 px navball at the bottom edge with a collapsible SAS fan, slim stick/roll/STAGE/AUTO/throttle, and everything secondary (stats, camera, sound, mission, Engineer) in one ☰ drawer. In-world visuals ride on the craft: a speed/altitude tag, prograde/target arrows, an active-stage ring and stage-separation markers. One speed source feeds the strip, navball and tag.
+
+## f1u2 hotfix (2026-10-19)
+Away from Earth the flight view now draws the body you are orbiting (Moon, Mars, Venus, Mercury, moons, Sun) and the real Earth where it is; the sky and haze no longer assume Earth (low lunar orbit used to be a flat colour wash). The rocket is clean by default: tag, arrows and stage rings are an opt-in ◎ toggle in the ☰ drawer.

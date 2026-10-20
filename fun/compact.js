@@ -8,7 +8,7 @@ export function shortHint(s) {
   if (cut.length) t = t.slice(0, Math.min(...cut));
   return t.length > 44 ? t.slice(0, 43).trimEnd() + '…' : t;
 }
-export function createCompact({ touch, onSpeedTap }) {
+export function createCompact({ touch, onSpeedTap, onMarkers }) {
   document.body.classList.add('cx');
   const strip = document.createElement('div'); strip.id = 'strip';
   strip.innerHTML = `<div id="sL"><div class="c"><b>ALT km</b><i id="sAlt">—</i></div><button class="c" id="sSpdB" title="Speed reference: surface / orbit / target" aria-label="Speed reference"><b id="sSpdL">SRF m/s</b><i id="sSpd">—</i></button><div class="c ev"><b id="sEvL">AP · PE km</b><i id="sEv">—</i></div></div><div id="sR"></div>`;
@@ -22,6 +22,8 @@ export function createCompact({ touch, onSpeedTap }) {
   const group = document.createElement('div'); group.id = 'dPilot'; group.className = 'mg';
   group.innerHTML = '<h5>Pilot</h5>';
   for (const id of ['pObj', 'pEng', 'pPhoto', 'pMute']) { const e = $(id); if (e) group.appendChild(e); }
+  const mk = document.createElement('button'); mk.id = 'pMark'; mk.textContent = '◎'; mk.title = 'Flight markers on the rocket (tag, arrows, stage rings)'; mk.setAttribute('aria-label', 'Flight markers'); mk.setAttribute('aria-pressed', 'false');
+  mk.onclick = e => { e.currentTarget.blur(); const on = mk.getAttribute('aria-pressed') !== 'true'; onMarkers && onMarkers(on); }; group.appendChild(mk);
   let drawer;
   if (touch) { R.appendChild($('mMap')); R.appendChild($('mMenuBtn')); drawer = $('mMenu'); drawer.insertBefore(group, drawer.children[1] || null); }
   else {

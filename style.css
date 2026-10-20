@@ -520,3 +520,4 @@ body.cx .navWrap{width:calc(var(--nb) + 44px)}
  body.cx.touch #sR:has(#pTake:not(.hidden)) #mMap{display:none!important}}
 body.mapOn #hintS{display:none!important}
 @media (orientation:landscape) and (max-height:500px){body.cx.touch #hintS{top:calc(14px + env(safe-area-inset-top,0px));max-width:calc(100vw - 540px)}body.cx.touch #nav{--nb:72px}}
+#pMark[aria-pressed="true"]{background:#1d5fae!important;border-color:#8fd0ff!important}
