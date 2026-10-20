@@ -15,7 +15,7 @@ Textures: <= 512 px canvases, generated once and shared.
 
 ## Integration hook (for Game bot, after f3)
 ```js
-import { buildLOD, build, setLegs, VEHICLES } from './gfx/vehicles/vehicles.js?v=art1';
+import { buildLOD, build, setLegs, VEHICLES } from './gfx/vehicles/vehicles.js?v=f4';
 const rocket = buildLOD('heron-9');            // THREE.LOD; origin = bottom of the engine exits, +Y up, metres
 scene.add(rocket);                              // LOD needs rocket.update(camera) only if autoUpdate is off
 const { stages } = rocket.userData.hi.userData; // stages.booster / .upper / .payload (heron-heavy: + side0, side1, struts)

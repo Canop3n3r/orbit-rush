@@ -2,12 +2,12 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import { MISSIONS } from './director.js?v=f3';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f3';
-import { ATLAS, poisOf } from './lore.js?v=f3';
+import { MISSIONS } from './director.js?v=f4';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f4';
+import { ATLAS, poisOf } from './lore.js?v=f4';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f3';
+import { createNavball } from './navball.js?v=f4';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();

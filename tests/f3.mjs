@@ -1,8 +1,8 @@
 // f3: AUTO stages the booster itself with landing fuel left, and the booster flies home. Run: node tests/f3.mjs
-import * as P from '../physics.js?v=f3';
-import { simulateAuto } from '../flight.js?v=f3';
-import { SHOWROOM } from '../fun/showroom.js?v=f3';
-import { TEMPLATES } from '../parts.js?v=f3';
+import * as P from '../physics.js?v=f4';
+import { simulateAuto } from '../flight.js?v=f4';
+import { SHOWROOM } from '../fun/showroom.js?v=f4';
+import { TEMPLATES } from '../parts.js?v=f4';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
 for (const d of [SHOWROOM.find(r => r.id === 'kestrel').design, TEMPLATES.find(t => t.name === 'Light & fast')]) {
   const r = simulateAuto(d, { dt: 1 / 20, tMax: 3000 });

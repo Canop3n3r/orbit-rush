@@ -7,10 +7,10 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, geometryCacheSize } from './kit.js?v=art1';
+import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, geometryCacheSize } from './kit.js?v=f4';
 export { dispose, geometryCacheSize };
-import * as PR from './profiles.js?v=art1';
-import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
+import * as PR from './profiles.js?v=f4';
+import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f4';
 export { setLegs, mat };
 const PI = Math.PI;
 // ---- kerolox booster core (9 engines, octaweb, legs, grid fins) ----

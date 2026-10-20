@@ -1,10 +1,10 @@
 // Milestone A, flown in the real Flight (6-DOF burns, event-bounded rails, in-flight SOI switching):
 // Earth→Moon transfer, capture and landing with the Moon lander; Earth→Mars to the Mars SOI with the Mars
 // explorer; prediction vs the flown trajectory; warp-to and node execution; per-body goals and score.
-import * as P from '../physics.js?v=f3';
-import * as C from '../physics/patched.js?v=f3';
-import { Flight, WARPS, launchAzimuth } from '../flight.js?v=f3';
-import { TEMPLATES } from '../parts.js?v=f3';
+import * as P from '../physics.js?v=f4';
+import * as C from '../physics/patched.js?v=f4';
+import { Flight, WARPS, launchAzimuth } from '../flight.js?v=f4';
+import { TEMPLATES } from '../parts.js?v=f4';
 const V = P.V; let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log('FAIL', m); } };
 const tpl = n => TEMPLATES.find(t => t.name === n), T0 = P.tFromDate(Date.UTC(2026, 9, 19, 15)), DT = 1 / 30;
 const run = (F, until, maxFrames = 2e5, each) => { for (let i = 0; i < maxFrames; i++) { if (until()) return true; if (each) each(i); F.advance(DT); if (F.flags.dead) return false; } return until(); };

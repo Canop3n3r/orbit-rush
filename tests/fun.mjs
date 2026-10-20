@@ -2,13 +2,13 @@
 // capture, Venus flyby, orbit-and-home), take-over, progress (contracts, unlocks, achievements, daily, streak,
 // medals, corrupt storage), lore/POIs, the ghost-trajectory track, the plume/vapor mappings, test stand
 // hold-down, and the warp limit while a booster flies (split-screen staging).
-import * as P from '../physics.js?v=f3';
-import * as FX from '../fxmap.js?v=f3';
-import { Flight, assessDesign, BOOSTER_WARP, simulateAuto } from '../flight.js?v=f3';
-import { TEMPLATES } from '../parts.js?v=f3';
-import { Director, MISSIONS } from '../fun/director.js?v=f3';
-import * as PR from '../fun/progress.js?v=f3';
-import { ATLAS, POIS, nearestPoi, gcDist } from '../fun/lore.js?v=f3';
+import * as P from '../physics.js?v=f4';
+import * as FX from '../fxmap.js?v=f4';
+import { Flight, assessDesign, BOOSTER_WARP, simulateAuto } from '../flight.js?v=f4';
+import { TEMPLATES } from '../parts.js?v=f4';
+import { Director, MISSIONS } from '../fun/director.js?v=f4';
+import * as PR from '../fun/progress.js?v=f4';
+import { ATLAS, POIS, nearestPoi, gcDist } from '../fun/lore.js?v=f4';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('FAIL', m); } };
 const T0 = P.tFromDate(Date.UTC(2026, 9, 19, 15)), tpl = n => TEMPLATES.find(t => t.name === n);
 function fly(id, maxF = 2e6) { const said = []; const F = new Flight(tpl(MISSIONS[id].tpl), {}, { t0: T0 }); const D = new Director(F, id, { say: m => said.push(m) });
