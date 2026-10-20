@@ -46,4 +46,9 @@ for (const id of ['station-rendezvous', 'gto-comsat']) { const a = runMission(ms
   ok(lo.complete && hi.complete && lo.score <= hi.score, `LOW4 a lighter payload is not rewarded (1 t ${lo.score} ≤ 3 t ${hi.score})`); }
 { const m = ms.rideshare, r = runMission({ ...m, deploy: m.deploy.map(d => d.kind === 'transfer' ? { ...d, apM: 400000, peM: 380000 } : d) });
   ok(!obj(r, 'dropoff').pass && !obj(r, 'release').pass && !obj(r, 'all').pass, 'LOW5 rideshare: missed drop-off orbit → no release / dispense ✓'); }
+// ---- PR #9 review LOWs ----
+{ const cd = runMission(ms['crew-dock']).score; ok(best['lunar-landing'] > cd && best['mars-ship'] > cd, `capstones out-score crew-dock (lunar ${best['lunar-landing']}, mars ${best['mars-ship']} > ${cd})`); }
+for (const id of ['lunar-landing', 'mars-ship']) { const v = validateMission({ ...ms[id], vehicle: { ...ms[id].vehicle, gameMassT: 2 } }); ok(!v.ok && v.err.some(e => /no 'sat' payload part/.test(e)), `${id}: schema rejects gameMassT without a payload part: ${v.err.join('; ')}`); }
+{ const v = validateMission({ ...ms['crew-dock'], vehicle: { ...ms['crew-dock'].vehicle, template: 'Heavy lift', payloadPart: 'probe', gameMassT: 2 } }); ok(!v.ok && v.err.some(e => /'probe'/.test(e)), 'schema error names the actual payload part'); }
+ok(ms['ship-transfer'].real.tankerLoadT === 100, 'tanker cargo is 100 t');
 console.log(`missions_campaign: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);
