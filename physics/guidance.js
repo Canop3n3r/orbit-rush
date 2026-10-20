@@ -181,7 +181,7 @@ export function boosterAutopilot(b, dtHint = 0.02) {
     b.fin = b._finV || null;
   } else if (b.tgtR) b.fin = null;
   // (1) entry burn, decided from the live predicted peaks
-  const eStart = (() => { const sE = b.stages[0]; return sE.eng && 3 * sE.eng.tv * 1000 / ((sE.dry + sE.fuel) * 1000) > 2.5 * g ? ENTRY_START : 90000; })(); // a weak (low-TWR) entry burn needs the whole window
+  const eStart = (() => { const sE = b.stages[0]; return (b.nMax ?? 3) >= 3 && sE.eng && 3 * sE.eng.tv * 1000 / ((sE.dry + sE.fuel) * 1000) > 2.5 * g ? ENTRY_START : 90000; })(); // a weak (low-TWR) entry burn needs the whole window; the 3-engine (F9-class) entry burn starts at the real ~62 km, a 2-engine catch booster keeps the wide window (its divert needs it)
   if (!b.entryDone && h < eStart && h > 25000 && (vr < (b.rtls ? -500 : -150) || b.entryBurned)) { // once lit, the entry burn runs until the predicted peaks are safe (no on/off chatter at the gate) // f4: an RTLS booster falls almost straight down; start once it is really falling (no hover chatter)
     b._eT = (b._eT ?? 0) - dtHint;
     if (b._eT <= 0) { b._eT = 0.5; const pk = predictEntryPeaks(b); b.entryPeak = pk;
