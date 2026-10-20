@@ -6,11 +6,11 @@
 // Markers and node handles are HTML (crisp, finger-sized). Mouse and touch.
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as GX from './gfx/gfx.js?v=f5.3b1';
-import * as P from './physics.js?v=f5.3b1';
-import * as C from './physics/patched.js?v=f5.3b1';
-import { fmtDur } from './flight.js?v=f5.3b1';
-import { layoutHandles } from './maplayout.js?v=f5.3b1';
+import * as GX from './gfx/gfx.js?v=f5.3b2';
+import * as P from './physics.js?v=f5.3b2';
+import * as C from './physics/patched.js?v=f5.3b2';
+import { fmtDur } from './flight.js?v=f5.3b2';
+import { layoutHandles } from './maplayout.js?v=f5.3b2';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
 const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : a >= 1e7 ? (m / 1e3).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' km' : a >= 1e4 ? (m / 1e3).toFixed(1) + ' km' : m.toFixed(0) + ' m'; };
@@ -19,7 +19,7 @@ const mv = (F, x) => [F[0] * x[0] + F[1] * x[1] + F[2] * x[2], F[3] * x[0] + F[4
 const PATCH_COL = [0x7dffa6, 0xffb35c, 0xc89cff, 0x6ad8ff, 0xff7ab0];
 
 export function createSolarMap(opts) {
-  const { renderer, getF, toast, touch, earthMap, onChange, dvTable, settings, gfxQ = 'med' } = opts;
+  const { renderer, getF, toast, touch, earthMap, onChange, dvTable, settings, gfxQ = 'med', getSats = () => [] } = opts;
   const sunPosU = uniform(new THREE.Vector3());
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x01020a);
   const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 1, 1e15);
@@ -59,7 +59,8 @@ export function createSolarMap(opts) {
     a.frustumCulled = b.frustumCulled = false; b.renderOrder = 5; scene.add(a); scene.add(b);
     return { geo, a, b, n, set(visible) { a.visible = b.visible = visible; }, color(c) { a.material.color.setHex(c); b.material.color.setHex(c); } };
   }
-  const traj = PATCH_COL.map(c => makeLine(c, 241));
+  const traj = PATCH_COL.map(c => makeLine(c, 241)), satLines = [];
+  const W_T = (o, mu) => { const r = Math.hypot(...o.r), v2 = o.v[0] ** 2 + o.v[1] ** 2 + o.v[2] ** 2, a = 1 / (2 / r - v2 / mu); return 2 * Math.PI * Math.sqrt(a * a * a / mu); };
   // ---------- DOM ----------
   const ui = document.createElement('div'); ui.id = 'mapUI'; ui.className = 'hidden';
   ui.innerHTML = `<div id="mapLabels"></div>
@@ -74,7 +75,7 @@ export function createSolarMap(opts) {
     <button data-a="conic" title="Patched conics drawing: each patch relative to its own body, or a moon's patches as seen from its planet">⊙ ${(settings && settings.conic) === 'parent' ? 'Parent' : 'Body'}</button>
   </div>
   <div id="mapPanel" class="hidden"></div>
-  <div id="mapInfo"></div>`;
+  <div id="mapInfo"></div><div id="mapTrack" class="hidden"></div>`;
   document.body.appendChild(ui);
   const labels = ui.querySelector('#mapLabels'), panel = ui.querySelector('#mapPanel'), info = ui.querySelector('#mapInfo');
   for (const id of IDS) labels.appendChild(bodies[id].lab);
@@ -400,6 +401,17 @@ export function createSolarMap(opts) {
     // nodes and handles (a node can sit on a later patch: drawn in that patch's body frame)
     F.nodes.forEach((n, i) => { if (n.t < t) return; const s = nodeState(n), nr = s.pa ? patchPos(s.pa, s.r, n.t) : V.add(V.sub(craftAbs(t), origin), V.sub(mv(P.frameOf(F.body), s.r), mv(P.frameOf(F.body), v.r))); n._body = s.body;
       const d = marker(`◆ ${fmtV(C.nodeDv(n))} · ${fmtDur(n.t - t)}`, 'nodem' + (n === S.sel ? ' sel' : '')); d.dataset.node = i; const p = place(d, nr); n._rel = nr; n._scr = p; });
+    { // f5.2.3 deployed payloads on rails: orbit ring + marker each, and the tracking list
+      const sats = getSats().filter(o => (o.body || 'earth') === 'earth'), eRel = bodies.earth.rel, Fe = P.frameOf('earth'), mu = B.earth.mu;
+      sats.forEach((o, i) => { let L = satLines[i]; if (!L) { L = satLines[i] = makeLine(0x3fae78, 129); }
+        if (!o._pts) { const T = W_T(o, mu), pts = []; for (let k = 0; k <= 128; k++) pts.push(mv(Fe, P.propagate(o.r, o.v, T * k / 128, mu).r)); o._pts = pts; }
+        const arr = L.geo.attributes.position.array; for (let k = 0; k <= 128; k++) { const q = o._pts[k]; arr[k * 3] = q[0]; arr[k * 3 + 1] = q[1]; arr[k * 3 + 2] = q[2]; }
+        L.geo.attributes.position.needsUpdate = true; L.geo.setDrawRange(0, 129); L.a.position.set(...eRel); L.b.position.copy(L.a.position); L.set(true);
+        const st = P.propagate(o.r, o.v, t - o.t, mu); place(marker('🛰 ' + o.name, 'sat'), V.add(eRel, mv(Fe, st.r))); });
+      for (let k = sats.length; k < satLines.length; k++) satLines[k].set(false);
+      const tr = ui.querySelector('#mapTrack'); tr.classList.toggle('hidden', !sats.length);
+      if (sats.length && (S._trT = (S._trT || 0) - rdt) <= 0) { S._trT = 1; const Rb = B.earth.R;
+        tr.innerHTML = `<h4>🛰 Tracking · ${sats.length} in orbit</h4>` + sats.slice(-12).map(o => { const st = P.propagate(o.r, o.v, t - o.t, mu); return `<div>${o.name} · ${((Math.hypot(...st.r) - Rb) / 1000).toFixed(0)} km</div>`; }).join(''); } }
     for (let k = markerN; k < markerPool.length; k++) markerPool[k].style.display = 'none';
     const n = S.sel && F.nodes.includes(S.sel) ? S.sel : null;
     handles.forEach(hd => { hd.style.display = 'none'; });

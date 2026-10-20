@@ -4,7 +4,7 @@
 // Rungs reuse Mission Design Bot's design: the ops contracts in missions/*.js (constellation-batch, crew-dock,
 // lunar-landing, mars-ship) and the vehicle order of missions/campaign/career.js (sparrow-1 -> heron-9 ->
 // heron-9-crew -> heron-heavy -> colossus). Vehicle ids here are showroom ids (fun/showroom.js MODEL_OF).
-import { CONTRACTS as DESIGN } from '../design/career_contracts.js?v=f5.3b1';
+import { CONTRACTS as DESIGN } from '../design/career_contracts.js?v=f5.3b2';
 export const KEY = 'orbitrush.ladder.v1', VERSION = 2, SANDBOX_KEY = 'orbitrush.sandbox';
 export const START = { vehicles: ['pip', 'hopper', 'needle'], sites: ['atoll'], parts: [], missions: ['hop'] };
 // every lockable thing, for sandbox and the progress screen
@@ -78,6 +78,8 @@ export const unlockedBy = (kind, id) => LADDER.find(c => (c.unlock[kind] || []).
 export function record(s, r, t = Date.now()) {
   const out = { earned: [], cash: 0, sci: 0, unlocks: [], next: null };
   s.flights++;
+  if (r && r.delivered) { const c = r.delivered.cash || 0; s.cash += c; out.cash += c; s.sats = (s.sats || 0) + 1; out.delivered = c; } // f5.2.3: payload delivered to orbit
+  if (r && r.stageRecovered) { const c = r.stageRecovered.cash || 0; s.cash += c; out.cash += c; out.refund = c; } // f5.2.3: recovered spacecraft refund
   if (r && r.missed) { out.next = next(s); s.last = { t, earned: [] }; return out; } // f5.1h (QA): a missed mission pays $0
   for (const c of LADDER) {
     if (s.done[c.id]) continue;

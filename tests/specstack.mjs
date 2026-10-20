@@ -1,9 +1,9 @@
 // f5.2: house rockets with Vehicle Specs' roster data fly their own physics stack (mass, thrust, Isp, stage count).
-import { Flight } from '../flight.js?v=f5.3b1';
-import * as P from '../physics.js?v=f5.3b1';
-import { SPEC_OK, rosterFor, modelled, specDesign, specStages } from '../fun/specstack.js?v=f5.3b1';
-import { audit } from '../fun/stagemap.js?v=f5.3b1';
-import { STAGE_KEYS } from '../gfx/vehicles/stage_keys.js?v=f5.3b1';
+import { Flight } from '../flight.js?v=f5.3b2';
+import * as P from '../physics.js?v=f5.3b2';
+import { SPEC_OK, rosterFor, modelled, specDesign, specStages } from '../fun/specstack.js?v=f5.3b2';
+import { audit } from '../fun/stagemap.js?v=f5.3b2';
+import { STAGE_KEYS } from '../gfx/vehicles/stage_keys.js?v=f5.3b2';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('FAIL', m); } };
 for (const id of SPEC_OK) { const v = rosterFor(id); ok(v && modelled(v), `${id}: roster ${v && v.id} modelled`); if (!v) continue;
   const d = specDesign(v, id, id), S = specStages(v), F = new Flight(JSON.parse(JSON.stringify(d)), {}, {});

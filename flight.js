@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.3b1';
-import * as C from './physics/patched.js?v=f5.3b1';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.3b1';
-import { designReusable } from './vehicles/reusable.js?v=f5.3b1';
+import * as P from './physics.js?v=f5.3b2';
+import * as C from './physics/patched.js?v=f5.3b2';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.3b2';
+import { designReusable } from './vehicles/reusable.js?v=f5.3b2';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -373,16 +373,16 @@ export class Flight {
     if (f.dead) return 'dead';
     if (this.v.auto) this.takeOverUpper();
     if (!this.ignited) { this.ignited = true; v.ut = 1; this.call('sound', 'ignite'); this.toast('IGNITION', '#ffb35c'); return 'ignite'; }
-    const next = v.cur < this.last ? 'stage' : v.fairing > 0 && this.alt > 60000 ? 'fairing' : null;
+    const next = v.cur < this.last ? 'stage' : v.fairing > 0 && this.alt > 60000 ? 'fairing' : this.canRelease() ? 'release' : null;
     if (!next) return 'none';
     if (next === 'stage' && !this.canStage()) { this.toast('Clear the tower first!', '#ffb35c'); return 'blocked'; }
     if (this.stageArm < 0 || this.realT - this.stageArm > STAGE_CONFIRM_S) {
       this.stageArm = this.realT;
-      this.toast(next === 'stage' ? 'Press SPACE again to STAGE' + this.stageWarning() : 'Press SPACE again to drop the fairing', '#ffd23a');
+      this.toast(next === 'stage' ? 'Press SPACE again to STAGE' + this.stageWarning() : next === 'release' ? 'Press SPACE again to RELEASE the payload' : 'Press SPACE again to drop the fairing', '#ffd23a');
       return 'armed';
     }
     this.stageArm = -1;
-    if (next === 'stage') this.stage(); else this.jettison();
+    if (next === 'stage') this.stage(); else if (next === 'release') this.releasePayload(); else this.jettison();
     return next;
   }
   stageWarning() {
@@ -444,6 +444,28 @@ export class Flight {
     const v = this.v, L0 = P.stackGeom(v).L, y0 = P.massProps(v).ycom; fn();
     const L1 = P.stackGeom(v).L, y1 = P.massProps(v).ycom, nose = P.noseOf(v);
     v.r = V.add(v.r, V.scale(nose, (L0 - L1) + y1 - y0)); P.stepVehicle(v, 0);
+  }
+  // f5.2.3 payload lifecycle: the top stage's payload part leaves as its own vehicle (a saved world object on rails)
+  // the payload: satellite stacks, or an uncrewed spacecraft core (probe) riding on a powered top stage (crew capsules
+  // have their own capsule-separation flow)
+  payloadParts() { const top = this.v.stages[this.last]; if (!top || !(top.eng && top.eng.tv > 0)) return [];
+    return top.parts.filter(p => p.kind === 'payload' || (p.kind === 'pod' && p.id !== 'crew' && !(p.mult > 1))); }
+  payloadPart() { return this.payloadParts()[0] || null; }
+  canRelease() { const v = this.v; return !this.released && this.ignited && !this.flags.dead && v.cur === this.last && !!this.payloadPart() && this.alt > 100000 && !(this.ret && this.ret.sepAt); }
+  releasePayload() {
+    if (!this.canRelease()) { if (!this.released && this.payloadPart() && this.alt <= 100000) this.toast('Release the payload above 100 km', '#ffb35c'); return null; }
+    const v = this.v; if (v.fairing > 0) this.jettison();
+    const top = v.stages[this.last], pl = this.payloadParts(), m = pl.reduce((t, q) => t + q.m, 0);
+    // the stage keeps its own avionics (the probe's reaction wheels) so it can still point for the de-orbit burn
+    const rw = pl.reduce((t, q) => t + (q.rw || 0), 0), avi = { id: 'avionics', kind: 'avionics', name: 'Stage avionics', m: 0.05, h: 0.05, d: 1, rw: rw || 2 };
+    this.shiftCom(() => { const i = top.parts.indexOf(pl[0]); top.parts = top.parts.filter(q => !pl.includes(q)); top.parts.splice(Math.max(0, i), 0, avi); v._g = null; });
+    const nrm = V.norm(v.v), rec = { r: v.r.slice(), v: V.addS(v.v, nrm, 1.0), t: this.tAbs, m, body: this.body }; // springs push it 1 m/s ahead of the stage
+    V.addS(v.v, nrm, -1.0 * m / Math.max(0.5, P.massOf(v))).forEach((x, i) => { v.v[i] = x; });
+    const o = P.orbitOf({ ...v, r: rec.r, v: rec.v }); rec.ap = o.ap; rec.pe = o.pe;
+    this.released = rec; this.flags.released = rec;
+    this.call('release', rec); this.call('sound', 'stage');
+    this.toast(o.pe > 140000 ? `🛰 PAYLOAD RELEASED — Ap ${(o.ap / 1000).toFixed(0)} km / Pe ${(o.pe / 1000).toFixed(0)} km. Deorbit the stage: burn retrograde` : `🛰 PAYLOAD RELEASED — Pe ${(o.pe / 1000).toFixed(0)} km: too low, it will re-enter`, o.pe > 140000 ? '#7dffb0' : '#ffb35c');
+    return rec;
   }
   jettison() { const v = this.v; if (v.fairing <= 0) return; v.fairing = 0; this.flags.fairing = 1; this.call('jettison'); this.toast('Fairing separation', '#9cc3ff'); }
   setAuto(on, quiet) {
@@ -840,7 +862,10 @@ export class Flight {
     b.ef = V.norm(V.rotZ(b.r, b.earthRot === false ? 0 : -P.OMEGA_E * b.clock)); b.lift = ok && dist < 40 ? (ship && ship.lz ? 0.4 : DECK) : 0;
   }
   fail(reason, cause) {
-    const f = this.flags; if (f.dead) return;
+    const f = this.flags; if (f.dead || f.deorbited) return;
+    if (this.released && this.body === 'earth' && this.alt < 130000) { // f5.2.3: after release the spent stage burning up or hitting the sea is the planned end
+      f.deorbited = reason; this.v.throttle = this.v.ut = 0; this.autoWarp = false; this.warpI = 0; this.call('deorbited', reason);
+      this.toast('✔ Spent stage de-orbited — ' + reason, '#7dffb0'); this.call('end', 2800, () => true); return; }
     f.dead = reason; f.cause = cause; this.v.throttle = this.v.ut = 0; this.autoWarp = false; this.warpI = 0;
     this.call('fail', reason); this.toast('RUD — ' + reason, '#ff6262'); this.call('end', 2800, () => true);
   }

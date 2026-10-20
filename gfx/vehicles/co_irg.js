@@ -4,7 +4,7 @@
 import { stage, capsule, fin, Kit, kb, tube, lathe, PR, PI, isHi } from './co_gen.js?v=art1';
 import { group, plume } from './co_civspace.js?v=art1';
 // display names: the only place they live (cheap to rename later)
-export const NAMES = { 'new-shepherdish': 'New Shepherd-ish', 'featherwing-1': 'Featherwing I' };
+export const NAMES = { 'new-shepherdish': 'New Shepherd', 'featherwing-1': 'Featherwing I' };
 function ns(o) { const d = o.detail, R = 1.5;
   const a = stage(d, 'booster', { r: R, h: 12.0, y0: 1.6, eng: [[4, 0.6, 0.38, 1.0, PI / 4]], skirt: R * 1.04, bands: [[11.2, 0.4]], decalY: 6,
     extra: k => { tube(k, R * 1.35, R * 1.35, 0.9, 12.0, 'dark', { open: true, seg: isHi(k) ? 40 : 14 }); for (let i = 0; i < 4; i++) fin(k, PI / 4 + i * PI / 2, R, 0.9, 2.6, 0.0, 0.12); } });

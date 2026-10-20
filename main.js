@@ -1,51 +1,52 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.3b1';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.3b2';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.3b1';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.3b1';
-import * as C from './physics/patched.js?v=f5.3b1';
+import * as P from './physics.js?v=f5.3b2';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.3b2';
+import * as C from './physics/patched.js?v=f5.3b2';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.3b1';
-import { createCareerUI } from './fun/career-ui.js?v=f5.3b1';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.3b1';
-import { createSolarMap } from './solarmap.js?v=f5.3b1';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.3b1';
-import { FX } from './fx.js?v=f5.3b1';
-import { createAcademy } from './academy-ui.js?v=f5.3b1';
-import { createMobile, isTouch } from './mobile.js?v=f5.3b1';
-import { localize } from './wording.js?v=f5.3b1';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.3b1';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.3b1';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.3b2';
+import { createCareerUI } from './fun/career-ui.js?v=f5.3b2';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.3b2';
+import { createSolarMap } from './solarmap.js?v=f5.3b2';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.3b2';
+import { FX } from './fx.js?v=f5.3b2';
+import { createAcademy } from './academy-ui.js?v=f5.3b2';
+import { createMobile, isTouch } from './mobile.js?v=f5.3b2';
+import { localize } from './wording.js?v=f5.3b2';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.3b2';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.3b2';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.3b1';
-import * as GX from './gfx/gfx.js?v=f5.3b1';
-import { Director, MISSIONS } from './fun/director.js?v=f5.3b1';
-import * as PR from './fun/progress.js?v=f5.3b1';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.3b1';
-import { createAudio } from './fun/audio.js?v=f5.3b1';
-import { createCompact } from './fun/compact.js?v=f5.3b1';
-import { createHome } from './fun/home.js?v=f5.3b1';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.3b1';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.3b1';
-import { createFunUI } from './fun/ui.js?v=f5.3b1';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.3b1';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.3b1';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.3b1';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.3b1';
-import { specFor, specDesign } from './fun/specstack.js?v=f5.3b1';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.3b1';
-import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.3b1';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.3b2';
+import * as GX from './gfx/gfx.js?v=f5.3b2';
+import { Director, MISSIONS } from './fun/director.js?v=f5.3b2';
+import * as PR from './fun/progress.js?v=f5.3b2';
+import * as WORLD from './fun/world.js?v=f5.3b2';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.3b2';
+import { createAudio } from './fun/audio.js?v=f5.3b2';
+import { createCompact } from './fun/compact.js?v=f5.3b2';
+import { createHome } from './fun/home.js?v=f5.3b2';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.3b2';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.3b2';
+import { createFunUI } from './fun/ui.js?v=f5.3b2';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.3b2';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.3b2';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.3b2';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.3b2';
+import { specFor, specDesign } from './fun/specstack.js?v=f5.3b2';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.3b2';
+import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.3b2';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.3b1';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.3b2';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -698,7 +699,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.3b1', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.3b2', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -758,6 +759,8 @@ const hooks = {
   boosterLost: (b, moving) => { explode(b.r, moving ? b.v : siteVel(b), false); b.mesh.visible = false; b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
   boosterLanded: b => { b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
   fail: () => { explode(v.r, v.v, true, true); rocketG.visible = false; slowMo = 2.5; },
+  release: rec => onRelease(rec), // f5.2.3 payload lifecycle
+  deorbited: () => { explode(v.r, v.v, false, true); rocketG.visible = false; },
   soi: (from, to) => { if (!PROG.visited.includes(to)) { PROG.visited.push(to); PR.save(localStorage, PROG); fun.reveal(to); } else fun.call('🪐', 'Entering ' + P.BODIES[to].name + ' space', '#9cc3ff'); },
   chute: st => { if (st === 'failed') for (let k = 0; k < 30; k++) smoke.spawn(V.sub(v.r, V.scale(P.noseOf(v), -stackL() * 0.5)), jit(v.v, 12), 2, 1, 4, 0xff7a3c, null, 0.6); },
   recovered: () => { const up = V.norm(v.r); for (let k = 0; k < 60; k++) smoke.spawn(v.r, V.add(siteVel(v), V.add(V.scale(up, 4 + Math.random() * 10), [rnd(10), rnd(10), rnd(10)])), 2 + Math.random() * 2, 2, 9, 0xeaf4ff, null, 0.9); },
@@ -879,8 +882,25 @@ function syncStages() {
   const f = SG.length && SG[SG.length - 1].userData.fair; if (f && v.fairing <= 0) f.visible = false; if (v.fairing <= 0) heroFairing2(false); if (v.fairing <= 0) heroFairing(false);
 }
 let chuteVis = null;
+// f5.2.3 payload lifecycle: the released payload is its own object (saved to the world list, drawn here until the flight ends)
+let satVis = null; const smapSats = { c: null, t: 0 };
+const isConstellation = () => /^heron|^swift/.test(design.model || design.name || '') || (opSess && opSess.m && opSess.m.id === 'constellation-batch');
+function payloadName() { const n = WORLD.load(localStorage).objs.length + 1; return (isConstellation() ? 'Constellation sat' : (design.name || 'Payload')) + ' #' + n; }
+function onRelease(rec) {
+  const o = WORLD.add(localStorage, { ...rec, name: payloadName(), group: isConstellation() ? 'constellation' : 'other', model: design.model || null, mission: director ? director.id : null });
+  rec.saved = o; if (o) fun.call('🛰', `${o.name} deployed · ${WORLD.count(WORLD.load(localStorage))} in orbit`, '#7dffb0');
+  if (satVis) freeSat(); const g = new THREE.Group(), gold = new THREE.MeshStandardMaterial({ color: 0xd8b04a, metalness: 0.6, roughness: 0.35 }), pv = new THREE.MeshStandardMaterial({ color: 0x1d3f8f, metalness: 0.3, roughness: 0.4, side: THREE.DoubleSide });
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.2, 1.4), gold)); for (const sx of [-1, 1]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(5, 1.4), pv); w.position.x = sx * 3.3; w.userData.unfold = sx; g.add(w); }
+  scene.add(g); satVis = { g, rec, t: 0 }; updateEndFlightBtn(); }
+function freeSat() { if (!satVis) return; scene.remove(satVis.g); satVis.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); satVis = null; }
+function updateSat(O, pdt) { if (!satVis) return; const s = WORLD.stateAt(satVis.rec, F.tAbs); setRel(satVis.g, s.r, O); dirQ(satVis.g, V.norm(s.r)); satVis.t += pdt;
+  const k = Math.min(1, satVis.t / 4); for (const c of satVis.g.children) if (c.userData.unfold) c.scale.x = Math.max(0.05, k); } // panels unfold
+function updateEndFlightBtn() { let b = $('relBtn'); if (!b) { b = document.createElement('button'); b.id = 'relBtn'; document.body.appendChild(b);
+    b.onclick = e => { e.currentTarget.blur(); if (F.released) { if (!F.ended) showEnd(); } else F.releasePayload(); updateEndFlightBtn(); }; }
+  const on = state === 'flight' && !F.ended && !F.flags.dead && (F.canRelease() || !!F.released);
+  b.classList.toggle('hidden', !on); if (on) { b.textContent = F.released ? '■ End flight' : '🛰 RELEASE'; b.title = F.released ? 'End the flight: everything deployed stays in orbit' : 'Release the payload (or press STAGE)'; b.classList.toggle('rel', !F.released); } }
 function reset() {
-  gen++;
+  gen++; freeSat();
   if (booster && booster.mesh) scene.remove(booster.mesh);
   for (const d of debris) scene.remove(d.mesh); debris.length = 0;
   if (shipVis) earth.remove(shipVis); if (shipVis2) earth.remove(shipVis2); shipVis2 = null; if (booster2 && booster2.mesh) scene.remove(booster2.mesh); booster2 = null;
@@ -933,7 +953,7 @@ const mobile = createMobile({ press, setSAS: m => { if (state === 'flight') { if
 const academy = createAcademy({ setDesign: d => setDesign(cloneDesign(d)), launch, goBuild, toast: (m, c) => toast(m, c),
   ctx: () => ({ state, F: state === 'flight' ? F : null, design, ui: { camMode, mapPanel: typeof smap !== 'undefined' ? smap.panelMode : null, plan: typeof smap !== 'undefined' ? smap.plan : null } }) });
 let mapPost = null;
-const smap = createSolarMap({ renderer, getF: () => F, toast: (m, c) => toast(m, c), touch: TOUCH, gfxQ, settings: SET,
+const smap = createSolarMap({ renderer, getF: () => F, getSats: () => { const now = Date.now(); if (!smapSats.c || now - smapSats.t > 2000) { smapSats.c = WORLD.sats(WORLD.load(localStorage)); smapSats.t = now; } return smapSats.c; }, toast: (m, c) => toast(m, c), touch: TOUCH, gfxQ, settings: SET,
   dvTable: () => dvTableHTML(craftDv(), false),
   onChange: (k, x) => { if (k === 'conic') { SET.conic = x; saveSettings(localStorage, SET); } if (k === 'close') exitMap(); if (k === 'exec') $('tProg').classList.remove('on'); } });
 mapPost = GX.makePost(renderer, smap.scene, smap.camera);
@@ -1186,6 +1206,8 @@ function showEnd() {
   if (flags.recovered) lines.push(`<span class="good">✔ Recovered — touchdown at ${flags.touchdown.toFixed(1)} m/s · peak heating ${(F.maxHeat / 1000).toFixed(0)} kW/m² · peak skin ${F.maxTskin.toFixed(0)} K · ${F.maxGret.toFixed(1)} g on entry</span>`);
   if (flags.stranded && !flags.dead) lines.push(`<span class="warn">${F.advice()}</span>`);
   lines.push(`Max altitude: ${((flags.maxAlt || 0) / 1000).toFixed(1)} km · Max-Q (ascent): ${(F.maxQ / 1000).toFixed(1)} kPa${F.maxQEntry > 1000 ? ` · entry peak q ${(F.maxQEntry / 1000).toFixed(1)} kPa` : ''} · max ${F.maxG.toFixed(1)} g · Δv used ${(F.dvUsed / 1000).toFixed(2)} km/s`);
+  if (F.released) { const sv = F.released.saved, W0 = WORLD.load(localStorage); lines.unshift(sv ? `<b class="good">🛰 ${sv.name} delivered · Pe ${(F.released.pe / 1000).toFixed(0)} km · ${WORLD.count(W0, 'constellation')} in the constellation, ${WORLD.count(W0)} in orbit</b>` : `<b class="warn">🛰 Payload released too low: it will re-enter</b>`); }
+  if (flags.deorbited) lines.push(`<span class="good">✔ Spent stage de-orbited (${flags.deorbited})</span>`); else if (F.released && !flags.recovered) lines.push('<span class="warn">Spent stage left in orbit as debris</span>');
   if (flags.space) lines.push('<span class="good">✔ Reached space (Kármán line, 100 km)</span>');
   if (flags.orbit && !landedOn) lines.push(`<span class="good">✔ Orbit — Ap ${isFinite(o.ap) ? (o.ap / 1000).toFixed(0) + ' km' : 'escape'} / Pe ${(o.pe / 1000).toFixed(0)} km · period ${isFinite(o.T) ? (o.T / 60).toFixed(1) + ' min' : '—'}</span>`);
   if (flags.booster) lines.push(flags.boosterBonus ? `<span class="good">✔ Booster ${flags.booster} (+${flags.boosterBonus})</span>` : `<span class="warn">✘ Booster ${flags.booster}</span>`);
@@ -1209,7 +1231,7 @@ function showEnd() {
   $('shareBtn').textContent = 'Share score';
   // f5 lean end card (playtest ui_ideal_path #14 budget): ONE line + ↻ Retry + ▶ Next + ⋯; everything else lives in the ⋯ sheet
   { const L = out && out.ladder, starTxt = '★'.repeat(stars) + '☆'.repeat(3 - stars);
-    const what = design.sub && flags.space && !director ? 'Touched space ✓' : flags.dead ? 'Crashed' : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${Math.round(apKm)} km` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
+    const what = design.sub && flags.space && !director ? 'Touched space ✓' : flags.dead ? 'Crashed' : F.released && F.released.saved && !director ? 'Delivered · ' + F.released.saved.name : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${Math.round(apKm)} km` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
     const earn = L && (L.cash || L.sci) ? ` <span class="eLine">+$${L.cash}M${L.sci ? ' 🔬' + L.sci : ''}</span>` : '';
     $('endTitle').innerHTML = `<span class="eStars">${starTxt}</span> ${what}${earn}`;
     const nb = $('nextMisBtn'), n = careerUI.next(nb && nb.dataset.after || null); if (nb) nb.dataset.home = director && !stars ? '1' : ''; if (nb) nb.innerHTML = n && !rungLocked(n) && !(director && !stars) ? `▶ Next<small>${rungLabel(n)}</small>` : '▶ Home';
@@ -1533,6 +1555,7 @@ renderer.setAnimationLoop(() => {
     setRel(d.mesh, d.r, O); dirQ(d.mesh, d.dir);
     if (d.gone || d.t > 120) { scene.remove(d.mesh); debris.splice(k, 1); }
   }
+  updateSat(O, pdt); if ((F.met | 0) !== (updateEndFlightBtn.k | 0)) { updateEndFlightBtn.k = F.met; updateEndFlightBtn(); }
   for (const bq of [booster, booster2]) if (bq && bq.mesh && bq.mesh.visible) { // f4.2: each side booster
     setRel(bq.mesh, bq.r, O); dirQ(bq.mesh, bq.dir);
     const bh = V.len(bq.r) - R, legs = bq.mesh.userData.legs; if (legs) legs.visible = bq.state === 'landed' || (bq.state === 'flying' && (bq.legs || bh < 600));
@@ -2063,6 +2086,7 @@ function recordFlight(score) {
   const landed = Object.entries(F.goals || {}).find(([, g]) => g.landed);
   const r = { maxAlt: f.maxAlt || 0, space: !!f.space, orbit: !!f.orbit, boosterLanded: !!(booster && booster.state === 'landed') || !!(F.flagsB && F.flagsB.boosterBonus), recovered: !!f.recovered, visited, landed: landed ? landed[0] : null,
     dead: f.dead || null, maxMach: seen.maxMach || 0, maxHeat: F.maxHeat || 0, stages: v.stages.length, mass: F.stats ? F.stats.mass : 0, fuelLeft: F.orbitSnap ? F.orbitSnap.fuel : top && top.fuelMax ? top.fuel / top.fuelMax : 0, score, mission: director ? director.id : null };
+  { const rl = F.released, sv = rl && rl.saved; if (sv) r.delivered = { cash: isConstellation() ? 15 : 25, name: sv.name }; if (f.recovered) r.stageRecovered = { cash: 10 }; r.deorbited = !!f.deorbited; }
   if (director && director.result && !director.ok) r.mission = null; // f5.1h (QA): a missed mission earns no medal, so the card and ⋯ agree on 0 stars
   const out = PR.record(PROG, r); PR.save(localStorage, PROG);
   // f5 career ladder: the flown showroom vehicle and any ops contract result ride along
@@ -2184,7 +2208,7 @@ function plumeAudit() {
   for (const p of smoke.d) { if (p.life <= 0) continue; const d = [p.x - base[0], p.y - base[1], p.z - base[2]], along = V.dot(d, vh); if (along > 60 || along < -400) continue; const lat = V.len(V.addS(d, vh, -along)); if (p.max - p.life > 2.5) continue; n++; s2 += lat * lat; mx = Math.max(mx, lat); }
   out.smoke = { samp: smoke.d.filter(p => { if (p.life <= 0 || p.max - p.life > 2.5) return false; const al = V.dot([p.x - base[0], p.y - base[1], p.z - base[2]], vh); return al < 60 && al > -400; }).slice(0, 10).map(p => { const d = [p.x - base[0], p.y - base[1], p.z - base[2]], al = V.dot(d, vh); return [+(p.max - p.life).toFixed(1), Math.round(al), Math.round(V.len(V.addS(d, vh, -al)))]; }), n, rms: n ? +Math.sqrt(s2 / n).toFixed(1) : 0, max: +mx.toFixed(1) }; return out;
 }
-window.__game = { mem: () => { const m = renderer.info.memory || {}; let meshes = 0, geo = new Set(); scene.traverse(o => { if (o.isMesh) { meshes++; geo.add(o.geometry); } }); return { geometries: m.geometries, textures: m.textures, programs: renderer.info.programs ? renderer.info.programs.length : null, meshes, sceneGeo: geo.size, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }; }, stageDbg: c => { if (!hero) return { model: design.model || null, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0) }; heroStage(c); const lv = (hero.levels || [{ object: hero }])[0].object, st = (lv.userData && lv.userData.stages) || {}; const r = { model: design.model, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0), hidden: Object.keys(st).filter(k => !st[k].visible), shown: Object.keys(st).filter(k => st[k].visible) }; heroStage(v.cur); return r; }, opDbg: () => ({ on: !!opSess, id: opSess && opSess.m.id, done: opSess && opSess.done, failed: opSess && opSess.failed, task: opSess && opSess.task && opSess.task.kind, lastOp, ended: F.ended, state }), get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
+window.__game = { flight: () => F, mem: () => { const m = renderer.info.memory || {}; let meshes = 0, geo = new Set(); scene.traverse(o => { if (o.isMesh) { meshes++; geo.add(o.geometry); } }); return { geometries: m.geometries, textures: m.textures, programs: renderer.info.programs ? renderer.info.programs.length : null, meshes, sceneGeo: geo.size, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }; }, stageDbg: c => { if (!hero) return { model: design.model || null, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0) }; heroStage(c); const lv = (hero.levels || [{ object: hero }])[0].object, st = (lv.userData && lv.userData.stages) || {}; const r = { model: design.model, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0), hidden: Object.keys(st).filter(k => !st[k].visible), shown: Object.keys(st).filter(k => st[k].visible) }; heroStage(v.cur); return r; }, opDbg: () => ({ on: !!opSess, id: opSess && opSess.m.id, done: opSess && opSess.done, failed: opSess && opSess.failed, task: opSess && opSess.task && opSess.task.kind, lastOp, ended: F.ended, state }), get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
     const c0 = b.mesh.getWorldPosition(new THREE.Vector3()), p0 = c0.clone().project(cam), p1 = c0.clone().add(ny.clone().multiplyScalar(10)).project(cam), up = V.norm(b.r);
     const cu = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion), crt = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
     return { id: b.id || 'A', replay: !!(i === 0 && split.replay), state: b.state, phase: b.phase, meshVsDir: +(ny.x * b.dir[0] + ny.y * b.dir[1] + ny.z * b.dir[2]).toFixed(3), dirUp: +V.dot(b.dir, up).toFixed(3), noseScreenUp: +(p1.y - p0.y).toFixed(4), onScreen: Math.abs(p0.x) < 1 && Math.abs(p0.y) < 1 && p0.z < 1, camUpRadial: +(cu.x * up[0] + cu.y * up[1] + cu.z * up[2]).toFixed(3), roll: +(crt.x * up[0] + crt.y * up[1] + crt.z * up[2]).toFixed(3), R2: S.dbg.R2 }; }), dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds, lod: earthLOD.group }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
