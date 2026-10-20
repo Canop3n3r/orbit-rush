@@ -38,12 +38,12 @@ export function mat(key) {
     case 'decal': m = new S({ map: decalTexture(arg), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, roughness: 0.5, metalness: 0.1 }); break;
     default: m = new S({ color: 0xff00ff });
   }
-  m.name = key; MATS.set(key, m); return m;
+  m.name = key; m.userData.cached = true; for (const v of Object.values(m)) if (v && v.isTexture) v.userData.cached = true; MATS.set(key, m); return m;
 }
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3(), _p = new THREE.Vector3();
 export function xf(p = [0, 0, 0], r = [0, 0, 0], s = [1, 1, 1]) { _e.set(r[0], r[1], r[2], 'YXZ'); _q.setFromEuler(_e); return new THREE.Matrix4().compose(_p.set(...p), _q, _s.set(...(typeof s === 'number' ? [s, s, s] : s))); }
 export class Kit {
-  constructor(detail = 'hi') { this.detail = detail; this.hi = detail === 'hi'; this.b = new Map(); this.stack = [new THREE.Matrix4()]; this.seg = this.hi ? 40 : 14; }
+  constructor(detail = 'hi') { this.detail = detail; this.hi = detail !== 'lo'; this.mid = detail === 'mid'; this.b = new Map(); this.stack = [new THREE.Matrix4()]; this.seg = detail === 'hi' ? 40 : detail === 'mid' ? 18 : 14; }
   push(m) { this.stack.push(this.stack[this.stack.length - 1].clone().multiply(m)); return this; }
   pop() { this.stack.pop(); return this; }
   add(geo, key, m) { let g = geo.index ? geo.toNonIndexed() : geo; for (const a of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(a)) g.deleteAttribute(a);
@@ -55,3 +55,27 @@ export class Kit {
       if (k === 'steel') { const p = g.attributes.position, t = new Float32Array(p.count * 4); for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), l = Math.hypot(x, z) || 1; t[i * 4] = z / l; t[i * 4 + 2] = -x / l; t[i * 4 + 3] = 1; } g.setAttribute('tangent', new THREE.BufferAttribute(t, 4)); } g.computeBoundingSphere(); const mesh = new THREE.Mesh(g, mat(k)); mesh.name = name + ':' + k; if (k.startsWith('decal')) mesh.renderOrder = 2; grp.add(mesh); tris += g.attributes.position.count / 3; }
     grp.userData.tris = tris; return grp; }
 }
+
+// ---- perf helpers (QA perf report rockets-1) ----
+// shared-geometry cache: identical merged geometries (e.g. titan v3/v4 boosters) are stored once, refcounted
+const GEO = new Map(); let _gid = 0;
+function geoKey(g) { const p = g.attributes.position.array, n = p.length; let h = n; for (let i = 0; i < n; i += Math.max(1, (n / 512) | 0)) h = (h * 31 + Math.round(p[i] * 1000)) | 0; return n + ':' + h + ':' + p[n - 1]; }
+export function shareGeometries(group) { group.traverse(m => { if (!m.isMesh || m.geometry.userData.shared) return; const k = geoKey(m.geometry) + (m.geometry.attributes.tangent ? 't' : ''), e = GEO.get(k);
+  if (e) { m.geometry.dispose(); m.geometry = e.g; e.refs++; } else { m.geometry.userData.shared = k; GEO.set(k, { g: m.geometry, refs: 1 }); } }); return group; }
+export const geometryCacheSize = () => GEO.size;
+// compact: merge every mesh with the same material (in group space) into one mesh; subtrees named in keep (animated legs) stay
+export function compact(group, keep = ['legs']) { const by = new Map(), drop = []; group.updateMatrixWorld(true); const inv = group.matrixWorld.clone().invert();
+  group.traverse(o => { if (o === group) return; let p = o; while (p && p !== group) { if (keep.includes(p.name)) return; p = p.parent; }
+    if (o.isMesh) { const g = o.geometry.clone(); g.applyMatrix4(inv.clone().multiply(o.matrixWorld)); if (g.attributes.tangent) g.deleteAttribute('tangent'); (by.get(o.material) || by.set(o.material, []).get(o.material)).push(g); drop.push(o); } });
+  for (const o of drop) { o.parent.remove(o); if (!o.geometry.userData.shared) o.geometry.dispose(); }
+  for (const g of group.children.slice()) if (!g.isMesh && !keep.includes(g.name) && !g.children.some(c => c.isMesh || c.children.length)) { /* emptied stage group: keep as an (empty) handle for userData.stages */ }
+  for (const [m, gs] of by) { const g = mergeGeometries(gs); for (const x of gs) x.dispose();
+    if (m.name === 'steel') { const p = g.attributes.position, t = new Float32Array(p.count * 4); for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), l = Math.hypot(x, z) || 1; t[i * 4] = z / l; t[i * 4 + 2] = -x / l; t[i * 4 + 3] = 1; } g.setAttribute('tangent', new THREE.BufferAttribute(t, 4)); }
+    g.computeBoundingSphere(); const mesh = new THREE.Mesh(g, m); mesh.name = 'merged:' + m.name; if (m.name.startsWith('decal')) mesh.renderOrder = 2; group.add(mesh); }
+  return group; }
+// dispose: free a vehicle's GPU/JS memory when it is swapped out. Cached (shared) materials/textures are kept; shared
+// geometries are refcounted and freed when the last user goes.
+export function dispose(group) { const seen = new Set(); group.traverse(o => { if (!o.isMesh && !o.isSprite) return; const g = o.geometry;
+  if (g && !seen.has(g)) { seen.add(g); const k = g.userData.shared; if (k) { const e = GEO.get(k); if (e && --e.refs <= 0) { GEO.delete(k); g.dispose(); } } else g.dispose(); }
+  for (const m of [].concat(o.material || [])) if (!m.userData?.cached) { for (const v of Object.values(m)) if (v && v.isTexture && !v.userData?.cached) v.dispose(); m.dispose(); } });
+  group.removeFromParent(); }

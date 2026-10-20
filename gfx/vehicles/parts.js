@@ -11,10 +11,11 @@ export function tube(k, r0, r1, h, y, key, o = {}) { const g = new THREE.Cylinde
 export function ogive(k, r, L, y, key, tip = 0.06) { lathe(k, PR.ogive(r, L, y, k.hi ? 18 : 7, tip), key); }
 // rocket bell: exit radius re at y, throat rt, length L, regen look; ext = radiative extension fraction (vacuum)
 export function bell(k, re, L, x, y, z, o = {}) {
-  const rt = o.rt || re * 0.38, pts = [], n = k.hi ? 12 : 5;
+  const rt = o.rt || re * 0.38, pts = [], n = k.mid ? 6 : k.hi ? 12 : 5;
   for (let i = 0; i <= n; i++) { const t = i / n; pts.push(new THREE.Vector2(rt + (re - rt) * Math.pow(1 - t, 1.7), t * L)); }
-  k.add(new THREE.LatheGeometry(pts, k.hi ? 28 : 10), o.ext ? 'bellx' : 'bell', xf([x, y, z]));
+  k.add(new THREE.LatheGeometry(pts, k.mid ? 12 : k.hi ? 28 : 10), o.ext ? 'bellx' : 'bell', xf([x, y, z]));
   if (!k.hi) return;
+  if (k.mid) { const hp = o.head ?? L * 0.42; tube(k, rt * 1.25, rt * 1.1, hp * 0.55, y + L, 'grey', { x, z, seg: 8 }); k.add(new THREE.SphereGeometry(rt * 1.15, 8, 3, 0, 2 * PI, 0, PI / 2), 'dark', xf([x, y + L + hp * 0.55, z])); return; } // mid: chamber + dome only
   k.add(new THREE.TorusGeometry(re, re * 0.025, 4, 28), 'dark', xf([x, y + 0.01, z], [PI / 2, 0, 0])); // exit stiffener
   const hp = o.head ?? L * 0.42; // powerhead: chamber, injector dome, turbopump, gimbal
   tube(k, rt * 1.25, rt * 1.1, hp * 0.55, y + L, 'grey', { x, z, seg: 14 });
@@ -39,15 +40,15 @@ export function legs(KitC, detail, r, len, y, n = 4, a0 = PI / 4) {
   const g = new THREE.Group(); g.name = 'legs'; g.userData.pivots = []; g.userData.arms = [];
   const unit = new THREE.CylinderGeometry(1, 1, 1, 8); unit.translate(0, 0.5, 0);
   for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI, piv = new THREE.Group(); piv.position.set(Math.cos(a) * (r + 0.02), y, Math.sin(a) * (r + 0.02)); piv.rotation.y = -a;
-    const k = new KitC(detail);
+    const k = new KitC(detail), lean = detail !== 'hi', K = key => lean ? 'carbon' : key; // mid/lo: one material per leg, no telescoping arms (draw calls)
     // tapered triangular-section leg: wide at the hinge, narrow at the foot; sits flush (0.22 m proud of the hull)
     const sh = new THREE.Shape(); sh.moveTo(-0.75, 0); sh.lineTo(0.75, 0); sh.lineTo(0.32, len); sh.lineTo(-0.32, len); sh.closePath();
-    const lg = new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }); k.add(lg, 'carbon', new THREE.Matrix4().makeRotationY(PI / 2));
-    k.add(new THREE.BoxGeometry(0.06, len * 0.92, 0.1), 'grey', xf([0.23, len * 0.5, 0])); // centre spine / arm recess
-    k.add(new THREE.CylinderGeometry(0.42, 0.5, 0.18, k.hi ? 16 : 8), 'dark', xf([0.2, len + 0.02, 0], [0, 0, PI / 2])); // foot pad (crush core)
-    k.add(new THREE.BoxGeometry(0.3, 0.5, 1.2), 'dark', xf([0.1, 0.25, 0])); // hinge clevis
+    const lg = new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }); k.add(lg, K('carbon'), new THREE.Matrix4().makeRotationY(PI / 2));
+    k.add(new THREE.BoxGeometry(0.06, len * 0.92, 0.1), K('grey'), xf([0.23, len * 0.5, 0])); // centre spine / arm recess
+    k.add(new THREE.CylinderGeometry(0.42, 0.5, 0.18, k.hi ? 16 : 8), K('dark'), xf([0.2, len + 0.02, 0], [0, 0, PI / 2])); // foot pad (crush core)
+    k.add(new THREE.BoxGeometry(0.3, 0.5, 1.2), K('dark'), xf([0.1, 0.25, 0])); // hinge clevis
     piv.add(k.build('leg')); g.add(piv); g.userData.pivots.push(piv);
-    const outer = new THREE.Mesh(unit, mat('grey')), inner = new THREE.Mesh(unit, mat('tiframe')); g.add(outer, inner);
+    if (lean) continue; const outer = new THREE.Mesh(unit, mat('grey')), inner = new THREE.Mesh(unit, mat('tiframe')); g.add(outer, inner);
     g.userData.arms.push({ piv, outer, inner, A: new THREE.Vector3(Math.cos(a) * (r - 0.1), y + len * 0.42, Math.sin(a) * (r - 0.1)), tipL: new THREE.Vector3(0.24, len * 0.86, 0) }); }
   setLegs(g, 0); return g;
 }

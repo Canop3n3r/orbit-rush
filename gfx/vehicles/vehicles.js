@@ -7,7 +7,8 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { Kit, xf, mat } from './kit.js?v=art1';
+import { Kit, xf, mat, compact, shareGeometries, dispose, geometryCacheSize } from './kit.js?v=art1';
+export { dispose, geometryCacheSize };
 import * as PR from './profiles.js?v=art1';
 import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
 export { setLegs, mat };
@@ -55,7 +56,8 @@ function sparrow(o) { const d = o.detail, k = new Kit(d), r = 0.835;
   tube(k, r, r, 1.2, 15.75, 'carbon'); const b = k.build('booster');
   const u = new Kit(d); bell(u, 0.42, 1.0, 0, 16.0, 0, { ext: true, rt: 0.12, head: 0.3 }); tube(u, r, r, 2.4, 16.95, 'silver'); decal(u, 'upper.side', r, 17.2, 1.4, 0, 1.2); const U = u.build('upper');
   const f = fairing(d, 18.85, 0.75, 0.6, 1.85, 0.66, 0.6); return group('sparrow', [b, U, f], 21.3); }
-function heronHeavy(o) { const d = o.detail, c = core9(d, o), u = upper(d, { y0: 46.0 }), f = fairing(d, u.userData.top), kids = [c, u, f];
+function heronHeavy(o) { const d = o.detail === 'hi' ? 'mid' : o.detail, // phone budget: hi = mid-detail cores (≤20k tris, ≤30 meshes)
+   c = core9(d, o), u = upper(d, { y0: 46.0 }), f = fairing(d, u.userData.top), kids = [c, u, f];
   for (const s of [-1, 1]) { const b = core9(d, { ...o, nose: true, H: 40.9 }); b.name = s < 0 ? 'side0' : 'side1'; b.position.x = s * 3.86; b.rotation.y = s < 0 ? PI : 0; kids.push(b); }
   const k = new Kit(d); for (const s of [-1, 1]) { for (const y of [4.5, 38.5]) strut(k, [s * 1.8, y, 0], [s * 2.05, y, 0], 0.3, 'dark'); if (k.hi) strut(k, [s * 1.8, 37, 0.6], [s * 2.05, 39, 0.6], 0.12, 'grey'); }
   kids.push(k.build('struts')); return group('heron-heavy', kids, f.userData.top); }
@@ -114,6 +116,7 @@ function catchTower(o) { const k = new Kit(o.detail), W = 12, H = 146, TX = -24,
 // ---- payloads ----
 function roadster(o) { const k = new Kit(o.detail);
   tube(k, 1.2, 0.9, 0.8, 0, 'dark'); // payload adapter
+  tube(k, 0.55, 0.45, 0.6, 0.78, 'dark'); // mount bracket up into the chassis (no floating car)
   k.push(xf([0, 1.25, 0], [0.25, 0.6, 0.1]));
   const body = new THREE.SphereGeometry(1, k.hi ? 32 : 12, k.hi ? 16 : 8); k.add(body, 'red', xf([0, 0.45, 0], [0, 0, 0], [2.0, 0.42, 0.9]));
   k.add(new THREE.BoxGeometry(3.6, 0.35, 1.7), 'red', xf([0, 0.35, 0]));
@@ -143,8 +146,11 @@ export const VEHICLES = {
   'payload-roadster': { height: 3.2, build: roadster, src: 'generic roadster-style car (art)', est: ['all'] },
   'payload-flatsat-stack': { height: 5.6, build: satStack, src: 'specs sheet flatsat-style flat-pack stack (art)', est: ['plate size'] },
 };
-export function build(id, o = {}) { const V = VEHICLES[id]; const g = V.build({ detail: 'hi', ...o }); g.userData.id = id; g.userData.detail = o.detail || 'hi';
+// detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
+export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
+  if (det === 'lo') { compact(g, []); g.userData.legs = []; } else if (det === 'mid' || id === 'heron-heavy') compact(g); shareGeometries(g); // lo: legs baked at o.legs (static)
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)
-export function buildLOD(id, o = {}) { const lod = new THREE.LOD(), hi = build(id, { ...o, detail: 'hi' }), lo = build(id, { ...o, detail: 'lo' }), h = VEHICLES[id].height;
+// o.phone: the near level uses 'mid' (titan ~11k instead of ~53k tris)
+export function buildLOD(id, o = {}) { const lod = new THREE.LOD(), hi = build(id, { ...o, detail: o.phone ? 'mid' : 'hi' }), lo = build(id, { ...o, detail: 'lo' }), h = VEHICLES[id].height;
   lod.addLevel(hi, 0); lod.addLevel(lo, Math.max(60, h * 6)); lod.userData = { ...hi.userData, hi, lo }; lod.name = id; return lod; }
