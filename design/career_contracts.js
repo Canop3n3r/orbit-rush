@@ -22,14 +22,14 @@ export const CONTRACTS = [
     cost: 2, reward: { cash: 10, sci: 2, rep: 2 }, unlock: { missions: ['karman-line'] },
     inspiration: [
       { company: 'spacey', vehicle: 'hopper-h', note: 'low-altitude test hops of a landing booster prototype (2012-2014)' },
-      { company: 'baltic', vehicle: 'a-four', note: 'early liquid-fuel test launches from a coastal range (1942)' },
+      { company: 'baltic', vehicle: 'baltic-hammer', note: 'early liquid-fuel test launches from a coastal range (1942)' },
       { company: 'nosa', vehicle: 'redrock', note: 'short crewed up-and-down lob (1961)' }] },
   { id: 'karman-line', rung: 'karman', mission: null, vehicle: 'needle', site: 'atoll',
     goal: { text: 'Cross 100 km: you are in space', kind: 'apogee-min', m: 100000 },
     cost: 5, reward: { cash: 20, sci: 8, rep: 5 }, unlock: { sites: ['cape-north'], missions: ['first-orbit'] },
     inspiration: [
-      { company: 'baltic', vehicle: 'a-four', note: 'first object to cross 100 km (1944)' },
-      { company: 'other', vehicle: 'spacecraft-uno', note: 'first privately built crewed craft past 100 km, twice in two weeks (2004)' }] },
+      { company: 'baltic', vehicle: 'baltic-hammer', note: 'first object to cross 100 km (1944)' },
+      { company: 'other', vehicle: 'featherwing-1', note: 'first privately built crewed craft past 100 km, twice in two weeks (2004)' }] },
   { id: 'first-orbit', rung: 'orbit', mission: 'first-orbit', vehicle: 'needle', site: 'atoll',
     goal: { text: 'Reach a stable orbit', kind: 'orbit' },
     cost: 10, reward: { cash: 40, sci: 12, rep: 10 }, unlock: { vehicles: ['swift'], missions: ['booster-landing'] },
@@ -76,5 +76,5 @@ export const CONTRACTS = [
 
 // Inspiration ids above (neutral, from the studio roster plan; tier-S rows land with roster PRs #15-#25).
 export const INSPIRATION_COMPANIES = ['spacey', 'baltic', 'nosa', 'other', 'redstar', 'blueh', 'rockwell', 'calt', 'ulx'];
-export const INSPIRATION_VEHICLES = ['hopper-h', 'a-four', 'redrock', 'spacecraft-uno', 'sparrow-1', 'soyuzny', 'heron-9', 'heron-heavy',
+export const INSPIRATION_VEHICLES = ['hopper-h', 'baltic-hammer', 'redrock', 'featherwing-1', 'sparrow-1', 'soyuzny', 'heron-9', 'heron-heavy',
   'new-glendale', 'heron-9-crew', 'space-truck', 'long-stride-2f', 'saturnine-v', 'long-stride-5', 'super-lift', 'n-won', 'atlantean-v', 'titan-ss'];
