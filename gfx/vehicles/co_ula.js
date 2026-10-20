@@ -21,7 +21,7 @@ function ccb(d) { const k = new Kit(d);
   for (const sx of [-0.55, 0.55]) bell(k, 0.75, 2.8, sx, 0, 0, { head: 0.6, rt: 0.28 }); // twin-chamber kerosene engine
   tube(k, AR * 1.02, AR, 1.4, 2.4, 'dark'); tube(k, AR, AR, CCB - 3.8, 3.8, 'x-salmon', { hs: 1 }); for (const y of [12, 22]) ring(k, AR, y, 0.02, 'x-salmon2');
   k.add(new THREE.BoxGeometry(0.35, CCB - 6, 0.4), 'x-salmon2', xf([AR + 0.15, CCB / 2, 0])); decal(k, 'booster.side', AR, 16, 4, PI, 0.9);
-  const g = swap(k.build('ccb'), {}); g.userData.top = CCB + 2.4; return g; }
+  const g = swap(k.build('ccb'), {}); g.userData.top = CCB; return g; } // upper stage sits right on the core top
 function upperStage(d, y0, n, exposed) { const k = new Kit(d), h = 12.7;
   if (exposed) tube(k, AR, CR, 3.2, y0, 'paint:0,0'); // conical interstage adapter (4 m fairing versions)
   for (const [x, z] of n === 2 ? [[-0.6, 0], [0.6, 0]] : [[0, 0]]) bell(k, 0.55, 1.9, x, y0 + 0.3, z, { ext: true, head: 0.4, rt: 0.15 });
@@ -32,7 +32,7 @@ function atl(o, cfg) { const d = o.detail, f = +cfg[0], s = +cfg[1], e = +cfg[2]
   let top;
   if (f === 4) { const c = upperStage(d, y0, e, true); kids.push(c); const k = new Kit(d), y = c.userData.top, p = PR.fairing(PR.ULX.f4.r, 6.5, PR.ULX.f4.nose, y, CR, k.hi ? 20 : 8, 1.3);
     lathe(k, p, 'paint:0,0'); if (k.hi) for (const ph of [0, PI]) lathe(k, p.slice(1), 'dark', { s: 1.003, seg: 1, p0: ph - 0.004, pl: 0.008 }); const pay = k.build('payload'); kids.push(pay); top = p.at(-1)[1]; }
-  else { const c = upperStage(d, y0, e, false); kids.push(c); const k = new Kit(d), L = s >= 3 ? 12 : 12, p = PR.fairing(PR.ULX.f5.r, L + 2.5, PR.ULX.f5.nose, y0, AR, k.hi ? 20 : 8, 0.5); // 5 m fairing encloses the upper stage
+  else { const c = upperStage(d, y0, e, false); kids.push(c); const k = new Kit(d), L = 19.8, p = PR.fairing(PR.ULX.f5.r, L, PR.ULX.f5.nose, y0, AR, k.hi ? 20 : 8, 0.5); // 5 m fairing encloses the upper stage
     lathe(k, p, 'paint:0,0'); tube(k, PR.ULX.f5.r * 1.005, PR.ULX.f5.r * 1.005, 0.4, y0 + 2.2, 'grey', { open: true }); if (k.hi) for (const ph of [0, PI]) lathe(k, p.slice(1), 'dark', { s: 1.003, seg: 1, p0: ph - 0.004, pl: 0.008 });
     decal(k, 'fairing.side', PR.ULX.f5.r, y0 + 8, 3, PI / 2, 0.9); const pay = k.build('payload'); kids.push(pay); top = p.at(-1)[1]; }
   const g = group('atlantean-v-' + cfg, kids, top);
@@ -58,7 +58,7 @@ function dlt(o, cfg) { const d = o.detail, heavy = cfg === 'heavy', five = heavy
   kids.push(k.build('payload')); const top = p.at(-1)[1], g = group('deltoid-4-' + cfg, kids, top);
   if (o.plume) g.add(plume(0, heavy ? [[0, 0], [-2 * DR - 0.15, 0], [2 * DR + 0.15, 0]] : [[0, 0]], 2.2, 45 * o.plume)); return g; }
 const ATL = ['401', '411', '421', '431', '501', '511', '521', '531', '541', '551'];
-const ATL_H = { 4: 58.3, 5: 62.4 };
+const ATL_H = { 4: 58.6, 5: 62.2 };
 export const CO_ULX = {
   ...Object.fromEntries(ATL.map(c => ['atlantean-v-' + c, { height: ATL_H[c[0]], build: o => atl(o, c), src: `rocketdb atlantean-v (GCAT) config ${c}: fairing ${c[0]} m class, ${c[1]} solids, ${c[2]} upper engine(s)`, est: ['fairing length'] }])),
   'deltoid-4-m': { height: 63, build: o => dlt(o, 'm'), src: 'rocketdb deltoid-4 Medium (GCAT): 4 m upper + fairing', est: ['fairing length'] },
