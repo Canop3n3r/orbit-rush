@@ -13,7 +13,7 @@ export function fin(k, a, r, w, h, y, t = 0.08, key = 'dark') { const s = new TH
   const g = new THREE.ExtrudeGeometry(s, { depth: t, bevelEnabled: false }); g.translate(0, 0, -t / 2); k.add(g, key, xf([0, y, 0], [0, a, 0])); }
 // generic stage: cylinder r x h from y0, engines [[n, ringR, re, L, a0]] hanging below y0 (+ drop), body key, optional bands [[y, h, key]]
 export function stage(d, name, { r, h, y0, eng = [], drop = 0, key = 'paint:0,0', bands = [], r1, skirt, ext, quad, decalY, extra } = {}) { const k = new Kit(d);
-  for (const [n, rr, re, L, a0 = 0] of eng) for (const [x, z] of ringPos([[n, rr, a0]])) bell(k, re, L, x, y0 - drop, z, { ext, head: L * 0.25, rt: re * 0.36 });
+  for (const [n, rr, re, L, a0 = 0] of eng) for (const [x, z] of ringPos([[n, rr, a0]])) bell(k, re, L, x, y0 - (drop || L), z, { ext, head: L * 0.25, rt: re * 0.36 }); // drop 0: bells hang below the tank (exit at y0 - L)
   if (skirt) tube(k, skirt, r, Math.min(1.5, h * 0.1), y0, 'dark'); tube(k, r, r1 ?? r, h, y0, key, { hs: 1 });
   for (const [y, bh, bk = 'dark'] of bands) band(k, r, y0 + y, bh, bk); if (quad) quads(k, r, y0 + quad[0], quad[1]); if (decalY) decal(k, 'booster.side', r, y0 + decalY, Math.min(5, h * 0.3), PI / 2, 0.6);
   if (extra) extra(k); return kb(k, name, y0 + h); }
