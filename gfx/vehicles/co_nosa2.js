@@ -1,6 +1,6 @@
-// co-nosa-2: NOSA heritage, tier A — Redrock (1.78 m finned single stage; warhead nose, or crew capsule + escape tower), JunoIsh I
+// co-nosa-2: NOSA heritage, tier A — Redrock (1.78 m finned single stage; warhead nose, or crew capsule + escape tower), Junebug I
 // (Redrock body + spinning cluster tub + pencil probe) and Saturnine I / IB (8-tank clustered first stage with 8 engines and fins;
-// 6-engine 5.5 m upper (I) or single-engine 6.6 m upper (IB); capsule stack with tower). rocketdb redrock / junoish-1 / saturnine-1.
+// 6-engine 5.5 m upper (I) or single-engine 6.6 m upper (IB); capsule stack with tower). rocketdb redrock / junebug-1 / saturnine-1.
 import * as THREE from 'three/webgpu';
 import { Kit, xf, weakDisposeListeners } from './kit.js?v=art1';
 import * as PR from './profiles.js?v=art1';
@@ -32,7 +32,7 @@ function spinTub(o) { const d = o.detail, b = redBooster(d), y0 = b.userData.top
   if (t.hi) for (const [x, z] of ringPos([[11, 0.47, 0]])) tube(t, 0.07, 0.07, 1.3, y0 + 1.0, 'dark', { x, z, seg: 6 });
   const tub = t.build('tub'); tub.userData.top = y0 + 2.25;
   const p = new Kit(d), y1 = y0 + 2.25; tube(p, 0.08, 0.08, 1.3, y1, 'dark', { seg: p.hi ? 10 : 6 }); tube(p, 0.08, 0.08, 0.2, y1 + 0.5, 'grey', { seg: 10 }); lathe(p, PR.ogive(0.08, 0.25, y1 + 1.3, 6, 0.01), 'dark', { seg: p.hi ? 10 : 6 });
-  const pay = p.build('payload'); pay.userData.top = y1 + 1.55; const g = group('junoish-1', [b, tub, pay], pay.userData.top); if (o.plume) g.add(plume(0, [[0, 0]], 0.42, 14 * o.plume)); return g; }
+  const pay = p.build('payload'); pay.userData.top = y1 + 1.55; const g = group('junebug-1', [b, tub, pay], pay.userData.top); if (o.plume) g.add(plume(0, [[0, 0]], 0.42, 14 * o.plume)); return g; }
 // ---- Saturnine I / IB first stage: 2.67 m centre tank + 8 x 1.78 m outer tanks (alternating livery), 8 engines, 8 fins (IB) / 4 (I)
 const SC = 1.335, SO = 0.89, SOFF = 2.22, SR = 3.25;
 function sib(d, nf) { const k = new Kit(d), y0 = 2.6, h = 22.6;
@@ -58,7 +58,7 @@ function sat1(o, ib) { const d = o.detail, a = sib(d, ib ? 8 : 4), b = s4(d, a.u
 export const CO_NOSA2 = {
   'redrock': { height: 21.1, build: o => redrock(o, false), src: 'rocketdb redrock (GCAT): 1.78 m body 17.4 m + nose', est: ['nose length'] },
   'redrock-crew': { height: 25.8, build: o => redrock(o, true), src: 'rocketdb redrock crew config: adapter + 1.9 m capsule + escape tower', est: ['tower geometry'] },
-  'junoish-1': { height: 21.2, build: spinTub, src: 'rocketdb junoish-1 (GCAT): body + 11-motor spin tub + pencil probe', est: ['tub size'] },
+  'junebug-1': { height: 21.2, build: spinTub, src: 'rocketdb junebug-1 (GCAT): body + 11-motor spin tub + pencil probe', est: ['tub size'] },
   'saturnine-1': { height: 62.3, build: o => sat1(o, false), src: 'rocketdb saturnine-1 (I, block II): 8-tank first stage 4 fins, 6-engine 5.5 m upper, boilerplate crew stack', est: ['crew stack'] },
   'saturnine-1b': { height: 67.9, build: o => sat1(o, true), src: 'rocketdb saturnine-1 (IB): 8 fins, single-engine 6.6 m upper, crew stack + tower', est: ['adapter length'] },
 };
