@@ -1,6 +1,6 @@
-// co-krasnaya-2: Krasnaya Orbita Bureau — Energika: 7.75 m hydrogen core with 4 engines, four 3.9 m kerosene strap-ons (one
-// 4-chamber engine each, cone noses), side-mounted cargo pod (no orbiter; the 'Buranchik' orbiter option is planned).
-// rocketdb energika (GCAT) + design.md; dims art-fitted. No logos/names.
+// co-krasnaya-2: Krasnaya Orbita Bureau — Mogutny: 7.75 m hydrogen core with 4 engines, four 3.9 m kerosene strap-ons (one
+// 4-chamber engine each, cone noses), side-mounted cargo pod (no orbiter; the glider option is planned).
+// rocketdb mogutny (GCAT) + design.md; dims art-fitted. No logos/names.
 import { stage, nose, kb, Kit, tube, lathe, PR, ring, PI, isHi, livery, xf } from './co_gen.js?v=art1';
 import * as THREE from 'three/webgpu';
 import { group, plume } from './co_nosa.js?v=art1';
@@ -12,7 +12,7 @@ function strap(d, i) { const a = ANG[i], g = stage(d, 'side' + i, { r: RS, h: 33
 function pod(d) { const k = new Kit(d); tube(k, 2.05, 2.05, 30, 14.0, 'paint:0,0'); lathe(k, PR.ogive(2.05, 7.5, 44.0, k.hi ? 14 : 6, 0.1), 'paint:0,0'); tube(k, 2.0, 2.05, 1.2, 12.8, 'dark');
   if (isHi(k)) ring(k, 2.05, 28, 0.02);
   const g = kb(k, 'payload', 51.5); g.position.set(PX, 0, 0); return g; }
-// 'Buranchik' orbiter: delta-wing glider mounted belly-to-core, nose up (no main engines; small tail thrusters), black belly
+// glider: delta-wing glider mounted belly-to-core, nose up (no main engines; small tail thrusters), black belly
 function orbiter(d) { const k = new Kit(d), X = R + 2.9, y0 = 13.0, L = 31.0;
   k.add(new THREE.CylinderGeometry(2.6, 2.6, L, isHi(k) ? 28 : 12, 1).scale(0.85, 1, 1), 'paint:0,0', xf([0, y0 + L / 2, 0]));
   lathe(k, PR.ogive(2.6, 5.2, y0 + L, k.hi ? 12 : 6, 0.5), 'paint:0,0', { m: new THREE.Matrix4().makeScale(0.85, 1, 1) });
@@ -22,9 +22,9 @@ function orbiter(d) { const k = new Kit(d), X = R + 2.9, y0 = 13.0, L = 31.0;
   const fin = new THREE.Shape([[2.0, 0], [8.2, 1.5], [8.2, 4.5], [2.0, 9.0]].map(([x, y]) => new THREE.Vector2(x, y))), fg = new THREE.ExtrudeGeometry(fin, { depth: 0.35, bevelEnabled: false }); fg.translate(0, 0, -0.17); k.add(fg, 'paint:0,0', xf([0, y0, 0], [0, PI, 0])); // fin on the side away from the core
   if (k.hi) for (const z of [-1.0, 1.0]) k.add(new THREE.CylinderGeometry(0.35, 0.5, 0.9, 10), 'dark', xf([0.6, y0 - 0.4, z]));
   const g = kb(k, 'orbiter', y0 + L + 5.2); g.position.set(X, 0, 0); g.rotation.y = PI; return g; }
-function energika(o, orb) { const d = o.detail, c = core(d), kids = [c, ...ANG.map((_, i) => strap(d, i)), orb ? orbiter(d) : pod(d)];
-  const g = group(orb ? 'energika-buranchik' : 'energika', kids, 58.7); if (o.plume) g.add(plume(0, ANG.map(a => [Math.cos(a) * OFF, Math.sin(a) * OFF]), 1.6, 80 * o.plume)); return g; }
-export const CO_ENERGIKA = {
-  'energika-buranchik': { height: 58.7, build: o => energika(o, true), src: 'rocketdb energika (orbiter config): side-mounted delta-wing orbiter 36 m, span 24 m', est: ['orbiter shape'] },
-  'energika': { height: 58.7, build: o => energika(o, false), src: 'rocketdb energika (GCAT): 58.7 m, 7.75 m core (4 engines), 4 strap-ons 3.9 m, side cargo pod', est: ['pod size', 'strap-on length'] },
+function mogutny(o, orb) { const d = o.detail, c = core(d), kids = [c, ...ANG.map((_, i) => strap(d, i)), orb ? orbiter(d) : pod(d)];
+  const g = group(orb ? 'mogutny-glider' : 'mogutny', kids, 58.7); if (o.plume) g.add(plume(0, ANG.map(a => [Math.cos(a) * OFF, Math.sin(a) * OFF]), 1.6, 80 * o.plume)); return g; }
+export const CO_MOGUTNY = {
+  'mogutny-glider': { height: 58.7, build: o => mogutny(o, true), src: 'rocketdb mogutny (orbiter config): side-mounted delta-wing orbiter 36 m, span 24 m', est: ['orbiter shape'] },
+  'mogutny': { height: 58.7, build: o => mogutny(o, false), src: 'rocketdb mogutny (GCAT): 58.7 m, 7.75 m core (4 engines), 4 strap-ons 3.9 m, side cargo pod', est: ['pod size', 'strap-on length'] },
 };

@@ -1,6 +1,6 @@
-// co-krasnaya-1: Krasnaya Orbita Bureau (parody) R-7 family: soyuzny (crew), soyuzny-2 (upper block + wide fairing),
-// vostochka (early crew ball shroud), sputnyk-r7 (2-stage first-satellite). Original geometry, no logos/names.
-// Dimensions: rocketdb soyuzny / soyuzny-2 / vostochka / sputnyk-r7 (GCAT) + design.md; strap-on/core profile art-fitted.
+// co-krasnaya-1: Krasnaya Orbita Bureau (parody) R-7 family: rodnik (crew), rodnik-2 (upper block + wide fairing),
+// lastochka (early crew ball shroud), pervy (2-stage first-orbit). Original geometry, no logos/names.
+// Dimensions: rocketdb rodnik / rodnik-2 / lastochka / pervy (GCAT) + design.md; strap-on/core profile art-fitted.
 // crossSep(g, t): the four strap-ons pivot about their lower attach point and swing their noses outward (0..1),
 // the classic "cross" separation; t = 0 attached.
 import * as THREE from 'three/webgpu';
@@ -17,7 +17,7 @@ function mini(k, re, L, x, y, z, rt) { const n = k.hi && !k.mid ? 5 : 3, seg = k
   for (let i = 0; i <= n; i++) { const t = i / n; pts.push(new THREE.Vector2(rt + (re - rt) * Math.pow(1 - t, 1.7), t * L)); } k.add(new THREE.LatheGeometry(pts, seg), 'bell', xf([x, y, z])); }
 function cluster(k, x0, z0, rr, nV, vr) { for (const [x, z] of ringPos([[4, rr, PI / 4]])) mini(k, 0.36, 1.45, x0 + x, 0.05, z0 + z, 0.17);
   if (k.hi) for (const [x, z] of ringPos([[nV, vr, 0]])) mini(k, 0.17, 0.7, x0 + x, 0.35, z0 + z, 0.08); }
-function core(d) { const k = new Kit(d), prof = PR.r7Core(1.5); cluster(k, 0, 0, 0.42, 4, 1.05);
+function core(d) { const k = new Kit(d), prof = PR.rkCore(1.5); cluster(k, 0, 0, 0.42, 4, 1.05);
   lathe(k, prof, 'paint:0.15,0'); bands(k, prof, [9.5, 19.6, 26.6]); tube(k, 1.03, 1.03, 0.4, 1.1, 'dark');
   decal(k, 'booster.side', 1.47, 22, 2.6, 0, 0.8);
   return darkBells(k.build('core')); }
@@ -36,7 +36,7 @@ function third(d, o) { const k = new Kit(d), y0 = R.coreTop, top = y0 + 1.3 + (o
   tube(k, r, r, top - y0 - 1.3, y0 + 1.3, 'paint:0,0'); bands(k, [[r, y0], [r, top]], [y0 + 1.6, top - 0.6]);
   decal(k, 'upper.side', r, y0 + 3, 2, 0, 0.9);
   const g = darkBells(k.build('third')); g.userData.top = top; return g; }
-function crew(d, y0) { const k = new Kit(d), p = PR.r7Shroud(y0); lathe(k, p, 'paint:0,0'); tube(k, 1.5 * 1.008, 1.5 * 1.008, 0.4, y0 + 3.6, 'grey', { open: true });
+function crew(d, y0) { const k = new Kit(d), p = PR.rkShroud(y0); lathe(k, p, 'paint:0,0'); tube(k, 1.5 * 1.008, 1.5 * 1.008, 0.4, y0 + 3.6, 'grey', { open: true });
   if (k.hi) for (let i = 0; i < 4; i++) { const a = i * PI / 2; k.push(xf([Math.cos(a) * 1.55, y0 + 3.2, Math.sin(a) * 1.55], [0, -a, 0]));
     k.add(new THREE.BoxGeometry(0.12, 1.4, 1.1), k.hi ? 'tiframe' : 'dark', xf([0.4, 0, 0], [0, 0, -0.5])); k.pop(); } // 4 lattice stabiliser panels (folded)
   const tb = y0 + 8.6; for (const [x, z] of [[1, 1], [-1, 1], [-1, -1], [1, -1]]) strut(k, [x * 0.25, tb, z * 0.25], [x * 0.12, tb + 2.4, z * 0.12], 0.04, 'dark'); // escape tower
@@ -48,15 +48,15 @@ function cargo(d, y0) { const k = new Kit(d); tube(k, 1.33, 1.33, 1.6, y0, 'grey
 function ball(d, y0) { const k = new Kit(d); tube(k, 1.3, 1.3, 1.2, y0, 'paint:0,0'); lathe(k, PR.ogive(1.3, 3.2, y0 + 1.2, k.hi ? 18 : 7, 0.12), 'paint:0,0');
   if (k.hi) for (let i = 0; i < 6; i++) { const a = i / 6 * 2 * PI; k.add(new THREE.BoxGeometry(0.4, 0.3, 0.1), 'dark', xf([Math.cos(a) * 1.0, y0 + 2.4, Math.sin(a) * 1.0], [0.5, -a + PI / 2, 0])); } // vent windows
   const g = k.build('payload'); g.userData.top = y0 + 4.4; return g; }
-function sputnikCone(d) { const k = new Kit(d); lathe(k, PR.ogive(1.33, 3.0, R.coreTop, k.hi ? 16 : 7, 0.08), 'silver'); const g = k.build('payload'); g.userData.top = R.coreTop + 3.0; return g; }
-function r7(o, name, upper, pay) { const d = o.detail, c = core(d), s = [0, 1, 2, 3].map(i => strap(d, i)), kids = [c, ...s];
+function firstCone(d) { const k = new Kit(d); lathe(k, PR.ogive(1.33, 3.0, R.coreTop, k.hi ? 16 : 7, 0.08), 'silver'); const g = k.build('payload'); g.userData.top = R.coreTop + 3.0; return g; }
+function rk(o, name, upper, pay) { const d = o.detail, c = core(d), s = [0, 1, 2, 3].map(i => strap(d, i)), kids = [c, ...s];
   let top = R.coreTop; if (upper) { const u = third(d, upper); kids.push(u); top = u.userData.top; }
   const p = pay(d, top); kids.push(p); const g = group(name, kids, p.userData.top);
   if (o.cross) crossSep(g, o.cross);
   if (o.plume) { const P = plume(0, [[0, 0], ...ringPos([[4, R.off, PI / 4]])], 1.2, 40 * o.plume); g.add(P); } return g; }
 export const CO_KRASNAYA = {
-  'soyuzny': { height: 49.5, build: o => r7(o, 'soyuzny', { h3: 6.7 }, crew), src: 'rocketdb soyuzny (GCAT): ~49.5 m crew, core 2.95 m, strap-ons 2.68 m x 19.6 m', est: ['core taper', 'shroud'] },
-  'soyuzny-2': { height: 46.3, build: o => r7(o, 'soyuzny-2', { h3: 6.7 }, (d, y) => cargo(d, y)), src: 'rocketdb soyuzny-2 (GCAT): ~46 m with upper block + 4.1 m fairing', est: ['fairing length'] },
-  'vostochka': { height: 38.4, build: o => r7(o, 'vostochka', { h3: 3.1, r3: 1.29 }, ball), src: 'rocketdb vostochka (GCAT): 38.4 m, small 3rd stage 2.58 m', est: ['shroud'] },
-  'sputnyk-r7': { height: 30.8, build: o => r7(o, 'sputnyk-r7', null, sputnikCone), src: 'rocketdb sputnyk-r7 (GCAT): ~29-31 m, 2 stages, conical nose', est: ['nose length'] },
+  'rodnik': { height: 49.5, build: o => rk(o, 'rodnik', { h3: 6.7 }, crew), src: 'rocketdb rodnik (GCAT): ~49.5 m crew, core 2.95 m, strap-ons 2.68 m x 19.6 m', est: ['core taper', 'shroud'] },
+  'rodnik-2': { height: 46.3, build: o => rk(o, 'rodnik-2', { h3: 6.7 }, (d, y) => cargo(d, y)), src: 'rocketdb rodnik-2 (GCAT): ~46 m with upper block + 4.1 m fairing', est: ['fairing length'] },
+  'lastochka': { height: 38.4, build: o => rk(o, 'lastochka', { h3: 3.1, r3: 1.29 }, ball), src: 'rocketdb lastochka (GCAT): 38.4 m, small 3rd stage 2.58 m', est: ['shroud'] },
+  'pervy': { height: 30.8, build: o => rk(o, 'pervy', null, firstCone), src: 'rocketdb pervy (GCAT): ~29-31 m, 2 stages, conical nose', est: ['nose length'] },
 };
