@@ -816,3 +816,8 @@ body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #h
 #misCard h3{margin:0 0 4px}#misCard p{margin:0 0 8px;opacity:.75;font-size:13px}#misCard h5{margin:8px 0 4px;color:#9cc3ff;letter-spacing:1px}
 #misCard .mcList{display:grid;gap:6px}#misCard .mcList button{min-height:44px;text-align:left;padding:6px 10px;border-radius:10px;background:#14203a;border:1px solid #2a3c62;color:#fff}
 #misCard .mcList button.on{border-color:#3a8cff;background:#1a3160}#misCard .mcAct{display:grid;gap:8px;margin-top:12px}#misCard .mcAct button{min-height:48px}
+/* f5.2 (QA f5.1h P1): compact rocket card: Fly / AUTO side by side and equal, above the list; nothing live underneath */
+#misCard{z-index:400}#misCard .mcAct{grid-template-columns:1fr 1fr 44px;margin:8px 0}#misCard .mcAct button{border-radius:12px;border:1px solid #3a8cff;background:#14284d;color:#fff;font-weight:700;font-size:15px}
+#misCard #mcX{background:transparent;border-color:#2a3c62}#misCard p.mcNote{color:#ffd27a;opacity:1}#misCard .mcMore{color:#9cc3ff!important;background:transparent!important}
+body.mcOn #hud,body.mcOn .pilot,body.mcOn #stageBtn{visibility:hidden}
+#picker details.pkLk summary{cursor:pointer;color:#9cc3ff;padding:6px 2px;font-size:13px;list-style:none}#picker details.pkLk summary::-webkit-details-marker{display:none}
