@@ -1,6 +1,6 @@
 // Reusable part builders (all original geometry). y is up, units are metres, every builder adds to a Kit.
 import * as THREE from 'three/webgpu';
-import { xf, mat } from './kit.js?v=art1';
+import { xf, mat, mergeGeometries } from './kit.js?v=art1';
 import * as PR from './profiles.js?v=art1';
 export const lathe = (k, prof, key, o = {}) => k.add(new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r * (o.s || 1), y)), o.seg || k.seg, o.p0 || 0, o.pl || 2 * Math.PI), key, o.m);
 const PI = Math.PI;
@@ -50,11 +50,17 @@ export function legs(KitC, detail, r, len, y, n = 4, a0 = PI / 4) {
     piv.add(k.build('leg')); g.add(piv); g.userData.pivots.push(piv);
     if (lean) continue; const outer = new THREE.Mesh(unit, mat('grey')), inner = new THREE.Mesh(unit, mat('tiframe')); g.add(outer, inner);
     g.userData.arms.push({ piv, outer, inner, A: new THREE.Vector3(Math.cos(a) * (r - 0.1), y + len * 0.42, Math.sin(a) * (r - 0.1)), tipL: new THREE.Vector3(0.24, len * 0.86, 0) }); }
-  setLegs(g, 0); return g;
+  setLegs(g, 0); if (detail === 'lo') bakeLegs(g); return g;
 }
+// lo LOD: the 4 legs become two merged meshes (stowed / deployed); setLegs toggles them (1 draw call per stage)
+function bakeLegs(g) { const meshes = {}; for (const [t, nm] of [[0, 'stowed'], [1, 'deployed']]) { setLegs(g, t); g.updateMatrixWorld(true); const inv = g.matrixWorld.clone().invert(), gs = [];
+    g.traverse(o => { if (o.isMesh) { const x = o.geometry.clone(); for (const a of Object.keys(x.attributes)) if (!['position', 'normal', 'uv'].includes(a)) x.deleteAttribute(a); if (x.index) { const y = x.toNonIndexed(); x.dispose(); gs.push(y.applyMatrix4(inv.clone().multiply(o.matrixWorld))); } else gs.push(x.applyMatrix4(inv.clone().multiply(o.matrixWorld))); } });
+    const m = new THREE.Mesh(mergeGeometries(gs), mat('carbon')); m.geometry.computeBoundingSphere(); m.name = 'legs:' + nm; meshes[nm] = m; for (const x of gs) x.dispose(); }
+  for (const p of g.userData.pivots) { p.traverse(o => o.isMesh && o.geometry.dispose()); g.remove(p); }
+  g.userData.pivots = []; g.userData.arms = []; g.userData.baked = meshes; g.add(meshes.stowed, meshes.deployed); setLegs(g, 0); }
 const _B = new THREE.Vector3(), _d = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
 // stowed: leg up along the hull; deployed: swings out and down ~115° so the pad sits below the engines
-export function setLegs(g, t) { for (const p of g.userData.pivots) p.rotation.z = -t * 2.0; g.userData.t = t;
+export function setLegs(g, t) { if (g.userData.baked) { g.userData.baked.stowed.visible = t < 0.5; g.userData.baked.deployed.visible = t >= 0.5; g.userData.t = t; return; } for (const p of g.userData.pivots) p.rotation.z = -t * 2.0; g.userData.t = t;
   for (const m of g.userData.arms || []) { m.piv.updateMatrix(); _B.copy(m.tipL).applyMatrix4(m.piv.matrix); _d.subVectors(_B, m.A); const L = _d.length(); _d.normalize();
     const q = new THREE.Quaternion().setFromUnitVectors(_up, _d);
     m.outer.position.copy(m.A); m.outer.quaternion.copy(q); m.outer.scale.set(0.11, L * 0.55, 0.11);

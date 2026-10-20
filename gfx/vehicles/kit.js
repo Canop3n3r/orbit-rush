@@ -4,7 +4,7 @@ import * as THREE from 'three/webgpu';
 import * as T from './textures.js?v=art1';
 import { decalTexture } from './decals.js?v=art1';
 // own merge (all inputs are non-indexed with position/normal/uv), so the module needs no bare 'three' import
-function mergeGeometries(gs) { const out = new THREE.BufferGeometry(); for (const [a, n] of [['position', 3], ['normal', 3], ['uv', 2]]) { let len = 0; for (const g of gs) len += g.attributes[a].array.length; const arr = new Float32Array(len); let o = 0; for (const g of gs) { arr.set(g.attributes[a].array, o); o += g.attributes[a].array.length; } out.setAttribute(a, new THREE.BufferAttribute(arr, n)); } return out; }
+export function mergeGeometries(gs) { const out = new THREE.BufferGeometry(); for (const [a, n] of [['position', 3], ['normal', 3], ['uv', 2]]) { let len = 0; for (const g of gs) len += g.attributes[a].array.length; const arr = new Float32Array(len); let o = 0; for (const g of gs) { arr.set(g.attributes[a].array, o); o += g.attributes[a].array.length; } out.setAttribute(a, new THREE.BufferAttribute(arr, n)); } return out; }
 const MATS = new Map();
 export function mat(key) {
   if (MATS.has(key)) return MATS.get(key);
@@ -63,10 +63,14 @@ function geoKey(g) { const p = g.attributes.position.array, n = p.length; let h 
 export function shareGeometries(group) { group.traverse(m => { if (!m.isMesh || m.geometry.userData.shared) return; const k = geoKey(m.geometry) + (m.geometry.attributes.tangent ? 't' : ''), e = GEO.get(k);
   if (e) { m.geometry.dispose(); m.geometry = e.g; e.refs++; } else { m.geometry.userData.shared = k; GEO.set(k, { g: m.geometry, refs: 1 }); } }); return group; }
 export const geometryCacheSize = () => GEO.size;
+// compactStages: compact each stage group (direct child) separately so stages still detach on every LOD
+// mid/lo: minor materials fold into a near-identical neighbour (fewer draw calls per stage)
+const FOLD = { bellx: 'bell', shield: 'dark', skirt: 'dark', tiframe: 'dark', grey: 'dark', ti: 'dark' };
+export function compactStages(group, keep = ['legs'], fold = true) { for (const c of group.children.slice()) if (!c.isMesh) compact(c, keep, fold); return group; }
 // compact: merge every mesh with the same material (in group space) into one mesh; subtrees named in keep (animated legs) stay
-export function compact(group, keep = ['legs']) { const by = new Map(), drop = []; group.updateMatrixWorld(true); const inv = group.matrixWorld.clone().invert();
+export function compact(group, keep = ['legs'], fold = false) { const by = new Map(), drop = []; group.updateMatrixWorld(true); const inv = group.matrixWorld.clone().invert();
   group.traverse(o => { if (o === group) return; let p = o; while (p && p !== group) { if (keep.includes(p.name)) return; p = p.parent; }
-    if (o.isMesh) { const g = o.geometry.clone(); g.applyMatrix4(inv.clone().multiply(o.matrixWorld)); if (g.attributes.tangent) g.deleteAttribute('tangent'); (by.get(o.material) || by.set(o.material, []).get(o.material)).push(g); drop.push(o); } });
+    if (o.isMesh) { const g = o.geometry.clone(); g.applyMatrix4(inv.clone().multiply(o.matrixWorld)); if (g.attributes.tangent) g.deleteAttribute('tangent'); const M = fold && FOLD[o.material.name] ? mat(FOLD[o.material.name]) : o.material; (by.get(M) || by.set(M, []).get(M)).push(g); drop.push(o); } });
   for (const o of drop) { o.parent.remove(o); if (!o.geometry.userData.shared) o.geometry.dispose(); }
   for (const g of group.children.slice()) if (!g.isMesh && !keep.includes(g.name) && !g.children.some(c => c.isMesh || c.children.length)) { /* emptied stage group: keep as an (empty) handle for userData.stages */ }
   for (const [m, gs] of by) { const g = mergeGeometries(gs); for (const x of gs) x.dispose();

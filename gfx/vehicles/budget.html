@@ -3,11 +3,18 @@
 </head><body><script type="module">
 // perf budget probe (tests/vehicles_budget.cjs): tris + meshes per vehicle/LOD, shared geometry, dispose leak check
 import * as THREE from 'three/webgpu';
-import { build, VEHICLES, dispose, geometryCacheSize } from './vehicles.js?v=art1';
+import { build, VEHICLES, dispose, geometryCacheSize, setLegs } from './vehicles.js?v=art1';
 const renderer = new THREE.WebGPURenderer({ forceWebGL: true }); renderer.setSize(64, 64); document.body.appendChild(renderer.domElement); await renderer.init();
 const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1e4); cam.position.set(0, 50, 300);
-const out = { rows: [], mem: [] }, count = g => { let n = 0; g.traverse(m => m.isMesh && n++); return n; };
+const out = { rows: [], mem: [] }, count = g => { let n = 0; g.traverse(m => { if (!m.isMesh) return; for (let p = m; p; p = p.parent) if (!p.visible) return; n++; }); return n; }; // visible meshes = draw calls
 for (const id of Object.keys(VEHICLES)) for (const detail of ['hi', 'mid', 'lo']) { const g = build(id, { detail }); out.rows.push({ id, detail, tris: g.userData.tris, meshes: count(g) }); dispose(g); }
+// stages detach on every LOD; setLegs moves the (visible) leg geometry on every LOD
+const visBox = g => { const b = new THREE.Box3(); g.updateMatrixWorld(true); g.traverse(m => { let v = true; for (let p = m; p && p !== g.parent; p = p.parent) v = v && p.visible; if (m.isMesh && v) { m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); } }); return b; };
+out.stages = [];
+for (const id of ['heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'titan-ss-v3', 'titan-ss-v4', 'sparrow-1']) for (const detail of ['hi', 'mid', 'lo']) { const g = build(id, { detail }), st = g.userData.stages, r = { id, detail, stages: {}, legs: [] };
+  for (const [n, s] of Object.entries(st)) { let m = 0; s.traverse(o => o.isMesh && m++); const own = s.parent === g; s.removeFromParent(); const out2 = !g.children.includes(s); let rest = 0; g.traverse(o => o.isMesh && rest++); g.add(s); r.stages[n] = { meshes: m, own, detached: out2, rest }; }
+  for (const L of g.userData.legs) { setLegs(L, 0); const a = visBox(L).min.y; setLegs(L, 1); const b = visBox(L).min.y; setLegs(L, 0); r.legs.push(+(a - b).toFixed(2)); }
+  out.stages.push(r); dispose(g); }
 // sharing: v3 + v4 alive together → shared geometries counted once
 { const a = build('titan-ss-v3'), b = build('titan-ss-v4'); const s = new Set(); let tot = 0; for (const g of [a, b]) g.traverse(m => { if (m.isMesh) { tot++; s.add(m.geometry); } }); out.share = { meshes: tot, unique: s.size }; dispose(a); dispose(b); }
 // leak: cycle all models 3x through the scene with dispose; geometry count must stay flat
