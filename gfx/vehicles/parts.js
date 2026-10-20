@@ -30,7 +30,7 @@ export function gridFins(k, r, y, w, h, n = 4, a0 = PI / 4, deploy = 1) {
   for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI; k.push(xf([Math.cos(a) * r, y, Math.sin(a) * r], [0, -a, 0]));
     k.push(xf([0, 0, 0], [0, 0, -deploy * PI / 2 * 0.98])); // hinged at the hull: stowed points up, deployed sticks out
     if (k.hi) { k.add(new THREE.PlaneGeometry(w, h), 'ti', xf([0, h / 2 + 0.1, 0], [0, PI / 2, 0]));
-      const t = 0.08; for (const [px, py, sx, sy] of [[0, 0.1, w, t], [0, h + 0.1, w, t], [-w / 2, h / 2 + 0.1, t, h], [w / 2, h / 2 + 0.1, t, h]]) k.add(new THREE.BoxGeometry(t * 3, sy, sx), 'tiframe', xf([0, py, px]));
+      k.add(new THREE.BoxGeometry(0.22, h * 0.96, w * 0.96), 'dark', xf([-0.14, h / 2 + 0.1, 0])); const t = 0.12; for (const [px, py, sx, sy] of [[0, 0.1, w, t], [0, h + 0.1, w, t], [-w / 2, h / 2 + 0.1, t, h], [w / 2, h / 2 + 0.1, t, h]]) k.add(new THREE.BoxGeometry(t * 3, sy, sx), 'tiframe', xf([0, py, px]));
     } else k.add(new THREE.BoxGeometry(0.12, h, w), 'tiframe', xf([0, h / 2 + 0.1, 0]));
     k.pop(); k.add(new THREE.BoxGeometry(0.5, 0.6, 0.6), 'dark', xf([0.1, 0, 0])); k.pop(); }
 }

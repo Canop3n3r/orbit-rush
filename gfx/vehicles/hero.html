@@ -25,14 +25,18 @@ function skyTex(seed = 3) { const W = 1024, H = 512, c = document.createElement(
   const hz = x.createLinearGradient(0, H * 0.43, 0, H * 0.52); hz.addColorStop(0, 'rgba(255,220,180,0)'); hz.addColorStop(1, 'rgba(255,214,170,0.7)'); x.fillStyle = hz; x.fillRect(0, H * 0.43, W, H * 0.09);
   const t = new THREE.CanvasTexture(c); t.mapping = THREE.EquirectangularReflectionMapping; t.colorSpace = THREE.SRGBColorSpace; return t; }
 // cumulus billboards (crisp, high-res, lit tops / shaded bases) placed around the horizon
-function cloudTex(seed) { const W = 512, H = 200, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); let s = seed; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
-  const puffs = []; for (let i = 0; i < 26; i++) { const px = W * (0.12 + r() * 0.76), rr = 22 + r() * 48 * (1 - Math.abs(px / W - 0.5)); puffs.push([px, H * 0.78 - rr * (0.5 + r() * 0.9), rr]); }
-  for (const [px, py, rr] of puffs) { const g = x.createRadialGradient(px, py + rr * 0.35, 0, px, py, rr); g.addColorStop(0, 'rgba(150,135,150,0.95)'); g.addColorStop(0.85, 'rgba(165,150,160,0.9)'); g.addColorStop(1, 'rgba(165,150,160,0)'); x.fillStyle = g; x.beginPath(); x.arc(px, py, rr, 0, 7); x.fill(); }
-  for (const [px, py, rr] of puffs) { const g = x.createRadialGradient(px - rr * 0.25, py - rr * 0.4, 0, px, py, rr); g.addColorStop(0, 'rgba(255,236,205,0.95)'); g.addColorStop(0.6, 'rgba(250,215,180,0.45)'); g.addColorStop(1, 'rgba(250,215,180,0)'); x.fillStyle = g; x.beginPath(); x.arc(px, py, rr, 0, 7); x.fill(); }
+function cloudTex(seed) { const W = 512, H = 220, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); let s = seed; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  // connected cumulus: many small puffs gaussian-distributed along a flat base, blurred; sunlit tops, blue-grey shaded bases
+  const g2 = () => (r() + r() + r() - 1.5) / 1.5, puffs = [], base = H * 0.8;
+  for (let i = 0; i < 90; i++) { const px = W / 2 + g2() * W * 0.36, ht = 1 - Math.abs(px - W / 2) / (W * 0.5), rr = 10 + r() * 26 * ht + 6; puffs.push([px, base - rr * 0.6 - r() * ht * H * 0.45, rr]); }
+  x.filter = 'blur(3px)';
+  for (const [px, py, rr] of puffs) { x.fillStyle = 'rgba(128,124,146,0.9)'; x.beginPath(); x.arc(px, py, rr, 0, 7); x.fill(); }
+  for (const [px, py, rr] of puffs) { const g = x.createRadialGradient(px - rr * 0.3, py - rr * 0.45, 0, px, py, rr); g.addColorStop(0, 'rgba(255,232,200,1)'); g.addColorStop(0.55, 'rgba(240,206,176,0.7)'); g.addColorStop(1, 'rgba(240,206,176,0)'); x.fillStyle = g; x.beginPath(); x.arc(px, py, rr, 0, 7); x.fill(); }
+  x.filter = 'none'; x.globalCompositeOperation = 'destination-out'; const cut = x.createLinearGradient(0, base - 6, 0, base + 10); cut.addColorStop(0, 'rgba(0,0,0,0)'); cut.addColorStop(1, 'rgba(0,0,0,1)'); x.fillStyle = cut; x.fillRect(0, base - 6, W, H - base + 6);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 const clouds = new THREE.Group(); scene.add(clouds);
 { let s = 5; const r = () => (s = (s * 16807) % 2147483647) / 2147483647; for (let i = 0; i < 26; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex(11 + i * 7), transparent: true, depthWrite: false, fog: false, opacity: 0.9 }));
-  const a = r() * Math.PI * 2, R = 3500 + r() * 3000, w = 700 + r() * 1300; sp.scale.set(w, w * 200 / 512, 1); sp.position.set(Math.cos(a) * R, R * Math.tan((3 + r() * 14) * Math.PI / 180), Math.sin(a) * R); sp.renderOrder = -1; clouds.add(sp); } }
+  const a = r() * Math.PI * 2, R = 3500 + r() * 3000, w = 700 + r() * 1300; sp.scale.set(w, w * 220 / 512, 1); sp.position.set(Math.cos(a) * R, R * Math.tan((3 + r() * 14) * Math.PI / 180), Math.sin(a) * R); sp.renderOrder = -1; clouds.add(sp); } }
 const sky = skyTex(); scene.background = sky; scene.environment = GX.envTexture(); scene.environmentIntensity = 0.45; // game env, dimmed: fill without flattening
 const hemi = new THREE.HemisphereLight(0xbfd4f0, 0x5a4a38, 0.35); scene.add(hemi);
 const key = new THREE.DirectionalLight(0xffc48a, 4.2); scene.add(key); scene.add(key.target); // golden-hour key
@@ -82,7 +86,7 @@ const RADIUS = { 'sparrow-1': 0.84, 'heron-9': 1.83, 'heron-9-v11': 1.83, 'heron
 let cur = null;
 // shot: { id, opts, hero:true (auto-frame 85 % of the height, low 3/4) | cam/aim in vehicle heights, fov, sunAz (deg, from camera), only, legs, bare (no set) }
 async function shot(s) { if (cur) { dispose(cur); cur = null; } const h = VEHICLES[s.id].height, rV = RADIUS[s.id] || 2;
-  const lift = s.bare ? (clearStage(), 0) : setStage(s.id, h, rV);
+  const bare = s.bare ?? !(s.hero || s.set); const lift = bare ? (clearStage(), 0) : setStage(s.id, h, rV);
   cur = build(s.id, { detail: s.lo ? 'lo' : 'hi', ...(s.opts || {}) }); cur.position.y = s.id === 'catch-tower' ? 0 : lift; stage.add(cur);
   if (s.only) for (const c of cur.children) c.visible = c.name === s.only;
   if (s.legs !== undefined) for (const L of cur.userData.legs || []) setLegs(L, s.legs);

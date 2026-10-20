@@ -23,6 +23,7 @@ function core9(detail, o = {}) {
   if (k.hi && !o.v11) for (const [x, z] of ringPos([[8, 1.22, PI / 8]])) k.add(new THREE.CylinderGeometry(0.52, 0.6, 0.35, 14, 1, true), 'shield', xf([x, 1.12, z])); // aft thermal boots
   const soot = Math.round((o.soot ?? 0.75) * 4) / 4; tube(k, r, r, H - 2.25, 2.25, `paint:${soot},0`, { hs: 1 }); // post-flight soot rising from the base (o.soot 0 fresh .. 1 heavily reflown)
   ring(k, r, H * 0.42, 0.02); raceway(k, r, 2.4, H - 0.4, PI / 2, 'dark');
+  if (o.frost) tube(k, r * 1.004, r * 1.004, H * 0.55 - 0.3, H * 0.45, 'frost', { open: true }); // LOX-tank frost (upper tank of the first stage) when fuelled
   decal(k, 'booster.side', r, H * 0.35, 4.2, 0, 1.3);
   if (o.nose) { ogive(k, r, 6.2, H, 'paint:0,0.6'); gridFins(k, r + 0.05, H - 1.6, 1.15, 1.4, 4, PI / 4, o.fins ?? 0.15); }
   else { tube(k, r, r, 6.6, H, o.v11 ? 'paint:0,0.2' : 'carbon'); gridFins(k, r + 0.05, H + 5.2, 1.15, 1.4, 4, PI / 4, o.fins ?? 0.15);
@@ -68,6 +69,8 @@ function titanBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.boo
   tube(k, r, r, H - 4.6 - 1.8, 4.6, 'steel'); if (o.frost ?? 0) tube(k, r * 1.004, r * 1.004, H - 4.6 - 1.8, 4.6, 'frost', { open: true }); // cryo frost: LOX (lower) and CH4 (upper) tanks, clear at the common dome ring(k, r, 30, 0.03, 'grey'); ring(k, r, 52, 0.03, 'grey');
   if (k.hi) for (const a of [PI / 2 - 0.18, PI / 2 + 0.18]) k.add(new THREE.BoxGeometry(0.35, H - 8, 0.5), 'steel', xf([Math.cos(a) * (r + 0.15), H / 2, Math.sin(a) * (r + 0.15)], [0, -a, 0])); // chines
   decal(k, 'titanbooster.side', r, 40, 6, 0, 0.9);
+  if (k.hi) { for (const a of [PI * 0.25, PI * 1.25]) raceway(k, r, 6, H - 3, a, 'steel'); for (const y of [12, 30, 52]) ring(k, r, y, 0.035, 'grey'); // conduit raceways, weld lands
+    for (let i = 0; i < 4; i++) { const a = i * PI / 2 + PI / 4; k.add(new THREE.BoxGeometry(1.4, 1.0, 0.25), 'dark', xf([Math.cos(a) * (r + 0.1), 3.6, Math.sin(a) * (r + 0.1)], [0, -a + PI / 2, 0])); } } // QD / ground-service plates
   // vented hot-staging ring
   tube(k, r, r, 1.8, H - 1.8, 'dark'); if (k.hi) for (let i = 0; i < 24; i++) { const a = i / 24 * 2 * PI; k.add(new THREE.BoxGeometry(0.25, 1.4, 0.9), 'steel', xf([Math.cos(a) * r, H - 0.9, Math.sin(a) * r], [0, -a, 0])); }
   gridFins(k, r + 0.05, H - 5.5, 2.4, 3.2, o.gridFins || 3, PI / 2, o.fins ?? 1); // brief: v3/v4 boosters carry 3 grid fins
@@ -88,21 +91,32 @@ function ship(detail, y0, L = 52.1) { const k = new Kit(detail), r = 4.5, nose =
   for (const s of [-1, 1]) { flap(y0 + 1.5, 11, 5.0, 3.4, s, r); // aft
     flap(y0 + 2 + cyl + 3.5, 9, 3.4, 1.6, s, 4.1, 0); } // forward (on the nose, smaller, slightly leeward on v3)
   decal(k, 'ship.side', r, y0 + 20, 6, -PI / 2, 0.9); // leeward steel side
+  if (k.hi) { for (const a of [PI * 0.1, -PI * 0.1]) raceway(k, r, y0 + 3, y0 + 2 + cyl, a, 'steel'); for (const y of [y0 + 2.2, y0 + 2 + cyl * 0.42, y0 + 2 + cyl - 0.3]) ring(k, r, y, 0.04, 'grey'); // raceways, aft dome / common dome / forward weld lands
+    k.add(new THREE.BoxGeometry(1.6, 1.2, 0.2), 'dark', xf([0, y0 + 2 + cyl - 3, r + 0.05])); } // payload/door hatch outline
   const g = k.build('upper'); g.userData.top = y0 + 2 + cyl + nose; return g; }
 function titan(o) { const b = titanBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1); return group('titan', [b, s], s.userData.top); }
 // ---- ground systems: catch tower with chopsticks + orbital launch mount ----
-function catchTower(o) { const k = new Kit(o.detail), W = 12, H = 146, TX = -24, lv = 7, n = Math.floor(H / lv);
+function catchTower(o) { const k = new Kit(o.detail), W = 12, H = 146, TX = -24, lv = 9, n = Math.floor(H / lv);
   tube(k, 30, 32, 2, -2, 'concrete', { seg: 48 });
-  for (const [dx, dz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) k.add(new THREE.BoxGeometry(1.8, H, 1.8), 'tower', xf([TX + dx * W / 2, H / 2, dz * W / 2]));
-  for (let i = 0; i < n; i++) for (let f = 0; f < 4; f++) { const ry = f * PI / 2, cx = Math.sin(ry) * W / 2, cz = Math.cos(ry) * W / 2;
-    k.add(new THREE.BoxGeometry(W, 0.7, 0.7), 'tower', xf([TX + cx, (i + 1) * lv, cz], [0, ry + PI / 2, 0]));
-    if (k.hi || i % 2) k.add(new THREE.BoxGeometry(Math.hypot(W, lv), 0.45, 0.45), 'tower', xf([TX + cx, i * lv + lv / 2, cz], [(i % 2 ? 1 : -1) * Math.atan2(lv, W), ry + PI / 2, 0])); }
+  // square lattice: 4 corner chords, a horizontal ring and X bracing on every face of every bay, floor decks every 4 bays
+  for (const [dx, dz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) k.add(new THREE.BoxGeometry(2.2, H, 2.2), 'tower', xf([TX + dx * W / 2, H / 2, dz * W / 2]));
+  const dl = Math.hypot(W, lv), da = Math.atan2(lv, W);
+  for (let i = 0; i < n; i++) { for (let f = 0; f < 4; f++) { const ry = f * PI / 2, cx = Math.sin(ry) * W / 2, cz = Math.cos(ry) * W / 2;
+      k.add(new THREE.BoxGeometry(W, 0.9, 0.9), 'tower', xf([TX + cx, (i + 1) * lv, cz], [0, ry + PI / 2, 0]));
+      for (const sg of k.hi ? [1, -1] : [i % 2 ? 1 : -1]) k.add(new THREE.BoxGeometry(dl, 0.6, 0.6), 'tower', xf([TX + cx, i * lv + lv / 2, cz], [0, ry + PI / 2, sg * da])); }
+    if (k.hi && i % 4 === 3) k.add(new THREE.BoxGeometry(W, 0.4, W), 'grey', xf([TX, (i + 1) * lv - 0.6, 0])); }
   tube(k, 0.25, 0.6, 18, H, 'grey', { x: TX, seg: 8 }); // lightning mast
-  // chopsticks: carriage + two arms (open), at the vehicle-catch height
+  // chopsticks: lattice carriage + two Warren-truss arms (top/bottom chords, verticals, diagonals), at the catch height
   const cy = o.catchY ?? 104, open = o.open ?? 0.55; k.push(xf([TX + W / 2 + 1, cy, 0]));
-  k.add(new THREE.BoxGeometry(4, 12, W + 3), 'tower');
-  for (const s of [-1, 1]) { k.push(xf([1, 0, s * 5.5], [0, -s * open, 0]));
-    k.add(new THREE.BoxGeometry(38, 5, 2.6), 'tower', xf([19, 0, 0])); k.add(new THREE.BoxGeometry(30, 2.2, 1.4), 'tower', xf([19, -3.4, 0])); if (k.hi) { k.add(new THREE.BoxGeometry(34, 0.6, 2.2), 'dark', xf([18, 1.9, 0])); for (let j = 1; j < 9; j++) k.add(new THREE.BoxGeometry(0.3, 3.2, 1.7), 'grey', xf([j * 4, 0, 0])); k.add(new THREE.BoxGeometry(3, 1.2, 2.4), 'paint:0,0', xf([30, 2.2, -s * 0.4])); }
+  for (const [y, z] of [[-6, -7], [-6, 7], [6, -7], [6, 7]]) k.add(new THREE.BoxGeometry(4, 1, 1), 'tower', xf([0, y, z]));
+  for (const z of [-7, 7]) for (const x of [-1.5, 1.5]) k.add(new THREE.BoxGeometry(1, 13, 1), 'tower', xf([x, 0, z]));
+  for (const x of [-1.5, 1.5]) for (const y of [-6, 6]) k.add(new THREE.BoxGeometry(1, 1, 15), 'tower', xf([x, y, 0]));
+  for (const sg of [1, -1]) k.add(new THREE.BoxGeometry(1, Math.hypot(12, 14), 0.8), 'tower', xf([1.5, 0, 0], [sg * Math.atan2(14, 12), 0, 0])); // carriage face X-brace (in the Y-Z plane)
+  for (const s2 of [-1, 1]) { k.push(xf([1, 0, s2 * 5.5], [0, -s2 * open, 0])); const L = 38, hT = 4.4, nb = 9, bw = L / nb;
+    for (const y of [hT / 2, -hT / 2]) k.add(new THREE.BoxGeometry(L, 1.0, 2.4), 'tower', xf([L / 2, y, 0]));
+    for (let j = 0; j <= nb; j++) k.add(new THREE.BoxGeometry(0.6, hT, 0.6), 'tower', xf([j * bw, 0, 0]));
+    for (let j = 0; j < nb; j++) k.add(new THREE.BoxGeometry(Math.hypot(bw, hT), 0.45, 0.45), 'tower', xf([j * bw + bw / 2, 0, 0], [0, 0, (j % 2 ? 1 : -1) * Math.atan2(hT, bw)]));
+    if (k.hi) { k.add(new THREE.BoxGeometry(34, 0.5, 2.0), 'dark', xf([20, hT / 2 + 0.7, 0])); k.add(new THREE.BoxGeometry(3, 1.2, 2.4), 'paint:0,0', xf([30, hT / 2 + 1.2, -s2 * 0.4])); } // catch rail + catch block
     k.pop(); }
   k.pop();
   // ship quick-disconnect arm
