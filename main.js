@@ -1074,7 +1074,7 @@ document.querySelectorAll('#touch button').forEach(b => {
   const up = () => { if (k) keys[k] = false; }; b.addEventListener('pointerup', up); b.addEventListener('pointerleave', up); b.addEventListener('pointercancel', up);
 });
 $('warpBtn').onclick = e => { e.currentTarget.blur(); press('KeyT'); };
-{ const b = document.createElement('button'); b.id = 'pauseBtn'; b.textContent = '⏸ (Esc)'; b.title = 'Pause menu: quicksave/load, revert, settings'; b.onclick = e => { e.currentTarget.blur(); setPause(true); }; $('ctl').prepend(b); }
+{ const b = document.createElement('button'); b.id = 'pauseBtn'; b.textContent = TOUCH ? '⏸' : '⏸ (Esc)'; b.title = 'Pause menu: quicksave/load, revert, settings'; b.onclick = e => { e.currentTarget.blur(); setPause(true); }; $('ctl').prepend(b); }
 $('apBtn').onclick = e => { e.currentTarget.blur(); press('KeyG'); };
 $('flyBtn').onclick = e => { e.currentTarget.blur(); press('KeyY'); };
 $('sasBtn').onclick = e => { e.currentTarget.blur(); const i = P.SAS_MODES.indexOf(v.sas); F.setSAS(P.SAS_MODES[(i + 1) % P.SAS_MODES.length]); };
@@ -1849,7 +1849,7 @@ function opTick() {
   const S = opSess, el = document.getElementById('opTask'); if (!S) { if (el) el.hidden = true; return; }
   S.tick(F);
   const tk = S.task; if (tk && tk.kind === 'execute-node' && F.flags.orbit && F.nodes.length && !F.exec && F.setExec) F.setExec(true); // QA f5a.2: career ops fly their nodes on AUTO (the toast promises it)
-  if (el && !S.task && !S.done && !S.failed) { el.hidden = false; el.innerHTML = `<b>▶</b> ${F.flags.orbit ? 'Lining up the next step' : 'Climb to orbit'} <small>AUTO</small>`; } // QA f5b.3: the contract task shows from liftoff (never a blank gap)
+  if (el && !S.task && !S.done && !S.failed) { el.hidden = false; if (F.flags.orbit && !F.nodes.length) el.hidden = true; else el.innerHTML = `<b>▶</b> ${F.flags.orbit ? 'Next burn' : 'Climb to orbit'} <small>AUTO</small>`; } // f5.3 (QA P3): no 'Lining up' text without a node // QA f5b.3: the contract task shows from liftoff (never a blank gap)
   else if (el) { const t = S.task; el.hidden = !t; if (t) el.innerHTML = t.kind === 'execute-node' ? `<b>▶ Burn ${t.burn}${t.of ? '/' + t.of : ''}</b> ${t.label} <small>${F.nodes.length ? (F.exec ? 'AUTO burns' : TOUCH ? 'MAP ▸ ◆ Node ▸ ▶ Execute' : '9 / ◆ Execute') : ''}</small>` : `<b>▶</b> ${t.label || t.kind}`; }
   if (S.done || S.failed || F.flags.dead) opEnd();
 }
