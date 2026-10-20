@@ -26,3 +26,6 @@ procedural maps, particle effects, sounds, the physics and the lessons are origi
 
 ## Vehicle models (art1)
 All vehicle models, the catch tower and their textures in `gfx/vehicles/` are original procedural work for Orbit Rush (canvas-generated; no third-party textures, no logos). Proportions follow public dimensions collected in the team specs sheet.
+
+## UI icons (assets/icons/, Rocket Art Bot)
+- 15 original 24×24 stroke icons (builder part types, Customize categories, Home Missions/Customize/Settings). Drawn for this project; no third-party icon sets used.
