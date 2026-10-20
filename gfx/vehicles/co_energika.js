@@ -19,7 +19,7 @@ function orbiter(d) { const k = new Kit(d), X = R + 2.9, y0 = 13.0, L = 31.0;
   if (k.hi) k.add(new THREE.CylinderGeometry(2.63, 2.63, L, 14, 1, true, -PI / 2 - 0.9 + PI, 1.8).scale(0.85, 1, 1), 'dark', xf([0, y0 + L / 2, 0])); // belly tiles (core side)
   const wing = new THREE.Shape([[2.0, 0], [11.9, 0], [11.9, 1.4], [3.5, 15.5], [2.0, 19.0]].map(([z, y]) => new THREE.Vector2(z, y)));
   for (const sgn of [1, -1]) { const g = new THREE.ExtrudeGeometry(wing, { depth: 0.5, bevelEnabled: false }); g.translate(0, 0, -0.25); k.add(g, 'paint:0,0', xf([-0.8, y0, 0], [0, sgn > 0 ? -PI / 2 : PI / 2, 0])); }
-  const fin = new THREE.Shape([[2.0, 0], [8.2, 1.5], [8.2, 4.5], [2.0, 9.0]].map(([x, y]) => new THREE.Vector2(x, y))), fg = new THREE.ExtrudeGeometry(fin, { depth: 0.35, bevelEnabled: false }); fg.translate(0, 0, -0.17); k.add(fg, 'paint:0,0', xf([0, y0, 0]));
+  const fin = new THREE.Shape([[2.0, 0], [8.2, 1.5], [8.2, 4.5], [2.0, 9.0]].map(([x, y]) => new THREE.Vector2(x, y))), fg = new THREE.ExtrudeGeometry(fin, { depth: 0.35, bevelEnabled: false }); fg.translate(0, 0, -0.17); k.add(fg, 'paint:0,0', xf([0, y0, 0], [0, PI, 0])); // fin on the side away from the core
   if (k.hi) for (const z of [-1.0, 1.0]) k.add(new THREE.CylinderGeometry(0.35, 0.5, 0.9, 10), 'dark', xf([0.6, y0 - 0.4, z]));
   const g = kb(k, 'orbiter', y0 + L + 5.2); g.position.set(X, 0, 0); g.rotation.y = PI; return g; }
 function energika(o, orb) { const d = o.detail, c = core(d), kids = [c, ...ANG.map((_, i) => strap(d, i)), orb ? orbiter(d) : pod(d)];
