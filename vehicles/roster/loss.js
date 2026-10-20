@@ -47,7 +47,7 @@ export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 
   const S = v.stages.map(s => ({ ...s, left: s.prop, mdot: s.prop / s.burn, sl: ispOf(s.engines, E, 'sl'), vac: ispOf(s.engines, E, 'vac'), g: s.group }));
   const maxg = Math.max(...S.map(s => s.g)), fair = v.fairing || 0, rpT = RE + orbit.hp * 1e3, raT = RE + orbit.ha * 1e3;
   let upT = 0, tu0 = null;
-  let m = S.reduce((a, s) => a + s.prop + s.dry, 0) + P + fair, r = RE, vr = 0, vh = v0, t = 0, tu = 0, grp = 0, kicked = false, gl = 0, sl = 0, ideal = 0;
+  let m = S.reduce((a, s) => a + s.prop + s.dry, 0) + P + fair, r = RE, vr = 0, vh = v0, t = 0, tu = 0, grp = 0, kicked = false, coasted = false, gl = 0, sl = 0, ideal = 0;
   for (;;) {
     const act = S.filter(s => s.g <= grp && s.left > 1e-6);
     if (!act.length) { if (grp >= maxg) return { ok: false, gl, sl }; grp++; if (fair) { m -= fair * (grp === 1); } continue; }
@@ -59,7 +59,7 @@ export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 
       else { ur = vr / sp; uh = wa / sp; }
     } else {
       if (tu0 === null) { tu0 = t; upT = S.reduce((a, s) => a + s.left / s.mdot * (s.g <= grp ? 1 : 0), 0) + S.filter(s => s.g > grp).reduce((a, s) => a + s.burn, 0); } // remaining burn time (overlapping groups counted once by their longest stage EST)
-      const b = Math.atan(Math.tan(beta0) * (1 - Math.min(tu / upT, 1))); ur = Math.sin(b); uh = Math.cos(b); tu += dt; }
+      const b = coasted ? 0 : Math.atan(Math.tan(beta0) * (1 - Math.min(tu / upT, 1))); ur = Math.sin(b); uh = Math.cos(b); tu += dt; }
     const vi = Math.hypot(vr, vh), dr = t < DRAG_T ? drag / DRAG_T : 0;
     const ar = a * ur - g + vh * vh / r - dr * vr / vi, ah = a * uh - vr * vh / r - dr * vh / vi;
     gl += g * (vr / vi) * dt; sl += a * (1 - (ur * vr + uh * vh) / vi) * dt; ideal += a * dt;
@@ -70,12 +70,12 @@ export function fly(v, E, P, orbit, v0, drag, kick, beta0, gtAlt = GT_ALT, dt = 
       const en = (vr * vr + vh * vh) / 2 - MU / r, hh = r * vh; if (en < 0) { const sma = -MU / (2 * en), e = Math.sqrt(Math.max(0, 1 + 2 * en * hh * hh / (MU * MU)));
         const rp = sma * (1 - e), ra = sma * (1 + e);
         if (rp >= rpT && ra >= raT) return { ok: true, gl, sl, ideal, t };
-        // restartable final stage (sourced flag): cut off on a transfer orbit (perigee ≥ PARK, EST) and raise the perigee at
-        // apogee with the propellant left in that stage (rocket equation, impulsive)
+        // restartable final stage (sourced `restart` flag + restartSrc): cut off once the apogee reaches the target (and is
+        // above PARK, EST), coast to apogee (Kepler, exact), then burn again prograde-horizontal there, integrated as a finite
+        // burn so its gravity/steering losses are counted. The cut-off orbit may be suborbital: coast-then-burn, as flown.
         const last = S[S.length - 1];
-        if (last.restart && act.length === 1 && act[0] === last && rp >= RE + PARK && ra >= raT && ra >= rpT) {
-          const va = Math.sqrt(MU * (2 / ra - 2 / (ra + rp))), vn = Math.sqrt(MU * (2 / ra - 2 / (ra + rpT))), dvNeed = Math.max(0, vn - va);
-          if (last.vac * G0 * Math.log(m / (m - last.left)) >= dvNeed) return { ok: true, gl, sl: sl + dvNeed, ideal, t, restart: true };
+        if (last.restart && !coasted && act.length === 1 && act[0] === last && ra >= RE + PARK && ra >= raT && ra >= rpT) {
+          coasted = true; r = ra; vr = 0; vh = hh / ra; continue;
         } }
     }
   }
