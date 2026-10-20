@@ -3,9 +3,9 @@
 // PBR environment, quality presets (low keeps phones and software GPUs working). No physics here.
 import * as THREE from 'three/webgpu';
 import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass } from 'three/tsl';
-export { GFX, GFX_ORDER } from './presets.js?v=f4.1';
-import { GFX } from './presets.js?v=f4.1';
-import { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth } from './earthmap.js?v=f4.1';
+export { GFX, GFX_ORDER } from './presets.js?v=f4.2';
+import { GFX } from './presets.js?v=f4.2';
+import { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth } from './earthmap.js?v=f4.2';
 export { PAD_LON_DEG, EARTH_TEX_ROT, sampleEarth };
 export function softwareGPU() {
   try { const c = document.createElement('canvas'), gl = c.getContext('webgl2') || c.getContext('webgl'); if (!gl) return true;
@@ -48,7 +48,11 @@ export function cloudMaterial(q, sunPos) {
   const m = new THREE.MeshStandardNodeMaterial({ transparent: true, depthWrite: false });
   const c = texture(tex('earth_clouds', q, false)).r, L = normalize(sunPos.sub(positionWorld)), ndl = dot(normalWorld, L);
   m.colorNode = mix(vec3(1.0, 0.62, 0.42), vec3(1, 1, 1), smoothstep(-0.05, 0.3, ndl)); m.roughnessNode = float(1); m.metalnessNode = float(0);
-  m.opacityNode = c.mul(0.92);
+  // f4.1b: the cloud map is ~10 km/texel; seen from 10-40 km straight down it magnified into one flat grey slab over
+  // the pad. Close up, break it into cumulus-scale cells and thin it, fading to the plain map from ~300 km away.
+  const d = length(positionWorld.sub(cameraPosition)), far = smoothstep(60000.0, 300000.0, d), lp = positionLocal.mul(1 / 6000);
+  const cell = saturate(mx_noise_float(lp).mul(1.6).add(mx_noise_float(lp.mul(4.0)).mul(0.6)).add(0.05));
+  m.opacityNode = c.mul(0.92).mul(mix(cell.mul(0.75), float(1), far));
   return m;
 }
 // Analytic single-scattering look for an atmosphere shell drawn as a back-face sphere: brightness from how close
@@ -123,8 +127,11 @@ export function tileMaterial() {
   const m = new THREE.MeshStandardNodeMaterial({ vertexColors: true });
   const p = positionLocal, n1 = mx_noise_float(p.mul(0.004)), n2 = mx_noise_float(p.mul(0.05)), n3 = mx_noise_float(p.mul(0.6));
   const d = length(positionWorld), fade = smoothstep(4000.0, 300.0, d);
-  const k = float(1).add(n1.mul(0.22)).add(n2.mul(0.12)).add(n3.mul(0.12).mul(fade));
-  m.colorNode = vertexColor().rgb.mul(k); m.roughnessNode = float(0.95).sub(n2.mul(0.05)); m.metalnessNode = float(0);
+  // f4.1b: regional + field-scale variation so the 150 km tile isn't a flat slab from 10–40 km (the day map is ~km/pixel)
+  const r0 = mx_noise_float(p.mul(0.00006)), r1 = mx_noise_float(p.mul(0.00035)), r2 = mx_noise_float(p.mul(0.0016));
+  const k = float(1).add(r0.mul(0.28)).add(r1.mul(0.22)).add(r2.mul(0.14)).add(n1.mul(0.16)).add(n2.mul(0.1)).add(n3.mul(0.12).mul(fade));
+  const vc = vertexColor().rgb, tint = mix(vec3(0.82, 1.08, 0.72), vec3(1.12, 0.98, 0.78), saturate(r1.mul(0.9).add(0.5)));
+  m.colorNode = mix(vc, vc.mul(tint), saturate(r0.mul(0.6).add(0.55))).mul(k); m.roughnessNode = float(0.95).sub(n2.mul(0.05)); m.metalnessNode = float(0);
   return m;
 }
 // post: HDR → bloom → tone map (high preset only; otherwise renderer.render + tone mapping)
