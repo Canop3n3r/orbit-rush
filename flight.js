@@ -10,7 +10,9 @@ export const SIM_SPEED = 2;                 // game time runs 2x real time; warp
 export const WARPS = [1, 2, 4, 10, 25, 50, 100, 1000, 1e4, 1e5, 1e6, 1e7];
 export const STAGE_CONFIRM_S = 2;           // second SPACE within this many real seconds confirms staging
 export const QALPHA_MAX = 12000;            // Pa·rad: structural limit on dynamic pressure × angle of attack
-export const QMAX = 80000;                  // Pa: over-pressure limit
+export const QMAX = 80000;
+export const STAGE_Q_WARN = 5000;            // Pa: STAGE warns above this for serial stacks: half the lowest q a bare upper stage broke up at in tests/stagesafe.mjs (~10 kPa; QMAX/2 never fired in the QA cases)
+export const SEP_HOLD_S = 3;                 // f5.3: s of flight-path hold for the upper stage after a serial separation                  // Pa: over-pressure limit
 export const PHYS_DT = 0.02;                // s: fixed physics step (RK4) at low warp
 export const PRESETS = TEMPLATES;
 export const DEORBIT_PE = 45000;            // m: AUTO deorbit burn lowers periapsis to this (deep enough to be captured)
@@ -374,15 +376,22 @@ export class Flight {
     const next = v.cur < this.last ? 'stage' : v.fairing > 0 && this.alt > 60000 ? 'fairing' : null;
     if (!next) return 'none';
     if (next === 'stage' && !this.canStage()) { this.toast('Clear the tower first!', '#ffb35c'); return 'blocked'; }
+    const risk = next === 'stage' ? this.stageRisk() : '';
+    if (next === 'stage' && !risk && this.stageArm < 0) { // f5.3: a safe STAGE is one tap (a fast second tap within 0.6 s is ignored, so one double tap never drops two stages)
+      if (this.realT - (this._lastStageT ?? -9) < 0.6) return 'debounce';
+      this._lastStageT = this.realT; this.stage(); return 'stage'; }
     if (this.stageArm < 0 || this.realT - this.stageArm > STAGE_CONFIRM_S) {
-      this.stageArm = this.realT;
+      this.stageArm = this.realT; if (risk) { this.toast(risk, '#ff9b5c'); return 'armed'; }
       this.toast(next === 'stage' ? 'Press SPACE again to STAGE' + this.stageWarning() : 'Press SPACE again to drop the fairing', '#ffd23a');
       return 'armed';
     }
     this.stageArm = -1;
-    if (next === 'stage') this.stage(); else this.jettison();
+    if (next === 'stage') { this._lastStageT = this.realT; this.stage(); } else this.jettison();
     return next;
   }
+  // f5.3 (QA staging_manual): dropping a serial stage in thick air leaves a finless upper stage that can break up
+  stageRisk() { const v = this.v, q = v.tel ? v.tel.q || 0 : 0; if (v.stages[v.cur].radial || q <= STAGE_Q_WARN) return '';
+    return `High Q (${(q / 1000).toFixed(0)} kPa): the upper stage may break up. Press again to STAGE anyway`; }
   stageWarning() {
     const v = this.v; if (v.cur !== 0 || v.stages[0].radial) return '';
     if (this.alt <= 2000) return ' (too low to recover the booster)';
@@ -408,6 +417,7 @@ export class Flight {
   stage() {
     const v = this.v, bh = this.alt;
     if (v.cur >= this.last) return;
+    if (!v.stages[v.cur].radial && this.alt < 70000) this.sepHold = this.met + SEP_HOLD_S;
     if (v.cur > 0 || v.stages[0].radial) {
       const d = P.makeBooster(v); d.stageIndex = v.cur; d.radial = v.stages[v.cur].radial || 0; this.shiftCom(() => { v.cur++; });
       if (d.radial && this.recovery === 'rtls' && !this.booster && d.stages[0].fuel > 0.3 && bh > 2000) { // f4: side boosters fly back to the landing zone
@@ -724,6 +734,7 @@ export class Flight {
         }
         if (v.cur < this.lastPow && v.stages[v.cur].fuel <= 0 && this.canStage()) { this.toast(v.cur === 0 ? 'AUTO: booster empty, staging' : `AUTO: stage ${v.cur + 1} empty, staging`, '#9cc3ff'); this.stage(); }
       } else { v.throttle = this.autoOn ? Math.min(v.ut, P.qCap(v.tel ? v.tel.q : 0)) : v.ut; if (!this.autoOn) v.steerDir = null; }
+      if (this.sepHold && !f.dead) { if (this.met < this.sepHold || (!this.autoOn && this.met < this.sepHold + 600 && v.tel && v.tel.q > 8000)) { /* ~3 s, longer while the air is still thick */ v.sepGrace = 1; const w = P.omegaOf(v), va = [v.v[0] + w * v.r[1], v.v[1] - w * v.r[0], v.v[2]]; /* air-relative flight path */ if (V.len(va) > 30) v.steerDir = V.norm(va); } else { this.sepHold = 0; v.sepGrace = 0; if (!this.autoOn) v.steerDir = null; } } // f5.3 (QA staging_manual): hold the bare upper stage on its flight path for ~3 s after a serial separation
       if (v.clamped) v.steerDir = null;
       this.updateChute(dt);
       P.updateControl(v);
