@@ -2,7 +2,7 @@
 // Usage: node tests/vehicles_budget.cjs [url]   (skips with exit 0 if playwright isn't installed)
 let pw; try { pw = require(process.env.PWT || '/workspace/pwt/node_modules/playwright-core'); } catch { console.log('vehicles_budget: skipped (no playwright)'); process.exit(0); }
 const url = process.argv[2] || 'http://localhost:8761/gfx/vehicles/budget.html';
-const BUD = { ...Object.fromEntries(['dark-dart'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])), // [maxTris, maxMeshes] per id/detail
+const BUD = { ...Object.fromEntries(['jade-lantern-1','jade-lantern-2','jade-lantern-2c','jade-lantern-2d','jade-lantern-2e','jade-lantern-4','jade-lantern-6','jade-lantern-7','jade-lantern-8','jade-lantern-11','jade-lantern-12','gale-runner-1'].map(id => [id, { hi: [12000, 32], mid: [4000, 26], lo: [2000, 20] }])) /* tier B phone budget */, ...Object.fromEntries(['dark-dart'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])), // [maxTris, maxMeshes] per id/detail
   'heron-heavy': { hi: [20000, 38], lo: [7000, 22] }, 'heron-9': { hi: [20000, 30], lo: [2700, 12] }, 'heron-9-v11': { hi: [20000, 30], lo: [2700, 12] }, 'heron-9-crew': { hi: [20000, 30], lo: [2700, 12] },
   'colossus-v3': { mid: [17000, 14], lo: [6000, 10] }, 'colossus-v4': { mid: [17000, 14], lo: [6000, 10] }, 'sparrow-1': { hi: [8000, 16], lo: [1500, 10] },
   'saturnine-v': { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }, 'space-truck': { hi: [30000, 30], mid: [8000, 24], lo: [4000, 18] },
