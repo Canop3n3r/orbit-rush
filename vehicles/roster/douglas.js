@@ -65,9 +65,9 @@ export const ROSTER_DOUGLAS = [
     stages: [
       { engines: {'dw-e15': 1}, dry: 3125, prop: 45675, burn: 160.0, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'dw-e16': 1}, dry: 429, prop: 1471, burn: 110.0, group: 1, recovery: 'expended', src: 'GCAT' },
-      { engines: {'dw-e17': 1}, dry: 94, prop: 206, burn: 39.0, group: 2, recovery: 'expended', src: 'GCAT' },
+      { engines: {'dw-e17': 1}, dry: 94, prop: 206, burn: 39.0, group: 2, spin: true, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 120, orbit: { hp: 640, ha: 640, inc: 28.5 }, src: 'spec:thorin-capable#leo (rocketdb leo_kg + leo_orbit)', est: ['inclination (site latitude) ESTIMATE'] , knownGap: "model +256 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+    modes: [{ variant: 'leo', payload: 120, orbit: { hp: 640, ha: 640, inc: 28.5 }, src: 'spec:thorin-capable#leo (rocketdb leo_kg + leo_orbit)', est: ['inclination (site latitude) ESTIMATE'] , knownGap: "model +258 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
   { id: 'thorin', name: "Thorin", company: 'douglas', src: 'spec:thorin', area: 4.7, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'dw-e18': 1}, dry: 3125, prop: 45675, burn: 160.0, group: 0, recovery: 'expended', src: 'GCAT' },
