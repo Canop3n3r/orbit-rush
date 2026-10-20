@@ -62,7 +62,7 @@ document.getElementById('cap').textContent = `world-1 · ${shot} · tier ${tier}
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); });
 await new Promise(r => setTimeout(r, 1500)); // textures
 const perfN = +q.get('perf') || 0; let last = performance.now(); const times = [];
-renderer.setAnimationLoop(() => { const now = performance.now(), dt = (now - last) / 1000; last = now; if (clouds) clouds.update(0, cam); U.time.value += dt; renderer.render(scene, cam);
+renderer.setAnimationLoop(() => { if (window.__stop) return; const now = performance.now(), dt = (now - last) / 1000; last = now; if (clouds) clouds.update(0, cam); U.time.value += dt; renderer.render(scene, cam);
   if (perfN && times.length < perfN + 5) { times.push(dt * 1000); if (times.length === perfN + 5) { const s = times.slice(5).sort((a, b) => a - b); window.__perf = { mean: s.reduce((a, b) => a + b, 0) / s.length, p50: s[s.length >> 1], p95: s[Math.floor(s.length * 0.95)], n: s.length, backend: renderer.backend.isWebGPUBackend ? 'webgpu' : 'webgl2' }; } }
   window.__ready = (window.__ready || 0) + 1; });
 </script></body></html>
