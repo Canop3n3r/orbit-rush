@@ -145,8 +145,9 @@ export function createAcademy(api) {
     const g = GLOSSARY[t.dataset.l]; if (!g) return; tip.textContent = g; tip.classList.remove('hidden'); const r = t.getBoundingClientRect();
     tip.style.left = Math.min(innerWidth - 330, r.right + 8) + 'px'; tip.style.top = Math.max(4, r.top - 4) + 'px'; });
   // ---------- first run ----------
+  function hideFirst() { first.classList.add('hidden'); } // f4.1b: never over a flight
   function firstRun() {
-    if (prog.seen) return;
+    if (prog.seen || document.body.classList.contains('flying') || (window.__game && window.__game.state === 'flight')) return;
     first.innerHTML = `<h2>Welcome to Orbit Rush 🚀</h2><p>New to rockets? The <b>Academy</b> teaches real rocket science by doing: twelve short lessons from your first hop to landing a booster and flying to the Moon.</p>
       <div class="row"><button id="frAc" class="big">🎓 Start the Academy</button><button id="frSb">Sandbox — just let me fly</button></div><p class="small">You can open the Academy any time from the hangar.</p>`;
     first.classList.remove('hidden');
@@ -154,7 +155,7 @@ export function createAcademy(api) {
     $('frSb').onclick = () => { prog.seen = true; save(); first.classList.add('hidden'); };
   }
   return {
-    openMenu, start, stop, tick, toggleLearn, renderLearn, firstRun,
+    openMenu, start, stop, tick, toggleLearn, renderLearn, firstRun, hideFirst,
     get active() { return !!tutor; }, get lesson() { return lesson(); }, get tutor() { return tutor; }, get progress() { return prog; }, get learnOn() { return learnOn; },
     onLaunch(F) { const L = lesson(); if (L && L.start.setup) L.start.setup(F); },
     onEnd() { if (tutor) tick(0); },

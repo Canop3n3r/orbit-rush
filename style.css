@@ -680,3 +680,5 @@ body.splitOn #nav, body.splitOn #navCue{display:none!important}
 @media (orientation:landscape){body.splitOn:not(.mapOn) #topStack{left:25%!important;top:calc(112px + env(safe-area-inset-top,0px))!important;max-width:46vw!important}}
 /* f4.1: one telemetry layout at a time — while split, only the pane cards (no engineer tiles / classic tele / big navball) */
 body.splitOn #engS, body.splitOn #tele, body.splitOn #nav, body.splitOn #navCue{display:none!important}
+/* f4.1b: in split the compact top-left tiles (ALT/ORB/AP) give way to the upper-stage pane card */
+body.splitOn #sL{display:none!important}

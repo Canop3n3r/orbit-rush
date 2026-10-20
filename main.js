@@ -790,7 +790,7 @@ function reset() {
   $('end').classList.add('hidden'); $('toasts').innerHTML = '';
   showPreview();
 }
-function launch() {
+function launch() { academy.hideFirst && academy.hideFirst();
   if (typeof home !== 'undefined' && home && home.on) home.show(false);
   initAudio(); reset(); state = 'flight'; mobile.buzzed = false;
   const sc = params.get('scenario');
@@ -1505,6 +1505,12 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
   $('spClose').onclick = e => { e.stopPropagation(); split.closed = true; };
 }
 const splitPortrait = () => innerHeight > innerWidth;
+const _html = {}; function setHTML(id, h) { if (_html[id] !== h) { _html[id] = h; const e = $(id); if (e) e.innerHTML = h; } }
+function placeTopStack(on) { // f4.1b: in split, toasts/hints (#topStack, compact #hintS) live in the upper pane, below its card and clear of the pane buttons
+  const land = on && !splitPortrait() && camMode !== 'map', W = innerWidth, card = $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, top = cb ? Math.max(cb.bottom + 10, 112) : 0;
+  for (const id of ['topStack', 'hintS']) { const ts = $(id); if (!ts) continue;
+    if (!land) { if (ts.dataset.sp) { ts.style.removeProperty('left'); ts.style.removeProperty('top'); ts.style.removeProperty('max-width'); delete ts.dataset.sp; } continue; }
+    ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * 0.25) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(W * 0.5 - 32) + 'px', 'important'); } }
 function paneRect() { const W = innerWidth, H = innerHeight; return splitPortrait() ? { x: 0, y: H * 0.5, w: W, h: H * 0.5 } : { x: W * 0.5, y: 0, w: W * 0.5, h: H }; }
 function updateSplit(rdt) {
   const b = booster, flying = b && b.state === 'flying' && b.mesh && b.mesh.visible !== false;
@@ -1514,20 +1520,20 @@ function updateSplit(rdt) {
     if (!split.done && split.rec.length > 30) split.replay = { i: Math.max(0, split.rec.length - 240), k: 0 };
     split.done += rdt;
   }
-  document.body.classList.toggle('splitOn', !!(want && split.full !== 'b'));
+  document.body.classList.toggle('splitOn', !!(want && split.full !== 'b')); placeTopStack(!!(want && split.full !== 'b'));
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want) { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
   if (!split.on) return;
   const R2 = paneRect(), fb = split.full === 'b';
   $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('fullB', fb);
   const st = $('spPane').style; if (fb) { st.left = '0'; st.top = '0'; st.width = '100%'; st.height = '100%'; } else { st.left = R2.x + 'px'; st.top = R2.y + 'px'; st.width = R2.w + 'px'; st.height = R2.h + 'px'; }
-  if ((split.frame++ % 6) === 0 && b) {
+  split.frame++; if (b) { // f4.1b: every frame (was every 6th — at low fps the cards lagged by seconds)
     const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
     const bf = b.stages[0], bfp = bf && bf.fuelMax ? Math.round(100 * bf.fuel / bf.fuelMax) : 0, bs = V.len(bva);
     const bPh = split.replay ? '⟲ REPLAY' : b.state === 'landed' ? '✔ LANDED' : b.state !== 'flying' ? '✘ LOST' : b.manual ? 'MANUAL' : apPill(b.phase);
-    $('spHud').innerHTML = `<div class="spT"><b>BOOSTER</b><span class="pill ${/BURN|LANDING/.test(bPh) ? 'hot' : ''}">${bPh}</span></div><div class="spG"><span>ALT</span><b>${fmtD(bh)}</b><span>SPD</span><b>${fmtS(bs)}</b><span>V/S</span><b>${vs >= 0 ? '+' : ''}${vs.toFixed(0)} m/s</b><span>FUEL</span><b>${bf ? bf.fuel.toFixed(1) : 0} t</b></div>`;
+    setHTML('spHud', `<div class="spT"><b>BOOSTER</b><span class="pill ${/BURN|LANDING/.test(bPh) ? 'hot' : ''}">${bPh}</span></div><div class="spG"><span>ALT</span><b>${fmtD(bh)}</b><span>SPD</span><b>${fmtS(bs)}</b><span>V/S</span><b>${vs >= 0 ? '+' : ''}${vs.toFixed(0)} m/s</b><span>FUEL</span><b>${bf ? bf.fuel.toFixed(1) : 0} t</b></div>`);
     const uu = V.norm(v.r), uva = P.airVel(v, v.r, v.v), uvs = V.dot(v.v, uu), us = v.stages[v.cur], ufp = us && us.fuelMax ? Math.round(100 * us.fuel / us.fuelMax) : 0;
     const uPh = v.auto || F.autoOn ? ({ ascent: 'ASCENT', coast: 'COAST TO AP', circ: 'ORBIT INSERTION', done: 'IN ORBIT' }[v.guid] || 'AUTO') : 'MANUAL';
-    $('spHud1').innerHTML = `<div class="spT"><b>UPPER STAGE</b><span class="pill ${v.thrust > 0 ? 'hot' : ''}">${uPh}</span></div><div class="spG"><span>ALT</span><b>${fmtD(P.altOf(v))}</b><span>SPD</span><b>${fmtS(V.len(v.v))}</b><span>V/S</span><b>${uvs >= 0 ? '+' : ''}${uvs.toFixed(0)} m/s</b><span>FUEL</span><b>${ufp}%</b></div>`;
+    setHTML('spHud1', `<div class="spT"><b>UPPER STAGE</b><span class="pill ${v.thrust > 0 ? 'hot' : ''}">${uPh}</span></div><div class="spG"><span>ALT</span><b>${fmtD(P.altOf(v))}</b><span>SPD</span><b>${fmtS(V.len(v.v))}</b><span>V/S</span><b>${uvs >= 0 ? '+' : ''}${uvs.toFixed(0)} m/s</b><span>FUEL</span><b>${ufp}%</b></div>`);
     miniBall($('spBallB'), b.dir, b.r, bva); miniBall($('spBallU'), P.noseOf(v), v.r, P.altOf(v) > 80000 ? v.v : uva);
   }
 }
