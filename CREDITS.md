@@ -23,3 +23,6 @@ re-encoded as JPEG/PNG; the clouds and specular maps converted to greyscale.
 ## Original work
 Rocket parts and paint, launch complex, concrete, panel normal maps, glow and environment textures, the smaller moons'
 procedural maps, particle effects, sounds, the physics and the lessons are original procedural work for Orbit Rush.
+
+## Vehicle models (art1)
+All vehicle models, the catch tower and their textures in `gfx/vehicles/` are original procedural work for Orbit Rush (canvas-generated; no third-party textures, no logos). Proportions follow public dimensions collected in the team specs sheet.
