@@ -1,6 +1,6 @@
 // Navball math (fun/navball.js) + the new SAS target mode. Run: node tests/navball.mjs
-import * as N from '../fun/navball.js?v=f5b.1';
-import * as P from '../physics.js?v=f5b.1';
+import * as N from '../fun/navball.js?v=f5b.2';
+import * as P from '../physics.js?v=f5b.2';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m); } };
 const near = (a, b, e = 1e-6) => Math.abs(a - b) < e;
 const r = [6.4e6, 0, 0], H = N.horizonFrame(r);

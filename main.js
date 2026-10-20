@@ -1,44 +1,45 @@
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5b.1';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5b.1';
-import * as C from './physics/patched.js?v=f5b.1';
+import * as P from './physics.js?v=f5b.2';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5b.2';
+import * as C from './physics/patched.js?v=f5b.2';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5b.1';
-import { createCareerUI } from './fun/career-ui.js?v=f5b.1';
-import { SITE_NAMES, LADDER } from './fun/ladder.js?v=f5b.1';
-import { createSolarMap } from './solarmap.js?v=f5b.1';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5b.1';
-import { FX } from './fx.js?v=f5b.1';
-import { createAcademy } from './academy-ui.js?v=f5b.1';
-import { createMobile, isTouch } from './mobile.js?v=f5b.1';
-import { localize } from './wording.js?v=f5b.1';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5b.1';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5b.1';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5b.2';
+import { createCareerUI } from './fun/career-ui.js?v=f5b.2';
+import { SITE_NAMES, LADDER } from './fun/ladder.js?v=f5b.2';
+import { createSolarMap } from './solarmap.js?v=f5b.2';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5b.2';
+import { FX } from './fx.js?v=f5b.2';
+import { createAcademy } from './academy-ui.js?v=f5b.2';
+import { createMobile, isTouch } from './mobile.js?v=f5b.2';
+import { localize } from './wording.js?v=f5b.2';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5b.2';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5b.2';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5b.1';
-import * as GX from './gfx/gfx.js?v=f5b.1';
-import { Director, MISSIONS } from './fun/director.js?v=f5b.1';
-import * as PR from './fun/progress.js?v=f5b.1';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5b.1';
-import { createAudio } from './fun/audio.js?v=f5b.1';
-import { createCompact } from './fun/compact.js?v=f5b.1';
-import { createHome } from './fun/home.js?v=f5b.1';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5b.1';
-import { createFunUI } from './fun/ui.js?v=f5b.1';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm } from './gfx/vehicles/vehicles.js?v=f5b.1';
-import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5b.1';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5b.2';
+import * as GX from './gfx/gfx.js?v=f5b.2';
+import { Director, MISSIONS } from './fun/director.js?v=f5b.2';
+import * as PR from './fun/progress.js?v=f5b.2';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5b.2';
+import { createAudio } from './fun/audio.js?v=f5b.2';
+import { createCompact } from './fun/compact.js?v=f5b.2';
+import { createHome } from './fun/home.js?v=f5b.2';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5b.2';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5b.2';
+import { createFunUI } from './fun/ui.js?v=f5b.2';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm } from './gfx/vehicles/vehicles.js?v=f5b.2';
+import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5b.2';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5b.1';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5b.2';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -112,10 +113,10 @@ function padExtras(g) {
 }
 // ---------- launch complex (lattice tower, swing arm, mast, tanks) ----------
 const steel = new THREE.MeshStandardMaterial({ color: 0x3b3f46, roughness: 0.55, metalness: 0.7 });
-let swingArm;
+let swingArm, padConcM = null, padConc0 = null, padShow = false;
 function buildLaunchComplex() {
   const g = new THREE.Group();
-  const conc = new THREE.Mesh(new THREE.CylinderGeometry(32, 36, 4, 40), new THREE.MeshStandardMaterial({ map: (() => { const t = GX.concreteTexture(); t.repeat.set(4, 4); return t; })(), roughness: 0.92 })); conc.position.y = PAD_Z - 2; g.add(conc);
+  const conc = new THREE.Mesh(new THREE.CylinderGeometry(32, 36, 4, 40), new THREE.MeshStandardMaterial({ map: (() => { const t = GX.concreteTexture(); t.repeat.set(4, 4); return t; })(), roughness: 0.92 })); conc.position.y = PAD_Z - 2; g.add(conc); padConcM = conc.material; padConc0 = { color: conc.material.color.getHex(), roughness: conc.material.roughness, env: conc.material.envMapIntensity };
   padExtras(g);
   const trench = new THREE.Mesh(new THREE.BoxGeometry(8, 0.2, 40), new THREE.MeshStandardMaterial({ color: 0x1b1b1b })); trench.position.set(0, PAD_Z + 0.02, 18); g.add(trench);
   // lattice tower: 4 legs + instanced braces (one draw call)
@@ -679,7 +680,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5b.1', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5b.2', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -785,13 +786,26 @@ function showPreview() {
   attachHero();
 }
 // f4 model swap: the hero model stands in for the part meshes (same stack height); part groups keep plumes/staging logic
+// showroom framing input: the REAL model's bounds in the rocket frame (hero model if one stands in, else the visible stage parts);
+// pad hardware parented to the rocket and hidden part meshes (invisible ancestors) are left out
+function rocketBounds() {
+  const roots = hero ? [hero] : SG, box = new THREE.Box3(), tb = new THREE.Box3(); rocketG.updateMatrixWorld(true);
+  const shown = o => { for (let p = o; p && p !== rocketG; p = p.parent) if (!p.visible) return false; return true; };
+  for (const r of roots) r.traverse(o => { if (!o.isMesh || !shown(o) || !o.geometry) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); tb.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld); box.union(tb); });
+  return box.isEmpty() ? null : box;
+}
+function showFree(land) { // the UI-covered fractions of the screen: the home card + nav (portrait: below; landscape: right column)
+  const c = document.getElementById('hCard'), n = document.getElementById('hNav'); let top = innerHeight, left = innerWidth;
+  for (const e of [c, n]) if (e && e.offsetParent !== null) { const r = e.getBoundingClientRect(); if (r.height > 0) { top = Math.min(top, r.top); left = Math.min(left, r.left); } }
+  return land ? { right: Math.min(0.5, Math.max(0, 1 - left / innerWidth)) } : { bottom: Math.min(0.45, Math.max(0, 1 - top / innerHeight)) };
+}
 let hero = null;
 const HERO_READY = new Map(), HERO_WARM = new Set();
 function prewarmHeavy() { // rockets-3: build the heavy hero LODs in idle slices while the player sits in the home/hangar
   const ids = ['heron-heavy', 'titan-ss-v3', 'titan-ss-v4'].filter(id => !HERO_READY.has(id + (TOUCH ? ':p' : '')));
   const W = heroPrewarm(ids, { phone: TOUCH });
   for (const id of ids) { const k = id + (TOUCH ? ':p' : ''), p = W.get(k); if (!p || HERO_WARM.has(k)) continue; HERO_WARM.add(k); p.then(l => { if (HERO_WARM.has(k)) { HERO_READY.set(k, l); HERO_WARM.delete(k); W.delete(k); } }).catch(() => HERO_WARM.delete(k)); } }
-function attachHero() {
+function attachHero() { showFrame = null; // re-frame from the new model at once
   if (hero) { const old = hero; hero = null; heroRelease(old, renderer, scene, camera).catch(() => heroDispose(old)); } // rockets-3: leak-safe swap
   if (!design.model || !SG.length) return;
   const wk = design.model + (TOUCH ? ':p' : ''); // rockets-3: heavy models are prewarmed at the hangar; take a finished one if ready
@@ -874,7 +888,7 @@ function goBuild() {
   if (typeof home !== 'undefined' && home && goBuild.toHome !== false) home.show(true);
   refreshBuild();
 }
-let camUserT = -1e9, camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
+let showFrame = null, showFrameT = 0, camUserT = -1e9, camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
 $('earthRot').checked = earthRot;
 function showAz() { $('inclIn').value = launchIncl; $('azOut').textContent = `→ heading ${(launchAzimuth(launchIncl, 0, earthRot ? P.OMEGA_E * R : 0) * DEG).toFixed(1)}°`; }
 $('inclIn').onchange = e => { launchIncl = Math.max(0, Math.min(180, +e.target.value || 0)); try { localStorage.setItem(INC_KEY, String(launchIncl)); } catch (x) { } showAz(); reset(); refreshBuild(); };
@@ -1537,10 +1551,18 @@ renderer.setAnimationLoop(() => {
   }
   if (state === 'flight' && (hudT += rdt) > 0.1) { academy.tick(hudT); hudT = 0; hud(); academy.tick(0); academy.renderLearn(); }
   else if (state === 'build' && academy.active && (hudT += rdt) > 0.25) { academy.tick(hudT); hudT = 0; }
-  if (state === 'build' && home && home.on) { // showroom: slow cinematic turn, rocket framed above the card (portrait) or beside it (landscape)
-    camYaw += rdt * 0.22; camPitch += (0.05 - camPitch) * Math.min(1, rdt); const land = innerWidth > innerHeight, wide = innerWidth >= 900 && innerHeight >= 600;
-    const Lh = v ? P.stackGeom(v).L : 40; camDist = Math.max(40, Lh * (land && !wide ? 1.6 : wide ? 1.95 : 1.75)); camAim = 0.5;
-    camera.setViewOffset(innerWidth, innerHeight, land && !wide ? innerWidth * 0.2 : 0, land && !wide ? 0 : innerHeight * (wide ? 0.15 : 0.17), innerWidth, innerHeight); }
+  const showOn = state === 'build' && home && home.on;
+  if (padConcM && showOn !== padShow) { padShow = showOn; const P0 = showOn ? { color: SHOWROOM_PAD.color, roughness: SHOWROOM_PAD.roughness, env: SHOWROOM_PAD.envIntensity } : padConc0; // ui-icons: lighter showroom pad so the rocket reads as the hero
+    padConcM.color.setHex(P0.color); padConcM.roughness = P0.roughness; padConcM.envMapIntensity = P0.env; }
+  if (showOn) { // showroom: slow cinematic turn; ui-icons frameRocket sizes + centres the REAL model from its bounds (70% of the screen, tip below the 48 px safe line) above the card (portrait) or beside it (landscape)
+    camYaw += rdt * 0.22; const land = innerWidth > innerHeight;
+    if (rocketG && ((showFrameT -= rdt) <= 0 || !showFrame)) { showFrameT = 0.25;
+      const p0 = rocketG.position.clone(), q0 = rocketG.quaternion.clone(); rocketG.position.set(0, 0, 0); rocketG.quaternion.identity(); // rocket frame: base at 0, nose +Y
+      try { const bx = rocketBounds(); showFrame = bx ? frameRocket({ bounds: bx, fovDeg: camera.fov, aspect: camera.aspect, screenH: innerHeight, free: showFree(land), yaw: 0, elev: 0.08 }) : null; } catch (e) { showFrame = null; }
+      rocketG.position.copy(p0); rocketG.quaternion.copy(q0); rocketG.updateMatrixWorld(true); window.__showDbg = { f: showFrame, L: stackL() }; }
+    if (showFrame) { const Lh = stackL() || 40, se = Math.sin(0.08); camDist = showFrame.dist * Math.hypot(1, se); camPitch = Math.atan(se); camAim = showFrame.aim[1] / Lh;
+      camera.setViewOffset(innerWidth, innerHeight, showFrame.viewOffsetX * innerWidth, 0, innerWidth, innerHeight); }
+    else { const Lh = v ? P.stackGeom(v).L : 40; camPitch += (0.05 - camPitch) * Math.min(1, rdt); camDist = Math.max(40, Lh * (land ? 1.6 : 1.75)); camAim = 0.5; camera.setViewOffset(innerWidth, innerHeight, land ? innerWidth * 0.2 : 0, land ? 0 : innerHeight * 0.17, innerWidth, innerHeight); } }
   else if (state === 'build') { camYaw += rdt * 0.15; const sheet = innerWidth < 600 && innerHeight > innerWidth; // f4: phone portrait: rocket fills the strip above the bottom sheet
     if (sheet) { camAim = 0.5; camDist = fitDist(stackL(), 0.36); camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.29, innerWidth, innerHeight); }
     else { camDist = Math.max(70, stackL() * 1.9); camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.36, 0, innerWidth, innerHeight); } }
