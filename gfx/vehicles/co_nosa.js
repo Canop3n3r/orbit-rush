@@ -136,3 +136,4 @@ export const CO_NOSA = {
   'space-truck': { height: 57.6, build: spaceTruck, src: 'rocketdb space-truck (GCAT): SRB 45.5 x 3.71 m, ET 47 x 8.4 m, orbiter 37.2 m; stack 56.1 m', est: ['orbiter planform', 'attach placement'] },
   'saturnine-v': { height: 110.6, build: saturnine, src: 'rocketdb saturnine-v (GCAT): 110.6 m, 10.06 m; S-IC 42.1, S-II 24.8, S-IVB 6.6 m dia; stack split art-fitted', est: ['IU/SLA/CSM/LES split', 'fin shape'] },
 };
+export { group, lmat, kbuild, plume }; // shared helpers for the other co_* company files
