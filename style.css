@@ -803,3 +803,8 @@ body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #h
 .bMore>summary{min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;list-style:none}
 .bTopRow{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}.bTopRow .bMore{flex:1}.bTopRow #launchBtn{margin:0;flex:0 0 auto;min-width:220px}
 .bTopRow #homeBack{flex:0 0 auto;min-height:44px}
+/* f5.1g: Sandbox toggle switch (44 px) */
+#picker .pkSw{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px 0 6px;border-radius:22px;background:#14203a;border:1px solid #2a3c62;color:#e8f0ff;font:600 14px system-ui}
+#picker .pkSw i{position:relative;width:44px;height:26px;border-radius:13px;background:#3a4560;transition:background .15s}
+#picker .pkSw i::after{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+#picker .pkSw[aria-checked="true"] i{background:#2fb36b}#picker .pkSw[aria-checked="true"] i::after{left:21px}

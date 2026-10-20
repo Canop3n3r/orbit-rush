@@ -36,7 +36,7 @@ import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showro
 import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.1f';
 import { createFunUI } from './fun/ui.js?v=f5.1f';
 import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES } from './gfx/vehicles/vehicles.js?v=f5.1f';
-import { pickerHTML, baseFor } from './fun/picker.js?v=f5.1f';
+import { pickerHTML, baseFor, roleFor } from './fun/picker.js?v=f5.1f';
 import { dispose as heroDispose, release as heroRelease } from './gfx/vehicles/kit.js?v=f5.1f';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
@@ -2104,17 +2104,18 @@ var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].i
   const SBK = 'orbitrush.sandbox', sbOn = () => { try { return localStorage.getItem(SBK) === '1'; } catch (e) { return false; } };
   const pk = document.createElement('div'); pk.id = 'picker'; pk.className = 'hidden'; document.body.appendChild(pk);
   const nav = () => { const b = $('hnBuild'); if (b) b.classList.toggle('hidden', !sbOn()); };
-  const render = () => { pk.innerHTML = pickerHTML({ sandbox: sbOn(), sets: HOUSE_SETS, name: houseName,
+  const render = () => { pk.innerHTML = pickerHTML({ sandbox: sbOn(), sets: HOUSE_SETS, name: houseName, role: id => roleFor((ART[id] && ART[id].height) || 50), locked: id => !!lockWhy('vehicles', SHOW[baseIdx(id)].id),
     originals: SHOW.map((r, i) => ({ i, name: r.name, role: r.role, locked: !!lockWhy('vehicles', r.id) })) }); };
   const close = () => pk.classList.add('hidden');
+  function baseIdx(id) { const b0 = baseFor((ART[id] && ART[id].height) || 50); return Math.max(0, SHOW.findIndex(x => b0 === 'heavy' ? /colossus/.test(ART_ALIAS[x.model] || x.model || '') : x.id === b0)); }
   window.openPicker = () => { render(); pk.classList.remove('hidden'); pk.scrollTop = 0; };
   pk.addEventListener('click', e => { const t = e.target;
     if (t.closest('#pkClose')) return close();
-    if (t.id === 'pkSandbox') { try { localStorage.setItem(SBK, t.checked ? '1' : '0'); } catch (er) { } dispatchEvent(new Event('career-change')); nav(); render(); return; }
+    if (t.closest('#pkSandbox')) { try { localStorage.setItem(SBK, sbOn() ? '0' : '1'); } catch (er) { } dispatchEvent(new Event('career-change')); nav(); render(); return; }
     if (t.closest('#pkBuild')) { close(); goBuild.toHome = true; home.show(false); refreshBuild(); return; }
     const c = t.closest('.pkC'); if (!c) return;
     if (c.dataset.i != null) { close(); home.set(+c.dataset.i); return; }
-    if (c.dataset.m) { const id = c.dataset.m, h = (ART[id] && ART[id].height) || 50, b0 = baseFor(h), i = Math.max(0, SHOW.findIndex(x => b0 === 'heavy' ? /colossus/.test(ART_ALIAS[x.model] || x.model || '') : x.id === b0));
+    if (c.dataset.m) { const id = c.dataset.m, i = baseIdx(id);
       close(); home.set(i, true); pickModel = id; $('hName').textContent = houseName(id); $('hRole').textContent = 'Flies on the ' + SHOW[i].name + ' stack'; setDesign(pickDesign(i)); } });
   const top = document.querySelector('#hTop .hTopR'); if (top) { const b = document.createElement('button'); b.id = 'hPick'; b.textContent = '▦'; b.title = b.ariaLabel = 'All rockets'; b.onclick = () => window.openPicker(); top.prepend(b); }
   const hn = $('hName'); if (hn) { hn.style.cursor = 'pointer'; hn.onclick = () => window.openPicker(); }
