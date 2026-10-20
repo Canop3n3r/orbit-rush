@@ -2,8 +2,8 @@
 // planner-built transfer nodes executed as finite burns, mid-course corrections, SOI warps, capture, Moon
 // landing) and tells the renderer which cinematic camera suits each phase. The player can take over anytime
 // (takeOver()); nothing here bypasses the physics. DOM-free, so tests/fun.mjs runs it headlessly.
-import * as P from '../physics.js?v=f4.2';
-import * as C from '../physics/patched.js?v=f4.2';
+import * as P from '../physics.js?v=f5b.1';
+import * as C from '../physics/patched.js?v=f5b.1';
 const V = P.V;
 export const MISSIONS = {
   orbit: { name: 'Orbit & home', icon: '🛰️', tpl: 'Orbit & home', target: null, blurb: 'Fly to orbit, then bring the capsule home under parachutes.' },
@@ -68,6 +68,8 @@ export class Director {
         break;
       case 'cruise':
         if (F.body === this.target) { this.arrive(); break; }
+        if (this._cruise0 == null) this._cruise0 = F.tAbs; // f5a.2 (QA P1): never cruise for years; a transfer that misses ends the mission
+        if (F.body === 'sun' && F.tAbs - this._cruise0 > MAX_CORR_WAIT) { this.finish('Missed ' + P.BODIES[this.target].name + ' — try again', false); break; }
         if (!F.warpTarget && !F.exec) {
           if (F.body === 'sun' && this.corrections < 4) {
             const pr = C.predict('sun', v.r, v.v, F.tAbs, { maxPatches: 3 }), ca = C.closestApproach(pr, this.target);

@@ -2,15 +2,15 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=f4.2';
-import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f4.2';
-import { elements, timeToAp } from './kepler.js?v=f4.2';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f4.2';
-import { massOf } from './vehicle.js?v=f4.2';
-import { atmosphere } from './atmosphere.js?v=f4.2';
-import { cd0 } from './aero.js?v=f4.2';
-import { hoverslamSolve } from './hoverslam.js?v=f4.2';
-import { sampleAscent } from '../timelines/ascent.js?v=f4.2';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f5b.1';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5b.1';
+import { elements, timeToAp } from './kepler.js?v=f5b.1';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5b.1';
+import { massOf } from './vehicle.js?v=f5b.1';
+import { atmosphere } from './atmosphere.js?v=f5b.1';
+import { cd0 } from './aero.js?v=f5b.1';
+import { hoverslamSolve } from './hoverslam.js?v=f5b.1';
+import { sampleAscent } from '../timelines/ascent.js?v=f5b.1';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -70,6 +70,11 @@ export function autoGuide(v) {
   let ph = v.guid || 'ascent';
   if (o.pe >= TARGET_PE && h > KARMAN) ph = 'done';
   else if (ph === 'done') ph = o.ap >= TARGET_AP - 3000 ? 'coast' : 'ascent';
+  // direct insertion (v.direct): the upper stage burns straight through to orbit (one long burn, no coast-then-circularize),
+  // as the real two-stage flights do; SECO lands at insertion instead of after a half-orbit coast
+  if (v.direct && v.cur > 0 && ph === 'ascent' && h > KARMAN - 20000 && o.ap >= TARGET_AP - 1000) ph = 'insert';
+  if (ph === 'insert' && o.ap < TARGET_AP - 20000 && o.pe < 0) ph = 'ascent';
+  if (!v.direct && ph === 'insert') ph = 'ascent';
   if (ph === 'ascent' && h > 5000 && o.ap >= TARGET_AP - 1000) { // coast only if the circularization burn fits before apoapsis
     const tAp = timeToAp(v.r, v.v), tb = burnTimeFor(v, circBurn(v).dv);
     if (tb * 0.5 + 15 < tAp) ph = 'coast';
@@ -107,16 +112,27 @@ export function autoGuide(v) {
         if (weak && qPa < 1000 && o.ap >= TARGET_AP - 1000) pitch = holdPitch(v, f, sag, 0.06); // lofted hand-back: may pitch below the horizon to stop the climb (f4)
       }
     }
+    // heavy pitch program: side boosters (radial stage) lift the whole stack at TWR ~1.1-1.4, so a plain gravity turn droops
+    // flat inside the atmosphere and the dynamic pressure runs away (Max-Q failure ~16 km). Hold a climb-rate floor instead
+    // so the boosters separate steep and high, like the real three-core flights.
+    // the lone core after side-booster sep keeps the floor (tapering out by 50 km) so it climbs out of the dense air before turning
+    if (v.stages[0] && v.stages[0].radial && spAir >= 70 && h < 50000) pitch = Math.min(pitch, holdPitch(v, f, (120 + h * 0.012) * clamp((50000 - h) / 15000, 0, 1), 0.08));
     const tMax = s && s.eng ? s.eng.tv * 1000 * s.n : 0;
     thr = Math.max(qCap(qPa, v.qFloor ?? 0.4), tMax > 0 ? Math.min(1, 1.3 * g * m / tMax) : 1);
     if (tMax > 0) thr = Math.min(thr, G_LIMIT * 9.80665 * m / tMax); // g-limit: throttle back near burnout
     // optional data table (timelines/ascent.js): stage-1 pitch/throttle vs time since liftoff (v.ascentMet), additive
     const tab = v.ascentTable && v.cur === 0 && v.ascentMet != null ? sampleAscent(v.ascentTable, v.ascentMet) : null;
     if (tab) { pitch = tab.pitch; thr = tMax > 0 ? Math.min(tab.throttle, G_LIMIT * 9.80665 * m / tMax) : tab.throttle; }
+  } else if (ph === 'insert') { // hold the climb toward the insertion altitude while building horizontal speed
+    const hT = (TARGET_AP + TARGET_PE) / 2, vrDes = clamp((hT - h) / 80, -150, 150);
+    pitch = holdPitch(v, f, vrDes, 0.05); thr = 1;
+    const tMax = s && s.eng ? s.eng.tv * 1000 * s.n : 0; if (tMax > 0) thr = Math.min(1, G_LIMIT * 9.80665 * m / tMax);
   } else if (ph === 'coast' || ph === 'done') { pitch = pgIn; thr = 0; }
   else { pitch = holdPitch(v, f, 0, 0.05); thr = 1; }
   const lim2 = qPa > 15000 ? 0.08 : qPa > 3000 ? 0.2 : qPa > 500 ? 0.5 : 1.4;
-  pitch = clamp(pitch, pgAir - lim2, pgAir + lim2);
+  // heavy: the q-limited prograde clamp may tilt UP a little more (never down) while the climb is under the floor
+  const heavyUp = ph === 'ascent' && v.stages[0] && v.stages[0].radial && h < 50000 && vr < 120 + h * 0.012 ? 0.2 : 0;
+  pitch = clamp(pitch, pgAir - lim2 - heavyUp, pgAir + lim2);
   pitch = clamp(pitch, 0, Math.PI * 0.75);
   return { dir: dirOfPitch(pitch, f), throttle: thr, phase: ph, pitch };
 }
@@ -125,6 +141,7 @@ export function autoGuide(v) {
 // peak (Sutton–Graves) heating still ahead; the 3-engine burn runs only while either would exceed its safe limit
 // (with a 10% margin), so a nominal path may skip it and a steep / fast / off-target one gets just enough.
 export const ENTRY_Q_MAX = 35;        // kPa peak dynamic pressure down to ENTRY_FLOOR (below it the drag-limited fall is the same either way)
+export const ENTRY_START = 62000;     // m: the entry burn may begin below this (real boosters light ~70 km on the way down)
 export const ENTRY_FLOOR = 20000;     // m: the entry corridor the burn protects
 export const ENTRY_QDOT_MAX = 1.0e5;  // W/m² peak stagnation heating (≈ the 1.7 km/s @ 30 km burn-up line, with margin)
 export const sgHeat = (rho, V) => 1.74e-4 * Math.sqrt(Math.max(rho, 0)) * V * V * V;
@@ -164,7 +181,8 @@ export function boosterAutopilot(b, dtHint = 0.02) {
     b.fin = b._finV || null;
   } else if (b.tgtR) b.fin = null;
   // (1) entry burn, decided from the live predicted peaks
-  if (!b.entryDone && h < 90000 && h > 25000 && vr < (b.rtls ? -500 : -150)) { // f4: an RTLS booster falls almost straight down; start once it is really falling (no hover chatter)
+  const eStart = (() => { const sE = b.stages[0]; return (b.nMax ?? 3) >= 3 && sE.eng && 3 * sE.eng.tv * 1000 / ((sE.dry + sE.fuel) * 1000) > 2.5 * g ? ENTRY_START : 90000; })(); // a weak (low-TWR) entry burn needs the whole window; the 3-engine (F9-class) entry burn starts at the real ~62 km, a 2-engine catch booster keeps the wide window (its divert needs it)
+  if (!b.entryDone && h < eStart && h > 25000 && (vr < (b.rtls ? -500 : -150) || b.entryBurned)) { // once lit, the entry burn runs until the predicted peaks are safe (no on/off chatter at the gate) // f4: an RTLS booster falls almost straight down; start once it is really falling (no hover chatter)
     b._eT = (b._eT ?? 0) - dtHint;
     if (b._eT <= 0) { b._eT = 0.5; const pk = predictEntryPeaks(b); b.entryPeak = pk;
       b._eNeed = pk.q > ENTRY_Q_MAX * 0.9 || pk.qdot > ENTRY_QDOT_MAX * 0.9; }
@@ -189,6 +207,16 @@ export function boosterAutopilot(b, dtHint = 0.02) {
   if (!b._hs && (sol.lowTWR || sol.dStop > 0.8 * hp) && b.nMax > 1) { const s3 = pick(Math.min(3, b.nMax)); if (s3.ignite || sol.lowTWR) { n = Math.min(3, b.nMax); sol = s3; } }
   // late in a 3-engine burn drop to the centre engine once one engine can finish it at ≤ THR_AIM
   if (b._hs && n > 1) { const s1 = hoverslamSolve({ h: hp, vDown, m, Tmax: T1, thrMin: 0.4, g, aDrag, burning: true, lit: true }); if (s1.aReq < s1.aMax * 0.85) { n = 1; sol = s1; } }
+  // landing-burn timing: the solve above only counts (half) today's drag, so high up in thin air it would light far too early
+  // (rideshare RTLS lit at ~30 km). Look ahead along a drag-only fall and wait for the altitude where the solve, fed the
+  // predicted state, first asks for ignition (refreshed every 0.5 s; skipped once lit, near the ground or under manual control).
+  if (!sol.ignite) b._hIgn = null; // stale look-ahead: recompute when the solve next asks for ignition
+  if (!b._hs && b.ignAlt == null && sol.ignite && !b.manual && (hp > 3000 || (b._hIgn != null && b.nMax >= 3))) { // below 3 km a held look-ahead still hands over to the 3-engine burn it assumed // only the high, thin-air ignitions; the last 3 km stay with the solve
+    b._lT = (b._lT ?? 0) - dtHint;
+    if (b._lT <= 0 || b._hIgn == null) { b._lT = 0.5; b._hIgn = predictIgnAlt(b, Math.min(3, b.nMax || 1), T1, m, deck); }
+    if (b._hIgn != null && hp > Math.max(3000, b._hIgn + Math.max(vDown, 50) * 0.6)) sol = { ...sol, ignite: false, throttle: 0, tIgn: (hp - b._hIgn) / Math.max(vDown, 50) };
+    else if (b._hIgn != null && b.nMax > 1) { n = Math.min(3, b.nMax); sol = pick(n); } // the look-ahead assumed the 3-engine burn
+  }
   b.hs = sol; b.burnIn = sol.ignite ? 0 : sol.tIgn; b.lowTWR = sol.lowTWR; if (sol.legs) b.legs = true;
   if (sol.ignite && sol.throttle > 0 && (b.entryDone || h < 25000)) {
     if (!b._hs) { b._hs = true; if (b.ignAlt == null) { b.ignAlt = hp; b.ignV = vDown; } }
@@ -198,6 +226,21 @@ export function boosterAutopilot(b, dtHint = 0.02) {
       const aH = sub(scale(tg.d, 6 / (tgo * tgo)), scale(vh, 4 / tgo)), aT = Math.max(1, T1 * n * b.throttle / m), k = Math.min(len(aH) / aT, hp < 400 ? 0.12 : b.rtls ? 0.5 : 0.36);
       const retro = scale(va, -1 / sp), hd = len(aH) > 1e-6 ? scale(aH, k / len(aH)) : [0, 0, 0]; b.dir = norm(add(retro, hd)); }
   } else { b._hs = false; b.n = 1; b.throttle = 0; b.phase = b.ignAlt != null && hp < 5 ? 'touchdown' : (h > 25000 ? 'coast' : 'grid-fin glide'); }
+}
+function predictIgnAlt(b, n, T1, m, deck) { // highest point of the drag-only fall from which a retro burn (n engines, 85 %) WITH the drag below still stops by the ground
+  const clone = x => ({ ...x, r: [...x.r], v: [...x.v], stages: x.stages.map(s => ({ ...s })) });
+  const c = clone(b); c.throttle = 0; let last = null;
+  const stops = st => { const p = clone(st); p.n = n; p.throttle = 0.8;
+    for (let k = 0; k < 600; k++) { const up = norm(p.r), va = airVel(p, p.r, p.v), sp = len(va), hp = len(p.r) - R_E - deck;
+      if (dot(va, up) > -3 || sp < 5) return hp > 30; if (hp < 30) return false; p.dir = scale(va, -1 / sp); if (stepPoint(p, hp > 3000 ? 0.25 : 0.1)) return false; }
+    return false; };
+  for (let i = 0, k = 0; i < 2000; i++) {
+    const up = norm(c.r), va = airVel(c, c.r, c.v), sp = len(va), hp = len(c.r) - R_E - deck; if (hp < 200) return last;
+    c.dir = scale(va, -1 / Math.max(sp, 1));
+    if (dot(va, up) < 0 && (k++ % 4 === 0)) { if (!stops(c)) return last ?? hp; last = hp; }
+    if (stepPoint(c, hp > 15000 ? 1 : 0.25)) return last;
+  }
+  return null;
 }
 function horizErr(b, up) { const e = sub(b.tgtR, b.r); return { d: sub(e, scale(up, dot(e, up))) }; }
 // Ballistic impact (drag, no thrust). Returns { r (ECI), t (clock at impact) } or null.

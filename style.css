@@ -691,3 +691,78 @@ body.splitOn #sL{display:none!important}
 #split.portrait.tri #spCardB2{top:10px;bottom:auto}
 /* f4.2: phone landscape (single booster): the booster card sits under the pane buttons, clear of STAGE/AUTO/THR */
 @media (orientation:landscape) and (max-height:500px){body.touch #split:not(.tri):not(.portrait) #spCardB{top:calc(140px + var(--sat,0px));bottom:auto}}
+/* f5 career: progress screen + results-card block + locked showroom vehicles */
+#careerM{position:fixed;z-index:60;left:50%;top:calc(12px + var(--sat,0px));transform:translateX(-50%);width:min(560px,calc(100vw - 20px));max-height:calc(100dvh - 24px - var(--sat,0px) - var(--sab,0px));overflow:auto;padding:14px 16px;box-sizing:border-box;color:#e8eefc;font:500 14px/1.4 var(--ui,system-ui)}
+#careerM.hidden{display:none}
+#careerM .crHead{display:flex;align-items:center;justify-content:space-between}#careerM h2{margin:0;font-size:22px}
+#careerM .crX{min-width:44px;min-height:44px;font-size:18px;background:none;border:0;color:inherit}
+#careerM .crWallet{display:flex;gap:14px;margin:6px 0 8px;font-variant-numeric:tabular-nums}#careerM .crWallet b{font-size:17px}
+#careerM .crNext{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(80,140,255,.16);border:1px solid rgba(120,170,255,.35)}
+#careerM .crNext>div{display:flex;flex-direction:column}#careerM .crNext small{opacity:.75;font-size:11.5px}#careerM .crNext b{font-size:16px}
+#careerM .crPlay{min-height:44px;min-width:88px;border-radius:12px}
+#careerM .crList{list-style:none;margin:8px 0;padding:0}
+#careerM .cr{display:flex;gap:10px;align-items:flex-start;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.07)}
+#careerM .crI{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:rgba(255,255,255,.08)}
+#careerM .cr.done .crI{background:#2f9e5b;color:#fff}#careerM .cr.next .crI{background:#3d7dff;color:#fff}#careerM .cr.locked{opacity:.6}
+#careerM .crT{display:flex;flex-direction:column;min-width:0}#careerM .crT small{font-size:12px;opacity:.8}#careerM .crR{color:#ffe7a8}
+#careerM .crUnl{font-size:12.5px;margin:6px 0}#careerM .crUnl small{opacity:.7}
+#careerM .crSand{display:flex;gap:8px;align-items:center;min-height:44px;font-size:13px}#careerM .crSand input{width:22px;height:22px}
+#endBody .endCareer{margin:2px 0 8px;padding:8px 10px;border-radius:10px;background:rgba(80,140,255,.13);border:1px solid rgba(120,170,255,.3);font-size:13.5px}
+#endBody .ecEarn{color:#9df0b8}#endBody .ecUnl{color:#bfe9c8;font-size:12.5px}#endBody .ecRw{color:#ffe7a8;white-space:nowrap}#endBody .ecWal{opacity:.75;font-size:12px;font-variant-numeric:tabular-nums}
+#hFly.locked{filter:grayscale(.7);opacity:.85}
+/* f5 navball: numeric HDG/PIT/ROLL readout + compact SAS grid (opens from the ⊙ button, 44 px targets) */
+#navRd{display:flex;gap:8px;padding:3px 9px;border-radius:999px;background:#0b1424c8;border:1px solid var(--line);font:700 11px/1.2 var(--mono,monospace);color:var(--dim,#9fb0cc);pointer-events:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+#navRd b{color:#fff;font-weight:800}
+body.cx #nav{gap:2px}
+#nav #navSas{position:absolute;left:50%;bottom:calc(100% + 4px);width:auto;height:auto;transform:translateX(-50%);display:none;grid-template-columns:repeat(4,44px);gap:5px;padding:6px;background:#0b1424e8;border:1px solid var(--line-hi,#ffffff40);border-radius:14px;z-index:5}
+#nav.fan #navSas,body.cx #nav.fan #navSas{display:grid}
+#nav #navSas button{position:static!important;transform:none!important;margin:0!important;width:44px!important;height:44px!important;border-radius:11px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:700 16px/1 var(--ui)!important}
+#nav #navSas button small{font:800 8.5px/1 var(--ui,system-ui);letter-spacing:.3px;opacity:.85}
+@media (orientation:landscape) and (max-height:500px){body.cx.touch #nav #navSas{left:auto;right:0;transform:none}}
+body.touch #navRd{flex-direction:column;gap:0;padding:2px 7px;border-radius:8px;font-size:10px;line-height:1.25;align-items:flex-start}
+/* f5: end card with the career block: phones */
+@media (orientation:portrait) and (max-width:600px){#end{max-height:48dvh!important}#endBody{max-height:26dvh}#endBody .endCareer{font:600 12px/1.4 var(--ui,system-ui);padding:6px 8px;margin:0 0 6px}#endBody .ecWal{display:none}}
+@media (orientation:landscape) and (max-height:500px){
+  #end{left:190px!important;right:190px!important;width:auto!important;transform:none!important}
+  #end .endMain{flex-wrap:wrap!important}#end .endMain button{flex:1 1 auto!important;padding:4px 10px}
+  #endBody .endCareer{font:600 12px/1.35 var(--ui,system-ui);padding:5px 8px;margin:0 0 4px}#endBody .ecWal{display:none}
+}
+/* f5 lean end card: one line + Retry + Next + ⋯ (details sheet); flight HUD hidden under it */
+#end.lean #endBody,#end.lean .endShare,#end.lean #againBtn,#end.lean #contBtn,#end.lean #replayBtn{display:none!important}
+#end.lean.more #endBody{display:block!important}#end.lean.more .endShare{display:flex!important}#end.lean.more #againBtn{display:inline-flex!important}
+#end.lean{width:min(420px,94vw)!important}
+#end.lean h2{font-size:19px!important;margin:0 0 4px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#end.lean .eStars{color:#ffd23a;letter-spacing:1px}#end.lean .eLine{color:#9df0b8;font-size:15px}
+#end.lean .endMain{flex-wrap:nowrap!important;gap:8px}#end.lean .endMain button{flex:1 1 0!important;min-height:48px}
+#end.lean #endMoreBtn{flex:0 0 48px!important;font-size:20px}
+#nextMisBtn small{display:block;font-size:10.5px;font-weight:600;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#nextMisBtn{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+body.endOn #pilot,body.endOn #nav,body.endOn #mleft,body.endOn #mright,body.endOn #mhud,body.endOn #topStack,body.endOn #bars,body.endOn #warpBar{display:none!important}
+@media (orientation:landscape) and (max-height:500px){#end.lean{left:calc(12px + var(--sal,0px))!important;right:auto!important;width:min(420px,60vw)!important}}
+/* f5 (ui_ideal_path #13): manual controls + navball hide while AUTO is on; they return the moment AUTO is off */
+body.autoOn #mStick,body.autoOn #mRoll,body.autoOn #mThr,body.autoOn #nav,body.autoOn #mleft{display:none!important}
+@media (orientation:landscape) and (max-height:500px){body.touch #nav #navSas{left:auto!important;right:calc(100% + 6px)!important;bottom:0!important;transform:none!important;margin-bottom:0!important}}
+#hTop .hTopR{display:flex;gap:8px}#hnCareer{pointer-events:auto;width:44px;height:44px;border-radius:50%;font-size:19px;padding:0;background:var(--glass);border:1px solid var(--line);color:var(--txt)}
+/* f5a.2 (QA P2): the build screen's LAUNCH is always on screen on phones and ≥64 px tall */
+body.touch #launchBtn{position:fixed!important;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));left:auto;width:auto!important;min-width:180px;min-height:64px!important;z-index:60!important;padding:0 22px;box-shadow:0 6px 24px #000c}
+body.touch #build{padding-bottom:84px}
+body.touch #build, body.touch #build div:has(#launchBtn){backdrop-filter:none!important;-webkit-backdrop-filter:none!important} /* a backdrop filter makes a containing block for the fixed LAUNCH */
+body.touch #build{background:#0b1220f2}
+/* f5b: one career; compact missions hub */
+#hub .hubCareer{display:flex;gap:8px;align-items:center;width:100%;min-height:52px;padding:8px 14px;border-radius:14px;background:linear-gradient(135deg,#1d3a6a,#14284a);border:1px solid #3d6bb3;color:#fff;font:700 15px var(--ui);text-align:left}
+#hub .hubCareer span{margin-left:auto;color:#ffd27a;font-weight:800}
+#hub .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+#hub .mgrid .mis{min-height:64px;flex-direction:column;justify-content:center}
+#hub .mgrid .mis small,#hub .mgrid .mis i{display:none}
+#hub .cgrid{display:flex;flex-wrap:wrap;gap:6px}
+#hub .cgrid .mis{min-height:44px;padding:6px 10px}
+#hub details.hubMore{margin-top:10px;opacity:.85}
+#hub h3{margin:10px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;opacity:.7}
+#careerM{max-height:min(78vh,720px)}
+#careerM .cr .crT{display:flex;align-items:baseline;gap:8px}#careerM .cr .crT .crR{margin-left:auto;white-space:nowrap}
+#careerM .cr{padding:6px 0}
+#careerM .cr .crT{flex-direction:row!important;flex-wrap:nowrap}#careerM .cr .crT small.crR{display:inline!important;margin-top:0!important}
+#hub .hubCareer{white-space:nowrap;font-size:14px}
+@media (orientation:landscape) and (max-height:500px){#hub .mbox{width:min(640px,92vw)!important;max-width:none}#hub .mgrid{grid-template-columns:repeat(3,1fr)}#hub .mgrid .mis{min-height:48px;flex-direction:row!important;gap:6px;padding:6px 8px}#hub .mgrid .mis span{font-size:20px}}
+/* f5b: Google tiles attribution (must stay visible) sits under the top HUD on touch, clear of the navball and sticks */
+body.touch #tilesAttr{top:calc(62px + env(safe-area-inset-top,0px))!important;bottom:auto!important;left:auto!important;right:6px!important;max-width:40vw!important;text-align:right;font-size:10px!important}

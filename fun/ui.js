@@ -2,12 +2,12 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import { MISSIONS } from './director.js?v=f4.2';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f4.2';
-import { ATLAS, poisOf } from './lore.js?v=f4.2';
+import { MISSIONS } from './director.js?v=f5b.1';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5b.1';
+import { ATLAS, poisOf } from './lore.js?v=f5b.1';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f4.2';
+import { createNavball } from './navball.js?v=f5b.1';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();
@@ -22,24 +22,31 @@ export function createFunUI(ctx) {
     <div class="pBtns"><button id="pEng" title="Engineer view: every number (Tab)" aria-label="Engineer view">📊</button><button id="pPhoto" title="Photo mode (')" aria-label="Photo mode">📸</button><button id="pMute" title="Sound on/off" aria-label="Sound on or off">🔊</button></div>`);
   document.body.appendChild(hud);
   // ---------- Navball (centre of the Pilot HUD) ----------
-  const SAS_RING = [['stab', '⊙', 'Stability: hold this attitude'], ['prograde', '◇', 'Prograde'], ['retrograde', '✕', 'Retrograde'], ['normal', '△', 'Normal (orbit-plane up)'], ['radial', '⊞', 'Radial out'], ['node', '✛', 'Maneuver node'], ['target', '◎', 'Target']];
+  const SAS_RING = [['stab', '⊙', 'Stability: hold this attitude', 'HOLD'], ['prograde', '◇', 'Prograde', 'PRO'], ['retrograde', '✕', 'Retrograde', 'RETRO'], ['normal', '△', 'Normal (orbit-plane up)', 'NRM'], ['radial', '⊞', 'Radial out', 'RAD'], ['node', '✛', 'Maneuver node', 'NODE'], ['target', '◎', 'Target', 'TGT'], ['off', '○', 'SAS off', 'OFF']];
   const navEl = el('div', { id: 'nav', className: 'hidden' }, `
     <button id="navMode" class="glass" title="Speed reference: surface / orbit / target">SURFACE <b id="navSpd">0 m/s</b></button>
     <div id="navCue" class="hidden"></div>
+    <div id="navRd" aria-label="Attitude readout"><span>HDG <b id="nrH">000</b>°</span><span>PIT <b id="nrP">+00</b>°</span><span>ROLL <b id="nrR">+00</b>°</span></div>
     <div class="navWrap"><svg class="navArcs" viewBox="0 0 200 200" aria-hidden="true">
       <path class="trk" d="M 38 160 A 85 85 0 0 1 38 40"/><path id="navThr" class="thr" d="M 38 160 A 85 85 0 0 1 38 40"/>
       <path class="trk" d="M 162 40 A 85 85 0 0 1 162 160"/><path id="navFuel" class="fuel" d="M 162 160 A 85 85 0 0 0 162 40"/></svg>
       <canvas id="navBall" width="128" height="128" aria-label="Navball attitude indicator"></canvas>
       <span id="navThrT" class="navLab l">0%</span><span id="navFuelT" class="navLab r">S1</span>
       <button id="navSasT" title="SAS modes" aria-label="SAS modes" aria-expanded="false">⊙</button>
-      <div id="navSas">${SAS_RING.map(([m, ic, t], i) => `<button data-sas="${m}" title="${t}" aria-label="SAS ${t}" style="--i:${i}">${ic}</button>`).join('')}</div></div>`);
+      <div id="navSas">${SAS_RING.map(([m, ic, t, sh], i) => `<button data-sas="${m}" title="${t}" aria-label="SAS ${t}" style="--i:${i}">${ic}<small>${sh}</small></button>`).join('')}</div></div>`);
   document.body.appendChild(navEl);
   const navball = createNavball($('navBall')); let navMode = 'auto';
   function cycleSpeed() { const ms = ['surface', 'orbit', 'target'], curM = navMode === 'auto' ? lastAuto : navMode; navMode = ms[(ms.indexOf(curM) + 1) % 3]; ctx.audio.ui('tick'); }
   $('navMode').onclick = e => { e.currentTarget.blur(); const ms = ['surface', 'orbit', 'target'], curM = navMode === 'auto' ? lastAuto : navMode; navMode = ms[(ms.indexOf(curM) + 1) % 3]; ctx.audio.ui('tick'); };
   navEl.querySelectorAll('#navSas button').forEach(b => b.onclick = e => { e.currentTarget.blur(); ctx.setSas(b.dataset.sas); ctx.audio.ui('tick'); setFan(false); });
   const SAS_IC = Object.fromEntries(SAS_RING.map(([m, ic]) => [m, ic])); Object.assign(SAS_IC, { antiradial: '▣', antinormal: '▽', off: '○' });
-  function setFan(on) { navEl.classList.toggle('fan', on); $('navSasT').setAttribute('aria-expanded', on ? 'true' : 'false'); }
+  function setFan(on) { navEl.classList.toggle('fan', on); $('navSasT').setAttribute('aria-expanded', on ? 'true' : 'false'); if (on) liftFan(); }
+  // f5: the SAS grid opens above the ball; lift it clear of any on-screen control it would cover (touch stick / AUTO / ROLL)
+  function liftFan() { const g = $('navSas'); if (matchMedia('(orientation:landscape) and (max-height:500px)').matches && document.body.classList.contains('touch')) { g.style.marginBottom = ''; return; } g.style.marginBottom = '0px'; let lift = 0;
+    const ctl = [...document.querySelectorAll('#mleft *, #mright *, #mtop *, #pilot button, #navRd')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && getComputedStyle(e).visibility !== 'hidden' && !g.contains(e); });
+    for (let k = 0; k < 3; k++) { const gr = g.getBoundingClientRect(); let need = 0;
+      for (const e of ctl) { const r = e.getBoundingClientRect(); if (r.left < gr.right - 1 && gr.left < r.right - 1 && r.top < gr.bottom - 1 && gr.top < r.bottom - 1) need = Math.max(need, gr.bottom - r.top + 6); }
+      if (!need) break; lift += need; g.style.marginBottom = lift + 'px'; } }
   $('navSasT').onclick = e => { e.currentTarget.blur(); setFan(!navEl.classList.contains('fan')); ctx.audio.ui('tick'); };
   document.addEventListener('pointerdown', e => { if (navEl.classList.contains('fan') && !e.target.closest('#nav')) setFan(false); }, true);
   let navOut = { mode: 'surface', sp: 0 };
@@ -53,7 +60,10 @@ export function createFunUI(ctx) {
     $('navMode').firstChild.textContent = mode.toUpperCase() + ' '; $('navSpd').textContent = sp < 1e4 ? Math.round(sp) + ' m/s' : (sp / 1000).toFixed(2) + ' km/s';
     navOut.sp = sp; { const t = SAS_IC[st.sas] || '⊙'; const bt = $('navSasT'); if (bt.textContent !== t) bt.textContent = t; }
     const pg = sp > 0.5 ? vv.map(x => x / sp) : null, m = { ...st.markers }; if (pg) { m.pro = pg; m.retro = pg.map(x => -x); }
-    navball.draw({ nose: st.nose, top: st.top, r: st.r, markers: m });
+    { const cv = $('navBall'), want = Math.min(256, Math.max(96, Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1)))); if (cv.clientWidth && Math.abs(cv.width - want) > 4) { cv.width = cv.height = want; } } // f5: crisp ticks/labels at the shown size
+    const att = navball.draw({ nose: st.nose, top: st.top, r: st.r, markers: m });
+    if (att) { const sg = x => (x >= 0 || Math.round(-x) === 0 ? '+' : '−') + String(Math.round(Math.abs(x))).padStart(2, '0'), hT = String(Math.round(att.heading) % 360).padStart(3, '0');
+      if ($('nrH').textContent !== hT) $('nrH').textContent = hT; $('nrP').textContent = sg(att.pitch); $('nrR').textContent = sg(att.roll); navOut.att = att; }
     $('navThr').style.strokeDashoffset = THR_LEN * (1 - st.throttle); $('navThrT').textContent = Math.round(st.throttle * 100) + '%';
     $('navFuel').style.strokeDashoffset = THR_LEN * (1 - st.fuel); $('navFuelT').textContent = 'S' + st.stage; $('navFuel').classList.toggle('low', st.fuel < 0.15);
     navEl.querySelectorAll('#navSas button').forEach(b => { const k = b.dataset.sas; b.classList.toggle('on', st.sas === k || (k === 'radial' && st.sas === 'antiradial') || (k === 'normal' && st.sas === 'antinormal'));
@@ -107,14 +117,17 @@ export function createFunUI(ctx) {
     const ms = Object.entries(MISSIONS).map(([id, m]) => `<button class="mis" data-m="${id}"><span>${m.icon}</span><b>${m.name}</b><small>${m.blurb}</small>${s.medals[id] ? `<em class="medal ${s.medals[id]}">${s.medals[id]}</em>` : ''}<i>▶ ONE-TAP FLY</i></button>`).join('');
     const cs = CONTRACTS.map(c => `<li class="${s.contracts[c.id] ? 'done' : c === nx ? 'next' : ''}">${s.contracts[c.id] ? '✔' : c === nx ? '▶' : '•'} <b>${c.name}</b> — ${c.goal}${c.reward ? ` <small>🎁 ${c.reward.split(':')[1]}</small>` : ''}</li>`).join('');
     const ach = ACHIEVEMENTS.map(a => `<span class="ach ${s.ach[a.id] ? 'got' : ''}" title="${a.desc}">${a.icon}<small>${a.name}</small></span>`).join('');
+    // f5b: ONE career (the 🏆 ladder, $M + 🔬). The hub is a compact launcher: the career line, one-tap missions,
+    // extra ops (gated by the ladder's vehicle unlocks, no separate currency), and details folded away.
     const K = ctx.career ? ctx.career() : null, OPS = ctx.ops ? ctx.ops() : [];
-    const ops = K ? K.CAREER.map(t => `<div class="ctier"><b>${esc(ctx.vname ? ctx.vname(t.vehicleId) : t.vehicleId)}</b>${t.contracts.map(id => { const m = OPS.find(x => x.id === K.missionOf(id)); if (!m) return ''; const g = K.canFly(K.c, id), c = K.CONTRACTS[id], done = Object.hasOwn(K.c.done, id);
-      return `<button class="mis op${g.ok ? '' : ' locked'}" data-op="${id}" title="${esc(m.blurb || '')}${g.ok ? '' : ' — ' + g.why}"><b>${done ? '✔ ' : ''}${esc(id === 'practice' ? 'Practice' : (ctx.opName ? ctx.opName(m) : m.name))}</b><small>${c.cost ? '💰' + c.cost + ' → ' + c.reward : 'free'}${g.ok ? '' : ' · 🔒'}</small></button>`; }).join('')}</div>`).join('') : '';
-    $('hubBody').innerHTML = `<h2>🎯 Missions</h2>${ops ? `<h3>🛰️ Career <small>💰 ${K.c.money} · ⭐ ${K.c.rep}</small></h3><div class="cgrid">${ops}</div>` : ''}<p class="sm">One tap: the mission director builds the rocket, flies the whole mission on real physics, and picks the camera. Steer anytime to take over.</p><div class="mgrid">${ms}</div>
-      <div class="hcols"><div><h3>📜 Contracts</h3><ol class="cl">${cs}</ol></div>
-      <div><h3>⭐ Daily challenge <small>${dc.day}</small></h3><p class="daily">${esc(dc.text)}</p><p class="sm">${best != null ? 'Your best today: ' + best.toLocaleString() : 'Not done yet today'} · 🔥 streak ${s.streak.n} day${s.streak.n === 1 ? '' : 's'} (best ${s.streak.best})</p>
-      <h3>🏅 Achievements <small>${Object.keys(s.ach).length}/${ACHIEVEMENTS.length}</small></h3><div class="achs">${ach}</div>
-      <p class="sm">Flights ${s.stats.flights} · explosions ${s.stats.booms} · best score ${s.stats.best.toLocaleString()} · worlds visited ${s.visited.length}</p></div></div>`;
+    const ms2 = Object.entries(MISSIONS).map(([id, m]) => `<button class="mis" data-m="${id}"><span>${m.icon}</span><b>${m.name}</b>${s.medals[id] ? `<em class="medal ${s.medals[id]}">${s.medals[id]}</em>` : ''}</button>`).join('');
+    const ex = K ? K.extra.map(e => { const m = OPS.find(x => x.id === (ctx.missionOf ? ctx.missionOf(e.id) : e.id)) || OPS.find(x => x.id === e.id); if (!m) return ''; const why = K.opLock(e.id);
+      return `<button class="mis op${why ? ' locked' : ''}" data-op="${e.id}" title="${esc(why || m.blurb || '')}"><b>${esc(ctx.opName ? ctx.opName(m) : m.name)}</b>${why ? '<small>🔒</small>' : ''}</button>`; }).join('') : '';
+    $('hubBody').innerHTML = `<h2>🎯 Missions</h2>${K ? `<button id="hubCareer" class="hubCareer">🏆 $${K.cash}M · 🔬${K.sci} · ${K.done}/${K.of}${K.next ? ` <span>▶ ${esc(K.next)}</span>` : ''}</button>` : ''}
+      <h3>One tap</h3><div class="mgrid">${ms2}</div>${ex ? `<details class="hubMore"><summary>Extra ops</summary><div class="cgrid">${ex}</div></details>` : ''}
+      <details class="hubMore"><summary>Daily · achievements · stats</summary><p class="daily">⭐ ${esc(dc.text)} <small>${best != null ? 'best ' + best.toLocaleString() : ''} · 🔥 ${s.streak.n}</small></p>
+      <div class="achs">${ach}</div><p class="sm">Flights ${s.stats.flights} · best ${s.stats.best.toLocaleString()} · worlds ${s.visited.length}</p></details>`;
+    const hc = $('hubCareer'); if (hc) hc.onclick = () => { hub.classList.add('hidden'); K.open(); };
     hub.querySelectorAll('.mis').forEach(b => b.onclick = () => { hub.classList.add('hidden'); if (b.dataset.op) { if (b.classList.contains('locked')) return; ctx.startOp(b.dataset.op); } else ctx.startMission(b.dataset.m); });
     hub.classList.remove('hidden');
   }
