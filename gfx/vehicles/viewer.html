@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>Orbit Rush vehicle viewer</title>
+<style>body{margin:0;background:#0b0f16;color:#cfe;font:13px system-ui;overflow:hidden}#ui{position:fixed;left:8px;top:8px;background:#0008;padding:6px 8px;border-radius:6px}select,button{font:inherit}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/tsl":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.tsl.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"}}</script>
+</head><body><div id="ui"><select id="sel"></select> <label><input type="checkbox" id="lo"> lo LOD</label> <label>legs <input type="range" id="legs" min="0" max="1" step="0.05" value="0"></label> <span id="info"></span></div>
+<script type="module">
+import * as THREE from 'three/webgpu';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { VEHICLES, build, setLegs } from './vehicles.js?v=art1';
+const q = new URLSearchParams(location.search);
+const r = new THREE.WebGPURenderer({ antialias: true, forceWebGL: q.has('webgl') }); r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.setSize(innerWidth, innerHeight); r.toneMapping = THREE.ACESFilmicToneMapping; document.body.append(r.domElement); await r.init();
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x6f9fd8);
+{ const c = document.createElement('canvas'); c.width = 256; c.height = 128; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 128); g.addColorStop(0, '#3d6fb8'); g.addColorStop(0.48, '#dfe9f2'); g.addColorStop(0.52, '#6f6a58'); g.addColorStop(1, '#2a2a24'); x.fillStyle = g; x.fillRect(0, 0, 256, 128); const t = new THREE.CanvasTexture(c); t.mapping = THREE.EquirectangularReflectionMapping; t.colorSpace = THREE.SRGBColorSpace; scene.environment = t; }
+scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x443d33, 0.8)); const sun = new THREE.DirectionalLight(0xfff2e0, 3.2); sun.position.set(0.8, 0.6, 0.5); scene.add(sun);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(600, 48), new THREE.MeshStandardMaterial({ color: 0x8d8a82, roughness: 0.95 })); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; scene.add(ground);
+const cam = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 5000), ctl = new OrbitControls(cam, r.domElement);
+addEventListener('resize', () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); r.setSize(innerWidth, innerHeight); });
+const sel = document.getElementById('sel'); for (const [id, v] of Object.entries(VEHICLES)) sel.add(new Option(id, id));
+let cur = null;
+function show(id, o = {}) { if (cur) scene.remove(cur); sel.value = id; const lo = o.lo ?? document.getElementById('lo').checked, lg = o.legs ?? +document.getElementById('legs').value;
+  const t0 = performance.now(); cur = build(id, { detail: lo ? 'lo' : 'hi', legs: lg, fins: o.fins }); const ms = performance.now() - t0; scene.add(cur);
+  const h = VEHICLES[id].height, d = o.dist ?? h * 1.75 + 6, yaw = o.yaw ?? 0.7; cam.position.set(Math.cos(yaw) * d, h * (o.camY ?? 0.5), Math.sin(yaw) * d); ctl.target.set(0, h * (o.aim ?? 0.5), 0); ctl.update();
+  let calls = 0; cur.traverse(m => { if (m.isMesh) calls++; }); document.getElementById('info').textContent = `${Math.round(cur.userData.tris)} tris · ${calls} meshes · ${ms.toFixed(0)} ms`; return { tris: Math.round(cur.userData.tris), meshes: calls, ms }; }
+sel.onchange = () => show(sel.value); document.getElementById('lo').onchange = () => show(sel.value); document.getElementById('legs').oninput = e => { for (const L of cur.userData.legs || []) setLegs(L, +e.target.value); };
+window.__viewer = { show, ids: Object.keys(VEHICLES), cam, ctl, ready: true };
+show(q.get('id') || 'heron-9');
+r.setAnimationLoop(() => { ctl.update(); r.render(scene, cam); });
+</script></body></html>
