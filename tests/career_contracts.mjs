@@ -21,6 +21,11 @@ for (const c of C) { const u = Object.entries(c.unlock); ok(u.length && u.every(
     done.push(c.id); changed = true; for (const [k, v] of Object.entries(c.unlock)) have[k].push(...v); } }
   ok(done.length === C.length, `every contract reachable from the start (${done.join(' → ')})`);
   ok(done.join() === ids.join(), 'reach order = table order'); }
+// placeholder vehicles: contracts flown on them are reachable in the unlock graph but locked to play, and agree with fun/ladder.js
+for (const c of C) { const ph = Object.hasOwn(L.PLACEHOLDER_VEHICLES, c.vehicle); ok(!!c.locked === ph, `${c.id}: locked flag ${!!c.locked} matches placeholder vehicle ${ph}`);
+  ok(L.rungLocked(L.LADDER.find(r => r.id === c.rung)) === ph, `${c.id}: fun/ladder.js rung lock agrees`); }
+ok(C.filter(c => c.locked).map(c => c.id).join() === 'lunar-landing,mars-ship', 'exactly the Moon and Mars contracts wait for models');
+ok(C.filter(c => !c.locked).every(c => !Object.hasOwn(L.PLACEHOLDER_VEHICLES, c.vehicle)), 'every playable contract has a real model');
 // acyclic: the contract → contract unlock graph has a topological order (Kahn)
 { const edges = C.flatMap(c => (c.unlock.missions || []).filter(m => byId[m]).map(m => [c.id, m])), indeg = Object.fromEntries(ids.map(i => [i, 0]));
   edges.forEach(([, b]) => indeg[b]++); const q = ids.filter(i => !indeg[i]), order = [];
@@ -30,7 +35,7 @@ for (const c of C) { const u = Object.entries(c.unlock); ok(u.length && u.every(
 { const bad = [{ id: 'a', unlock: { missions: ['b'] } }, { id: 'b', unlock: { missions: ['a'] } }], e = bad.flatMap(c => c.unlock.missions.map(m => [c.id, m])), d = { a: 0, b: 0 }; e.forEach(([, b]) => d[b]++);
   ok(Object.values(d).every(x => x > 0), 'a 2-cycle has no zero-indegree node (detector sanity)'); }
 // ids line up with the game and the campaign
-for (const c of C) { ok(L.LADDER.some(r => r.id === c.rung || r.brandKey === c.rung), `${c.id}: rung ${c.rung} exists in fun/ladder.js`); ok(c.mission === null || MISSION_IDS.includes(c.mission), `${c.id}: mission ${c.mission} exists`);
+for (const c of C) { ok(L.LADDER.some(r => r.id === c.rung), `${c.id}: rung ${c.rung} exists in fun/ladder.js`); ok(c.mission === null || MISSION_IDS.includes(c.mission), `${c.id}: mission ${c.mission} exists`);
   ok(c.mission === null || Object.hasOwn(CAMP, c.id), `${c.id}: reuses the campaign contract id`); ok(REAL.vehicles.has(c.vehicle) && L.ALL.sites.includes(c.site), `${c.id}: vehicle/site exist`);
   ok(typeof c.goal.text === 'string' && c.goal.kind, `${c.id}: goal`);
   ok(c.inspiration.length && c.inspiration.every(i => D.INSPIRATION_COMPANIES.includes(i.company) && D.INSPIRATION_VEHICLES.includes(i.vehicle) && i.note), `${c.id}: inspiration uses listed parody companies / neutral ids`); }
