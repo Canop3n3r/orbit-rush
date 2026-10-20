@@ -13,16 +13,16 @@ export const ENGINES_ISRA = {
   'is-e10': { tSl: 0, tVac: 35.0, ispSl: 0, ispVac: 281.0, src: 'spec:engines#is-e10' },
 };
 export const ROSTER_ISRA = [
-  { id: 'pslb', name: "PSLB", company: 'isra', src: 'spec:pslb', area: 10.9, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'polar-slinger', name: "Polar Sat-Slinger", company: 'isra', src: 'spec:polar-slinger', area: 10.9, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'is-e1': 6}, dry: 12000, prop: 69000, burn: 49.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)'] },
       { engines: {'is-e2': 1}, dry: 30000, prop: 147000, burn: 105.0, group: 0, recovery: 'expended', src: 'GCAT' },
       { engines: {'is-e3': 1}, dry: 5300, prop: 40500, burn: 158.0, group: 1, recovery: 'expended', src: 'GCAT' },
       { engines: {'is-e4': 1}, dry: 1100, prop: 7300, burn: 83.0, group: 2, recovery: 'expended', src: 'GCAT' },
-      { engines: {'is-e5': 2}, dry: 920, prop: 1980, burn: 425.0, group: 3, recovery: 'expended', src: 'GCAT' },
+      { engines: {'is-e5': 2}, dry: 920, prop: 1980, burn: 425.0, group: 3, restart: true, restartSrc: "spec:polar-slinger#restart (agency release: fourth stage restarted twice with a long coast)", recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 1750, orbit: { hp: 600, ha: 600, inc: 97.8 }, src: "spec:pslb#ref (agency: 1,750 kg to 600 km sun-synchronous polar orbit)", est: ['inclination 97.8 deg (600 km sun-synchronous) ESTIMATE'] , knownGap: "model -80 % against the sourced 600 km sun-synchronous figure: fourth stage needs a coast/restart (not in GCAT stage data); strap-on light sequence not modelled; SL thrust/Isp 0.88 x vac ESTIMATE; fairing mass unsourced (0)" }] },
-  { id: 'slb-3', name: "SLB-3", company: 'isra', src: 'spec:slb-3', area: 2.4, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+    modes: [{ variant: 'leo', payload: 1750, orbit: { hp: 600, ha: 600, inc: 97.8 }, src: "spec:polar-slinger#ref (agency: 1,750 kg to 600 km sun-synchronous polar orbit)", est: ['inclination 97.8 deg (600 km sun-synchronous) ESTIMATE'] , knownGap: "model +118 %: strap-on light sequence not in the data (all lit at liftoff); fairing mass unsourced (0); final stage restartable: coast-and-restart flown; SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
+  { id: 'slinger-mk3', name: "Sat-Slinger Mk3", company: 'isra', src: 'spec:slinger-mk3', area: 2.4, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'is-e6': 2}, dry: 5926, prop: 17274, burn: 49.0, group: 0, recovery: 'expended', src: 'GCAT', est: ['group (air-lit strap-ons not modelled)'] },
       { engines: {'is-e7': 1}, dry: 2900, prop: 8900, burn: 45.0, group: 0, recovery: 'expended', src: 'GCAT' },
@@ -30,5 +30,5 @@ export const ROSTER_ISRA = [
       { engines: {'is-e9': 1}, dry: 650, prop: 1050, burn: 45.0, group: 2, recovery: 'expended', src: 'GCAT' },
       { engines: {'is-e10': 1}, dry: 195, prop: 305, burn: 33.0, group: 3, recovery: 'expended', src: 'GCAT' },
     ],
-    modes: [{ variant: 'leo', payload: 150, orbit: { hp: 400, ha: 400, inc: 46.0 }, src: "spec:slb-3#ref (agency: 150 kg class to 400 km circular)", est: ['inclination 46 deg (flown orbits) ESTIMATE'] , knownGap: "model no orbit to the sourced 400 km figure: five-stage solid stack, coast phases not modelled; SL thrust/Isp 0.88 x vac ESTIMATE; fairing mass unsourced (0)" }] },
+    modes: [{ variant: 'leo', payload: 150, orbit: { hp: 400, ha: 400, inc: 46.0 }, src: "spec:slinger-mk3#ref (agency: 150 kg class to 400 km circular)", est: ['inclination 46 deg (flown orbits) ESTIMATE'] , knownGap: "model no orbit: strap-on light sequence not in the data (all lit at liftoff); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
 ];
