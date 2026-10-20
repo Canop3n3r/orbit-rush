@@ -1,8 +1,8 @@
 // Orbit Rush parts: the catalog, rocket designs (a vertical stack of parts, top to bottom), staging, and the
 // per-stage mass / delta-v / TWR math. No DOM, so the hangar UI, the flight and the tests all share it.
-import { G0 } from './physics/constants.js?v=f5.1f';
-import { stackGeom, massProps } from './physics/vehicle.js?v=f5.1f';
-import { centerOfPressure } from './physics/aero.js?v=f5.1f';
+import { G0 } from './physics/constants.js?v=f5.1g';
+import { stackGeom, massProps } from './physics/vehicle.js?v=f5.1g';
+import { centerOfPressure } from './physics/aero.js?v=f5.1g';
 
 export const ORBIT_DV = 9400; // m/s: what reaching low Earth orbit really costs (≈7.8 km/s orbital speed + gravity, drag and steering losses)
 // type: pod | payload | fairing | tank | engine | decoupler | fins | rcs | shield | chute.  Masses in tonnes, thrust in kN (vacuum),
@@ -170,7 +170,7 @@ export function validate(design) {
     s.stages.forEach((st, i) => { if (i > 0 && st.twr < 0.3 && st.dv > 0) warnings.push(`Stage ${i + 1} TWR ${st.twr.toFixed(2)} is very low: it may fall back before reaching orbit. Add an engine or move fuel lower.`); });
     if (s.total < ORBIT_DV && !design.sub) warnings.push(`Total Δv ${s.total.toFixed(0)} m/s is below the ~${ORBIT_DV.toLocaleString()} m/s orbit usually needs (the AUTO test flight below has the final word). Add fuel, use a more efficient upper engine (Lark), or a lighter payload.`);
     if (a.cargo && a.fairing === 0) warnings.push('The Satellite Stack is blunt without a fairing: more drag on the way up.');
-    if (!design.sub) for (const w of recoveryWarnings(design)) warnings.push(w); // f5.1f (QA): suborbital rockets (Pip, Grasshopper) skip the orbit/reentry advice
+    if (!design.sub) for (const w of recoveryWarnings(design)) warnings.push(w); // f5.1g (QA): suborbital rockets (Pip, Grasshopper) skip the orbit/reentry advice
     const ab = aeroBalance(design);
     if (ab && !ab.stable) warnings.push(`Aerodynamically unstable: the centre of pressure is ${Math.abs(ab.margin).toFixed(1)} calibers ${ab.margin < 0 ? 'ahead of' : 'behind'} the centre of mass${ab.marginEmpty <= 0 && ab.margin > 0 ? ' at liftoff, but ahead of it once stage 1 is empty' : ''}. It relies on engine gimbal and flips if the engines stop in thick air. Add Tail Fins at the bottom.`);
   }

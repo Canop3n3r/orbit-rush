@@ -2,8 +2,8 @@
 // planner-built transfer nodes executed as finite burns, mid-course corrections, SOI warps, capture, Moon
 // landing) and tells the renderer which cinematic camera suits each phase. The player can take over anytime
 // (takeOver()); nothing here bypasses the physics. DOM-free, so tests/fun.mjs runs it headlessly.
-import * as P from '../physics.js?v=f5.1f';
-import * as C from '../physics/patched.js?v=f5.1f';
+import * as P from '../physics.js?v=f5.1g';
+import * as C from '../physics/patched.js?v=f5.1g';
 const V = P.V;
 export const MISSIONS = {
   orbit: { name: 'Orbit & home', icon: '🛰️', tpl: 'Orbit & home', target: null, blurb: 'Fly to orbit, then bring the capsule home under parachutes.' },
@@ -34,13 +34,13 @@ export class Director {
   set(ph, msg) { this.phase = ph; this.t = 0; this._w0 = Date.now(); this.log.push(ph); if (msg) this.say(msg); }
   finish(res, ok = true) { this.result = res; this.ok = ok; this.set('done', res); this.active = false; }
   dvCap() { return 900; }
-  execNext(node) { const F = this.F; if (this.target && this.target !== 'moon') node.cl = true; F.addNode(node); F.setExec(true); } // f5.1f: closed-loop guidance for interplanetary burns
+  execNext(node) { const F = this.F; if (this.target && this.target !== 'moon') node.cl = true; F.addNode(node); F.setExec(true); } // f5.1g: closed-loop guidance for interplanetary burns
   tick(dt) { // once per frame, before F.advance
     const F = this.F, v = F.v;
     if (!this.active) return;
     if (F.flags.dead) { this.active = false; this.result = 'Lost: ' + F.flags.dead; this.ok = false; return; }
     this.t += dt;
-    // f5.1f (QA): a mid-course phase that never finishes (sim time or wall time) ends with a card instead of a silent stall
+    // f5.1g (QA): a mid-course phase that never finishes (sim time or wall time) ends with a card instead of a silent stall
     if (this.target && STALL_PH.includes(this.phase) && ((this.phase !== 'burn' && this.phase !== 'plan' && this.t > 5 * 86400) || Date.now() - (this._w0 || Date.now()) > 180000)) { this.finish('Stalled during ' + this.label.toLowerCase() + ' — try again', false); return; }
     if (this.m.hop && this.phase === 'ascent') this.set('hop', 'Hop! Straight up to ' + (this.m.hop / 1000).toFixed(0) + ' km');
     switch (this.phase) {
@@ -125,7 +125,7 @@ export class Director {
     this.say('Welcome to ' + b.name + '!');
     if (!(this.m.land || this.m.capture)) { this.finish('Flew past ' + b.name + '!'); return; }
     const tp = C.timeToPe(v.r, v.v, b.mu), sp = P.propagate(v.r, v.v, tp, b.mu), rp = V.len(sp.r), ra = b.R + (this.m.land ? 1500000 : Math.max(2e6, b.R * 2));
-    if (F.body !== 'moon' && rp < b.R + 100000 && !this._lift) { // f5.1f: arriving low or on a collision course — raise periapsis first (a small radial burn soon), then capture
+    if (F.body !== 'moon' && rp < b.R + 100000 && !this._lift) { // f5.1g: arriving low or on a collision course — raise periapsis first (a small radial burn soon), then capture
       const want = b.R + Math.max(300000, (b.atm ? 150000 : 0) + 200000), tn = F.tAbs + Math.min(3600, tp * 0.2); let best = null;
       for (let k = -80; k <= 80; k++) for (let j = -4; j <= 4; j++) { const nd = { t: tn, pro: j * 50, nrm: 0, rad: k * 25 }, s0 = P.propagate(v.r, v.v, tn - F.tAbs, b.mu), dv = C.nodeVector(s0.r, s0.v, nd), v1 = V.add(s0.v, dv);
         const tp1 = C.timeToPe(s0.r, v1, b.mu), s1 = P.propagate(s0.r, v1, tp1, b.mu), err = Math.abs(V.len(s1.r) - want) / 1000 + C.nodeDv(nd) * 0.02;

@@ -26,7 +26,7 @@ for (const r of SHOWROOM) if (r.tpl) { const t = T(r.tpl); r.design = { ...clone
 // f4: hero models (gfx/vehicles, Rocket Art Bot) for the catalog-inspired rockets; physics still flies the part stack
 export const MODEL_OF = { needle: 'sparrow-1', swift: 'heron-9', heron: 'heron-9-crew', atlas: 'heron-heavy', titan: 'titan-ss-v3' };
 for (const r of SHOWROOM) if (MODEL_OF[r.id]) { r.model = MODEL_OF[r.id]; r.design.model = r.model; }
-for (const r of SHOWROOM) if (r.check === 'space' || r.check === 'mission:hop') r.design.sub = true; // f5.1f: suborbital by role
+for (const r of SHOWROOM) if (r.check === 'space' || r.check === 'mission:hop') r.design.sub = true; // f5.1g: suborbital by role
 export const RTLS = new Set(['swift', 'atlas']); // f4: these fly back to the landing zone (boostback + RTLS) instead of a droneship
 for (const r of SHOWROOM) if (RTLS.has(r.id)) r.design.recovery = 'rtls';
 const clamp = x => Math.max(0.06, Math.min(1, x));

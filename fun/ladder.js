@@ -4,7 +4,7 @@
 // Rungs reuse Mission Design Bot's design: the ops contracts in missions/*.js (constellation-batch, crew-dock,
 // lunar-landing, mars-ship) and the vehicle order of missions/campaign/career.js (sparrow-1 -> heron-9 ->
 // heron-9-crew -> heron-heavy -> colossus). Vehicle ids here are showroom ids (fun/showroom.js MODEL_OF).
-import { CONTRACTS as DESIGN } from '../design/career_contracts.js?v=f5.1f';
+import { CONTRACTS as DESIGN } from '../design/career_contracts.js?v=f5.1g';
 export const KEY = 'orbitrush.ladder.v1', VERSION = 2, SANDBOX_KEY = 'orbitrush.sandbox';
 export const START = { vehicles: ['pip', 'hopper', 'needle'], sites: ['atoll'], parts: [], missions: ['hop'] };
 // every lockable thing, for sandbox and the progress screen
@@ -70,7 +70,7 @@ export const sandbox = store => { try { return store.getItem(SANDBOX_KEY) === '1
 export const setSandbox = (store, on) => { try { store.setItem(SANDBOX_KEY, on ? '1' : '0'); } catch (e) { } };
 export const isUnlocked = (s, kind, id, sb = false) => sb || !ALL[kind].includes(id) || s.unlocked[kind].includes(id);
 export const next = s => LADDER.find(c => !s.done[c.id]) || null;
-// f5.1f (QA): after a rung's flight, Next offers the next open rung further up the ladder (never back down to an old skipped one)
+// f5.1g (QA): after a rung's flight, Next offers the next open rung further up the ladder (never back down to an old skipped one)
 export const nextAfter = (s, id) => { const k = LADDER.findIndex(c => c.id === id); return k < 0 ? next(s) : LADDER.slice(k + 1).find(c => !s.done[c.id]) || null; };
 export const unlockedBy = (kind, id) => LADDER.find(c => (c.unlock[kind] || []).includes(id)) || null;
 // Record a flight result r: { maxAlt, space, orbit, boosterLanded, landed, visited, vehicle, op, opOk, dead }.
@@ -78,7 +78,7 @@ export const unlockedBy = (kind, id) => LADDER.find(c => (c.unlock[kind] || []).
 export function record(s, r, t = Date.now()) {
   const out = { earned: [], cash: 0, sci: 0, unlocks: [], next: null };
   s.flights++;
-  if (r && r.missed) { out.next = next(s); s.last = { t, earned: [] }; return out; } // f5.1f (QA): a missed mission pays $0
+  if (r && r.missed) { out.next = next(s); s.last = { t, earned: [] }; return out; } // f5.1g (QA): a missed mission pays $0
   for (const c of LADDER) {
     if (s.done[c.id]) continue;
     if (rungLocked(c) || !c.test(r || {})) break;

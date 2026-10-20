@@ -193,7 +193,7 @@ export const VEHICLES = {
   ...CO_CIVSPACE, ...CO_ALBION, ...CO_EUROPIA, ...CO_VEGARA, ...CO_ARION, ...CO_BLUEHZ, ...CO_BOLT, ...CO_CONVEX, ...CO_DOUGWING, ...CO_GAULOIS, ...CO_JADELANTERN2, ...CO_JADELANTERN, ...CO_IRG, ...CO_ISRA, ...CO_TSURUGI, ...CO_JAXO, ...CO_KRASNAYA, ...CO_MOGUTNY, ...CO_MOONHAMMER, ...CO_TAIGA, ...CO_KRUNOV, ...CO_LINGVOLT, ...CO_MARTELL, ...CO_VANTGUARD, ...CO_CIVSPACE2, ...CO_ORBITRON, ...CO_ORIGINALS, ...CO_ROCKETWELL, ...CO_SOUTHSTAR, ...CO_VULC, ...CO_ULX, ...CO_BALTIC,
   'payload-flatsat-stack': { height: 5.6, build: satStack, src: 'specs sheet flatsat-style flat-pack stack (art)', est: ['plate size'] },
 };
-// f5.1f: the grouped rocket picker (fun/picker.js) lists the art sets per house; keys match fun/picker.js HOUSES
+// f5.1g: the grouped rocket picker (fun/picker.js) lists the art sets per house; keys match fun/picker.js HOUSES
 import { NAMES as N_EUROPIA } from './co_europia.js?v=art1';
 import { NAMES as N_GAULOIS } from './co_gaulois.js?v=art1';
 import { NAMES as N_IRG } from './co_irg.js?v=art1';
