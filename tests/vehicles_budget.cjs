@@ -1,4 +1,5 @@
 // perf budgets per LOD (Playtest QA perf report rockets-1). Needs the art server (python -m http.server 8761) + playwright-core.
+// BUDGET_TIMEOUT=<ms> raises the page wait on a loaded box (default 240000).
 // Usage: node tests/vehicles_budget.cjs [url]   (skips with exit 0 if playwright isn't installed)
 let pw; try { pw = require(process.env.PWT || '/workspace/pwt/node_modules/playwright-core'); } catch { console.log('vehicles_budget: skipped (no playwright)'); process.exit(0); }
 const url = process.argv[2] || 'http://localhost:8761/gfx/vehicles/budget.html';
@@ -28,8 +29,23 @@ const BUD = { ...Object.fromEntries(['dark-dart'].map(id => [id, { hi: [30000, 3
   ...Object.fromEntries(['super-lift-crew','super-lift-cargo','super-lift-1b-crew','super-lift-1b-cargo'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])),
   ...Object.fromEntries(['steppe-arrow-2','steppe-arrow-3'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])),
   ...Object.fromEntries(['vulcanis-2s','vulcanis-4l','vulcanis-6l'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])), ...Object.fromEntries(['atlantean-v-401','atlantean-v-411','atlantean-v-421','atlantean-v-431','atlantean-v-501','atlantean-v-511','atlantean-v-521','atlantean-v-531','atlantean-v-541','atlantean-v-551','atlantean-v-401-l','atlantean-v-501-m','atlantean-v-551-l','atlantean-v-541-m','deltoid-4-m','deltoid-4-m42','deltoid-4-m52','deltoid-4-m54','deltoid-4-heavy'].map(id => [id, { hi: [30000, 40], mid: [8000, 30], lo: [4000, 24] }])) }; // co-civspace-1: tier S phone budget = mid <= 8k tris
+// space-center sites (art-sites-N): gfx/sites/budget.html discovers every site_<id>.js. Phone mid <= 8k tris / 40 meshes per complex.
+// SITES_ONLY=1 runs only this block (skips the vehicle probe page, e.g. while it is broken or too slow on a loaded box).
+async function sitesBudget(ok, errs) {
+const SB = { hi: [40000, 60], mid: [8000, 40], lo: [3000, 24] }, su = process.env.SITES_URL || url.replace(/gfx\/vehicles\/budget\.html.*$/, 'gfx/sites/budget.html');
+    const b2 = await pw.chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-precise-memory-info', '--js-flags=--expose-gc'] }); const p2 = await b2.newPage();
+    p2.on('pageerror', e => errs.push('sites: ' + e.message)); await p2.goto(su); await p2.waitForFunction(() => window.__sites, null, { timeout: +process.env.BUDGET_TIMEOUT || 240000 }); const s = await p2.evaluate(() => window.__sites); await b2.close();
+    ok(s.ids.length >= 1, `sites found (${s.ids})`);
+    for (const x of s.rows) { console.log(`site ${x.id.padEnd(16)} ${x.detail.padEnd(3)} tris ${String(x.tris).padStart(6)} meshes ${x.meshes}`); ok(x.tris <= SB[x.detail][0], `site ${x.id} ${x.detail} tris ${x.tris} > ${SB[x.detail][0]}`); ok(x.meshes <= SB[x.detail][1], `site ${x.id} ${x.detail} meshes ${x.meshes} > ${SB[x.detail][1]}`); ok(x.inst === 0, `site ${x.id} ${x.detail}: no InstancedMesh`); }
+    for (const id of s.ids) { const r = Object.fromEntries(s.rows.filter(x => x.id === id).map(x => [x.detail, x.tris])); ok(r.hi >= r.mid && r.mid >= r.lo && r.hi > r.lo, `site ${id}: LOD tris hi ${r.hi} >= mid ${r.mid} >= lo ${r.lo}`); }
+    for (const x of s.phone) { ok(x.tris <= 8000 && x.meshes <= 40, `site ${x.id} phone near (mid): ${x.tris} tris / ${x.meshes} meshes <= 8000 / 40`); ok(x.levels === 3, `site ${x.id}: 3 LOD levels`); }
+    for (const x of s.place) ok(x.dUp < 1e-9 && x.dPos < 1e-9, `site ${x.id}: placed at its lat/lon with +Y = surface normal (r ${x.r.toFixed(0)} m)`);
+    console.log('sites geometries after cycles', JSON.stringify(s.mem), 'heap MB', JSON.stringify(s.heap)); ok(s.mem.every(m => m === s.mem[0]), 'sites: geometry count flat across build/dispose cycles');
+    if (s.heap[0] != null) ok(s.heap[3] - s.heap[1] < 3, `sites: heap flat (cycle2 ${s.heap[1]} -> cycle4 ${s.heap[3]} MB)`); }
+if (process.env.SITES_ONLY) { (async () => { let pass = 0, fail = 0; const errs = [], ok = (c, m) => { c ? pass++ : (fail++, console.log('FAIL', m)); };
+  await sitesBudget(ok, errs); ok(errs.length === 0, 'page errors: ' + errs.join('; ')); console.log(`vehicles_budget (SITES_ONLY): ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0); })(); return; }
 (async () => { const b = await pw.chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-precise-memory-info', '--js-flags=--expose-gc'] }); const p = await b.newPage(); const errs = [];
-  p.on('pageerror', e => errs.push(e.message)); await p.goto(url); await p.waitForFunction(() => window.__budget, null, { timeout: 240000 }); const r = await p.evaluate(() => window.__budget); await b.close();
+  p.on('pageerror', e => errs.push(e.message)); await p.goto(url); await p.waitForFunction(() => window.__budget, null, { timeout: +process.env.BUDGET_TIMEOUT || 240000 }); const r = await p.evaluate(() => window.__budget); await b.close();
   let pass = 0, fail = 0; const ok = (c, m) => { c ? pass++ : (fail++, console.log('FAIL', m)); };
   for (const x of r.rows) { const B = BUD[x.id]?.[x.detail]; console.log(`${x.id.padEnd(22)} ${x.detail.padEnd(3)} tris ${String(x.tris).padStart(6)} meshes ${x.meshes}`); if (B) { ok(x.tris <= B[0], `${x.id} ${x.detail} tris ${x.tris} > ${B[0]}`); ok(x.meshes <= B[1], `${x.id} ${x.detail} meshes ${x.meshes} > ${B[1]}`); } }
   const NEED = { 'heron-heavy': ['booster', 'side0', 'side1', 'upper'], 'space-truck': ['SRB-L', 'SRB-R', 'ET', 'orbiter'], 'saturnine-v': ['stage1', 'stage2', 'stage3', 'IU', 'SLA', 'CSM', 'LES'] };
@@ -69,4 +85,5 @@ const BUD = { ...Object.fromEntries(['dark-dart'].map(id => [id, { hi: [30000, 3
   console.log('titan v3+v4 share', JSON.stringify(r.share), 'mem cycles', JSON.stringify(r.mem));
   ok(r.share.unique < r.share.meshes, 'titan v3/v4 share geometry'); ok(r.mem.every(m => m.gpu === r.mem[0].gpu && m.cache === r.mem[0].cache), 'geometry count flat across model cycles');
   console.log('rendered heap MB per cycle', JSON.stringify(r.heap)); if (r.heap[0] != null) ok(r.heap[3] - r.heap[1] < 3, `rendered model cycles: heap flat (cycle2 ${r.heap[1]} -> cycle4 ${r.heap[3]} MB, < 3 MB growth; was +27.5 MB/cycle)`);
+  await sitesBudget(ok, errs);
   ok(errs.length === 0, 'page errors: ' + errs.join('; ')); console.log(`vehicles_budget: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0); })();
