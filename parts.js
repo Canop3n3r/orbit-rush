@@ -1,8 +1,8 @@
 // Orbit Rush parts: the catalog, rocket designs (a vertical stack of parts, top to bottom), staging, and the
 // per-stage mass / delta-v / TWR math. No DOM, so the hangar UI, the flight and the tests all share it.
-import { G0 } from './physics/constants.js?v=f5.1e';
-import { stackGeom, massProps } from './physics/vehicle.js?v=f5.1e';
-import { centerOfPressure } from './physics/aero.js?v=f5.1e';
+import { G0 } from './physics/constants.js?v=f5.1f';
+import { stackGeom, massProps } from './physics/vehicle.js?v=f5.1f';
+import { centerOfPressure } from './physics/aero.js?v=f5.1f';
 
 export const ORBIT_DV = 9400; // m/s: what reaching low Earth orbit really costs (≈7.8 km/s orbital speed + gravity, drag and steering losses)
 // type: pod | payload | fairing | tank | engine | decoupler | fins | rcs | shield | chute.  Masses in tonnes, thrust in kN (vacuum),
@@ -75,7 +75,7 @@ export const TEMPLATES = [
   { name: 'Mars explorer', goal: 'mars', note: 'Entry capsule (ablative shield + parachutes) with a Spark kick stage, Osprey hydrogen transfer stage, 5-Thumper booster. Wait for the window, burn for Mars, aerocapture or enter directly and land under chutes.',
     parts: [P('fairing'), P('chute'), P('probe'), P('ablator'), P('dec'), P('tank-s'), P('spark'), P('dec'), P('tank-h2'), P('tank-h2'), P('tank-h2'), P('osprey', 4), P('dec'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('tank-xl'), P('bison', 5), P('fins')] },
 ];
-export const cloneDesign = d => ({ name: d.name, ...(d.goal ? { goal: d.goal } : {}), ...(d.incl ? { incl: d.incl } : {}), ...(d.model ? { model: d.model } : {}), ...(d.recovery ? { recovery: d.recovery } : {}), parts: d.parts.map(p => ({ ...p })) });
+export const cloneDesign = d => ({ name: d.name, ...(d.goal ? { goal: d.goal } : {}), ...(d.incl ? { incl: d.incl } : {}), ...(d.model ? { model: d.model } : {}), ...(d.recovery ? { recovery: d.recovery } : {}), ...(d.sub ? { sub: true } : {}), parts: d.parts.map(p => ({ ...p })) });
 
 // Split a design into stages. Returned in FLIGHT order: [0] fires first (bottom). Each decoupler belongs to
 // the stage below it (it drops with that stage). Each stage: { parts (indices into design.parts, top→bottom), ... }.
@@ -168,9 +168,9 @@ export function validate(design) {
     if (s.twr < 1) warnings.push(`Liftoff TWR ${s.twr.toFixed(2)} is below 1: it won't leave the pad. Add engines (more Thumpers) or lose weight.`);
     else if (s.twr < 1.15) warnings.push(`Liftoff TWR ${s.twr.toFixed(2)} is marginal: expect a slow, lossy climb. Aim for 1.3+.`);
     s.stages.forEach((st, i) => { if (i > 0 && st.twr < 0.3 && st.dv > 0) warnings.push(`Stage ${i + 1} TWR ${st.twr.toFixed(2)} is very low: it may fall back before reaching orbit. Add an engine or move fuel lower.`); });
-    if (s.total < ORBIT_DV) warnings.push(`Total Δv ${s.total.toFixed(0)} m/s is below the ~${ORBIT_DV.toLocaleString()} m/s orbit usually needs (the AUTO test flight below has the final word). Add fuel, use a more efficient upper engine (Lark), or a lighter payload.`);
+    if (s.total < ORBIT_DV && !design.sub) warnings.push(`Total Δv ${s.total.toFixed(0)} m/s is below the ~${ORBIT_DV.toLocaleString()} m/s orbit usually needs (the AUTO test flight below has the final word). Add fuel, use a more efficient upper engine (Lark), or a lighter payload.`);
     if (a.cargo && a.fairing === 0) warnings.push('The Satellite Stack is blunt without a fairing: more drag on the way up.');
-    for (const w of recoveryWarnings(design)) warnings.push(w);
+    if (!design.sub) for (const w of recoveryWarnings(design)) warnings.push(w); // f5.1f (QA): suborbital rockets (Pip, Grasshopper) skip the orbit/reentry advice
     const ab = aeroBalance(design);
     if (ab && !ab.stable) warnings.push(`Aerodynamically unstable: the centre of pressure is ${Math.abs(ab.margin).toFixed(1)} calibers ${ab.margin < 0 ? 'ahead of' : 'behind'} the centre of mass${ab.marginEmpty <= 0 && ab.margin > 0 ? ' at liftoff, but ahead of it once stage 1 is empty' : ''}. It relies on engine gimbal and flips if the engines stop in thick air. Add Tail Fins at the bottom.`);
   }

@@ -36,4 +36,9 @@ ok(L.ALL.vehicles.every(v => L.START.vehicles.includes(v) || L.unlockedBy('vehic
   const s = L.blank(); const o = L.record(s, { maxAlt: 3e5, space: true, orbit: true, visited: ['earth', 'venus'], missed: true });
   if (o.cash === 0 && o.earned.length === 0 && s.cash === 0) { pass++; console.log('ok miss pays $0'); } else { fail++; console.log('FAIL miss pays'); }
 }
+{ // f5.1f: Next after Mars/Venus never drops back to an old skipped rung
+  const s = L.blank(); for (const c of L.LADDER) if (c.id !== 'booster' && c.id !== 'venus') s.done[c.id] = 1;
+  const a = L.nextAfter(s, 'mars'), b = L.nextAfter({ ...s, done: { ...s.done, venus: 1 } }, 'venus');
+  if (a && a.id === 'venus' && b === null && L.next(s).id === 'booster') { pass++; console.log('ok nextAfter'); } else { fail++; console.log('FAIL nextAfter', a && a.id, b); }
+}
 console.log(`ladder: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

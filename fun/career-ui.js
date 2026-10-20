@@ -1,6 +1,6 @@
 // f5 career UI: the progress screen (#careerM: ladder, wallet, unlocks, sandbox toggle) and the career block
 // of the post-flight results card. Logic lives in fun/ladder.js; names come in through `name` (brand-aware).
-import * as L from './ladder.js?v=f5.1e';
+import * as L from './ladder.js?v=f5.1f';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 export function createCareerUI({ store, name, onPlay }) {
   let S = L.load(store);
@@ -36,5 +36,5 @@ export function createCareerUI({ store, name, onPlay }) {
     const n = out.next ? `<div class="ecNext">Next: <b>${esc(rungName(out.next))}</b> — ${esc(out.next.goal)} <span class="ecRw">${rw(out.next.reward)}</span></div>` : '<div class="ecNext">Career ladder complete 🎉</div>';
     return `<div class="endCareer">${e}${u}${n}<div class="ecWal">💰 $${S.cash}M · 🔬 ${S.sci}</div></div>`;
   }
-  return { el, show, render, record, resultsHTML, get state() { return L.load(store); }, locked: (kind, id) => !L.isUnlocked(L.load(store), kind, id, sb()), next: () => L.next(L.load(store)), unlockedBy: L.unlockedBy };
+  return { el, show, render, record, resultsHTML, get state() { return L.load(store); }, locked: (kind, id) => !L.isUnlocked(L.load(store), kind, id, sb()), next: id => (id ? L.nextAfter(L.load(store), id) : L.next(L.load(store))), unlockedBy: L.unlockedBy };
 }

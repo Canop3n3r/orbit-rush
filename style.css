@@ -782,3 +782,24 @@ body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #h
 .palRow .palH img{width:24px;height:24px;filter:invert(1)}
 .palRow .palH::after{display:none!important}
 #hMis.hidden{display:none}
+/* f5.1f grouped rocket picker */
+#hPick{pointer-events:auto;width:44px;height:44px;border-radius:50%;font-size:19px;padding:0;background:var(--glass);border:1px solid var(--line);color:var(--txt,#fff)}
+#hName{pointer-events:auto}
+#picker{position:fixed;inset:0;z-index:60;overflow-y:auto;background:#070b14f2;padding:calc(10px + env(safe-area-inset-top,0px)) calc(12px + env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) calc(12px + env(safe-area-inset-left,0px));color:#e8f0ff;font:14px system-ui}
+#picker.hidden{display:none}
+#picker .pkH{position:sticky;top:-10px;display:flex;align-items:center;gap:10px;padding:8px 0;background:#070b14;z-index:1}
+#picker .pkH b{font-size:20px;flex:1}#picker .pkSb{display:flex;gap:6px;align-items:center;min-height:44px}
+#picker #pkClose{min-width:44px;min-height:44px;border-radius:50%}
+#picker h4{margin:14px 0 6px;font:700 12px system-ui;letter-spacing:1px;text-transform:uppercase;color:#9cc3ff}
+#picker .pkG{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+#picker .pkC{min-height:56px;text-align:left;padding:8px 10px;border-radius:12px;background:#14203a;border:1px solid #2a3c62;color:#fff;display:flex;flex-direction:column;gap:2px}
+#picker .pkC small{opacity:.65;font-size:11px}#picker .pkC.lk{opacity:.55}
+#picker .pkSb input{width:22px;height:22px;margin:0;accent-color:#3a8cff}
+/* f5.1f (QA P1): ☰ = 8 top actions + More; in landscape the menu stops left of the STAGE/AUTO/THR column and fits the height */
+#mMenu .mTop{grid-template-columns:repeat(4,1fr)}#mMenu .mTop button{min-height:46px;font-size:12px}
+#mMenu .mMore summary{min-height:44px;display:flex;align-items:center;justify-content:center;font:700 12px system-ui;background:#1b2a44;border-radius:10px;margin:2px 0 6px;cursor:pointer;list-style:none}
+@media (orientation:landscape){#mMenu{right:calc(130px + var(--sar));top:calc(58px + var(--sat));width:min(470px,calc(100vw - 150px - var(--sal) - var(--sar)));max-height:calc(100dvh - 64px - var(--sat) - var(--sab))}#mMenu .mTop{grid-template-columns:repeat(4,1fr)}#mMenu .mTop button{min-height:40px}}
+/* f5.1f (QA P1): Build trim: ⋯ is a 44 px+ target everywhere; desktop top row = ‹ Home · ⋯ · ROLL TO PAD */
+.bMore>summary{min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;list-style:none}
+.bTopRow{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}.bTopRow .bMore{flex:1}.bTopRow #launchBtn{margin:0;flex:0 0 auto;min-width:220px}
+.bTopRow #homeBack{flex:0 0 auto;min-height:44px}
