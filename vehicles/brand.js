@@ -6,6 +6,8 @@ export const NEUTRAL_NAMES = {
   'heron-9-crew': 'Heron-9 Crew', 'heron-heavy': 'Heron Heavy', 'titan-ss-v3': 'Colossus (Mk III)', 'titan-ss-v4': 'Colossus (Mk IV)',
   'kero-a': 'KR-A', 'kero-c': 'KR-C', 'kero-d': 'KR-D', 'kero-cv': 'KR-C Vac', 'kero-dv': 'KR-D Vac', 'kero-p': 'KR-P (pressure-fed)',
   'meth-3': 'MX-3', 'meth-3v': 'MX-3 Vac', 'capsule-2': 'Skylark Crew Capsule',
+  'titan-ss-tanker': 'Colossus Tanker', 'titan-ss-depot': 'Colossus Depot', 'titan-ss-lunar': 'Colossus Lunar Lander', 'titan-ss-mars': 'Colossus Mars Ship',
+  'roadster-payload': 'Demo Car Payload',
 };
 let pack = {};
 export function setBrandPack(map) { pack = { ...(map || {}) }; }
