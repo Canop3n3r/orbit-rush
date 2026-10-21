@@ -769,6 +769,11 @@ export class Flight {
       } else { v.throttle = this.autoOn ? Math.min(v.ut, P.qCap(v.tel ? v.tel.q : 0)) : v.ut; if (!this.autoOn) v.steerDir = null; }
       if (this.sepHold && !f.dead) { if (this.met < this.sepHold || (!this.autoOn && this.met < this.sepHold + 600 && v.tel && v.tel.q > 8000)) { /* ~3 s, longer while the air is still thick */ v.sepGrace = 1; const w = P.omegaOf(v), va = [v.v[0] + w * v.r[1], v.v[1] - w * v.r[0], v.v[2]]; /* air-relative flight path */ if (V.len(va) > 30) v.steerDir = V.norm(va); } else { this.sepHold = 0; v.sepGrace = 0; if (!this.autoOn) v.steerDir = null; } } // f5.3 (QA staging_manual): hold the bare upper stage on its flight path for ~3 s after a serial separation
       if (v.clamped) v.steerDir = null;
+      // f5.4 (QA f5.4b B5): AUTO brings a suborbital rocket (Pip) home under its chute, as the return autopilot does for capsules
+      if (this.autoOn && !this.ret && this.ignited && v.chute.state !== 'failed' && v.chute.state !== 'main' && !this.flags.orbit && v.tel && V.dot(v.v, V.norm(v.r)) < -5 && this.hasChute()) {
+        const h0 = this.alt, k = v.chute.state === 'stowed' ? 'drogue' : v.chute.state === 'drogue' ? 'main' : null;
+        if (k && h0 < (k === 'drogue' ? CHUTE_AUTO.drogueAlt : CHUTE_AUTO.mainAlt) && chuteLimits(this.chuteSpec(), v.tel, k).ok) this.deployChute();
+      }
       this.updateChute(dt);
       P.updateControl(v);
       const st = v.stages[v.cur], m0 = P.massOf(v);
