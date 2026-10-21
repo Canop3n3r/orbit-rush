@@ -2,8 +2,8 @@
 // planner-built transfer nodes executed as finite burns, mid-course corrections, SOI warps, capture, Moon
 // landing) and tells the renderer which cinematic camera suits each phase. The player can take over anytime
 // (takeOver()); nothing here bypasses the physics. DOM-free, so tests/fun.mjs runs it headlessly.
-import * as P from '../physics.js?v=f5.4g';
-import * as C from '../physics/patched.js?v=f5.4g';
+import * as P from '../physics.js?v=f5.4c';
+import * as C from '../physics/patched.js?v=f5.4c';
 const V = P.V;
 export const MISSIONS = {
   orbit: { name: 'Orbit & home', icon: '🛰️', tpl: 'Orbit & home', target: null, blurb: 'Fly to orbit, then bring the capsule home under parachutes.' },
@@ -21,7 +21,7 @@ const STALL_PH = ['plan', 'burn', 'correct', 'capture', 'lift'];
 export class Director {
   constructor(F, id, opts = {}) {
     this.F = F; this.id = id; this.m = MISSIONS[id]; this.phase = 'ascent'; this.t = 0; this.log = ['ascent']; this.active = true; this.opts = opts;
-    F.autoStage = false; // f3: the director runs its own staging plan (Moon/Mars need the whole booster)
+    if (this.m.target) F.autoStage = false; // f3: Moon/Mars/Venus need the whole booster; f5.4 (QA B3): Earth-orbit missions use the normal AUTO staging rule, so reusable boosters stage early and land
     this.target = this.m.target; this.corrections = 0; this.result = null; this.ok = false; this.say = opts.say || (() => {});
   }
   get cam() { return CAMS[this.phase] || 'chase'; }
