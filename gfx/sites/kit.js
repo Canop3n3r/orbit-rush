@@ -33,11 +33,11 @@ const TEXDEF = {
 const MDEF = { concrete: [0xffffff, 0.95, 0, 'concrete'], apron: [0xc9c6c0, 0.9, 0, 'concrete'], asphalt: [0xffffff, 0.92, 0, 'asphalt'], mark: [0xe8c22a, 0.6, 0], white: [0xf2f1ed, 0.85, 0],
   clad: [0xffffff, 0.7, 0.15, 'clad'], band: [0x5a6f86, 0.6, 0.2], door: [0xa9adb2, 0.55, 0.6, 'clad'], tower: [0xffffff, 0.75, 0.45, 'rust'], steel: [0xffffff, 0.45, 0.8, 'steel'],
   tank: [0xffffff, 0.4, 0.3, 'tank'], pipe: [0xc4c7ca, 0.4, 0.8, 'steel'], dark: [0x2a2b2e, 0.85, 0.2, 'concrete'], deck: [0x4a4d52, 0.85, 0.5, 'steel'], hull: [0x2e333a, 0.6, 0.5, 'steel'],
-  lamp: [0xfff2c8, 0.4, 0, null, 0xffe7a0], ground: [0xffffff, 1, 0, 'ground'], sand: [0xffffff, 1, 0, 'sand'], sea: [0x15394f, 0.2, 0], regolith: [0xffffff, 1, 0, 'regolith'],
+  lamp: [0xfff2c8, 0.4, 0, null, 0xffe7a0], flood: [0xffffff, 0.3, 0, null, 0xfff4dc], win: [0x2a2a22, 0.3, 0, null, 0xffc874], beacon: [0xff3020, 0.4, 0, null, 0xff2010], ground: [0xffffff, 1, 0, 'ground'], sand: [0xffffff, 1, 0, 'sand'], sea: [0x15394f, 0.2, 0], regolith: [0xffffff, 1, 0, 'regolith'],
   redsoil: [0xffffff, 1, 0, 'redsoil'], gold: [0xc9a043, 0.35, 1], solar: [0x1d2a4a, 0.3, 0.6], hab: [0xdedbd2, 0.6, 0.2, 'tank'], glass: [0x0c1218, 0.1, 0.3], green: [0x4d5a3a, 1, 0],
   fence: [0x9da3a8, 0.5, 0.7], red: [0xb3241c, 0.5, 0.2], water: [0x2f6f8f, 0.15, 0] };
 export function smat(k) { if (MATS.has(k)) return MATS.get(k); const d = MDEF[k] || [0xff00ff, 1, 0], map = d[3] ? canvasTex(d[3], TEXDEF[d[3]]) : null;
-  const m = new S({ color: d[0], roughness: d[1], metalness: d[2], vertexColors: true, ...(map ? { map } : {}), ...(d[4] ? { emissive: d[4], emissiveIntensity: 2.2 } : {}) });
+  const m = new S({ color: d[0], roughness: d[1], metalness: d[2], vertexColors: true, ...(map ? { map } : {}), ...(d[4] ? { emissive: d[4], emissiveIntensity: k === 'flood' ? 4 : k === 'win' ? 1.6 : 2.4 } : {}) });
   if (k === 'mark') Object.assign(m, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   m.name = 'site:' + k; m.userData.cached = true; weakDisposeListeners(m); MATS.set(k, m); return m; }
 // merge non-indexed geometries with position/normal/uv/color
@@ -47,7 +47,7 @@ export const SEG = { hi: 20, mid: 8, lo: 6 };
 const _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
 const M = (p = [0, 0, 0], ry = 0, s = [1, 1, 1]) => { _e.set(0, ry, 0); return new THREE.Matrix4().compose(_v.set(...p), _q.setFromEuler(_e), _s.set(...s)); };
 // merge buffer: per material key; `tf` stack of placement matrices
-export class SK { constructor(detail) { this.detail = detail; this.seg = SEG[detail]; this.hi = detail === 'hi'; this.lo = detail === 'lo'; this.b = new Map(); this.T = [new THREE.Matrix4()]; this.base = 0; this.noAO = new Set(['mark', 'lamp', 'sea', 'ground', 'sand', 'regolith', 'redsoil', 'asphalt', 'water']); }
+export class SK { constructor(detail) { this.detail = detail; this.seg = SEG[detail]; this.hi = detail === 'hi'; this.lo = detail === 'lo'; this.b = new Map(); this.T = [new THREE.Matrix4()]; this.base = 0; this.lights = []; this.noAO = new Set(['mark', 'lamp', 'flood', 'win', 'beacon', 'sea', 'ground', 'sand', 'regolith', 'redsoil', 'asphalt', 'water']); }
   push(m) { this.T.push(this.T.at(-1).clone().multiply(m)); return this; } pop() { this.T.pop(); return this; }
   add(geo, k, m) { const g = geo.index ? geo.toNonIndexed() : geo; if (g !== geo) geo.dispose(); for (const a of Object.keys(g.attributes)) if (!['position', 'normal'].includes(a)) g.deleteAttribute(a);
     g.applyMatrix4(m ? this.T.at(-1).clone().multiply(m) : this.T.at(-1)); const P = g.attributes.position.array, N = g.attributes.normal.array, c = P.length / 3, uv = new Float32Array(c * 2), col = new Float32Array(c * 3), T = 8;
@@ -57,6 +57,7 @@ export class SK { constructor(detail) { this.detail = detail; this.seg = SEG[det
       const h = y - this.base, ao = Math.min(1, (0.5 + 0.5 * Math.min(1, Math.max(0, h) / 4)) * (ny < -0.5 ? 0.6 : 1) * (ny > 0.5 ? 1.05 : 0.92));
       col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = this.noAO.has(k) ? 1 : ao; }
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); (this.b.get(k) || this.b.set(k, []).get(k)).push(g); return this; }
+  light(p, aim = [0, 0, 0], pri = 1) { const v = new THREE.Vector3(...p).applyMatrix4(this.T.at(-1)), a = new THREE.Vector3(...aim).applyMatrix4(this.T.at(-1)); this.lights.push({ p: v.toArray(), aim: a.toArray(), pri }); return this; }
   box(k, w, h, d, p = [0, 0, 0], ry = 0) { return this.add(new THREE.BoxGeometry(w, h, d), k, M([p[0], p[1] + h / 2, p[2]], ry)); } // p = bottom centre
   cyl(k, r0, r1, h, p = [0, 0, 0], seg = this.seg, open = false) { return this.add(new THREE.CylinderGeometry(r1, r0, h, Math.max(3, seg), 1, open), k, M([p[0], p[1] + h / 2, p[2]])); }
   sph(k, r, p, seg = this.seg) { return this.add(new THREE.SphereGeometry(r, Math.max(4, seg), Math.max(3, seg >> 1)), k, M(p)); }
@@ -113,8 +114,9 @@ const parts = {
       for (const a of t.arms || []) trussArm(K, tx + w / 2, a.y, tz, a.len, 2.6); }
     if (!K.lo) for (const s of [-1, 1]) K.box('concrete', 6, 3, 6, [s * r * 0.6, 0, -r * 0.55]);
     const f = r * 1.15; fence(K, [[-f, -f], [f, -f], [f, f], [-f, f], [-f, -f]]); // pad perimeter fence
-    if (!K.lo) for (const [x, z] of [[-f, -f], [f, -f], [f, f], [-f, f]]) { K.cyl('steel', 0.4, 0.25, 30, [x * 0.95, 0, z * 0.95], 6); K.box('lamp', 3, 1.4, 0.8, [x * 0.95, 30, z * 0.95]); } },
-  catch(K, o) { const w = o.w || 12, h = o.h || 145; lattice(K, w, h, 'steel'); K.cyl('steel', 0.5, 0.15, 12, [0, h, 0], 6); catenary(K, 0, h + 12, 0, 90);
+    if (!K.lo) for (const [x, z] of [[-f, -f], [f, -f], [f, f], [-f, f]]) { K.cyl('steel', 0.4, 0.25, 30, [x * 0.95, 0, z * 0.95], 6); K.box('flood', 4, 2.2, 0.8, [x * 0.95, 30, z * 0.95], Math.atan2(x, z)); K.box('steel', 4.4, 0.4, 1.2, [x * 0.95, 29.6, z * 0.95], Math.atan2(x, z)); K.light([x * 0.95, 31, z * 0.95], [0, 10, 0], 0); }
+    if (o.tower && !K.lo) { const t = o.tower, tx = t.x ?? -(r * 0.4); for (const a of t.arms || []) K.box('win', 1.2, 0.6, 0.3, [tx + (t.w || 10) / 2 + 0.6, a.y - 1, (t.z ?? 0) + (t.w || 10) / 2 + 0.2]); K.box('beacon', 0.8, 0.8, 0.8, [tx, t.h + (t.mast || 20), t.z ?? 0]); } }, // arm-root lights, mast beacon
+  catch(K, o) { const w = o.w || 12, h = o.h || 145; lattice(K, w, h, 'steel'); K.cyl('steel', 0.5, 0.15, 12, [0, h, 0], 6); catenary(K, 0, h + 12, 0, 90); K.box('beacon', 1, 1, 1, [0, h + 12, 0]); if (K.hi) for (const yy of [h * 0.3, h * 0.6, h * 0.9]) K.box('flood', 3, 1.5, 0.5, [0, yy, w / 2 + 0.4]); K.light([0, h * 0.6, w / 2 + 2], [0, 10, w / 2 + (o.arm || 35) * 0.85], 0);
     const ay = o.armY || h * 0.75, L = o.arm || 35, zc = w / 2 + L * 0.85; K.box('steel', w + 6, 8, 6, [0, ay - 2, w / 2 + 1]); // carriage riding the tower
     for (const s of [-1, 1]) { // chopsticks: tapered truss arms on pivots, with catch rails and bumper pads
       const x = s * (w / 2 + 2.5); K.cyl('steel', 1.6, 1.6, 6, [x, ay - 3, w / 2 + 2], 10);
@@ -133,11 +135,12 @@ const parts = {
       for (let z = -d / 2; z <= d / 2 + 0.1; z += rib) for (const s of [-1, 1]) K.box('steel', 1.0, h, 1.0, [s * (w / 2 + 0.5), 0, z]);
       const nd = o.doors || 2, rows = K.hi ? 7 : 4; for (let i = 0; i < nd; i++) { const x = (i - (nd - 1) / 2) * w / nd, dw = w / nd * 0.5, dh = h * 0.85;
         for (const s of [-1, 1]) { K.box('dark', dw + 2, dh + 1, 0.3, [x, 0, s * (d / 2 + 0.2)]); for (let r = 0; r < rows; r++) K.box('door', dw, dh / rows - 0.6, 0.7, [x, r * dh / rows, s * (d / 2 + 0.4)]); } } // stacked leaf door panels
+      for (const s of [-1, 1]) K.box('win', w * 0.9, 0.8, 0.3, [0, h * 0.92, s * (d / 2 + 1.1)]); K.box('win', w * 0.5, 1, 0.3, [w * 0.8, h * 0.2, d * 0.25 + 0.2]);
       K.box('clad', w * 0.6, h * 0.35, d * 0.5, [w * 0.8, 0, 0]); for (let i = 0; i < (K.hi ? 6 : 3); i++) K.box('dark', 4, 3, 3, [w * 0.8 - w * 0.2 + i * w * 0.08, h * 0.35, 0]); } // low bay + roof units
     K.box('dark', w + 1, 0.8, d + 1, [0, h, 0]); },
   hangar(K, o) { const w = o.w || 60, d = o.d || 90, h = o.h || 22; K.box('clad', w, h * 0.6, d);
     const g = new THREE.CylinderGeometry(w / 2, w / 2, d, Math.max(4, K.seg), 1, false, -Math.PI / 2, Math.PI); g.rotateX(-Math.PI / 2); g.scale(1, (h * 0.4) / (w / 2), 1); K.add(g, 'white', M([0, h * 0.6, 0]));
-    if (!K.lo) { const nl = K.hi ? 6 : 3; for (let i = 0; i < nl; i++) K.box('door', w * 0.8 / nl - 0.4, h * 0.55, 0.6, [-w * 0.4 + (i + 0.5) * w * 0.8 / nl, 0, d / 2]); K.box('steel', w * 0.85, 0.8, 1.2, [0, h * 0.55, d / 2 + 0.3]); // door leaves + track
+    if (!K.lo) { const nl = K.hi ? 6 : 3; for (let i = 0; i < nl; i++) K.box('door', w * 0.8 / nl - 0.4, h * 0.55, 0.6, [-w * 0.4 + (i + 0.5) * w * 0.8 / nl, 0, d / 2]); K.box('steel', w * 0.85, 0.8, 1.2, [0, h * 0.55, d / 2 + 0.3]); for (const x of [-w * 0.3, 0, w * 0.3]) K.box('lamp', 1.4, 0.4, 0.8, [x, h * 0.58, d / 2 + 0.8]); // door leaves + track + door lights
       for (let z = -d / 2; z <= d / 2; z += K.hi ? 10 : 30) for (const s of [-1, 1]) K.box('steel', 0.8, h * 0.6, 0.8, [s * (w / 2 + 0.4), 0, z]); } },
   tanks(K, o) { const n = o.n || 3, r = o.r || 8, gap = r * 2.6;
     for (let i = 0; i < n; i++) { const x = (i - (n - 1) / 2) * gap; if (o.style === 'h') { const g = new THREE.CylinderGeometry(r, r, r * 5, Math.max(4, K.seg)); g.rotateX(Math.PI / 2); K.add(g, 'tank', M([x, r + 1.5, 0])); if (!K.lo) { K.sph('tank', r, [x, r + 1.5, -r * 2.5], Math.max(4, K.seg >> 1)); K.sph('tank', r, [x, r + 1.5, r * 2.5], Math.max(4, K.seg >> 1)); K.box('concrete', r * 1.6, 1.5, 1.5, [x, 0, -r * 1.8]); K.box('concrete', r * 1.6, 1.5, 1.5, [x, 0, r * 1.8]); } }
@@ -151,7 +154,7 @@ const parts = {
       if (o.line && K.hi) { const dash = K.hi ? 12 : 24, nd = Math.floor(L / dash); for (let j = 0; j < nd; j++) { const t = (j + 0.5) * dash - L / 2; K.flat('mark', 0.3, dash * 0.5, [cx + ux * t, 0, cz + uz * t], ry, 0.04); } } // dashed centre line
       if (o.poles !== false) { const sp = K.hi ? 60 : 300, np = Math.floor(L / sp); for (let j = 1; j <= np; j++) { const t = j * sp - L / 2, px = cx + ux * t + uz * (w / 2 + 2), pz = cz + uz * t - ux * (w / 2 + 2);
         K.cyl('steel', 0.18, 0.12, 9, [px, 0, pz], 4); K.box('lamp', 0.5, 0.25, 1.4, [px - uz * 0.8, 9, pz + ux * 0.8]); } } } }, // light poles
-  masts(K, o) { for (const [x, z] of o.pts) { const h = o.h || 40; K.cyl('steel', 0.7, 0.35, h, [x, 0, z], 6); K.box('lamp', 4, 2, 1, [x, h, z]); if (!K.lo) { K.box('steel', 4.6, 0.4, 1.4, [x, h - 0.4, z]); K.box('concrete', 2, 0.8, 2, [x, 0, z]); } if (K.hi) K.box('lamp', 4, 1.2, 1, [x, h - 2, z]); } },
+  masts(K, o) { for (const [x, z] of o.pts) { const h = o.h || 40; K.light([x, h, z], [x * 0.3, 0, z * 0.3], 1); K.cyl('steel', 0.7, 0.35, h, [x, 0, z], 6); K.box('lamp', 4, 2, 1, [x, h, z]); if (!K.lo) { K.box('steel', 4.6, 0.4, 1.4, [x, h - 0.4, z]); K.box('concrete', 2, 0.8, 2, [x, 0, z]); } if (K.hi) K.box('lamp', 4, 1.2, 1, [x, h - 2, z]); } },
   water(K, o) { const h = o.h || 60, r = o.r || 9; if (!K.lo) { for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; K.beam('steel', [Math.cos(a) * r * 0.9, 0, Math.sin(a) * r * 0.9], [Math.cos(a) * r * 0.35, h, Math.sin(a) * r * 0.35], 0.9); }
       for (let j = 1; j < (K.hi ? 4 : 2) + 1; j++) { const t = j / ((K.hi ? 4 : 2) + 1), rr = r * (0.9 - 0.55 * t); K.add(new THREE.TorusGeometry(rr, 0.2, 3, 8).rotateX(Math.PI / 2), 'steel', M([0, h * t, 0])); } } // tension rings
     K.cyl('pipe', 1.2, 1.2, h, [0, 0, 0], 6); K.sph('white', r, [0, h + r * 0.6, 0]); if (!K.lo) { K.add(new THREE.TorusGeometry(r * 0.95, 0.3, 3, K.hi ? 20 : 10).rotateX(Math.PI / 2), 'steel', M([0, h + r * 0.6, 0])); K.cyl('pipe', 0.8, 0.8, 30, [0, 0, 0], 6); } },
@@ -162,7 +165,7 @@ const parts = {
     for (const s of [-1, 1]) { K.box('hull', 1.2, 3, L - 4, [s * (W / 2 - 0.6), 2, 0]); if (!K.lo) { K.box('tank', 6, 5, 8, [s * (W / 2 - 4), 2, -L / 2 + 6]); K.box('tank', 6, 5, 8, [s * (W / 2 - 4), 2, L / 2 - 6]); K.cyl('dark', 2.2, 2.2, 3, [s * (W / 2 - 4), -7, -L / 2 + 6], K.seg); K.cyl('dark', 2.2, 2.2, 3, [s * (W / 2 - 4), -7, L / 2 - 6], K.seg);
       fence(K, [[s * (W / 2 - 0.3), -L / 2 + 12], [s * (W / 2 - 0.3), L / 2 - 12]], 1.2); } }
     if (K.hi) K.box('steel', W - 6, 0.6, 1, [0, 2.4, -L / 2 + 2]); },
-  block(K, o) { const w = o.w || 20, h = o.h || 6, d = o.d || 14; K.box(o.mat || 'concrete', w, h, d); if (!K.lo) { K.box('dark', w + 0.6, 0.6, d + 0.6, [0, h, 0]); K.box('glass', w * 0.7, 1.2, 0.2, [0, h * 0.5, d / 2]); }
+  block(K, o) { const w = o.w || 20, h = o.h || 6, d = o.d || 14; K.box(o.mat || 'concrete', w, h, d); if (!K.lo) { K.box('dark', w + 0.6, 0.6, d + 0.6, [0, h, 0]); K.box('win', w * 0.7, 1.2, 0.2, [0, h * 0.5, d / 2]); K.box('win', w * 0.7, 1.2, 0.2, [0, h * 0.5, -d / 2]); K.box('lamp', 1.2, 0.4, 0.6, [0, h - 1, d / 2 + 0.4]); }
     if (o.roof && !K.lo) { K.box('dark', w * 0.3, 2, d * 0.3, [0, h, 0]); K.cyl('steel', 0.15, 0.1, 12, [w * 0.4, h, 0], 4); } },
   stand(K, o) { const h = o.h || 30; lattice(K, 8, h, 'steel'); K.box('concrete', 16, 4, 16); K.box('steel', 12, 1.5, 12, [0, h, 0]); }, // static-fire stand
   hab(K, o) { const n = o.n || 3, r = o.r || 4; for (let i = 0; i < n; i++) { const g = new THREE.CylinderGeometry(r, r, r * 3, Math.max(4, K.seg)); g.rotateZ(Math.PI / 2); K.add(g, 'hab', M([0, r + 0.6, i * r * 2.4], 0)); if (!K.lo) { K.sph('hab', r * 0.96, [r * 1.5, r + 0.6, i * r * 2.4], Math.max(4, K.seg >> 1)); K.box('steel', r * 3.2, 0.6, r * 1.4, [0, 0, i * r * 2.4]); } }
@@ -170,6 +173,9 @@ const parts = {
   solar(K, o) { const n = o.n || 4; for (let i = 0; i < n; i++) { const x = (i - (n - 1) / 2) * 12; if (!K.lo) K.cyl('steel', 0.2, 0.2, 2.5, [x, 0, 0], 4); const g = new THREE.BoxGeometry(10, 0.15, 5); g.rotateX(-0.5); K.add(g, 'solar', M([x, 2.8, 0])); } },
   berm(K, o) { const r = o.r || 40; K.add(new THREE.TorusGeometry(r, o.t || 2.5, 4, Math.max(8, K.seg * 2)).rotateX(Math.PI / 2), o.mat || 'regolith', M([0, 0.4, 0])); },
   dish(K, o) { const r = o.r || 5; K.cyl('steel', 0.4, 0.4, o.h || 6, [0, 0, 0], 6); const g = new THREE.SphereGeometry(r, Math.max(4, K.seg), 3, 0, Math.PI * 2, 0, 0.7); g.rotateX(-0.9); K.add(g, 'white', M([0, (o.h || 6) + 1, 0])); },
+  rover(K, o) { const L = o.len || 3.2, W = o.w || 2.2; K.box('hab', L, 0.9, W, [0, 0.9, 0]); K.box('solar', L * 0.9, 0.08, W * 0.9, [0, 1.8, 0]);
+    for (const i of [-1, 0, 1]) for (const s of [-1, 1]) { const g = new THREE.CylinderGeometry(0.42, 0.42, 0.35, K.lo ? 6 : K.hi ? 14 : 8); g.rotateX(Math.PI / 2); K.add(g, 'dark', M([i * L * 0.38, 0.42, s * (W / 2 + 0.2)])); }
+    if (!K.lo) { K.cyl('steel', 0.06, 0.06, 1.4, [L * 0.35, 1.8, 0], 4); K.box('dark', 0.4, 0.3, 0.3, [L * 0.35, 3.2, 0]); K.box('lamp', 0.12, 0.2, 0.5, [L / 2 + 0.05, 1.3, 0]); if (o.dish) { const g = new THREE.SphereGeometry(0.5, 8, 2, 0, Math.PI * 2, 0, 0.8); g.rotateX(-1); K.add(g, 'white', M([-L * 0.3, 2.3, 0])); } } }, // six-wheel surface rover
   fence(K, o) { fence(K, o.pts, o.h || 2.4); },
   ground(K, o) { K.disc(o.mat || 'ground', o.r || 2500, [0, 0, 0], K.seg * 3, -0.05); if (o.sea) K.flat('sea', o.sea.w || 12000, o.sea.d || 12000, [o.sea.x || 0, 0, o.sea.z || 0], 0, -0.1); },
 };
@@ -178,16 +184,26 @@ export const PART_KINDS = Object.keys(parts);
 function buildGroup(S, items, detail, name, opts) { const K = new SK(detail);
   for (const o of items) { if (o.k === 'ground' && !opts.ground) continue; if (o.min && ['lo', 'mid', 'hi'].indexOf(detail) < ['lo', 'mid', 'hi'].indexOf(o.min)) continue;
     const [x, z] = o.at || [0, 0]; K.base = o.y || 0; K.push(M([x, o.y || 0, z], o.rot || 0)); parts[o.k](K, o); K.pop(); }
-  return K.build(name); }
+  const grp = K.build(name); grp.userData.lights = K.lights; return grp; }
 export function buildSite(S, { detail = 'hi', ground = false } = {}) { const g = new THREE.Group(); g.name = 'site:' + S.id;
   const main = buildGroup(S, S.layout, detail, S.id, { ground }); g.add(main); let tris = main.userData.tris;
   for (const st of S.stations || []) { const s = buildGroup(S, st.layout, detail, S.id + ':' + st.id, { ground }); const R = BODY_R[S.body] || S.R;
     const off = localOffset(S.body, S.lat, S.lon, st.lat, st.lon, R); s.matrix.fromArray(localBasis(S.body, S.lat, S.lon, st.lat, st.lon)).setPosition(off[0], off[1], off[2]); s.matrixAutoUpdate = false; s.userData.station = st.id;
     g.add(s); tris += s.userData.tris; }
-  Object.assign(g.userData, { id: S.id, body: S.body, lat: S.lat, lon: S.lon, detail, tris, site: true }); return g; }
+  // night lighting: emissive heads/panels are always there; real lights only a few, gated by detail (hi 3, mid 1 point lights, lo none)
+  const cand = (main.userData.lights || []).sort((a, b) => a.pri - b.pri), nL = { hi: 3, mid: 1, lo: 0 }[detail] || 0;
+  for (const c of cand.slice(0, nL)) { const l = takeLight(); // pooled point lights: fresh light objects per build grew the heap on every site swap (r172 light node caches)
+    l.position.set(...c.p); l.castShadow = false; l.name = 'siteLight'; g.add(l); }
+  Object.assign(g.userData, { id: S.id, body: S.body, lat: S.lat, lon: S.lon, detail, tris, site: true, lights: Math.min(nL, cand.length) }); return g; }
 export function buildSiteLOD(S, { phone = false } = {}) { const L = new THREE.LOD(); L.name = 'siteLOD:' + S.id;
   const near = buildSite(S, { detail: phone ? 'mid' : 'hi' }), mid = buildSite(S, { detail: 'mid' }), lo = buildSite(S, { detail: 'lo' });
   L.addLevel(near, 0); L.addLevel(mid, LOD_DIST.mid); L.addLevel(lo, LOD_DIST.lo); Object.assign(L.userData, { id: S.id, near, mid, lo }); return L; }
 // place a built site (or LOD) in its body's frame (metres from the body centre)
 export function placeSite(obj, S, R = BODY_R[S.body] || S.R) { obj.matrix.fromArray(siteMatrix(S.body, S.lat, S.lon, R, S.alt || 0)); obj.matrix.decompose(obj.position, obj.quaternion, obj.scale); return obj; }
-export function disposeSite(obj) { if (obj.isLOD) { for (const l of obj.levels) dispose(l.object); obj.removeFromParent(); obj.levels.length = 0; return; } dispose(obj); }
+// night switch for the game (by local sun elevation): real lights + emissive strength. Default after build: on.
+export function setSiteNight(obj, on) { obj.traverse(o => { if (o.isLight) o.visible = on; }); }
+const LPOOL = [];
+function takeLight() { let l = LPOOL.find(x => x.userData.free); if (!l) { l = new THREE.PointLight(0xfff0d8, 3000, 360, 1.6); l.castShadow = false; LPOOL.push(l); } l.userData.free = false; l.visible = true; return l; }
+const freeLights = o => { const ls = []; o.traverse(l => { if (l.isLight && LPOOL.includes(l)) ls.push(l); }); for (const l of ls) { l.removeFromParent(); l.userData.free = true; } };
+export const siteLightPoolSize = () => LPOOL.length;
+export function disposeSite(obj) { freeLights(obj); if (obj.isLOD) { for (const l of obj.levels) dispose(l.object); obj.removeFromParent(); obj.levels.length = 0; return; } dispose(obj); }
