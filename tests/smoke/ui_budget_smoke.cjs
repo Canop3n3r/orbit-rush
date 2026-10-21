@@ -71,6 +71,8 @@ async function runVp(br, vp) {
   const [W, H] = vp.split('x').map(Number), phone = Math.min(W, H) < 600, tag = phone ? (W < H ? 'pp' : 'pl') : 'd' + W;
   const ctx = await br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } });
   const pg = await ctx.newPage(); const ev = (f, a) => pg.evaluate(f, a), wait = ms => pg.waitForTimeout(ms); const M = {}, rows = [];
+  // f5.3b7 (QA): a page error (e.g. f5.3b7 'payloadT is not defined' when ▦ renders the picker) used to pass silently; now a row
+  const perrs = []; pg.on('pageerror', e => perrs.push(e.message.split('\n')[0]));
   // f5.1d: modals/end card fade in with CSS animations (fUp/fPop, 0.22-0.3 s) that take >1.5 s at software-GPU frame rates, so the
   // evidence screenshot showed the screen underneath at opacity 0; finish those entry animations first (counts were already right).
   const settle = () => ev(() => { for (const a of document.getAnimations()) if (/^(fUp|fPop)$/.test(a.animationName || '')) try { a.finish(); } catch (e) {} });
@@ -102,6 +104,7 @@ async function runVp(br, vp) {
   await step('home', async () => { await ev(() => { const fr = document.getElementById('firstRun'); if (fr) fr.classList.add('hidden'); const b = document.getElementById('frSb'); if (b && b.offsetParent && !/fly now/i.test(b.textContent)) b.click(); for (const s of ['#acClose', '#lessonSkip']) { const c = document.querySelector(s); c && c.offsetParent && c.click(); } }); await hide(); }, 1000);
   // f5.1f: the grouped rocket picker (▦ #hPick on Home). Measured for the picker_group_words + builder_gated checks (no budget row of its own yet)
   await step('picker', async () => { await ev(() => { const b = document.getElementById('hPick'); if (b) b.click(); }); }, 1200);
+  const pickerCards = await ev(() => [...document.querySelectorAll('#picker .pkC')].filter(e => e.offsetParent).length).catch(() => 0); // f5.3b7: did ▦ actually open the picker?
   await ev(() => { const c = document.getElementById('pkClose'); c && c.offsetParent && c.click(); });
   await step('settings', async () => { await ev(() => document.getElementById('hGear').click()); await wait(600); await ev(() => { const b = [...document.querySelectorAll('#hGearM button')].find(b => /settings/i.test(b.textContent)); b && b.click(); }); }, 1000);
   await step('missions_hub', async () => { await hide(); await ev(() => { const g = document.getElementById('hGearM'); g && g.offsetParent && document.getElementById('hGear').click(); document.getElementById('hnMis').click(); }); }, 1200);
@@ -124,7 +127,7 @@ async function runVp(br, vp) {
 
   const di = phone ? 0 : 1;
   const chk = (screen, metric, val, max) => rows.push({ vp, screen, metric, val, max, ok: val != null && val <= max });
-  for (const [s, b] of Object.entries(B)) { const r = M[s]; if (!r || r.err) { rows.push({ vp, screen, metric: 'measure', val: r ? r.err : 'missing', max: '-', ok: false }); continue; }
+  for (const [s, b] of Object.entries(B)) { const r = M[s]; if (!r || r.err) { rows.push({ vp, screen: s, metric: 'measure', val: r ? r.err : 'missing', max: '-', ok: false }); continue; }
     if (b.controls != null) chk(s, 'controls', r.controls, b.controls); if (b.words != null) chk(s, 'words', r.words, b.words);
     if (b.ui) chk(s, 'ui%', r.uiPct, b.ui[di]); if (b.below != null) chk(s, 'belowFold', r.belowFold, b.below);
     if (s === 'first_run') rows.push({ vp, screen: s, metric: 'welcome', val: r.modal ? 'yes' : 'no', max: 'no', ok: !r.modal }); }
@@ -147,6 +150,8 @@ async function runVp(br, vp) {
   if (!sb) skip('home', 'builder_gated', 'no Sandbox setting yet' + (hb && hb.builder.length ? ` (builder open on home: ${hb.builder.join(',')})` : ''));
   else if (sb.on === false || sb.on === null) rows.push({ vp, screen: 'home', metric: 'builder_gated', val: gated.length, max: 0, ok: gated.length === 0, info: `Sandbox off (${sb.key}); visible on home+picker: ${gated.join(',') || 'none'}` });
   else skip('home', 'builder_gated', 'Sandbox is on in this profile');
+  rows.push({ vp, screen: 'picker', metric: 'opens', val: pickerCards, max: '≥1', ok: pickerCards >= 1, info: 'rocket cards visible after ▦ (#hPick)' });
+  rows.push({ vp, screen: 'page', metric: 'errors', val: perrs.length, max: 0, ok: perrs.length === 0, info: [...new Set(perrs)].slice(0, 2).join(' | ') });
   rows.push({ vp, screen: 'taps_to_liftoff', metric: 'taps(fresh)', val: lifted ? taps : `>${taps}`, max: 2, ok: lifted && taps <= 2, info: path.join(' → ') });
   return { vp, metrics: M, taps: { taps, lifted, path }, rows };
 }
