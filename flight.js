@@ -474,8 +474,10 @@ export class Flight {
     // the stage keeps its own avionics (the probe's reaction wheels) so it can still point for the de-orbit burn
     const rw = pl.reduce((t, q) => t + (q.rw || 0), 0), avi = { id: 'avionics', kind: 'avionics', name: 'Stage avionics', m: 0.05, h: 0.05, d: 1, rw: rw || 2 };
     this.shiftCom(() => { const i = top.parts.indexOf(pl[0]); top.parts = top.parts.filter(q => !pl.includes(q)); top.parts.splice(Math.max(0, i), 0, avi); v._g = null; });
-    const nrm = V.norm(v.v), rec = { r: v.r.slice(), v: V.addS(v.v, nrm, 1.0), t: this.tAbs, m, body: this.body }; // springs push it 1 m/s ahead of the stage
-    V.addS(v.v, nrm, -1.0 * m / Math.max(0.5, P.massOf(v))).forEach((x, i) => { v.v[i] = x; });
+    // f5.4: the payload starts clear of the stage's nose and the springs push it 2 m/s off the top, so it is seen leaving the stage
+    const nrm = P.noseOf(v); let above = 6; try { above = Math.max(3, P.stackGeom(v).L - (v.tel && isFinite(v.tel.ycom) ? v.tel.ycom : 0)) + 3; } catch (e) { }
+    const rec = { r: V.addS(v.r, nrm, above), v: V.addS(v.v, nrm, 2.0), t: this.tAbs, m, body: this.body };
+    V.addS(v.v, nrm, -2.0 * m / Math.max(0.5, P.massOf(v))).forEach((x, i) => { v.v[i] = x; });
     const o = P.orbitOf({ ...v, r: rec.r, v: rec.v }); rec.ap = o.ap; rec.pe = o.pe;
     this.released = rec; this.flags.released = rec;
     this.call('release', rec); this.call('sound', 'stage');
