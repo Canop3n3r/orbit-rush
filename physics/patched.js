@@ -2,9 +2,9 @@
 // reaching an altitude), trajectory prediction through several SOI patches and maneuver nodes, closest
 // approach to a target, node frames and burn times, and a transfer planner (Hohmann window + phase angle,
 // ejection geometry for interplanetary transfers, then a numerical refinement against the predictor).
-import { elements, propagate } from './kepler.js?v=f5.4d';
-import { BODIES, relState, transfer, atmTop } from './solar.js?v=f5.4d';
-import { RAILS_ALT, G0 } from './constants.js?v=f5.4d';
+import { elements, propagate } from './kepler.js?v=f5.4e';
+import { BODIES, relState, transfer, atmTop } from './solar.js?v=f5.4e';
+import { RAILS_ALT, G0 } from './constants.js?v=f5.4e';
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], len = a => Math.hypot(a[0], a[1], a[2]);
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], sc = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nz = a => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
