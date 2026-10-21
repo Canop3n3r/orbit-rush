@@ -838,3 +838,5 @@ body.mcOn #hud,body.mcOn .pilot,body.mcOn #stageBtn{visibility:hidden}
 #gcamBtn.on{background:#2d5fd0;border-color:#9cc3ff}
 body.touch #gcamBtn{bottom:auto;top:calc(110px + var(--sat,0px));min-height:var(--tap)}
 body.photo #gcamBtn{display:none!important}
+/* f5.3 wordiness: keyboard hints only where there is a keyboard */
+@media (pointer:coarse){kbd{display:none}}

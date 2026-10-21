@@ -95,13 +95,13 @@ console.log('4. Hand-built three-stage rocket stages correctly');
   ok(burnLeak.length === 0, 'only the active stage burns fuel');
   ok(r.orbit && r.pe > P.ORBIT_PE, '3-stage rocket reaches orbit on AUTO', `Pe ${km(r.pe)}, top stage ${r.s2left.toFixed(2)} t left`);
   ok(r.F.flags.fairing === 1, 'fairing jettisoned');
-  // manual staging needs the double press each time
+  // f5.3: a safe STAGE is one press (a risky one arms first and needs a second)
   const F = new Flight(d); F.stagePress(); F.setAuto(true, true); F.autoStage = false; let presses = 0;
   for (let i = 0; i < 120 * 900 && F.v.cur < 2 && !F.flags.dead; i++) {
     F.realT += 1 / 120; F.step(1 / 120);
-    if (F.v.stages[F.v.cur].fuel < 0.5 && F.canStage()) { const a = F.stagePress(); F.realT += 0.2; const b = F.stagePress(); if (a === 'armed' && b === 'stage') presses++; }
+    if (F.v.stages[F.v.cur].fuel < 0.5 && F.canStage()) { let a = F.stagePress(); if (a === 'armed') { F.realT += 0.2; a = F.stagePress(); } if (a === 'stage') presses++; F.realT += 1; }
   }
-  ok(F.v.cur === 2 && presses === 2, 'manual SPACE-SPACE staging works through all three stages');
+  ok(F.v.cur === 2 && presses === 2, 'manual SPACE staging works through all three stages');
   ok(F.booster && splitStages(d)[0].length > 0, 'first stage becomes the recoverable booster; later stages are debris');
 }
 

@@ -114,7 +114,7 @@ export function createFunUI(ctx) {
   document.body.appendChild(hub); $('hubClose').onclick = () => hub.classList.add('hidden');
   function openHub() {
     const s = ctx.progress(), dc = dailyChallenge(), best = s.daily[dc.day], nx = nextContract(s);
-    const ms = Object.entries(MISSIONS).map(([id, m]) => `<button class="mis" data-m="${id}"><span>${m.icon}</span><b>${m.name}</b><small>${m.blurb}</small>${s.medals[id] ? `<em class="medal ${s.medals[id]}">${s.medals[id]}</em>` : ''}<i>▶ ONE-TAP FLY</i></button>`).join('');
+    const ms = Object.entries(MISSIONS).map(([id, m]) => `<button class="mis" data-m="${id}"><span>${m.icon}</span><b>${m.name}</b><small>${m.blurb}</small>${s.medals[id] ? `<em class="medal ${s.medals[id]}">${s.medals[id]}</em>` : ''}</button>`).join('');
     const cs = CONTRACTS.map(c => `<li class="${s.contracts[c.id] ? 'done' : c === nx ? 'next' : ''}">${s.contracts[c.id] ? '✔' : c === nx ? '▶' : '•'} <b>${c.name}</b> — ${c.goal}${c.reward ? ` <small>🎁 ${c.reward.split(':')[1]}</small>` : ''}</li>`).join('');
     const ach = ACHIEVEMENTS.map(a => `<span class="ach ${s.ach[a.id] ? 'got' : ''}" title="${a.desc}">${a.icon}<small>${a.name}</small></span>`).join('');
     // f5b: ONE career (the 🏆 ladder, $M + 🔬). The hub is a compact launcher: the career line, one-tap missions,
@@ -124,7 +124,7 @@ export function createFunUI(ctx) {
     const ex = K ? K.extra.map(e => { const m = OPS.find(x => x.id === (ctx.missionOf ? ctx.missionOf(e.id) : e.id)) || OPS.find(x => x.id === e.id); if (!m) return ''; const why = K.opLock(e.id);
       return `<button class="mis op${why ? ' locked' : ''}" data-op="${e.id}" title="${esc(why || m.blurb || '')}"><b>${esc(ctx.opName ? ctx.opName(m) : m.name)}</b>${why ? '<small>🔒</small>' : ''}</button>`; }).join('') : '';
     $('hubBody').innerHTML = `<h2>🎯 Missions</h2>${K ? `<button id="hubCareer" class="hubCareer">🏆 $${K.cash}M · 🔬${K.sci} · ${K.done}/${K.of}${K.next ? ` <span>▶ ${esc(K.next)}</span>` : ''}</button>` : ''}
-      <h3>One tap</h3><div class="mgrid">${ms2}</div>${ex ? `<details class="hubMore"><summary>Extra ops</summary><div class="cgrid">${ex}</div></details>` : ''}
+      <h3>Missions</h3><div class="mgrid">${ms2}</div>${ex ? `<details class="hubMore"><summary>Extra ops</summary><div class="cgrid">${ex}</div></details>` : ''}
       <details class="hubMore"><summary>Daily · achievements · stats</summary><p class="daily">📅 ${esc(dc.text)} <small>${best != null ? 'best ' + best.toLocaleString() : ''} · 🔥 ${s.streak.n}</small></p>
       <div class="achs">${ach}</div><p class="sm">Flights ${s.stats.flights} · best ${s.stats.best.toLocaleString()} · worlds ${s.visited.length}</p></details>`;
     const hc = $('hubCareer'); if (hc) hc.onclick = () => { hub.classList.add('hidden'); K.open(); };
