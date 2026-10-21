@@ -3,16 +3,17 @@
 <style>html,body{margin:0;background:#000;overflow:hidden}</style></head><body><script type="module">
 // site hero viewer: ?id=<site>&view=hero|top|phone&detail=hi|mid|lo&w=&h=   (sets window.__ready after 3 frames)
 import * as THREE from 'three/webgpu';
-import { buildSite } from './kit.js?v=art1';
+import { buildSite, setSiteNight } from './kit.js?v=art1';
 const q = new URLSearchParams(location.search), id = q.get('id'), view = q.get('view') || 'hero', detail = q.get('detail') || (view === 'phone' ? 'mid' : 'hi');
 const W = +q.get('w') || (view === 'phone' ? 390 : 1280), H = +q.get('h') || (view === 'phone' ? 844 : 720);
 const S = (await import('./site_' + id + '.js?v=art1')).SITE, V = (S.views || {})[view] || S.views?.hero || { eye: [400, 200, 600], at: [0, 20, 0] };
 const renderer = new THREE.WebGPURenderer({ forceWebGL: true, antialias: true }); renderer.setSize(W, H); renderer.toneMapping = THREE.ACESFilmicToneMapping; document.body.appendChild(renderer.domElement); await renderer.init();
 const scene = new THREE.Scene(), sky = S.sky ?? (S.body === 'earth' ? 0x8fb4d8 : S.body === 'mars' ? 0xc49a7a : 0x020306); scene.background = new THREE.Color(sky);
-if (S.body !== 'moon' && S.body !== 'generic' && view !== 'top' && !V.nofog) scene.fog = new THREE.Fog(sky, 2500, 14000);
-scene.add(new THREE.HemisphereLight(S.body === 'moon' ? 0x30343a : 0xdfe8f2, 0x4a4640, S.body === 'moon' ? 0.25 : 0.9));
-const sun = new THREE.DirectionalLight(0xfff4e0, S.body === 'mars' ? 2.2 : 3); sun.position.set(...(S.sun || [-600, 500, 300])); scene.add(sun);
-const g = buildSite(S, { detail, ground: true }); scene.add(g);
+if (V.night) scene.background = new THREE.Color(0x04060c);
+if (!V.night && S.body !== 'moon' && S.body !== 'generic' && view !== 'top' && !V.nofog) scene.fog = new THREE.Fog(sky, 2500, 14000);
+scene.add(new THREE.HemisphereLight(V.night ? 0x1a2238 : S.body === 'moon' ? 0x30343a : 0xdfe8f2, 0x4a4640, V.night ? 0.06 : S.body === 'moon' ? 0.25 : 0.9));
+const sun = new THREE.DirectionalLight(V.night ? 0x8fa6d8 : 0xfff4e0, V.night ? 0.12 : S.body === 'mars' ? 2.2 : 3); sun.position.set(...(S.sun || [-600, 500, 300])); scene.add(sun);
+const g = buildSite(S, { detail, ground: true }); setSiteNight(g, !!V.night); scene.add(g);
 const cam = new THREE.PerspectiveCamera(V.fov || (view === 'phone' ? 55 : 40), W / H, 1, 60000); cam.position.set(...V.eye); cam.lookAt(...V.at);
 for (let i = 0; i < 3; i++) { renderer.render(scene, cam); await new Promise(r => requestAnimationFrame(r)); }
 window.__ready = { tris: g.userData.tris, meshes: g.children.reduce((n, c) => n + c.children.length, 0) }; document.title = 'ready';
