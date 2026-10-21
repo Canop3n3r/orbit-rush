@@ -7,9 +7,10 @@ export const SITE = { id: 'moon', name: 'Moon Base Pad', body: 'moon', lat: 0.7,
     { k: 'hab', at: [110, -30], n: 3, r: 4 },
     { k: 'solar', at: [110, 60], n: 5 },
     { k: 'tanks', at: [-90, 20], n: 3, r: 3.5 },
-    { k: 'dish', at: [150, 40], r: 4, h: 5 },
+    { k: 'dish', at: [150, 40], r: 4, h: 5 }, { k: 'berm', at: [110, -28], r: 18, t: 2 },
+    { k: 'rover', at: [60, 22], rot: 0.6, dish: true }, { k: 'rover', at: [-40, 40], rot: -1.2 },
     { k: 'hangar', at: [-70, -90], w: 18, d: 24, h: 9, rot: Math.PI / 2 },
     { k: 'masts', pts: [[-40, -40], [40, -40], [40, 40], [-40, 40]], h: 14 },
     { k: 'road', pts: [[26, 0], [100, -10]], w: 5 }, { k: 'road', pts: [[-26, 0], [-75, 15]], w: 5 },
   ],
-  views: { hero: { eye: [140, 40, 170], at: [20, 4, 0] }, top: { eye: [30, 420, 200], at: [30, 0, 0] }, phone: { eye: [90, 30, 120], at: [20, 5, 0] } } };
+  views: { hero: { eye: [40, 14, -70], at: [95, 3, 0] }, top: { eye: [30, 420, 200], at: [30, 0, 0] }, phone: { eye: [90, 30, 120], at: [20, 5, 0] } } };
