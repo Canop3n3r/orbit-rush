@@ -838,5 +838,17 @@ body.mcOn #hud,body.mcOn .pilot,body.mcOn #stageBtn{visibility:hidden}
 #gcamBtn.on{background:#2d5fd0;border-color:#9cc3ff}
 body.touch #gcamBtn{bottom:auto;top:calc(110px + var(--sat,0px));min-height:var(--tap)}
 body.photo #gcamBtn{display:none!important}
+/* f5.4 sandbox site picker */
+#hSite{display:block;margin:6px auto 0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#cfe3ff;border-radius:14px;padding:5px 12px;font-size:13px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sitePick{position:fixed;inset:0;z-index:60;background:rgba(4,8,16,.82);display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) 8px env(safe-area-inset-bottom)}
+#sitePick.hidden{display:none}
+#sitePick .spBox{background:#0d1626;border:1px solid #2a3c5c;border-radius:16px;padding:12px;width:min(640px,100%);max-height:94vh;overflow:auto;color:#e6eefc}
+#sitePick .spHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#sitePick .spSub{font-size:12px;color:#8fd19e;flex:1}
+#sitePick .spX{background:none;border:0;color:#fff;font-size:20px}
+#sitePick .spBodies,#sitePick .spSites{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+#sitePick .spBodies button,#sitePick .spSites button,#sitePick .spReset{background:#16233a;border:1px solid #2c4166;color:#dfe9ff;border-radius:12px;padding:6px 10px;font-size:13px}
+#sitePick button.on{background:#2f6fe0;border-color:#5b93ff}
+#sitePick .spInfo{font-size:12px;color:#9fb4d6}#sitePick .spMap{width:100%;border-radius:10px;cursor:crosshair;touch-action:manipulation}
+#sitePick .spHint{font-size:11px;color:#7f93b3;text-align:center}#sitePick .spAct{text-align:center;margin-top:8px}
 /* f5.3 wordiness: keyboard hints only where there is a keyboard */
 @media (pointer:coarse){kbd{display:none}}

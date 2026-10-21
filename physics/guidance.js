@@ -2,15 +2,16 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=f5.3b7';
-import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.3b7';
-import { elements, timeToAp } from './kepler.js?v=f5.3b7';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.3b7';
-import { massOf } from './vehicle.js?v=f5.3b7';
-import { atmosphere } from './atmosphere.js?v=f5.3b7';
-import { cd0 } from './aero.js?v=f5.3b7';
-import { hoverslamSolve } from './hoverslam.js?v=f5.3b7';
-import { sampleAscent } from '../timelines/ascent.js?v=f5.3b7';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f5.4a';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.4a';
+import { elements, timeToAp } from './kepler.js?v=f5.4a';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.4a';
+import { massOf } from './vehicle.js?v=f5.4a';
+import { atmosphere } from './atmosphere.js?v=f5.4a';
+import { cd0 } from './aero.js?v=f5.4a';
+import { hoverslamSolve } from './hoverslam.js?v=f5.4a';
+import { sampleAscent } from '../timelines/ascent.js?v=f5.4a';
+import { BODIES, atmTop } from './solar.js?v=f5.4a';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -57,7 +58,33 @@ export function azimuthHd(v) {
   const sA = clamp(Math.cos(i) / Math.max(1e-6, Math.cos(lat)), -1, 1), A = Math.asin(sA), vEq = v.earthRot === false ? 0 : 465.1 * Math.cos(lat);
   const Ar = Math.atan2(7800 * Math.sin(A) - vEq, 7800 * Math.cos(A)); return norm(add(scale(north, Math.cos(Ar)), scale(east, Math.sin(Ar))));
 }
+// f5.4 off-Earth ascent (sandbox launch from any world): climb-rate hold up to a low circular orbit above the
+// atmosphere (or terrain), coast to apoapsis, circularize. Targets scale with the body.
+export function offTargets(id) { const b = BODIES[id], floor = b.atm ? atmTop(id) : Math.max(5000, b.R * 0.005);
+  const pe = Math.max(floor + 5000, b.atm ? 0 : 15000), ap = pe + Math.max(5000, pe * 0.1); return { floor, pe, ap }; }
+function offGuide(v) {
+  const f = localFrame(v), b = BODIES[v.body], r = len(v.r), h = r - b.R, o = elements(v.r, v.v, muOf(v), b.R), vr = dot(v.v, f.up), T = offTargets(v.body);
+  const s = v.stages[v.cur], m = massOf(v) * 1000, g = muOf(v) / (r * r), tMax = s && s.eng ? s.eng.tv * 1000 * s.n : 0;
+  const va = airVel(v), qPa = v.tel ? v.tel.q : 0;
+  let ph = v.guid || 'ascent';
+  if (o.pe >= T.pe && o.e < 1) ph = 'done';
+  else if (ph === 'done') ph = 'ascent';
+  if (ph === 'ascent' && o.ap >= T.ap) ph = 'coast';
+  if (ph === 'coast') { const tAp = timeToAp(v.r, v.v, muOf(v)), tb = burnTimeFor(v, circBurn(v).dv); if (o.ap < T.ap - Math.max(2000, T.ap * 0.05) && vr > 0 && h < T.floor) ph = 'ascent'; else if (vr < 0 || tAp <= tb * 0.5 + 3) ph = 'circ'; }
+  v.guid = ph; let pitch, thr = 1;
+  if (ph === 'ascent') {
+    if (h < Math.min(1500, T.pe * 0.05) && len(va) < 60) pitch = 0.02;
+    else { const vh = len(add(v.v, scale(f.up, -vr))), gEff = Math.max(g - vh * vh / r, 0.05 * g), vrCap = Math.sqrt(2 * gEff * Math.max(T.ap - h, 0));
+      const want = Math.min(vrCap, Math.max(30, Math.sqrt(2 * g * Math.max(T.ap - h, 0)) * 0.6)); pitch = holdPitch(v, f, want, 0.06, 0.999);
+      if (qPa > 15000) pitch = clamp(pitch, pitchOfVec(va, f) - 0.1, pitchOfVec(va, f) + 0.1); }
+    if (tMax > 0) thr = Math.min(1, G_LIMIT * 9.80665 * m / tMax, Math.max(qCap(qPa, 0.4), 1.3 * g * m / tMax));
+  } else if (ph === 'coast' || ph === 'done') { pitch = pitchOfVec(v.v, f); thr = 0; }
+  else { pitch = holdPitch(v, f, 0, 0.05); if (tMax > 0) thr = Math.min(1, G_LIMIT * 9.80665 * m / tMax); }
+  pitch = clamp(pitch, 0, Math.PI * 0.75);
+  return { dir: dirOfPitch(pitch, f), throttle: thr, phase: ph, pitch };
+}
 export function autoGuide(v) {
+  if (v.body && v.body !== 'earth') return offGuide(v);
   const f = localFrame(v);
   if (v.incl && (v.guid || 'ascent') === 'ascent' && len(v.r) - R_E < 120000) { // fly the launch azimuth, blending into the velocity heading high up
     const az = azimuthHd(v), up = f.up, vh = add(v.v, scale(up, -dot(v.v, up))), k = clamp((len(vh) - 2500) / 4500, 0, 1);

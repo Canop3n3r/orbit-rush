@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.3b7';
-import * as C from './physics/patched.js?v=f5.3b7';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.3b7';
-import { designReusable } from './vehicles/reusable.js?v=f5.3b7';
+import * as P from './physics.js?v=f5.4a';
+import * as C from './physics/patched.js?v=f5.4a';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.4a';
+import { designReusable } from './vehicles/reusable.js?v=f5.4a';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -90,6 +90,7 @@ export function planBuild(design, opts = {}) {
 }
 // Headless AUTO flight. opts.reserve: stage with this much booster fuel left; opts.flyBooster: hand the
 // booster to a scripted "player" after staging; opts.earthRot: Earth rotation on/off.
+const LZ0 = LZ_EF.slice(), LZ20 = LZ2_EF.slice(); // f5.4: the classic pad's landing zones (the live ones follow the picked site)
 export function simulateAuto(design, opts = {}) {
   const dt = opts.dt || PHYS_DT, F = new Flight(design, opts.hooks || {}, { earthRot: opts.earthRot });
   F.stagePress(); F.setAuto(true, true); if (opts.reserve !== undefined || opts.autoStage === false) F.autoStage = false;
@@ -174,7 +175,8 @@ export class Flight {
     this.design = cloneDesign(design); this.h = hooks; this.stats = designStats(design);
     const v = buildVehicle(design); v.earthRot = opts.earthRot !== false;
     if (design.spec) applySpec(v, design.spec);
-    v.site = { ef: PAD_EF, lift: (opts.padZ ?? 0.4) + P.massProps(v).ycom, q0: P.padAttitude(PAD_EF) }; // r is the centre of mass
+    v.body = opts.body || 'earth'; const siteEf = opts.siteEf || PAD_EF; this.siteEf = siteEf; this.sandbox = !!opts.sandbox; { const f = P.surfaceFrame(siteEf), a = 1600 / 6371000; this.lzEf = siteEf === PAD_EF ? LZ0.slice() : V.norm(V.add(V.scale(f.up, Math.cos(a)), V.scale(f.north, Math.sin(a)))); this.lz2Ef = siteEf === PAD_EF ? LZ20.slice() : V.norm(V.add(this.lzEf, V.scale(f.east, 420 / 6371000))); LZ_EF.splice(0, 3, ...this.lzEf); LZ2_EF.splice(0, 3, ...this.lz2Ef); } // landing zones follow the picked site // f5.4: launch from any body / site
+    v.site = { ef: siteEf, lift: (opts.padZ ?? 0.4) + P.massProps(v).ycom, q0: P.padAttitude(siteEf) }; // r is the centre of mass
     const s0 = P.siteAt(v, 0); v.r = s0.r; v.v = s0.v; v.q = s0.q; v.clock = 0; v.ut = 0; v.auto = false; v.sas = 'stab';
     this.v = v; this.booster = null; this.boosters = []; this.ship = null; this.dvUsed = 0;
     this.met = 0; this.ignited = false; this.maxQ = 0; this.maxQEntry = 0; this.maxG = 0; this.autoThrottle = true; this.ascent = true; this.autoOn = false; this.warpI = 0; this.autoWarp = false;
@@ -188,7 +190,7 @@ export class Flight {
     this.rec = recoveryInfo(design); this.ret = null; this.orbitSnap = null; this.maxHeat = 0; this.maxTskin = 0; this.maxGret = 0; this.parked = null;
     v.chute = { state: 'stowed', t: 0 }; v.chuteCdA = 0;
     // solar system: game clock epoch, SOI body, nodes, alarms, target, per-body goals
-    this.t0 = opts.t0 ?? P.tFromDate(opts.epoch ?? Date.now()); epochPhase(this.t0); v.body = 'earth';
+    this.t0 = opts.t0 ?? P.tFromDate(opts.epoch ?? Date.now()); epochPhase(this.t0);
     this.nodes = []; this.alarms = []; this.target = opts.target || null; this.goals = {}; this.warpTarget = null; this.exec = false; this.deep = !!(design.goal || opts.deep);
     if (opts.incl) v.incl = +opts.incl;
   }
