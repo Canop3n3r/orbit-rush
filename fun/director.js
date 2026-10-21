@@ -14,7 +14,8 @@ export const MISSIONS = {
 };
 // phase → camera: the renderer picks chase / wide / map cams from this
 export const CAMS = { hop: 'chase', coast: 'wide', ascent: 'chase', plan: 'map', burn: 'wide', correct: 'wide', cruise: 'map', capture: 'wide', brake: 'chase', descent: 'chase', home: 'chase', done: 'wide' };
-export const FLYBY_MAX = 50e6; // m: closest approach that still counts as a flyby (Venus R 6,052 km)
+export const FLYBY_AIM = 30e6; // m: where the flyby correction aims
+export const FLYBY_MAX = 150e6; // m: closest approach that still counts as a flyby (AUTO reaches ~66,000 km; QA saw 448,666 km)
 export const MAX_CORR_WAIT = 400 * 86400; // s: never wait longer than this for a course-correction node
 const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'lift', 'capture', 'brake', 'descent', 'home', 'done'];
 const WARP_BURN = () => 4;
@@ -112,8 +113,8 @@ export class Director {
     const F = this.F, v = F.v;
     if (F.body === this.target) { this.arrive(); return; }
     const pr = C.predict(F.body, v.r, v.v, F.tAbs, { maxPatches: 4 }), ca = C.closestApproach(pr, this.target), tp = pr.patches.find(p => p.body === this.target);
-    const good = this.target === 'moon' ? tp && tp.o.rp - P.BODIES.moon.R > 40000 && tp.o.rp - P.BODIES.moon.R < 250000 : ca.inside;
-    if (!good && this.corrections < 2 && F.body === 'earth') {
+    const good = this.target === 'moon' ? tp && tp.o.rp - P.BODIES.moon.R > 40000 && tp.o.rp - P.BODIES.moon.R < 250000 : ca.inside && (this.m.land || this.m.capture || !!(tp && tp.o && tp.o.rp - P.BODIES[this.target].R < FLYBY_MAX * 0.6)); // f5.4: a flyby must pass close, not just touch the SOI
+    if (!good && this.corrections < 3 && F.body === 'earth') {
       this.corrections++;
       const cn = this.target === 'moon' ? C.correctionNode('earth', v.r, v.v, F.tAbs, 'moon', { peAlt: 100000 })
         : C.correctionNode('earth', v.r, v.v, F.tAbs, this.target, { peAlt: 300000, tol: 3e6, starts: [3600, 6 * 3600, 86400], scaleV: 3, byT: F.tAbs + (this.plan && this.plan.hohmann ? this.plan.hohmann.tt * 1.25 : 3e7) });
@@ -127,6 +128,15 @@ export class Director {
     const tp = C.timeToPe(v.r, v.v, b.mu), sp = P.propagate(v.r, v.v, tp, b.mu), rp = V.len(sp.r), ra = b.R + (this.m.land ? 1500000 : Math.max(2e6, b.R * 2));
     if (!(this.m.land || this.m.capture)) { // f5.4 (QA A1/A4): a flyby only counts close in (closest approach under FLYBY_MAX), not anywhere in the SOI
       const ca = Math.max(0, rp - b.R); this.closest = ca;
+      const low = rp < b.R + (b.atm ? 250000 : 50000);
+      if ((ca > FLYBY_MAX || low) && !this._lift) { // aim closer first: a small burn soon after SOI entry pulls the pass in to ~FLYBY_AIM
+        const want = b.R + (low ? 2e6 : FLYBY_AIM), tn = F.tAbs + Math.min(3600, tp * 0.2); let best = null;
+        const s0 = P.propagate(v.r, v.v, tn - F.tAbs, b.mu);
+        for (let k = -80; k <= 80; k++) for (let j = -8; j <= 8; j++) { const nd = { t: tn, pro: j * 25, nrm: 0, rad: k * 10 }, dv = C.nodeVector(s0.r, s0.v, nd), v1 = V.add(s0.v, dv);
+          const tp1 = C.timeToPe(s0.r, v1, b.mu); if (!(tp1 > 0)) continue; const s1 = P.propagate(s0.r, v1, tp1, b.mu), err = Math.abs(V.len(s1.r) - want) / 1000 + C.nodeDv(nd) * 0.05;
+          if (!best || err < best.err) best = { nd, err }; }
+        if (best) { this._lift = true; this.execNext(best.nd); this.set('lift', 'Course correction for a close pass of ' + b.name); return; } }
+      if (low) { this.finish(`On a collision course with ${b.name}`, false); return; }
       if (ca > FLYBY_MAX) { this.finish(`Passed ${b.name} at ${Math.round(ca / 1000).toLocaleString('en-US')} km: too far for a flyby`, false); return; }
       this.finish(`Flew past ${b.name} at ${Math.round(ca / 1000).toLocaleString('en-US')} km!`); return; }
     if (F.body !== 'moon' && rp < b.R + 100000 && !this._lift) { // f5.1h: arriving low or on a collision course — raise periapsis first (a small radial burn soon), then capture
