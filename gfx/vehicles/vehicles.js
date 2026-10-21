@@ -224,7 +224,7 @@ import { NAMES as N_VANTGUARD } from './co_vantguard.js?v=art1';
 export const ART_NAMES = { ...N_EUROPIA, ...N_GAULOIS, ...N_IRG, ...N_JADELANTERN, ...N_JADELANTERN2, ...N_JAXO, ...N_LINGVOLT, ...N_MOONHAMMER, ...N_TAIGA, ...N_TSURUGI, ...N_VANTGUARD };
 const K = (...o) => o.flatMap(x => Object.keys(x));
 export const HOUSE_SETS = { originals: K(CO_ORIGINALS), spacey: ['sparrow-1', 'heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'colossus-v3', 'colossus-v4'],
-  civspace: K(CO_CIVSPACE, CO_CIVSPACE2, CO_VANTGUARD), arion: K(CO_EUROPIA, CO_VEGARA, CO_ARION), albion: K(CO_ALBION), baltic: K(CO_BALTIC), bluehz: K(CO_BLUEHZ), bolt: K(CO_BOLT),
+  civspace: K(CO_CIVSPACE, CO_CIVSPACE2, CO_VANTGUARD).filter(id => !(id in CO_ROCKETWELL)) /* f5.3: Space Truck lives under RocketWell only */, arion: K(CO_EUROPIA, CO_VEGARA, CO_ARION), albion: K(CO_ALBION), baltic: K(CO_BALTIC), bluehz: K(CO_BLUEHZ), bolt: K(CO_BOLT),
   convex: K(CO_CONVEX_B, CO_CONVEX), dougwing: K(CO_DOUGWING_B, CO_DOUGWING), gaulois: K(CO_GAULOIS), irg: K(CO_IRG), isra: K(CO_ISRA_B, CO_ISRA), jade: K(CO_JADE_B, CO_JADELANTERN, CO_JADELANTERN2), jaxo: K(CO_JAXO_B, CO_JAXO, CO_TSURUGI),
   krasnaya: K(CO_KOMETA, CO_KRASNAYA, CO_MOGUTNY, CO_MOONHAMMER), krunov: K(CO_KRUNOV_B, CO_KRUNOV, CO_TAIGA), lingvolt: K(CO_LINGVOLT), martell: K(CO_MARTELL_B, CO_MARTELL), orbitron: K(CO_ORBITRON_B, CO_ORBITRON),
   rocketwell: K(CO_ROCKETWELL), skyland: K(CO_SKYLAND), southstar: K(CO_SOUTHSTAR_B, CO_SOUTHSTAR_C, CO_SOUTHSTAR), unilift: K(CO_ULX, CO_VULC),
