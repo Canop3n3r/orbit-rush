@@ -1,5 +1,5 @@
 // f5.4 sandbox launch-from-anywhere picker (Home 📍 button): world → preset base or tap a spot on the map.
-import { SITES, GAS } from '../sites.js?v=f5.4j';
+import { SITES, GAS } from '../sites.js?v=f5.4l';
 const KEY = 'orbitRush.site.v1';
 export function loadSite() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && s.body ? s : null; } catch (e) { return null; } }
 export function saveSite(s) { try { s ? localStorage.setItem(KEY, JSON.stringify(s)) : localStorage.removeItem(KEY); } catch (e) { } }
@@ -16,7 +16,7 @@ export function createSitePicker({ BODIES, onPick }) {
   let body = 'earth', pick = null; const q = s => el.querySelector(s), cv = q('.spMap'), g = cv.getContext('2d');
   const info = id => { const b = BODIES[id], gs = b.mu / (b.R * b.R), day = b.omega ? Math.abs(2 * Math.PI / b.omega / 3600) : 0;
     return `${b.name}: gravity ${(gs / 9.80665).toFixed(2)} g · ${b.atm ? 'atmosphere' : 'no air'} · day ${day > 48 ? (day / 24).toFixed(1) + ' d' : day.toFixed(1) + ' h'}`; };
-  // f5.4i (QA 4): the map shows the world's real texture (equirectangular, lon -180..180) when one ships; else the colour band
+  // f5.4k (QA 4): the map shows the world's real texture (equirectangular, lon -180..180) when one ships; else the colour band
   const TEX = { earth: 'earth_day', moon: 'moon', mars: 'mars', mercury: 'mercury', venus: 'venus' }, texC = {};
   const texOf = id => { if (!TEX[id]) return null; if (texC[id]) return texC[id]; const im = new Image(); texC[id] = im; im.onload = () => { im.ok = true; if (body === id) draw(); }; im.src = new URL('../assets/tex/' + TEX[id] + '_1k.jpg', import.meta.url).href; return im; };
   const draw = () => { const b = BODIES[body], c = '#' + b.color.toString(16).padStart(6, '0'), W = cv.width, H = cv.height;

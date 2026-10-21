@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.4j';
-import * as C from './physics/patched.js?v=f5.4j';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.4j';
-import { designReusable } from './vehicles/reusable.js?v=f5.4j';
+import * as P from './physics.js?v=f5.4l';
+import * as C from './physics/patched.js?v=f5.4l';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.4l';
+import { designReusable } from './vehicles/reusable.js?v=f5.4l';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -175,7 +175,7 @@ export class Flight {
     this.design = cloneDesign(design); this.h = hooks; this.stats = designStats(design);
     const v = buildVehicle(design); v.earthRot = opts.earthRot !== false;
     if (design.spec) applySpec(v, design.spec);
-    v.body = opts.body || 'earth'; const siteEf = opts.siteEf || PAD_EF; this.siteEf = siteEf; this.sandbox = !!opts.sandbox; { const f = P.surfaceFrame(siteEf), a = 1600 / 6371000; this.lzEf = opts.lzEf ? opts.lzEf.slice() : siteEf === PAD_EF ? LZ0.slice() : V.norm(V.add(V.scale(f.up, Math.cos(a)), V.scale(f.north, Math.sin(a)))); this.lz2Ef = siteEf === PAD_EF ? LZ20.slice() : V.norm(V.add(this.lzEf, V.scale(f.east, 420 / 6371000))); } // landing zones follow the picked site // f5.4: launch from any body / site
+    v.body = opts.body || 'earth'; this.homeBody = v.body; const siteEf = opts.siteEf || PAD_EF; this.siteEf = siteEf; this.sandbox = !!opts.sandbox; { const f = P.surfaceFrame(siteEf), a = 1600 / 6371000; this.lzEf = opts.lzEf ? opts.lzEf.slice() : siteEf === PAD_EF ? LZ0.slice() : V.norm(V.add(V.scale(f.up, Math.cos(a)), V.scale(f.north, Math.sin(a)))); this.lz2Ef = siteEf === PAD_EF ? LZ20.slice() : V.norm(V.add(this.lzEf, V.scale(f.east, 420 / 6371000))); } // landing zones follow the picked site // f5.4: launch from any body / site
     v.site = { ef: siteEf, lift: (opts.padZ ?? 0.4) + P.massProps(v).ycom, q0: P.padAttitude(siteEf) }; // r is the centre of mass
     const s0 = P.siteAt(v, 0); v.r = s0.r; v.v = s0.v; v.q = s0.q; v.clock = 0; v.ut = 0; v.auto = false; v.sas = 'stab';
     this.v = v; this.booster = null; this.boosters = []; this.ship = null; this.dvUsed = 0;
@@ -769,6 +769,11 @@ export class Flight {
       } else { v.throttle = this.autoOn ? Math.min(v.ut, P.qCap(v.tel ? v.tel.q : 0)) : v.ut; if (!this.autoOn) v.steerDir = null; }
       if (this.sepHold && !f.dead) { if (this.met < this.sepHold || (!this.autoOn && this.met < this.sepHold + 600 && v.tel && v.tel.q > 8000)) { /* ~3 s, longer while the air is still thick */ v.sepGrace = 1; const w = P.omegaOf(v), va = [v.v[0] + w * v.r[1], v.v[1] - w * v.r[0], v.v[2]]; /* air-relative flight path */ if (V.len(va) > 30) v.steerDir = V.norm(va); } else { this.sepHold = 0; v.sepGrace = 0; if (!this.autoOn) v.steerDir = null; } } // f5.3 (QA staging_manual): hold the bare upper stage on its flight path for ~3 s after a serial separation
       if (v.clamped) v.steerDir = null;
+      // f5.4 (QA f5.4b B5): AUTO brings a suborbital rocket (Pip) home under its chute, as the return autopilot does for capsules
+      if (this.autoOn && !this.ret && this.ignited && v.chute.state !== 'failed' && v.chute.state !== 'main' && !this.flags.orbit && v.tel && V.dot(v.v, V.norm(v.r)) < -5 && this.hasChute()) {
+        const h0 = this.alt, k = v.chute.state === 'stowed' ? 'drogue' : v.chute.state === 'drogue' ? 'main' : null;
+        if (k && h0 < (k === 'drogue' ? CHUTE_AUTO.drogueAlt : CHUTE_AUTO.mainAlt) && chuteLimits(this.chuteSpec(), v.tel, k).ok) this.deployChute();
+      }
       this.updateChute(dt);
       P.updateControl(v);
       const st = v.stages[v.cur], m0 = P.massOf(v);
@@ -817,6 +822,9 @@ export class Flight {
       if (this.rec.capsule && this.rec.shield && this.rec.chute) { if (!this.homeHint) { this.homeHint = 1; this.toast('Orbit! Press O to deorbit and bring the capsule home', '#ffd23a'); } }
       else { this.endQueued = true; this.call('end', 2500, () => !f.dead); }
     }
+    // f5.4 (QA f5.4b H): a flight launched from another world ends with a card once it is coasting in orbit there (Earth flights above)
+    if (!this.ended && !f.dead && this.homeBody !== 'earth' && this.body === this.homeBody && (this.goals[this.body] || {}).orbit && !this.nodes.length && v.thrust <= 0 && !this.endQueued && !this.ret) {
+      this.endQueued = true; this.call('end', 2500, () => !f.dead); }
   }
   postStep() {
     const v = this.v, f = this.flags, h = this.alt;
