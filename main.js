@@ -42,7 +42,7 @@ import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHI
 import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.4b';
 import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.4b';
 import { EXTRA_STACKS } from './fun/showroom.js?v=f5.4b';
-import { specFor, specDesign } from './fun/specstack.js?v=f5.4b';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.4b';
 import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.4b';
 import { pickerHTML, baseFor, roleFor, CLASS_OF } from './fun/picker.js?v=f5.4b';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
