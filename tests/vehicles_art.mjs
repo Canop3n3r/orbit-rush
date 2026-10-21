@@ -88,6 +88,7 @@ print(json.dumps(out))`;
     const kinds = new Set(S.layout.map(o => o.k)), st = (S.stations || []).flatMap(s => s.layout.map(o => o.k));
     if (S.body === 'earth') { ok(kinds.has('pad') || kinds.has('catch') || kinds.has('lz'), `${id}: has a pad`); ok(kinds.has('vab') || kinds.has('hangar'), `${id}: has an assembly building`); for (const k of ['tanks', 'road', 'masts', 'water']) ok(kinds.has(k), `${id}: has ${k}`); }
     else ok(S.sandbox && (kinds.has('lz') || kinds.has('pad')), `${id}: off-world sandbox pad`);
+    if (S.body === 'moon' || S.body === 'mars') for (const k of ['hab', 'tanks', 'dish', 'rover', 'lz', 'berm']) ok(kinds.has(k), `${id}: base has ${k}`);
     const landing = kinds.has('lz') && S.body === 'earth' || st.includes('droneship'); ok(REUSE.includes(id) ? landing : !landing && !st.length, `${id}: landing zones/droneships only at reusable-booster sites (${landing})`);
     const u = G.upDir(S.body, S.lat, S.lon), m = G.siteMatrix(S.body, S.lat, S.lon, 1); ok(Math.abs(Math.hypot(...u) - 1) < 1e-9 && Math.abs(m[4] - u[0]) + Math.abs(m[5] - u[1]) + Math.abs(m[6] - u[2]) < 1e-9, `${id}: local +Y = surface normal`);
     for (const s of S.stations || []) { const o = G.localOffset(S.body, S.lat, S.lon, s.lat, s.lon); ok(o[1] < 0 && Math.hypot(o[0], o[2]) > 1e5, `${id}: station ${s.id} downrange (${(Math.hypot(o[0], o[2]) / 1000).toFixed(0)} km)`); } }

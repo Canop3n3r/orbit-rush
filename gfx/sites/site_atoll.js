@@ -13,4 +13,4 @@ export const SITE = { id: 'atoll', name: 'Atoll Range', body: 'earth', lat: 9.04
     { k: 'road', pts: [[0, 25], [-20, 70], [-20, 160], [70, 160], [70, 120]], w: 7 },
     { k: 'road', pts: [[25, 0], [50, 0]], w: 5 },
   ],
-  views: { hero: { eye: [95, 30, 120], at: [0, 12, 10] }, top: { eye: [0, 520, 260], at: [0, 0, 40] }, phone: { eye: [90, 40, 120], at: [0, 16, 0] } } };
+  views: { hero: { eye: [95, 30, 120], at: [0, 12, 10] }, top: { eye: [0, 520, 260], at: [0, 0, 40] }, phone: { eye: [90, 40, 120], at: [0, 16, 0] }, night: { eye: [95, 30, 120], at: [0, 12, 10], night: true } } };
