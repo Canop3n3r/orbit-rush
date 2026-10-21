@@ -116,7 +116,7 @@ const parts = {
     const f = r * 1.15; fence(K, [[-f, -f], [f, -f], [f, f], [-f, f], [-f, -f]]); // pad perimeter fence
     if (!K.lo) for (const [x, z] of [[-f, -f], [f, -f], [f, f], [-f, f]]) { K.cyl('steel', 0.4, 0.25, 30, [x * 0.95, 0, z * 0.95], 6); K.box('flood', 4, 2.2, 0.8, [x * 0.95, 30, z * 0.95], Math.atan2(x, z)); K.box('steel', 4.4, 0.4, 1.2, [x * 0.95, 29.6, z * 0.95], Math.atan2(x, z)); K.light([x * 0.95, 31, z * 0.95], [0, 10, 0], 0); }
     if (o.tower && !K.lo) { const t = o.tower, tx = t.x ?? -(r * 0.4); for (const a of t.arms || []) K.box('win', 1.2, 0.6, 0.3, [tx + (t.w || 10) / 2 + 0.6, a.y - 1, (t.z ?? 0) + (t.w || 10) / 2 + 0.2]); K.box('beacon', 0.8, 0.8, 0.8, [tx, t.h + (t.mast || 20), t.z ?? 0]); } }, // arm-root lights, mast beacon
-  catch(K, o) { const w = o.w || 12, h = o.h || 145; lattice(K, w, h, 'steel'); K.cyl('steel', 0.5, 0.15, 12, [0, h, 0], 6); catenary(K, 0, h + 12, 0, 90); K.box('beacon', 1, 1, 1, [0, h + 12, 0]); if (!K.lo) for (const yy of [h * 0.3, h * 0.6, h * 0.9]) K.box('flood', 3, 1.5, 0.5, [0, yy, w / 2 + 0.4]); K.light([0, h * 0.6, w / 2 + 2], [0, 10, w / 2 + (o.arm || 35) * 0.85], 0);
+  catch(K, o) { const w = o.w || 12, h = o.h || 145; lattice(K, w, h, 'steel'); K.cyl('steel', 0.5, 0.15, 12, [0, h, 0], 6); catenary(K, 0, h + 12, 0, 90); K.box('beacon', 1, 1, 1, [0, h + 12, 0]); if (K.hi) for (const yy of [h * 0.3, h * 0.6, h * 0.9]) K.box('flood', 3, 1.5, 0.5, [0, yy, w / 2 + 0.4]); K.light([0, h * 0.6, w / 2 + 2], [0, 10, w / 2 + (o.arm || 35) * 0.85], 0);
     const ay = o.armY || h * 0.75, L = o.arm || 35, zc = w / 2 + L * 0.85; K.box('steel', w + 6, 8, 6, [0, ay - 2, w / 2 + 1]); // carriage riding the tower
     for (const s of [-1, 1]) { // chopsticks: tapered truss arms on pivots, with catch rails and bumper pads
       const x = s * (w / 2 + 2.5); K.cyl('steel', 1.6, 1.6, 6, [x, ay - 3, w / 2 + 2], 10);
@@ -190,9 +190,9 @@ export function buildSite(S, { detail = 'hi', ground = false } = {}) { const g =
   for (const st of S.stations || []) { const s = buildGroup(S, st.layout, detail, S.id + ':' + st.id, { ground }); const R = BODY_R[S.body] || S.R;
     const off = localOffset(S.body, S.lat, S.lon, st.lat, st.lon, R); s.matrix.fromArray(localBasis(S.body, S.lat, S.lon, st.lat, st.lon)).setPosition(off[0], off[1], off[2]); s.matrixAutoUpdate = false; s.userData.station = st.id;
     g.add(s); tris += s.userData.tris; }
-  // night lighting: emissive heads/panels are always there; real lights only a few, gated by detail (hi 4 spots, mid 1 point, lo none)
-  const cand = (main.userData.lights || []).sort((a, b) => a.pri - b.pri), nL = { hi: 4, mid: 1, lo: 0 }[detail] || 0;
-  for (const c of cand.slice(0, nL)) { let l; if (detail === 'hi') { l = new THREE.SpotLight(0xfff0d8, 4000, 420, 0.75, 0.6, 1.6); l.target.position.set(...c.aim); g.add(l.target); } else l = new THREE.PointLight(0xfff0d8, 3000, 360, 1.6);
+  // night lighting: emissive heads/panels are always there; real lights only a few, gated by detail (hi 3, mid 1 point lights, lo none)
+  const cand = (main.userData.lights || []).sort((a, b) => a.pri - b.pri), nL = { hi: 3, mid: 1, lo: 0 }[detail] || 0;
+  for (const c of cand.slice(0, nL)) { const l = takeLight(); // pooled point lights: fresh light objects per build grew the heap on every site swap (r172 light node caches)
     l.position.set(...c.p); l.castShadow = false; l.name = 'siteLight'; g.add(l); }
   Object.assign(g.userData, { id: S.id, body: S.body, lat: S.lat, lon: S.lon, detail, tris, site: true, lights: Math.min(nL, cand.length) }); return g; }
 export function buildSiteLOD(S, { phone = false } = {}) { const L = new THREE.LOD(); L.name = 'siteLOD:' + S.id;
@@ -202,5 +202,8 @@ export function buildSiteLOD(S, { phone = false } = {}) { const L = new THREE.LO
 export function placeSite(obj, S, R = BODY_R[S.body] || S.R) { obj.matrix.fromArray(siteMatrix(S.body, S.lat, S.lon, R, S.alt || 0)); obj.matrix.decompose(obj.position, obj.quaternion, obj.scale); return obj; }
 // night switch for the game (by local sun elevation): real lights + emissive strength. Default after build: on.
 export function setSiteNight(obj, on) { obj.traverse(o => { if (o.isLight) o.visible = on; }); }
-const freeLights = o => o.traverse(l => { if (l.isLight && l.dispose) l.dispose(); });
+const LPOOL = [];
+function takeLight() { let l = LPOOL.find(x => x.userData.free); if (!l) { l = new THREE.PointLight(0xfff0d8, 3000, 360, 1.6); l.castShadow = false; LPOOL.push(l); } l.userData.free = false; l.visible = true; return l; }
+const freeLights = o => { const ls = []; o.traverse(l => { if (l.isLight && LPOOL.includes(l)) ls.push(l); }); for (const l of ls) { l.removeFromParent(); l.userData.free = true; } };
+export const siteLightPoolSize = () => LPOOL.length;
 export function disposeSite(obj) { freeLights(obj); if (obj.isLOD) { for (const l of obj.levels) dispose(l.object); obj.removeFromParent(); obj.levels.length = 0; return; } dispose(obj); }
