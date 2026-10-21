@@ -38,7 +38,7 @@ export function createSolarMap(opts) {
     const b = B[id], tn = GX.BODY_TEX[id];
     const mat = id === 'sun' ? new THREE.MeshBasicMaterial({ map: GX.tex('sun', gfxQ), color: new THREE.Color(4, 3.4, 2.6) })
       : id === 'earth' ? GX.earthMaterial(gfxQ, sunPosU)
-      : new THREE.MeshStandardMaterial({ map: tn ? GX.tex(tn, gfxQ) : GX.bodyTexture(b.color, id.length * 7 + id.charCodeAt(0)), roughness: 0.95, metalness: 0 });
+      : (() => { const tx = tn ? GX.tex(tn, gfxQ) : GX.bodyTexture(b.color, id.length * 7 + id.charCodeAt(0)); return new THREE.MeshStandardMaterial({ map: tx, emissiveMap: tx, emissive: 0x2a2a2a, roughness: 0.95, metalness: 0 }); })(); // f5.4j: a dim night side, so a craft over the dark half is visibly over the world (Aaron's Mars report)
     const m = new THREE.Mesh(id === 'earth' ? earthSphere : sphere, mat);
     if (id === 'earth') { const cl = new THREE.Mesh(earthSphere, GX.cloudMaterial(gfxQ, sunPosU)); cl.scale.setScalar(1.002); m.add(cl);
       const am = GX.atmoMaterial({ R: 1, Ra: 1.02 }); const at = new THREE.Mesh(sphere, am); at.frustumCulled = false; scene.add(at); earthAtmo = { m: at, u: am.userData }; }
@@ -456,7 +456,9 @@ export function createSolarMap(opts) {
   function show(on) { if (on && !S.on) { S.inited = true; { const F = getF(), o = P.orbitOf(F.v), Rb = B[F.body].R, far = isFinite(o.ra) && o.ra < B[F.body].soi ? Math.max(o.ra, V.len(F.v.r)) : 0; // f3: frame the whole orbit around the body
       if (far) { S.focus = F.body; S.pan = [0, 0, 0]; S.trans = null; S.dist = S.distT = Math.max(Rb * 3.2, far * 2.7); } else { S.focus = 'craft'; S.dist = S.distT = niceDist('craft'); } } S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; S.idle = 3; ui.querySelector('#mapMore').classList.add('hidden'); } S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on); if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist());  $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); } }
   function reset() { S.focus = 'craft'; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.panelMode = null; S.plan = null; S.pred = null; S.inited = false; renderPanel(); }
-  return { scene, camera, update, show, reset, key, patchAt, get conic() { return S.conic; }, setConic: c => { S.conic = c; const b = document.querySelector('#mapMore [data-a=conic]'); if (b) b.textContent = c === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; }, setFocus, setView, resetView, cycle, zoomBy, runPlanner, selectNode, addNodeAt, warpNext, state: S,
+  // f5.4j: test probe: where the map draws the craft vs a body (map metres) and the end of the drawn trajectory
+  const probe = id => { const o = bodies[id || getF().body]; return o && o.m ? { craftToBody: craftDot.position.distanceTo(o.m.position), R: B[id || getF().body].R, drawnR: o.m.scale.x } : null; };
+  return { scene, camera, update, show, reset, key, probe, patchAt, get conic() { return S.conic; }, setConic: c => { S.conic = c; const b = document.querySelector('#mapMore [data-a=conic]'); if (b) b.textContent = c === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; }, setFocus, setView, resetView, cycle, zoomBy, runPlanner, selectNode, addNodeAt, warpNext, state: S,
     setCam: (q, dist) => { if (q) { const b = new THREE.Vector3(0, 0, 1).applyQuaternion(new THREE.Quaternion(q[0], q[1], q[2], q[3]).normalize()); S.yaw = S.yawT = Math.atan2(b.y, b.x); S.pitch = S.pitchT = Math.asin(Math.max(-1, Math.min(1, b.z))); S.idle = -1e9; applyYP(); } if (dist) { S.dist = S.distT = dist; } },
     openPlanner: tg => { S.panelMode = 'plan'; runPlanner(tg); }, get panelMode() { return S.panelMode; }, get plan() { return S.plan; } };
 }

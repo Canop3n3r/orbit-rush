@@ -880,3 +880,6 @@ body.splitOn #strip2{display:none!important} /* f5.4i: in split the pane cards c
   #sitePick .spBodies{grid-row:2}#sitePick .spInfo{grid-row:3}#sitePick .spSites{grid-row:4}#sitePick .spMap{grid-row:2;align-self:start}#sitePick .spHint{grid-row:3}#sitePick .spAct{grid-row:4;align-self:start;margin-top:4px}
   #sitePick .spBodies button,#sitePick .spSites button{padding:4px 8px;font-size:12px;min-height:30px}
 }
+/* f5.4j (Aaron, desktop 1024): the engineer tiles start under the PE / FUEL / STAGE row instead of under-lapping it */
+body.cx #engS{top:calc(92px + env(safe-area-inset-top,0px))}
+body.cx:not(.touch) #engS{top:104px}
