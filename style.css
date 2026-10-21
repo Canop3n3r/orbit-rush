@@ -870,3 +870,13 @@ body.eng #hintS{top:calc(138px + env(safe-area-inset-top,0px))}
 @media (orientation:landscape) and (max-height:500px){body.cx.touch #hintS{top:calc(14px + env(safe-area-inset-top,0px))}body.eng #hintS{top:calc(14px + env(safe-area-inset-top,0px))}}
 /* f5.4i: after RELEASE, End flight leaves the middle of the screen (where the sat and the stage are framed) for the low corner */
 @media (pointer:coarse){#relBtn.done{top:auto;bottom:calc(170px + env(safe-area-inset-bottom,0px));left:calc(12px + env(safe-area-inset-left,0px));right:auto}}
+body.splitOn #strip2{display:none!important} /* f5.4i: in split the pane cards carry the readouts; the row no longer lands on the avionics panel */
+/* f5.4i (QA 4): short landscape (844x390): two columns, so the map and Back to Earth stay on screen */
+@media (orientation:landscape) and (max-height:500px){
+  #sitePick .spBox{width:min(820px,100%);max-height:calc(100vh - 12px);display:grid;grid-template-columns:1fr 46%;grid-auto-flow:row dense;column-gap:12px;align-content:start;padding:8px 10px}
+  #sitePick .spHead{grid-column:1/-1}
+  #sitePick .spBodies,#sitePick .spInfo,#sitePick .spSites{grid-column:1}
+  #sitePick .spMap,#sitePick .spHint,#sitePick .spAct{grid-column:2}
+  #sitePick .spBodies{grid-row:2}#sitePick .spInfo{grid-row:3}#sitePick .spSites{grid-row:4}#sitePick .spMap{grid-row:2;align-self:start}#sitePick .spHint{grid-row:3}#sitePick .spAct{grid-row:4;align-self:start;margin-top:4px}
+  #sitePick .spBodies button,#sitePick .spSites button{padding:4px 8px;font-size:12px;min-height:30px}
+}
