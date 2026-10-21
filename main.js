@@ -810,7 +810,7 @@ const hooks = {
   soi: (from, to) => { if (!PROG.visited.includes(to)) { PROG.visited.push(to); PR.save(localStorage, PROG); fun.reveal(to); } else fun.call('🪐', 'Entering ' + P.BODIES[to].name + ' space', '#9cc3ff'); },
   chute: st => { if (st === 'failed') for (let k = 0; k < 30; k++) smoke.spawn(V.sub(v.r, V.scale(P.noseOf(v), -stackL() * 0.5)), jit(v.v, 12), 2, 1, 4, 0xff7a3c, null, 0.6); },
   recovered: () => { const up = V.norm(v.r); for (let k = 0; k < 60; k++) smoke.spawn(v.r, V.add(siteVel(v), V.add(V.scale(up, 4 + Math.random() * 10), [rnd(10), rnd(10), rnd(10)])), 2 + Math.random() * 2, 2, 9, 0xeaf4ff, null, 0.9); },
-  end: (ms, cond) => later(() => { if (opSess && !F.flags.dead) return; if (cond()) { // QA f5a.2: an ops contract owns its ending (no card at orbit mid-contract)
+  end: (ms, cond) => later(() => { if (opSess && !F.flags.dead) return; if (!F.flags.dead && !F.released && F.payloadPart() && F.alt > 100000 && F.body === 'earth') { updateEndFlightBtn(); return; } /* f5.4 (QA D4): a payload in orbit waits for 🛰 RELEASE, then ■ End flight shows the card */ if (cond()) { // QA f5a.2: an ops contract owns its ending (no card at orbit mid-contract)
     if (academy && academy.active) academy.onEnd(); else showEnd(); } }, ms),
 };
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.

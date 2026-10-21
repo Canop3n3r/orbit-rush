@@ -36,4 +36,8 @@ const s1 = W.stateAt(S2.objs[0], S2.objs[0].t + 86400), alt = Math.hypot(...s1.r
 ok(W.add(store, { r: [6378137 + 80000, 0, 0], v: [0, 7800, 0], t: 0 }) === null, 'a decaying object (Pe < 120 km) is not saved');
 // career: a delivered payload pays, recovery refunds
 const C = L.blank(), out = L.record(C, { delivered: { cash: 15 }, recovered: true }); ok(C.cash >= 15 && C.sats === 1, 'career pays for a delivered payload and counts it', `cash ${C.cash}, sats ${C.sats}`);
+{ // f5.4 (QA D4): no RELEASE while suborbital, even above 100 km
+  const G = new Flight(cloneDesign(SHOWROOM.find(s => s.id === 'swift').design), {}, { t0: T0 }); G.ignited = true; G.v.cur = G.last;
+  const m = Math.hypot(...G.v.r); G.v.r = G.v.r.map(x => x * (m + 101000) / m);
+  ok(!G.canRelease(), 'RELEASE hidden while suborbital at 101 km'); }
 console.log(`payload: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

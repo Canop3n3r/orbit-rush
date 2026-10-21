@@ -465,9 +465,10 @@ export class Flight {
   payloadParts() { const top = this.v.stages[this.last]; if (!top || !(top.eng && top.eng.tv > 0)) return [];
     return top.parts.filter(p => p.kind === 'payload' || (p.kind === 'pod' && p.id !== 'crew' && !(p.mult > 1))); }
   payloadPart() { return this.payloadParts()[0] || null; }
-  canRelease() { const v = this.v; return !this.released && this.ignited && !this.flags.dead && v.cur === this.last && !!this.payloadPart() && this.alt > 100000 && !(this.ret && this.ret.sepAt); }
+  canRelease() { const v = this.v; return !this.released && this.ignited && !this.flags.dead && v.cur === this.last && !!this.payloadPart() && this.alt > 100000 && !(this.ret && this.ret.sepAt) && this.inOrbit(); }
+  inOrbit() { const v = this.v; try { return P.orbitOf(v).pe > 100000; } catch (e) { return false; } } // f5.4 (QA D4): RELEASE only once the stage coasts in orbit (not mid-ascent at 101 km)
   releasePayload() {
-    if (!this.canRelease()) { if (!this.released && this.payloadPart() && this.alt <= 100000) this.toast('Release the payload above 100 km', '#ffb35c'); return null; }
+    if (!this.canRelease()) { if (!this.released && this.payloadPart() && (this.alt <= 100000 || !this.inOrbit())) this.toast('Release the payload once in orbit (periapsis above 100 km)', '#ffb35c'); return null; }
     const v = this.v; if (v.fairing > 0) this.jettison();
     const top = v.stages[this.last], pl = this.payloadParts(), m = pl.reduce((t, q) => t + q.m, 0);
     // the stage keeps its own avionics (the probe's reaction wheels) so it can still point for the de-orbit burn
