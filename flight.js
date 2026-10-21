@@ -175,7 +175,7 @@ export class Flight {
     this.design = cloneDesign(design); this.h = hooks; this.stats = designStats(design);
     const v = buildVehicle(design); v.earthRot = opts.earthRot !== false;
     if (design.spec) applySpec(v, design.spec);
-    v.body = opts.body || 'earth'; const siteEf = opts.siteEf || PAD_EF; this.siteEf = siteEf; this.sandbox = !!opts.sandbox; { const f = P.surfaceFrame(siteEf), a = 1600 / 6371000; this.lzEf = opts.lzEf ? opts.lzEf.slice() : siteEf === PAD_EF ? LZ0.slice() : V.norm(V.add(V.scale(f.up, Math.cos(a)), V.scale(f.north, Math.sin(a)))); this.lz2Ef = siteEf === PAD_EF ? LZ20.slice() : V.norm(V.add(this.lzEf, V.scale(f.east, 420 / 6371000))); } // landing zones follow the picked site // f5.4: launch from any body / site
+    v.body = opts.body || 'earth'; this.homeBody = v.body; const siteEf = opts.siteEf || PAD_EF; this.siteEf = siteEf; this.sandbox = !!opts.sandbox; { const f = P.surfaceFrame(siteEf), a = 1600 / 6371000; this.lzEf = opts.lzEf ? opts.lzEf.slice() : siteEf === PAD_EF ? LZ0.slice() : V.norm(V.add(V.scale(f.up, Math.cos(a)), V.scale(f.north, Math.sin(a)))); this.lz2Ef = siteEf === PAD_EF ? LZ20.slice() : V.norm(V.add(this.lzEf, V.scale(f.east, 420 / 6371000))); } // landing zones follow the picked site // f5.4: launch from any body / site
     v.site = { ef: siteEf, lift: (opts.padZ ?? 0.4) + P.massProps(v).ycom, q0: P.padAttitude(siteEf) }; // r is the centre of mass
     const s0 = P.siteAt(v, 0); v.r = s0.r; v.v = s0.v; v.q = s0.q; v.clock = 0; v.ut = 0; v.auto = false; v.sas = 'stab';
     this.v = v; this.booster = null; this.boosters = []; this.ship = null; this.dvUsed = 0;
@@ -822,6 +822,9 @@ export class Flight {
       if (this.rec.capsule && this.rec.shield && this.rec.chute) { if (!this.homeHint) { this.homeHint = 1; this.toast('Orbit! Press O to deorbit and bring the capsule home', '#ffd23a'); } }
       else { this.endQueued = true; this.call('end', 2500, () => !f.dead); }
     }
+    // f5.4 (QA f5.4b H): a flight launched from another world ends with a card once it is coasting in orbit there (Earth flights above)
+    if (!this.ended && !f.dead && this.homeBody !== 'earth' && this.body === this.homeBody && (this.goals[this.body] || {}).orbit && !this.nodes.length && v.thrust <= 0 && !this.endQueued && !this.ret) {
+      this.endQueued = true; this.call('end', 2500, () => !f.dead); }
   }
   postStep() {
     const v = this.v, f = this.flags, h = this.alt;

@@ -937,6 +937,7 @@ let chuteVis = null;
 // f5.2.3 payload lifecycle: the released payload is its own object (saved to the world list, drawn here until the flight ends)
 let satVis = null; const smapSats = { c: null, t: 0 };
 const CONSTELLATION_SATS = 21; // missions/constellation-batch.js dispense count
+const OFFWORLD_PAY = { moon: 20, mars: 40, venus: 60 }; // $M for reaching orbit from a launch site on another world
 const DEST_PAY = { orbit: 10, hop: 5, moon: 60, mars: 100, venus: 50 }; // f5.4 (QA A4): $M per mission destination
 const isConstellation = () => /^heron|^swift/.test(design.model || design.name || '') || (opSess && opSess.m && opSess.m.id === 'constellation-batch');
 function payloadName() { const W0 = WORLD.load(localStorage), c = isConstellation(), n = (c ? WORLD.count(W0, 'constellation') : W0.objs.length) + 1, of = opSess && opSess.m && opSess.m.id === 'constellation-batch' ? ' of ' + CONSTELLATION_SATS : ''; return (c ? 'Constellation sat' : (design.name || 'Payload')) + ' #' + n + of; } // f5.4 (QA A4): '#n of 21' on the batch contract
@@ -1266,7 +1267,7 @@ function updateChunks(dt, O) {
 let endMin = false;
 function showEnd() {
   if (F.ended) return; const score = F.finish();
-  const flags = F.flags, o = F.orbitSnap ? F.orbitSnap.o : P.orbitOf(v), ok = flags.orbit && !flags.dead;
+  const flags = F.flags, o = F.orbitSnap ? F.orbitSnap.o : P.orbitOf(v), ok = (flags.orbit || !!(F.homeBody && F.homeBody !== 'earth' && (F.goals[F.homeBody] || {}).orbit)) && !flags.dead;
   const out = recordFlight(score);
   const landedOn = Object.entries(F.goals || {}).find(([, g]) => g.landed);
   $('endTitle').innerHTML = flags.dead ? fun.boomCard(flags.cause) : landedOn ? `🏳️ Landed on the ${P.BODIES[landedOn[0]].name}!` : flags.recovered ? '🪂 Orbit and home!' : flags.dead ? (/burned up|overheated/.test(flags.dead) ? '🔥 Burned up' : '💥 Rapid Unscheduled Disassembly') : ok ? '🛰️ Orbit achieved!' : flags.stranded ? '🪂 Out of fuel — suborbital' : '🪂 Mission over';
@@ -1278,6 +1279,7 @@ function showEnd() {
   if (F.released) { const sv = F.released.saved, W0 = WORLD.load(localStorage); lines.unshift(sv ? `<b class="good">🛰 ${sv.name} delivered · Pe ${(F.released.pe / 1000).toFixed(0)} km · ${WORLD.count(W0, 'constellation')} in the constellation, ${WORLD.count(W0)} in orbit</b>` : `<b class="warn">🛰 Payload released too low: it will re-enter</b>`); }
   if (flags.deorbited) lines.push(`<span class="good">✔ Spent stage de-orbited (${flags.deorbited})</span>`); else if (F.released && !flags.recovered) lines.push('<span class="warn">Spent stage left in orbit as debris</span>');
   if (flags.space) lines.push('<span class="good">✔ Reached space (Kármán line, 100 km)</span>');
+  { const hb = F.homeBody, g = hb && hb !== 'earth' && (F.goals[hb] || {}).orbit; if (g && !flags.dead) { const o2 = P.orbitOf(v); lines.unshift(`<b class="good">🛰️ In orbit around ${P.BODIES[hb].name} · Ap ${(o2.ap / 1000).toFixed(0)} / Pe ${(o2.pe / 1000).toFixed(0)} km</b>`); } }
   if (flags.orbit && !landedOn) lines.push(`<span class="good">✔ Orbit — Ap ${isFinite(o.ap) ? (o.ap / 1000).toFixed(0) + ' km' : 'escape'} / Pe ${(o.pe / 1000).toFixed(0)} km · period ${isFinite(o.T) ? (o.T / 60).toFixed(1) + ' min' : '—'}</span>`);
   if (flags.booster) lines.push(flags.boosterBonus ? `<span class="good">✔ Booster ${flags.booster} (+${flags.boosterBonus})</span>` : `<span class="warn">✘ Booster ${flags.booster}</span>`);
   else if (booster && booster.state === 'flying') lines.push('Booster still descending…');
@@ -2223,6 +2225,7 @@ function recordFlight(score) {
     dead: f.dead || null, maxMach: seen.maxMach || 0, maxHeat: F.maxHeat || 0, stages: v.stages.length, mass: F.stats ? F.stats.mass : 0, fuelLeft: F.orbitSnap ? F.orbitSnap.fuel : top && top.fuelMax ? top.fuel / top.fuelMax : 0, score, mission: director ? director.id : null };
   { const rl = F.released, sv = rl && rl.saved; if (sv) r.delivered = { cash: isConstellation() ? 15 : 25, name: sv.name }; if (f.recovered) r.stageRecovered = { cash: 10 }; r.deorbited = !!f.deorbited; }
   if (director && director.ok && DEST_PAY[director.id]) r.destination = { cash: DEST_PAY[director.id], id: director.id };
+  { const hb = F.homeBody; if (!director && hb && hb !== 'earth' && (F.goals[hb] || {}).orbit && !f.dead) r.destination = { cash: OFFWORLD_PAY[hb] || 40, id: hb + '-orbit' }; } // f5.4 (QA f5.4b H): an off-world launch to orbit pays
   if (director && director.result && !director.ok) r.mission = null; // f5.1h (QA): a missed mission earns no medal, so the card and ⋯ agree on 0 stars
   const out = PR.record(PROG, r); PR.save(localStorage, PROG);
   // f5 career ladder: the flown showroom vehicle and any ops contract result ride along
@@ -2281,7 +2284,10 @@ var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].i
   onBuild: i => { if (lockedFly(i)) return; goBuild.toHome = false; setDesign(pickDesign(i)); home.show(false); refreshBuild(); },
   onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => $('hGearM').classList.toggle('hidden') });
 // f5.4 sandbox: 📍 launch site button on the Home card + picker
-const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = s; const b = $('hSite'); if (b) b.textContent = '📍 ' + siteLabel(sbSite, P.BODIES); if (state !== 'flight') reset(); } });
+// f5.4 (QA f5.4b C1/H): off Earth, a sounding rocket (Pip, Grasshopper) is never the default: pick the starter orbiter
+function siteDefault() { try { if (!sbSite || sbSite.body === 'earth' || pickModel || !home) return; const cur = SHOW[home.index]; if (!cur || !(cur.id === 'pip' || cur.id === 'hopper' || cur.check === 'space')) return;
+  const i = SHOW.findIndex(x => x.id === 'needle'); if (i >= 0 && !rowLocked({ base: 'needle' })) home.set(i); } catch (e) { } }
+const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = s; siteDefault(); const b = $('hSite'); if (b) b.textContent = '📍 ' + siteLabel(sbSite, P.BODIES); if (state !== 'flight') reset(); } });
 { const b = document.createElement('button'); b.id = 'hSite'; b.textContent = '📍 ' + siteLabel(sbSite, P.BODIES); b.title = 'Launch from any planet or moon'; b.onclick = e => { e.currentTarget.blur(); sitePicker.show(true); };
   const c = $('hCard'); if (c) c.insertBefore(b, $('hDots')); }
 { const g = document.createElement('div'); g.id = 'hGearM'; g.className = 'hidden'; document.body.appendChild(g);
@@ -2325,7 +2331,7 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
   nav(); addEventListener('career-change', nav);
 }
 setTimeout(prewarmHeavy, 1500);
-if (!params.has('hangar')) { let i0 = 0; try { i0 = +localStorage.getItem(HOME_KEY) || 0; } catch (e) { } home.set(Math.min(SHOW.length - 1, Math.max(0, i0))); home.show(true); }
+if (!params.has('hangar')) { let i0 = 0; try { i0 = +localStorage.getItem(HOME_KEY) || 0; } catch (e) { } home.set(Math.min(SHOW.length - 1, Math.max(0, i0))); siteDefault(); home.show(true); }
 $('standBtn').onclick = () => testStand(); $('tunnelBtn').onclick = () => fun.openTunnel(); $('dropBtn').onclick = () => dropTest();
 addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e.preventDefault(); }, true);
 refreshBuild();
