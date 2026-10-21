@@ -863,3 +863,10 @@ body:not(.cx) #strip2,#hud.hidden ~ #strip2,body.photo #strip2,body.mapOn #strip
 body.cx:not(.touch) #strip2{top:64px;left:16px}
 /* f5.4 (QA G/#8): 🎥 GROUND never sits over the end card, menus or the gear sheet */
 body.endOn #gcamBtn,body.menuOn #gcamBtn,body.mapOn #gcamBtn,#dMenu:not(.hidden) ~ #gcamBtn,#hGearM:not(.hidden) ~ #gcamBtn{display:none!important}
+/* f5.4i: toasts/hints (#hintS: HIGH Q, Frame rate low, ...) sit under the PE / FUEL / STAGE row, never over it */
+body.cx #hintS{top:calc(92px + env(safe-area-inset-top,0px))}
+body.cx:not(.touch) #hintS{top:104px}
+body.eng #hintS{top:calc(138px + env(safe-area-inset-top,0px))}
+@media (orientation:landscape) and (max-height:500px){body.cx.touch #hintS{top:calc(14px + env(safe-area-inset-top,0px))}body.eng #hintS{top:calc(14px + env(safe-area-inset-top,0px))}}
+/* f5.4i: after RELEASE, End flight leaves the middle of the screen (where the sat and the stage are framed) for the low corner */
+@media (pointer:coarse){#relBtn.done{top:auto;bottom:calc(170px + env(safe-area-inset-bottom,0px));left:calc(12px + env(safe-area-inset-left,0px));right:auto}}
