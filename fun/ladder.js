@@ -43,7 +43,7 @@ export const LADDER = [
   { id: 'booster', name: 'Booster landing', goal: 'Fly the booster back and land it', how: 'fly', vehicle: 'swift', test: r => r.boosterLanded, // f5.1h: any rocket whose booster lands
     reward: { cash: 60, sci: 10 }, unlock: { sites: ['lz1'], missions: ['constellation-batch'] } },
   { id: 'constellation-batch', name: 'Constellation deploy', brandKey: 'constellation-batch', goal: 'Loft a satellite stack and dispense it', how: 'op', op: 'constellation-batch', vehicle: 'swift',
-    test: r => r.op === 'constellation-batch' && r.opOk, reward: { cash: 90, sci: 15 }, unlock: { vehicles: ['heron'], sites: ['cape-heritage'], missions: ['crew-dock'] } },
+    test: r => r.op === 'constellation-batch' && r.opOk && !!r.delivered /* f5.4 (QA A4): no pay without a real 🛰 RELEASE */, reward: { cash: 90, sci: 15 }, unlock: { vehicles: ['heron'], sites: ['cape-heritage'], missions: ['crew-dock'] } },
   { id: 'crew-dock', name: 'Crew to station', brandKey: 'crew-dock', goal: 'Take a crew to the station orbit and dock', how: 'op', op: 'crew-dock', vehicle: 'heron',
     test: r => r.op === 'crew-dock' && r.opOk, reward: { cash: 140, sci: 25 }, unlock: { vehicles: ['atlas', 'selene'], missions: ['moon'] } },
   { id: 'heavy', name: 'Heavy lift', goal: 'Reach orbit on the heavy, side boosters back', how: 'fly', vehicle: 'atlas', test: r => r.orbit && r.vehicle === 'atlas',
@@ -82,7 +82,8 @@ export function record(s, r, t = Date.now()) {
   s.flights++;
   if (r && r.delivered) { const c = r.delivered.cash || 0; s.cash += c; out.cash += c; s.sats = (s.sats || 0) + 1; out.delivered = c; } // f5.2.3: payload delivered to orbit
   if (r && r.stageRecovered) { const c = r.stageRecovered.cash || 0; s.cash += c; out.cash += c; out.refund = c; } // f5.2.3: recovered spacecraft refund
-  if (r && r.missed) { out.next = next(s); s.last = { t, earned: [] }; return out; } // f5.1h (QA): a missed mission pays $0
+  if (r && r.destination && !r.missed && !r.dead) { const c = r.destination.cash || 0; s.cash += c; out.cash += c; out.destination = c; } // f5.4 (QA A4): mission pay depends on where you went
+  if (r && (r.missed || (r.dead && !r.space))) { out.next = next(s); s.last = { t, earned: [] }; return out; } // f5.1h (QA): a missed mission pays $0; f5.4 (QA A4): a crash below space earns no rung either
   for (const c of LADDER) {
     if (s.done[c.id]) continue;
     if (rungLocked(c) || !c.test(r || {})) break;

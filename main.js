@@ -931,8 +931,10 @@ function syncStages() {
 let chuteVis = null;
 // f5.2.3 payload lifecycle: the released payload is its own object (saved to the world list, drawn here until the flight ends)
 let satVis = null; const smapSats = { c: null, t: 0 };
+const CONSTELLATION_SATS = 21; // missions/constellation-batch.js dispense count
+const DEST_PAY = { orbit: 10, hop: 5, moon: 60, mars: 100, venus: 50 }; // f5.4 (QA A4): $M per mission destination
 const isConstellation = () => /^heron|^swift/.test(design.model || design.name || '') || (opSess && opSess.m && opSess.m.id === 'constellation-batch');
-function payloadName() { const n = WORLD.load(localStorage).objs.length + 1; return (isConstellation() ? 'Constellation sat' : (design.name || 'Payload')) + ' #' + n; }
+function payloadName() { const W0 = WORLD.load(localStorage), c = isConstellation(), n = (c ? WORLD.count(W0, 'constellation') : W0.objs.length) + 1, of = opSess && opSess.m && opSess.m.id === 'constellation-batch' ? ' of ' + CONSTELLATION_SATS : ''; return (c ? 'Constellation sat' : (design.name || 'Payload')) + ' #' + n + of; } // f5.4 (QA A4): '#n of 21' on the batch contract
 function onRelease(rec) {
   const o = WORLD.add(localStorage, { ...rec, name: payloadName(), group: isConstellation() ? 'constellation' : 'other', model: design.model || null, mission: director ? director.id : null });
   rec.saved = o; if (o) fun.call('🛰', `${o.name} deployed · ${WORLD.count(WORLD.load(localStorage))} in orbit`, '#7dffb0');
@@ -2190,6 +2192,7 @@ function recordFlight(score) {
   const r = { maxAlt: f.maxAlt || 0, space: !!f.space, orbit: !!f.orbit, boosterLanded: !!(booster && booster.state === 'landed') || !!(F.flagsB && F.flagsB.boosterBonus), recovered: !!f.recovered, visited, landed: landed ? landed[0] : null,
     dead: f.dead || null, maxMach: seen.maxMach || 0, maxHeat: F.maxHeat || 0, stages: v.stages.length, mass: F.stats ? F.stats.mass : 0, fuelLeft: F.orbitSnap ? F.orbitSnap.fuel : top && top.fuelMax ? top.fuel / top.fuelMax : 0, score, mission: director ? director.id : null };
   { const rl = F.released, sv = rl && rl.saved; if (sv) r.delivered = { cash: isConstellation() ? 15 : 25, name: sv.name }; if (f.recovered) r.stageRecovered = { cash: 10 }; r.deorbited = !!f.deorbited; }
+  if (director && director.ok && DEST_PAY[director.id]) r.destination = { cash: DEST_PAY[director.id], id: director.id };
   if (director && director.result && !director.ok) r.mission = null; // f5.1h (QA): a missed mission earns no medal, so the card and ⋯ agree on 0 stars
   const out = PR.record(PROG, r); PR.save(localStorage, PROG);
   // f5 career ladder: the flown showroom vehicle and any ops contract result ride along

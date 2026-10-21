@@ -7,7 +7,7 @@ let o = L.record(s, { maxAlt: 5000 }); ok(o.earned.length === 0, 'low hop earns 
 o = L.record(s, { maxAlt: 200000, space: true, orbit: true }); ok(o.earned.map(c => c.id).join() === 'hop,karman,orbit', 'orbit earns 3 rungs');
 ok(o.cash === 70 && o.sci === 22, 'rewards summed'); ok(L.isUnlocked(s, 'vehicles', 'swift'), 'F9 unlocked'); ok(o.next.id === 'booster', 'next booster');
 o = L.record(s, { orbit: true, op: 'crew-dock', opOk: true }); ok(o.earned.length === 0, 'out of order rung not earned');
-o = L.record(s, { boosterLanded: true, vehicle: 'swift', op: 'constellation-batch', opOk: true }); ok(o.earned.map(c => c.id).join() === 'booster,constellation-batch', 'booster + constellation');
+o = L.record(s, { boosterLanded: true, vehicle: 'swift', op: 'constellation-batch', opOk: true, delivered: { cash: 15 } }); ok(o.earned.map(c => c.id).join() === 'booster,constellation-batch', 'booster + constellation');
 L.save(st, s); const s2 = L.load(st); ok(s2.cash === s.cash && s2.done['constellation-batch'], 'persisted'); ok(L.isUnlocked(s2, 'vehicles', 'heron'), 'crew unlocked');
 st.setItem(L.KEY, '{bad'); ok(L.load(st).cash === 0, 'corrupt -> blank');
 ok(L.LADDER.every(c => L.ALL.vehicles.includes(c.vehicle)), 'vehicles known');
@@ -40,4 +40,11 @@ ok(L.ALL.vehicles.every(v => L.START.vehicles.includes(v) || L.unlockedBy('vehic
   const a = L.nextAfter(s, 'mars'), b = L.nextAfter({ ...s, done: { ...s.done, venus: 1 } }, 'venus');
   if (a && a.id === 'venus' && b === null && L.next(s).id === 'booster') { pass++; console.log('ok nextAfter'); } else { fail++; console.log('FAIL nextAfter', a && a.id, b); }
 }
+{ // f5.4 (QA A4): honest pay
+  const t = L.blank(); L.record(t, { orbit: true, space: true, maxAlt: 2e5, boosterLanded: true, vehicle: 'swift' });
+  let q = L.record(t, { op: 'constellation-batch', opOk: true }); ok(!q.earned.length, 'constellation rung needs a real release');
+  q = L.record(t, { op: 'constellation-batch', opOk: true, delivered: { cash: 15 } }); ok(q.earned.map(c => c.id).join() === 'constellation-batch', 'constellation rung after a release');
+  const u = L.blank(); q = L.record(u, { maxAlt: 12000, dead: 'crashed' }); ok(!q.earned.length && !q.cash, 'a crash below space pays nothing');
+  q = L.record(L.blank(), { missed: true, visited: ['earth', 'venus'], destination: { cash: 50 } }); ok(!q.cash, 'a missed flyby pays nothing');
+  q = L.record(L.blank(), { destination: { cash: 100 } }); ok(q.cash >= 100 && q.destination === 100, 'mission pays per destination'); }
 console.log(`ladder: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

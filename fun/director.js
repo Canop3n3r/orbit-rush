@@ -14,6 +14,7 @@ export const MISSIONS = {
 };
 // phase → camera: the renderer picks chase / wide / map cams from this
 export const CAMS = { hop: 'chase', coast: 'wide', ascent: 'chase', plan: 'map', burn: 'wide', correct: 'wide', cruise: 'map', capture: 'wide', brake: 'chase', descent: 'chase', home: 'chase', done: 'wide' };
+export const FLYBY_MAX = 50e6; // m: closest approach that still counts as a flyby (Venus R 6,052 km)
 export const MAX_CORR_WAIT = 400 * 86400; // s: never wait longer than this for a course-correction node
 const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'lift', 'capture', 'brake', 'descent', 'home', 'done'];
 const WARP_BURN = () => 4;
@@ -123,8 +124,11 @@ export class Director {
   arrive() {
     const F = this.F, v = F.v, b = P.BODIES[F.body];
     this.say('Welcome to ' + b.name + '!');
-    if (!(this.m.land || this.m.capture)) { this.finish('Flew past ' + b.name + '!'); return; }
     const tp = C.timeToPe(v.r, v.v, b.mu), sp = P.propagate(v.r, v.v, tp, b.mu), rp = V.len(sp.r), ra = b.R + (this.m.land ? 1500000 : Math.max(2e6, b.R * 2));
+    if (!(this.m.land || this.m.capture)) { // f5.4 (QA A1/A4): a flyby only counts close in (closest approach under FLYBY_MAX), not anywhere in the SOI
+      const ca = Math.max(0, rp - b.R); this.closest = ca;
+      if (ca > FLYBY_MAX) { this.finish(`Passed ${b.name} at ${Math.round(ca / 1000).toLocaleString('en-US')} km: too far for a flyby`, false); return; }
+      this.finish(`Flew past ${b.name} at ${Math.round(ca / 1000).toLocaleString('en-US')} km!`); return; }
     if (F.body !== 'moon' && rp < b.R + 100000 && !this._lift) { // f5.1h: arriving low or on a collision course — raise periapsis first (a small radial burn soon), then capture
       const want = b.R + Math.max(300000, (b.atm ? 150000 : 0) + 200000), tn = F.tAbs + Math.min(3600, tp * 0.2); let best = null;
       for (let k = -80; k <= 80; k++) for (let j = -4; j <= 4; j++) { const nd = { t: tn, pro: j * 50, nrm: 0, rad: k * 25 }, s0 = P.propagate(v.r, v.v, tn - F.tAbs, b.mu), dv = C.nodeVector(s0.r, s0.v, nd), v1 = V.add(s0.v, dv);
