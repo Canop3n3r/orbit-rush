@@ -895,3 +895,19 @@ body:not(.touch):not(.buildAdv) .bcols{grid-template-columns:230px 1fr}
 body:not(.touch):not(.buildAdv) .bcols>div:nth-child(3){display:none}
 body.touch #bStages,body.buildAdv #bStages{display:none}
 body:not(.touch):not(.buildAdv) .bTopRow #launchBtn{min-width:150px}body:not(.touch) .bTopRow .bMore{flex:0 0 auto}body:not(.touch) .bTopRow #launchBtn{flex:1}
+/* f5.4j (QA declutter): picker = search + 4 regions with folding launch houses */
+#picker #pkQ{width:100%;box-sizing:border-box;margin:6px 0 4px;padding:9px 12px;border-radius:12px;border:1px solid #2c4166;background:#0d1626;color:#e6eefc;font:600 14px var(--ui,system-ui)}
+#picker .pkCo{border-top:1px solid #1c2a44}#picker .pkCo>summary{cursor:pointer;padding:9px 4px;font:700 14px var(--ui,system-ui);color:#dfe9ff;list-style:none}
+#picker .pkCo>summary::-webkit-details-marker{display:none}#picker .pkCo>summary::before{content:'▸ ';color:#7f93b3}#picker .pkCo[open]>summary::before{content:'▾ '}
+#picker .pkCo>summary small{color:#7f93b3;font-weight:600;margin-left:4px}#picker .pkCo .pkG{padding-bottom:8px}
+#picker .pkHide{display:none!important}
+/* f5.4m (QA declutter): slim Home: the bottom bar, ▦, 🏆 and ⚙ fold into ☰; 🔧 Build sits next to FLY */
+#home #hNav,#hTop #hPick,#hTop #hnCareer,#hTop #hGear{display:none!important}
+#hMenuB{pointer-events:auto;width:44px;height:44px;border-radius:50%;font-size:20px;padding:0;background:var(--glass);border:1px solid var(--line);color:var(--txt)}
+#hMenu{position:fixed;z-index:70;top:calc(62px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:14px;background:#0d1626f2;border:1px solid #2a3c5c;min-width:190px}
+#hMenu.hidden{display:none}#hMenu button{text-align:left;padding:10px 12px;border-radius:10px;border:0;background:transparent;color:#e6eefc;font:700 14px var(--ui,system-ui)}#hMenu button:hover{background:#ffffff14}
+#hBuildB{flex:0 0 54px;height:54px;border-radius:14px;font-size:22px;background:var(--glass-hi);border:1px solid var(--line-hi);color:var(--txt)}
+body:not(.home) #hMenu{display:none}
+/* 844x390: smaller world chips in the 📍 picker */
+@media (orientation:landscape) and (max-height:500px){#sitePick .spBodies{gap:4px}#sitePick .spBodies button{padding:3px 7px!important;font-size:11px!important;min-height:26px!important;border-radius:9px}}
+#home #hCard{bottom:calc(16px + env(safe-area-inset-bottom,0px))}@media (min-width:900px) and (min-height:600px){#home #hCard{bottom:28px}}@media (orientation:landscape) and (max-height:500px){#home #hCard{bottom:auto}}
