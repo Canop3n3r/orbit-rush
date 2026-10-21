@@ -71,7 +71,7 @@ print(json.dumps(out))`;
     if (r.status !== 0) ok(false, 'namecheck run: ' + (r.stderr || '').slice(-200)); else for (const [f, pr] of Object.entries(JSON.parse(r.stdout))) ok(pr.length === 0, `${f}: public names clean ${pr.join('; ')}`); } }
 { const c = readFileSync(new URL('co_europia.js', dir), 'utf8'); for (const id of ['europia']) ok(c.includes(`'${id}':`), 'co_europia id ' + id); ok(!realHit(c), 'co_europia.js: no real names'); }
 { const c = readFileSync(new URL('co_gaulois.js', dir), 'utf8'); for (const id of ['diamantine-a','diamantine-b']) ok(c.includes(`'${id}':`), 'co_gaulois id ' + id); ok(!realHit(c), 'co_gaulois.js: no real names'); }
-{ const c = readFileSync(new URL('co_irg.js', dir), 'utf8'); for (const id of ['new-shepherdish','featherwing-1']) ok(c.includes(`'${id}':`), 'co_irg id ' + id); ok(!realHit(c), 'co_irg.js: no real names'); }
+{ const c = readFileSync(new URL('co_irg.js', dir), 'utf8'); for (const id of ['flock-hopper','featherwing-1']) ok(c.includes(`'${id}':`), 'co_irg id ' + id); ok(!realHit(c), 'co_irg.js: no real names'); }
 { const c = readFileSync(new URL('co_taiga.js', dir), 'utf8'); for (const id of ['taiga-1','taiga-a5']) ok(c.includes(`'${id}':`), 'co_taiga id ' + id); ok(!realHit(c), 'co_taiga.js: no real names'); }
 { const c = readFileSync(new URL('co_lingvolt.js', dir), 'utf8'); for (const id of ['scoutling','scoutling-x1']) ok(c.includes(`'${id}':`), 'co_lingvolt id ' + id); ok(!realHit(c), 'co_lingvolt.js: no real names'); }
 { const c = readFileSync(new URL('co_vantguard.js', dir), 'utf8'); for (const id of ['vantguard']) ok(c.includes(`'${id}':`), 'co_vantguard id ' + id); ok(!realHit(c), 'co_vantguard.js: no real names'); }

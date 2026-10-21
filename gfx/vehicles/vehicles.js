@@ -246,7 +246,7 @@ export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail
   else if (/^heron-9|^deltoid-2-heavy9$|^deltoid-2-light3$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^diamantine-a$|^diamantine-b$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^jade-lantern-2f$|^jade-lantern-3b$|^jade-lantern/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
-  else if (/^heron-9|^new-shepherdish$|^featherwing-1$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
+  else if (/^heron-9|^flock-hopper$|^featherwing-1$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^polar-slinger$|^monsoon-heavy$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^tsurugi-22$|^tsurugi-24$|^tsurugi-30$|^tsubame$|^tsubame-2024$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^mogutny$|^moonhammer$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
