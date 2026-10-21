@@ -15,6 +15,9 @@ export const SITES = {
   enceladus: [['tiger', 'Tiger Stripes', -82, 0]], triton: [['plains', 'Cantaloupe Plains', 20, 340]],
   pluto: [['heart', 'Sputnik Planitia', 25, 175]], charon: [['mordor', 'North Cap', 80, 0]],
 };
+// Saturn's hazy moon: keyed by data (the Saturn moon with an atmosphere) so its preset sits with the others
+import { BODIES as _B } from './physics/solar.js?v=f5.4d';
+{ const hazy = Object.values(_B).find(b => b.parent === 'saturn' && b.atm); if (hazy) SITES[hazy.id] = [['dunes', 'Equatorial Dunes', -10.6, 192.3, 'generic']]; }
 export const geoEf = (lat, lon) => { const a = lat * Math.PI / 180, b = lon * Math.PI / 180; return [Math.cos(a) * Math.cos(b), Math.cos(a) * Math.sin(b), Math.sin(a)]; };
 export function siteEf(body, lat, lon, earthMap) { return body === 'earth' && earthMap ? earthMap(lat, lon) : geoEf(lat, lon); }
 export function launchBodies(BODIES) { return Object.values(BODIES).filter(b => !GAS.has(b.id)).map(b => b.id); }
