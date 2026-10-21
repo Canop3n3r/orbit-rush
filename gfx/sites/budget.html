@@ -12,7 +12,7 @@ const renderer = new THREE.WebGPURenderer({ forceWebGL: true }); renderer.setSiz
 const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 1, 1e5); cam.position.set(300, 200, 600); cam.lookAt(0, 0, 0); scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
 const count = g => { let n = 0, inst = 0; g.traverse(m => { if (m.isInstancedMesh) inst++; if (!m.isMesh) return; for (let p = m; p; p = p.parent) if (!p.visible) return; n++; }); return [n, inst]; };
 const out = { ids, rows: [], phone: [], place: [], mem: [], heap: [] };
-for (const id of ids) for (const detail of ['hi', 'mid', 'lo']) { const g = buildSite(SITES[id], { detail }); const [meshes, inst] = count(g); out.rows.push({ id, detail, tris: g.userData.tris, meshes, inst }); disposeSite(g); }
+for (const id of ids) for (const detail of ['hi', 'mid', 'lo']) { const g = buildSite(SITES[id], { detail }); const [meshes, inst] = count(g); out.rows.push({ id, detail, tris: g.userData.tris, meshes, inst, lights: g.userData.lights, lightObjs: (() => { let n = 0; g.traverse(o => o.isLight && n++); return n; })() }); disposeSite(g); }
 for (const id of ids) { const L = buildSiteLOD(SITES[id], { phone: true }); const [meshes] = count(L.userData.near); out.phone.push({ id, tris: L.userData.near.userData.tris, meshes, levels: L.levels.length }); disposeSite(L); }
 for (const id of ids) { const S = SITES[id], g = placeSite(new THREE.Group(), S); g.updateMatrixWorld(true); const up = new THREE.Vector3(0, 1, 0).applyQuaternion(g.quaternion), d = upDir(S.body, S.lat, S.lon), p = g.position.clone().normalize();
   out.place.push({ id, dUp: up.distanceTo(new THREE.Vector3(...d)), dPos: p.distanceTo(new THREE.Vector3(...d)), r: g.position.length() }); }

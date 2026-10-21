@@ -8,9 +8,10 @@ export const SITE = { id: 'mars', name: 'Mars Base Pad', body: 'mars', lat: -5.4
     { k: 'solar', at: [120, 70], n: 6 },
     { k: 'tanks', at: [-100, 20], n: 3, r: 4, style: 'v', h: 14 },
     { k: 'tanks', at: [-100, -40], n: 2, r: 3.5 },
-    { k: 'dish', at: [170, 30], r: 5, h: 6 },
+    { k: 'dish', at: [170, 30], r: 5, h: 6 }, { k: 'berm', at: [120, -24], r: 22, t: 2.5, mat: 'redsoil' },
+    { k: 'rover', at: [65, 25], rot: 0.5, dish: true }, { k: 'rover', at: [-45, 45], rot: -1.0, len: 4, w: 2.6 },
     { k: 'hangar', at: [-80, -110], w: 22, d: 30, h: 11, rot: Math.PI / 2 },
     { k: 'masts', pts: [[-50, -50], [50, -50], [50, 50], [-50, 50]], h: 16 },
     { k: 'road', pts: [[32, 0], [110, -10]], w: 6 }, { k: 'road', pts: [[-32, 0], [-85, 15]], w: 6 },
   ],
-  views: { hero: { eye: [160, 45, 190], at: [25, 6, 0] }, top: { eye: [30, 460, 220], at: [30, 0, 0] }, phone: { eye: [100, 35, 135], at: [25, 6, 0] } } };
+  views: { hero: { eye: [40, 16, -78], at: [100, 3, 5] }, top: { eye: [30, 460, 220], at: [30, 0, 0] }, phone: { eye: [100, 35, 135], at: [25, 6, 0] } } };
