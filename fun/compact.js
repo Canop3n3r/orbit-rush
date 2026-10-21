@@ -18,6 +18,8 @@ export function createCompact({ touch, onSpeedTap, onMarkers, onEngTap }) {
   const strip = document.createElement('div'); strip.id = 'strip';
   strip.innerHTML = `<div id="sL"><div class="c"><b>ALT km</b><i id="sAlt">—</i></div><button class="c" id="sSpdB" title="Speed reference: surface / orbit / target" aria-label="Speed reference"><b id="sSpdL">SRF m/s</b><i id="sSpd">—</i></button><div class="c ev"><b id="sEvL">AP · PE km</b><i id="sEv">—</i></div></div><div id="sR"></div>`;
   document.body.appendChild(strip);
+  const strip2 = document.createElement('div'); strip2.id = 'strip2'; // f5.4 (QA F1): periapsis, fuel left in this stage, stage n/N
+  strip2.innerHTML = '<div class="c"><b>PE km</b><i id="sPe">—</i></div><div class="c"><b>FUEL</b><i id="sFuel">—</i></div><div class="c"><b>STAGE</b><i id="sStg">—</i></div>'; document.body.appendChild(strip2);
   const hintS = document.createElement('div'); hintS.id = 'hintS'; hintS.setAttribute('role', 'status'); document.body.appendChild(hintS);
   // Engineer view in the compact language: 8 fixed slots under the strip (phones) or down the left edge (wide)
   const ENG = [['eMach', 'MACH'], ['eQ', 'Q kPa'], ['eG', 'G'], ['eVs', 'V/S m/s'], ['eDv', 'Δv m/s'], ['eFuel', 'FUEL'], ['eThr', 'THR'], ['eHeat', 'HEAT kW']];
@@ -50,7 +52,7 @@ export function createCompact({ touch, onSpeedTap, onMarkers, onEngTap }) {
   const last = {};
   const set = (id, txt) => { if (last[id] !== txt) { last[id] = txt; $(id).textContent = txt; } };
   function update(d) { // { alt, spd, spdL, evL, ev, hint, now }
-    set('sAlt', d.alt); set('sSpd', d.spd); set('sSpdL', d.spdL); set('sEvL', d.evL); set('sEv', d.ev);
+    set('sAlt', d.alt); set('sPe', d.pe ?? '—'); set('sFuel', d.fuel ?? '—'); set('sStg', d.stg ?? '—'); set('sSpd', d.spd); set('sSpdL', d.spdL); set('sEvL', d.evL); set('sEv', d.ev);
     const now = d.now ?? performance.now(), h = shortHint(d.hint);
     if (h !== hintText) { hintText = h; hintT = now; set('hintS', h); }
     const call = document.querySelector('#callout.show'), toast = $('toasts') && $('toasts').lastElementChild;

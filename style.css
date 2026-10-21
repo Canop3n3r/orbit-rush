@@ -666,7 +666,7 @@ details.bset{display:contents}details.bset[open]>summary{display:none}
 #spHud,#spHud1{position:static!important;background:none!important;padding:0!important;font:600 11px/1.3 monospace}
 .spT{display:flex;gap:6px;align-items:center;margin-bottom:2px;white-space:nowrap}
 .spG{display:grid;grid-template-columns:auto auto auto auto;gap:0 6px;white-space:nowrap}.spG span{opacity:.6}
-.pill{font:700 9px system-ui;letter-spacing:.04em;padding:2px 6px;border-radius:9px;background:#9cc3ff33;color:#cfe2ff}.pill.hot{background:#ff8a3c44;color:#ffd2a8}
+.pill{font:700 11px system-ui;letter-spacing:.04em;padding:2px 6px;border-radius:9px;background:#9cc3ff33;color:#cfe2ff}.pill.hot{background:#ff8a3c44;color:#ffd2a8}
 #spPane{touch-action:none}
 #split .spBtns{position:absolute;top:10px;right:10px;display:flex;gap:6px}
 #split.portrait .spBtns{top:10px}
@@ -852,3 +852,14 @@ body.photo #gcamBtn{display:none!important}
 #sitePick .spHint{font-size:11px;color:#7f93b3;text-align:center}#sitePick .spAct{text-align:center;margin-top:8px}
 /* f5.3 wordiness: keyboard hints only where there is a keyboard */
 @media (pointer:coarse){kbd{display:none}}
+
+/* f5.4 (QA F1/F3): second readout row (PE / FUEL / STAGE) under the strip; labels at 10 px+ */
+#strip2{position:fixed;z-index:24;top:calc(52px + env(safe-area-inset-top,0px));left:calc(6px + env(safe-area-inset-left,0px));display:flex;gap:4px;pointer-events:none}
+#strip2 .c{width:54px;height:34px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--glass);border:1px solid var(--line);border-radius:10px}
+#strip2 .c b{font:700 10px/1.1 var(--ui);letter-spacing:.4px;color:var(--dim);white-space:nowrap}
+#strip2 .c i{font:700 13px/1.15 var(--mono);font-style:normal;font-variant-numeric:tabular-nums;white-space:nowrap}
+#strip .c b{font-size:10px}
+body:not(.cx) #strip2,#hud.hidden ~ #strip2,body.photo #strip2,body.mapOn #strip2{display:none!important}
+body.cx:not(.touch) #strip2{top:64px;left:16px}
+/* f5.4 (QA G/#8): 🎥 GROUND never sits over the end card, menus or the gear sheet */
+body.endOn #gcamBtn,body.menuOn #gcamBtn,body.mapOn #gcamBtn,#dMenu:not(.hidden) ~ #gcamBtn,#hGearM:not(.hidden) ~ #gcamBtn{display:none!important}
