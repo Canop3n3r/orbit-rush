@@ -1,12 +1,12 @@
 // f5.2.3 payload lifecycle: fly the Heron-9 stack (swift base) to LEO by hand (AUTO off, STAGE presses), RELEASE the
 // payload (button or last STAGE press), it becomes a saved world object on rails; the spent stage burns retrograde,
 // de-orbits and that ends the flight as planned (not a failure). The world list survives a reload and propagates.
-import { Flight } from '../flight.js?v=f5.3b4';
-import * as P from '../physics.js?v=f5.3b4';
-import * as W from '../fun/world.js?v=f5.3b4';
-import * as L from '../fun/ladder.js?v=f5.3b4';
-import { SHOWROOM } from '../fun/showroom.js?v=f5.3b4';
-import { cloneDesign } from '../parts.js?v=f5.3b4';
+import { Flight } from '../flight.js?v=f5.3b5';
+import * as P from '../physics.js?v=f5.3b5';
+import * as W from '../fun/world.js?v=f5.3b5';
+import * as L from '../fun/ladder.js?v=f5.3b5';
+import { SHOWROOM } from '../fun/showroom.js?v=f5.3b5';
+import { cloneDesign } from '../parts.js?v=f5.3b5';
 let pass = 0, fail = 0; const ok = (c, m, x = '') => { if (c) { pass++; console.log('  ✔', m, x); } else { fail++; console.log('FAIL', m, x); } };
 const mem = new Map(), store = { getItem: k => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)) };
 const T0 = P.tFromDate(Date.UTC(2026, 9, 19, 15)), norm = a => { const l = Math.hypot(...a); return a.map(x => x / l); };
