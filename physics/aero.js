@@ -4,7 +4,7 @@
 // and acts at its station y_i; N = q * A * sum(CNa_i) * sin(a)|cos(a)| + crossflow (q A K sin^2 a).
 // Center of pressure = force-weighted station; aero torque = (CoP - CoM) x N. Fins aft => CoP behind the
 // CoM => restoring torque (weathervane stable). CoP ahead of the CoM => the rocket flips.
-import { clamp } from './vec.js?v=f5.4f';
+import { clamp } from './vec.js?v=f5.4g';
 // Zero-lift drag coefficient vs Mach: flat subsonic, transonic drag rise to a peak just above Mach 1,
 // then a supersonic/hypersonic falloff.
 export function cd0(M) {

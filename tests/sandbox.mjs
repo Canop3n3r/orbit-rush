@@ -17,4 +17,11 @@ for (const [body, si] of [['moon', 0], ['mars', 0], ['earth', 1]]) { const [, na
   const o = P.orbitOf(F.v), floor = body === 'earth' ? P.ORBIT_PE : offTargets(body).floor;
   ok(!F.flags.dead && F.body === body && o.e < 1 && o.pe > floor, `${name}: AUTO reaches orbit of ${b.name}`, `Ap ${(o.ap / 1e3).toFixed(0)} km Pe ${(o.pe / 1e3).toFixed(0)} km, ${t.toFixed(0)} s`);
 }
+// f5.4f: RTLS boosters from the cape sites land on the real Landing Zone One (~9-15 km away), not the 1.6 km fallback
+{ const { SHOWROOM } = await import('../fun/showroom.js'); const r = SHOWROOM.find(x => x.check === 'booster' && x.design.recovery === 'rtls');
+  for (const id of ['cape', 'capen']) { const p = SITES.earth.find(x => x[0] === id), o = siteOpts({ body: 'earth', id, name: p[1], lat: p[2], lon: p[3] }, latLonToGame);
+    const F = new Flight(r.design, {}, o); F.stagePress(); F.setAuto(true, true);
+    for (let t = 0; t < 2400; t += 0.05) { F.realT += 0.05; F.step(0.05); if (F.flags.dead) break; if (F.booster && F.booster.state !== 'flying' && F.flags.orbit) break; }
+    const b = F.booster, d = b && b.ef ? Math.acos(Math.min(1, P.V.dot(b.ef, o.lzEf))) * 6371000 : 1e9, far = Math.acos(Math.min(1, P.V.dot(o.lzEf, o.siteEf))) * 6371;
+    ok(b && b.state === 'landed' && d < 300 && far > 5, `${p[1]}: RTLS booster lands on Landing Zone One`, `${d.toFixed(0)} m off, LZ ${far.toFixed(1)} km from the pad`); } }
 process.exit(fail ? 1 : 0);

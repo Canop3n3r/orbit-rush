@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.4f';
-import * as C from './physics/patched.js?v=f5.4f';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.4f';
-import { designReusable } from './vehicles/reusable.js?v=f5.4f';
+import * as P from './physics.js?v=f5.4g';
+import * as C from './physics/patched.js?v=f5.4g';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.4g';
+import { designReusable } from './vehicles/reusable.js?v=f5.4g';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -175,7 +175,7 @@ export class Flight {
     this.design = cloneDesign(design); this.h = hooks; this.stats = designStats(design);
     const v = buildVehicle(design); v.earthRot = opts.earthRot !== false;
     if (design.spec) applySpec(v, design.spec);
-    v.body = opts.body || 'earth'; const siteEf = opts.siteEf || PAD_EF; this.siteEf = siteEf; this.sandbox = !!opts.sandbox; { const f = P.surfaceFrame(siteEf), a = 1600 / 6371000; this.lzEf = siteEf === PAD_EF ? LZ0.slice() : V.norm(V.add(V.scale(f.up, Math.cos(a)), V.scale(f.north, Math.sin(a)))); this.lz2Ef = siteEf === PAD_EF ? LZ20.slice() : V.norm(V.add(this.lzEf, V.scale(f.east, 420 / 6371000))); LZ_EF.splice(0, 3, ...this.lzEf); LZ2_EF.splice(0, 3, ...this.lz2Ef); } // landing zones follow the picked site // f5.4: launch from any body / site
+    v.body = opts.body || 'earth'; const siteEf = opts.siteEf || PAD_EF; this.siteEf = siteEf; this.sandbox = !!opts.sandbox; { const f = P.surfaceFrame(siteEf), a = 1600 / 6371000; this.lzEf = opts.lzEf ? opts.lzEf.slice() : siteEf === PAD_EF ? LZ0.slice() : V.norm(V.add(V.scale(f.up, Math.cos(a)), V.scale(f.north, Math.sin(a)))); this.lz2Ef = siteEf === PAD_EF ? LZ20.slice() : V.norm(V.add(this.lzEf, V.scale(f.east, 420 / 6371000))); } // landing zones follow the picked site // f5.4: launch from any body / site
     v.site = { ef: siteEf, lift: (opts.padZ ?? 0.4) + P.massProps(v).ycom, q0: P.padAttitude(siteEf) }; // r is the centre of mass
     const s0 = P.siteAt(v, 0); v.r = s0.r; v.v = s0.v; v.q = s0.q; v.clock = 0; v.ut = 0; v.auto = false; v.sas = 'stab';
     this.v = v; this.booster = null; this.boosters = []; this.ship = null; this.dvUsed = 0;
@@ -426,7 +426,9 @@ export class Flight {
       const d = P.makeBooster(v); d.stageIndex = v.cur; d.radial = v.stages[v.cur].radial || 0; this.shiftCom(() => { v.cur++; });
       if (d.radial && this.recovery === 'rtls' && !this.booster && d.stages[0].fuel > 0.3 && bh > 2000) { // f4: side boosters fly back to the landing zone
         d.ut = 0; d.manual = false; d.maxH = bh; d.stagedAlt = bh; d.rtls = true; d.canLand = true; this.booster = d; this.ship = { ef: LZ_EF.slice(), moved: true, lz: true, name: 'LZ-1' }; d.ship = this.ship; d.lzName = 'LZ-1';
+        this.ship.ef = this.lzEf.slice(); // f5.4f: the picked site's landing zone
         const parts = d.radial >= 2 ? this.splitBoosters(d) : [d]; this.boosters = parts;
+        if (parts[1] && parts[1].ship) parts[1].ship.ef = this.lz2Ef.slice();
         this.call('ship', this.ship); if (parts[1]) this.call('ship', parts[1].ship); this.call('stage', parts[0], parts);
         this.flags.stagedFuel = d.stages[0].fuel * parts.length; this.flags.stagedAlt = bh; this.toast(parts.length > 1 ? `BOOSTER SEP — side boosters A and B boosting back to LZ-1 and LZ-2` : `BOOSTER SEP — ${d.radial} side boosters boosting back to the landing zone`, '#fff'); return;
       }
@@ -442,7 +444,7 @@ export class Flight {
     this.shiftCom(() => { v.cur = 1; }); this.flags.stagedFuel = b.stages[0].fuel; this.flags.stagedAlt = bh;
     this.call('stage', b);
     const fuel = b.stages[0].fuel;
-    if (fuel > 0.3 && bh > 2000 && this.recovery === 'rtls') { b.rtls = true; b.canLand = true; this.ship = { ef: LZ_EF.slice(), moved: true, lz: true }; this.call('ship', this.ship); this.toast(`STAGE SEP — booster boosting back to the landing zone (${fuel.toFixed(1)} t)`, '#fff'); }
+    if (fuel > 0.3 && bh > 2000 && this.recovery === 'rtls') { b.rtls = true; b.canLand = true; this.ship = { ef: this.lzEf.slice(), moved: true, lz: true }; this.call('ship', this.ship); this.toast(`STAGE SEP — booster boosting back to the landing zone (${fuel.toFixed(1)} t)`, '#fff'); }
     else if (fuel > 0.3 && bh > 2000) {
       // the droneship waits where the auto-land profile (entry burn + landing burn) touches down
       const lc = landingCheck(b), ok = lc.lands; b.canLand = ok;

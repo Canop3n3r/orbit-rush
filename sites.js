@@ -16,13 +16,14 @@ export const SITES = {
   pluto: [['heart', 'Sputnik Planitia', 25, 175]], charon: [['mordor', 'North Cap', 80, 0]],
 };
 // Saturn's hazy moon: keyed by data (the Saturn moon with an atmosphere) so its preset sits with the others
-import { BODIES as _B } from './physics/solar.js?v=f5.4f';
+import { BODIES as _B } from './physics/solar.js?v=f5.4g';
 { const hazy = Object.values(_B).find(b => b.parent === 'saturn' && b.atm); if (hazy) SITES[hazy.id] = [['dunes', 'Equatorial Dunes', -10.6, 192.3, 'generic']]; }
 export const geoEf = (lat, lon) => { const a = lat * Math.PI / 180, b = lon * Math.PI / 180; return [Math.cos(a) * Math.cos(b), Math.cos(a) * Math.sin(b), Math.sin(a)]; };
 export function siteEf(body, lat, lon, earthMap) { return body === 'earth' && earthMap ? earthMap(lat, lon) : geoEf(lat, lon); }
 export function launchBodies(BODIES) { return Object.values(BODIES).filter(b => !GAS.has(b.id)).map(b => b.id); }
 // Flight options for a picked site { body, lat, lon, name }
 export function siteOpts(s, earthMap) { if (!s || !s.body) return {}; const o = { body: s.body, siteEf: siteEf(s.body, s.lat, s.lon, earthMap), sandbox: true, siteName: s.name };
+  const pre = (SITES[s.body] || []).find(x => x[0] === s.id); if (pre && pre[5]) o.lzEf = siteEf(s.body, pre[5][0], pre[5][1], earthMap); // f5.4f: RTLS to the site's real landing zone
   return o; }
 // the art complex for a picked site: a preset's own model, else the moon/mars pads near their base, else the generic pad
 export function artFor(s) { if (!s) return null; const p = (SITES[s.body] || []).find(x => x[0] === s.id); if (p && p[4]) return p[4]; return 'generic'; }
