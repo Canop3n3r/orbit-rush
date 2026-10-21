@@ -883,3 +883,15 @@ body.splitOn #strip2{display:none!important} /* f5.4i: in split the pane cards c
 /* f5.4j (Aaron, desktop 1024): the engineer tiles start under the PE / FUEL / STAGE row instead of under-lapping it */
 body.cx #engS{top:calc(92px + env(safe-area-inset-top,0px))}
 body.cx:not(.touch) #engS{top:104px}
+/* f5.4l (QA f5.4i #5): rocket-first Build on desktop. Simple view = parts + your rocket + a compact stage list; the stats
+   column (Δv table, paint, decal, name, "Will it fly?", tests, notes) and the CoM/CoP/CoT markers sit behind ⚙ Advanced */
+#bStages{display:flex;flex-direction:column;gap:3px;margin:0 0 8px}
+#bStages .bsR{display:grid;grid-template-columns:28px 1fr auto auto;gap:8px;align-items:center;padding:5px 8px;border-radius:9px;background:#ffffff0d;font:600 12px var(--ui,system-ui)}
+#bStages .bsR b{color:#9cc3ff}#bStages .bsR em{font-style:normal;font-variant-numeric:tabular-nums;color:#cfe3ff}#bStages .bsR em.bad{color:#ff7a7a}#bStages .bsR em.warn{color:#ffc46b}
+#bStages .bsT{font:600 12px var(--ui,system-ui);color:#9fb4d6;padding:2px 8px}
+.bAdvBtn{flex:0 0 auto;padding:0 14px;height:40px;border-radius:12px;border:1px solid var(--line,#2c4166);background:#16233a;color:#dfe9ff;font:700 13px var(--ui,system-ui);cursor:pointer}
+body:not(.touch):not(.buildAdv) .panel.builder{width:min(600px,calc(100vw - 24px))}
+body:not(.touch):not(.buildAdv) .bcols{grid-template-columns:230px 1fr}
+body:not(.touch):not(.buildAdv) .bcols>div:nth-child(3){display:none}
+body.touch #bStages,body.buildAdv #bStages{display:none}
+body:not(.touch):not(.buildAdv) .bTopRow #launchBtn{min-width:150px}body:not(.touch) .bTopRow .bMore{flex:0 0 auto}body:not(.touch) .bTopRow #launchBtn{flex:1}
