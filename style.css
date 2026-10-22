@@ -1011,3 +1011,15 @@ body:has(#dCtl:not(.hidden)) #badge{display:none!important}
 /* fx-3: the landing aid replaces Ap/Pe + Δv rows so the speed card does not grow over the navball */
 body.plLandOn #apPe,body.plLandOn #dvStages{display:none}
 @media (orientation:landscape){#mright #mAbort{position:absolute;grid-row:auto;right:calc(100% + 8px);bottom:0}} /* f5.6q: landscape ABORT beside the cluster, off the navball */
+/* f5.6u (QA f5.6s P1): phone split chrome = one small label per pane (tap = focus); no ⇄/✕ walls; landed card; orbit hides the empty upper card */
+body.touch #split #spCtl,body.touch #split #spClose,body.touch #split #spCtlU,body.touch #split #spCloseU{display:none!important}
+body.touch #split .spBtns button{font:700 10px/1 var(--ui,system-ui)!important;padding:4px 7px!important;min-height:0!important;min-width:0!important;background:#0b142499!important;border:1px solid #ffffff22!important;letter-spacing:.05em;opacity:.85}
+.spStrip .spT b{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.spStrip .spLand b{color:#7dffb0;letter-spacing:.06em}
+body.touch #split.uOrbit #spCardU,body.touch #split.uOrbit #spBtnsU{display:none!important}
+/* f5.6u (QA f5.6s P1 budgets): phone AUTO HUD = navball + AUTO/STAGE + one small ⛔/throttle cluster; no "×1", no THR words; orbit drops ⛔ + throttle */
+body.touch.autoOn #mAbort .mAbT{display:none}
+body.touch.autoOn #mAbort{font-size:15px!important;padding:4px 0!important;min-width:44px!important;min-height:36px!important}
+body.touch.autoOn #mThr b,body.touch.autoOn #mThr u{display:none!important}
+body.touch.warp1 #wVal{display:none!important}
+body.touch.inOrbit #mAbort,body.touch.inOrbit.autoOn #mThr{display:none!important}

@@ -3,7 +3,7 @@
 // a vertical throttle slider, a big STAGE button (the double-press guard lives in flight.js), and an
 // overflow menu (☰) for SAS modes, RCS, warp, map, chutes, deorbit, booster, effects, Learn, fullscreen.
 // Haptics (navigator.vibrate), Wake Lock while flying, safe areas are in style.css (env(safe-area-inset-*)).
-import { menuHTML, menuUpdate } from './fun/flightmenu.js?v=f5.6v';
+import { menuHTML, menuUpdate } from './fun/flightmenu.js?v=f5.6w';
 const qs = new URLSearchParams(location.search);
 export const isTouch = () => qs.has('touch') || (!qs.has('desktop') && matchMedia('(pointer: coarse)').matches);
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
@@ -20,7 +20,7 @@ export function createMobile(api) {
       <div data-l="pe"><b>Pe</b><span id="mPe">—</span></div><div data-l="q"><b id="mMqL">MACH</b><span id="mMq">—</span></div><div data-l="fuel"><b>FUEL</b><span id="mFuel">—</span></div><em>tap for all ▾</em></div>
     <div id="mtop"><span id="mScore" data-l="score">0</span><button id="mMap">MAP</button><button id="mMenuBtn" data-l="sas" aria-label="More controls">☰</button></div>
     <div id="mleft"><div id="mRoll"><i></i><span>ROLL</span></div><div id="mStick" data-l="pitch"><i></i></div></div>
-    <div id="mright"><button id="mAuto">AUTO</button><button id="mChute" class="hidden">CHUTE</button><button id="mStage">STAGE</button><button id="mAbort" data-p="Backspace" aria-label="Abort">⛔ ABORT</button>
+    <div id="mright"><button id="mAuto">AUTO</button><button id="mChute" class="hidden">CHUTE</button><button id="mStage">STAGE</button><button id="mAbort" data-p="Backspace" aria-label="Abort">⛔<span class="mAbT"> ABORT</span></button>
       <div id="mThr" data-l="thr"><i></i><b>THR</b><u>0%</u></div></div>
     <div id="mMenu" class="hidden"><div class="mh"><b>Menu</b><span id="mWarp" hidden></span><button id="mClose" aria-label="Close">✕</button></div>
       <div class="mg mTop">${menuHTML()}</div>
@@ -77,7 +77,7 @@ export function createMobile(api) {
     $('mAlt').textContent = d.alt; $('mSpd').textContent = d.spd; $('mAp').textContent = d.ap; $('mPe').textContent = d.pe;
     $('mMqL').textContent = d.mqL; $('mMq').textContent = d.mq; $('mMq').className = d.mqC || ''; $('mFuel').textContent = d.fuel; $('mScore').textContent = d.score;
     thr.querySelector('i').style.height = d.thr * 100 + '%'; thr.querySelector('u').textContent = Math.round(d.thr * 100) + '%';
-    $('mAuto').classList.toggle('on', d.auto); { const t = d.auto ? 'AUTO ON' : 'AUTO'; if ($('mAuto').textContent !== t) $('mAuto').textContent = t; } $('mChute').classList.toggle('hidden', !d.chute); menuUpdate($('mMenu'), { booster: !!d.booster, ret: /CANCEL/.test(d.home || '') });
+    $('mAuto').classList.toggle('on', d.auto); { const t = 'AUTO'; /* f5.6u (QA P1 budgets): the lit button + dot says ON; one word */ if ($('mAuto').textContent !== t) $('mAuto').textContent = t; } $('mChute').classList.toggle('hidden', !d.chute); menuUpdate($('mMenu'), { booster: !!d.booster, ret: /CANCEL/.test(d.home || '') });
     $('mRcs').classList.toggle('on', d.rcs); $('mFx').textContent = 'FX ' + d.fx; $('mWarp').textContent = d.warp;
     root.querySelectorAll('#mMenu [data-sas]').forEach(b => b.classList.toggle('on', b.dataset.sas === d.sas));
     $('mStage').classList.toggle('ready', d.stageReady);
