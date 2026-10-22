@@ -1,5 +1,5 @@
 // UI budget smoke (Playtest QA Bot) — step 1 of playtest/ui_ideal_path_2026-10-20.md (sections 6 + 8).
-//   node tests/smoke/ui_budget_smoke.cjs [baseUrl] [--strict] [--vp 390x844,844x390] [--shots dir] [--json out.json]
+//   node tests/smoke/ui_budget_smoke.cjs [baseUrl] [--report] [--vp 390x844,844x390] [--shots dir] [--json out.json]
 // Per screen it measures controls / words / UI coverage (and taps open→liftoff) and compares them with the spec budgets.
 // Counting rules = playtest/ui_audit_menus.cjs: only controls/text that are topmost at their centre count; UI% = 8 px grid
 // of points whose topmost element has an opaque-ish surface (or is a control). Default = report-only (always exit 0,
@@ -8,7 +8,7 @@ const PW = process.env.PW_CORE || (() => { try { return require.resolve('playwri
 const { chromium } = require(PW);
 const args = process.argv.slice(2), flag = k => { const i = args.indexOf(k); return i >= 0 ? (args.splice(i, 1), true) : false; };
 const opt = k => { const i = args.indexOf(k); return i >= 0 ? args.splice(i, 2)[1] : null; };
-const strict = flag('--strict'), shots = opt('--shots'), jsonOut = opt('--json');
+const report = flag('--report'), strict = flag('--strict') || !report, /* f5.6z (QA f5.6x): --strict (ratchet at UI_BASELINE 43) is the default; --report = report-only */ shots = opt('--shots'), jsonOut = opt('--json');
 const vps = (opt('--vp') || '390x844,844x390').split(',');
 const base = args[0] || 'https://canop3n3r.github.io/orbit-rush/';
 const GPU = ['--use-angle=swiftshader', '--ignore-gpu-blocklist'];
@@ -66,6 +66,7 @@ function extra() {
   return { endUp, endCover, hudVis, rocketSrc: rocket.src, launch, W: innerWidth, H: innerHeight, groups, builder, sandbox: sbKey ? { key: sbKey, on: !!st[sbKey] } : sbPk || (sbUi ? { key: 'ui', on: null } : null), sandboxLS: ls };
 }
 
+const browser2 = (br, phone, W, H) => br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } });
 async function runVp(br, vp) {
   const [W, H] = vp.split('x').map(Number), phone = Math.min(W, H) < 600, tag = phone ? (W < H ? 'pp' : 'pl') : 'd' + W;
   const ctx = await br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } });
@@ -122,6 +123,22 @@ async function runVp(br, vp) {
   await step('end_card', async () => { await ev(() => { window.__game.fun.photo.toggle(); window.__game.F.deorbit(); }); await wait(300); await ev(() => { const F = window.__game.F; for (let i = 0; i < 60 * 2700 && !F.flags.recovered && !F.flags.dead; i++) F.advance(1 / 60); }); await wait(1500);
     await ev(() => { const F = window.__game.F, e = document.getElementById('end'); if (e && (F.flags.recovered || F.flags.dead)) e.classList.remove('hidden'); }); }, 2500); // undo the map-step hide
   await ctx.close();
+  // f5.6z (QA f5.6x proposal): orbit split + orbit end card. Heron-9 (swift) on AUTO: the split while the booster lands / at orbit
+  // (upper card has Ap/Pe/Δv, one LANDED, no "ALT 0 ft"), then RELEASE → End flight → the orbit end card (no live HUD behind it).
+  const OS = {}; { const c2 = await browser2(br, phone, W, H), p2 = await c2.newPage(); p2.on('pageerror', e => perrs.push(e.message.split('\n')[0])); const ev2 = f => p2.evaluate(f), w2 = ms => p2.waitForTimeout(ms);
+    try { await p2.goto(base + (base.includes('?') ? '&' : '?') + 'noacademy&fx=low', { timeout: 300000 }); await p2.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await w2(1500);
+      await ev2(() => { const fr = document.getElementById('firstRun'); fr && fr.classList.add('hidden'); const G = window.__game, i = G.home().list.findIndex(r => r.id === 'swift'); G.homeSet(i); }); await w2(800);
+      await ev2(() => document.getElementById('hFly').click()); await w2(2500); await ev2(() => { const G = window.__game; G.press('KeyF'); if (!G.F.ignited) G.press('Space'); }); await w2(800);
+      const at = await ev2(() => { const F = window.__game.F; for (let i = 0; i < 60 * 1500; i++) { F.advance(1 / 60); if (F.booster && F.booster.state === 'landed') return 'booster landed'; if (F.flags.orbit && F.booster && F.booster.state === 'flying') return 'orbit'; } return 'timeout'; }); await w2(600);
+      OS.split = await ev2(() => { const sp = document.getElementById('split'), on = !!sp && !sp.classList.contains('hidden'), t = on ? sp.textContent : '', u = (document.getElementById('spHud1R') || {}).textContent || '';
+        return { on, upper: /Ap/.test(u) && /Δv/.test(u), landed: (t.match(/LANDED/g) || []).length, alt0: /ALT\s*-?0 ft/.test(t) }; }); OS.split.at = at;
+      if (shots) await p2.screenshot({ path: `${shots}/uib_${tag}_orbit_split.png`, timeout: 180000 });
+      await ev2(() => { const F = window.__game.F; for (let i = 0; i < 60 * 1500 && !(F.flags.orbit && F.v.guid === 'done'); i++) F.advance(1 / 60); }); await w2(1500);
+      await ev2(() => { const b = document.getElementById('relBtn'); b && b.click(); }); await w2(1200); await ev2(() => { const b = document.getElementById('relBtn'); b && /End flight/i.test(b.textContent) && b.click(); }); await w2(3000);
+      await ev2(() => { const e = document.getElementById('end'); if (e && e.classList.contains('hidden')) window.__game.press('Escape'); }); await w2(500);
+      await p2.evaluate(() => { for (const a of document.getAnimations()) try { a.finish(); } catch (e) {} });
+      OS.end = await ev2(measure); OS.end.x = await ev2(extra); if (shots) await p2.screenshot({ path: `${shots}/uib_${tag}_end_card_orbit.png`, timeout: 180000 });
+    } catch (e) { OS.err = e.message.split('\n')[0]; } finally { await c2.close(); } }
 
   const di = phone ? 0 : 1;
   const chk = (screen, metric, val, max) => rows.push({ vp, screen, metric, val, max, ok: val != null && val <= max });
@@ -135,6 +152,14 @@ async function runVp(br, vp) {
   if (!e || !e.endUp) skip('end_card', 'hud_hidden', 'end card not visible'); else {
     rows.push({ vp, screen: 'end_card', metric: 'hud_hidden', val: e.hudVis.length, max: 0, ok: e.hudVis.length === 0, info: e.hudVis.slice(0, 6).join(',') });
     rows.push({ vp, screen: 'end_card', metric: 'over_rocket', val: e.endCover ? 'yes' : 'no', max: 'no', ok: !e.endCover, info: 'rocket@' + e.rocketSrc }); }
+  if (OS.err || !OS.split) rows.push({ vp, screen: 'orbit_split', metric: 'measure', val: OS.err || 'missing', max: '-', ok: false });
+  else if (!OS.split.on) skip('orbit_split', 'upper_card', `split closed at ${OS.split.at}`);
+  else { rows.push({ vp, screen: 'orbit_split', metric: 'upper_card', val: OS.split.upper ? 'yes' : 'no', max: 'yes', ok: OS.split.upper, info: OS.split.at });
+    rows.push({ vp, screen: 'orbit_split', metric: 'landed_x', val: OS.split.landed, max: 1, ok: OS.split.landed <= 1 });
+    rows.push({ vp, screen: 'orbit_split', metric: 'alt_0ft', val: OS.split.alt0 ? 'yes' : 'no', max: 'no', ok: !OS.split.alt0 }); }
+  if (!OS.end || !OS.end.x || !OS.end.x.endUp) rows.push({ vp, screen: 'end_card_orbit', metric: 'shown', val: 'no', max: 'yes', ok: false, info: OS.err || 'RELEASE → End flight gave no end card' });
+  else { chk('end_card_orbit', 'controls', OS.end.controls, 3); chk('end_card_orbit', 'words', OS.end.words, 6);
+    rows.push({ vp, screen: 'end_card_orbit', metric: 'hud_hidden', val: OS.end.x.hudVis.length, max: 0, ok: OS.end.x.hudVis.length === 0, info: OS.end.x.hudVis.slice(0, 6).join(',') }); }
   const h = X('home');
   if (!h || !h.launch) rows.push({ vp, screen: 'home', metric: 'launch', val: 'none', max: '-', ok: false, info: 'no LAUNCH/FLY control visible' }); else {
     const portrait = h.H > h.W, inZone = portrait ? h.launch.cy >= h.H * 0.75 : (h.launch.cy >= h.H * 0.5 && h.launch.cx >= h.W * 0.5);
