@@ -1944,8 +1944,8 @@ function layoutSplitCards(nb, fb) {
 // Ap / Pe with their T-times and Δv (ft/s) on its right. Nothing sits in the middle of a pane, so the craft stays clear.
 function spStrip(id, label, ph, hot, mps, alt, c, cur, upper, landed) { let o = null, tAp = NaN, tPe = NaN; try { o = P.orbitOf(c); tAp = P.timeToApV(c); tPe = C.timeToPe(c.r, c.v, P.muOf(c)); } catch (e) { }
   const pad = upper && (v.clamped || !F.ignited), ap = o ? apsisLine('ap', o, tAp, SIM_SPEED, pad) : { lab: 'Ap', h: '—', t: '' }, pe = o ? apsisLine('pe', o, tPe, SIM_SPEED, pad) : { lab: 'Pe', h: '—', t: '' };
+  if (landed) { setHTML(id, `<div class="spT"><b>${label}</b></div>`); setHTML(id + 'R', '<div class="spLand"><b>✔ LANDED</b></div>'); return; } // f5.6z (QA f5.6x): one LANDED, no 0 mph / ALT 0 ft // f5.6u (QA P1): a landed booster has no Ap/Δv worth reading
   setHTML(id, `<div class="spT"><b>${label}</b><span class="pill ${hot ? 'hot' : ''}">${ph}</span></div><div><b>${fmtMph(mps)}</b></div><div><span>ALT</span> <b>${fmtHeight(alt)}</b></div>`);
-  if (landed) { setHTML(id + 'R', '<div class="spLand"><b>✔ LANDED</b></div>'); return; } // f5.6u (QA P1): a landed booster has no Ap/Δv worth reading
   setHTML(id + 'R', `<div><span>Ap</span> <b>${ap.h}</b> <i>${ap.t}</i></div><div><span>Pe</span> <b>${pe.h}</b> <i>${pe.t}</i></div><div><span>Δv</span> <b>${craftDvOf(c, cur)}</b></div>`); }
 const apPill = ph => { const p = (ph || '').toLowerCase(); return /boost/.test(p) ? 'BOOSTBACK' : /entry/.test(p) ? 'ENTRY BURN' : /landing|controlled/.test(p) ? 'LANDING BURN' : /glide|fin/.test(p) ? 'GRID-FIN GLIDE' : /touch/.test(p) ? 'TOUCHDOWN' : /coast/.test(p) ? 'COAST' : (ph || 'AUTO').toUpperCase(); };
 // f4 mini navball: sky/ground split by the nose pitch, roll-free; prograde marker from the velocity
