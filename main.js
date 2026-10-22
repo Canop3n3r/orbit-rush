@@ -1,60 +1,60 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.5d';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.6a';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.5d';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.5d';
-import * as C from './physics/patched.js?v=f5.5d';
+import * as P from './physics.js?v=f5.6a';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.6a';
+import * as C from './physics/patched.js?v=f5.6a';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.5d';
-import { createCareerUI } from './fun/career-ui.js?v=f5.5d';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.5d';
-import { createSolarMap } from './solarmap.js?v=f5.5d';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.5d';
-import { FX } from './fx.js?v=f5.5d';
-import { createAcademy } from './academy-ui.js?v=f5.5d';
-import { createMobile, isTouch } from './mobile.js?v=f5.5d';
-import { localize } from './wording.js?v=f5.5d';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.5d';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.5d';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.6a';
+import { createCareerUI } from './fun/career-ui.js?v=f5.6a';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.6a';
+import { createSolarMap } from './solarmap.js?v=f5.6a';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.6a';
+import { FX } from './fx.js?v=f5.6a';
+import { createAcademy } from './academy-ui.js?v=f5.6a';
+import { createMobile, isTouch } from './mobile.js?v=f5.6a';
+import { localize } from './wording.js?v=f5.6a';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.6a';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.6a';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.5d';
-import * as GX from './gfx/gfx.js?v=f5.5d';
-import { Director, MISSIONS } from './fun/director.js?v=f5.5d';
-import * as PR from './fun/progress.js?v=f5.5d';
-import * as WORLD from './fun/world.js?v=f5.5d';
-import { stageEngines, nozzles, nozzleR, LOOK as PLOOK } from './fun/exhaust.js?v=f5.5d';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.5d';
-import { createAudio } from './fun/audio.js?v=f5.5d';
-import { createCompact } from './fun/compact.js?v=f5.5d';
-import { attachNavStick } from './fun/navstick.js?v=f5.5d';
-import { createPlainHud, apsisLine, stageDvs } from './fun/plainhud.js?v=f5.5d';
-import { createHome } from './fun/home.js?v=f5.5d';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.5d';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.5d';
-import { createFunUI } from './fun/ui.js?v=f5.5d';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.5d';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.5d';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.5d';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.5d';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.5d';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.5d';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.5d';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.6a';
+import * as GX from './gfx/gfx.js?v=f5.6a';
+import { Director, MISSIONS } from './fun/director.js?v=f5.6a';
+import * as PR from './fun/progress.js?v=f5.6a';
+import * as WORLD from './fun/world.js?v=f5.6a';
+import { stageEngines, nozzles, nozzleR, LOOK as PLOOK } from './fun/exhaust.js?v=f5.6a';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.6a';
+import { createAudio } from './fun/audio.js?v=f5.6a';
+import { createCompact } from './fun/compact.js?v=f5.6a';
+import { attachNavStick } from './fun/navstick.js?v=f5.6a';
+import { createPlainHud, apsisLine, stageDvs } from './fun/plainhud.js?v=f5.6a';
+import { createHome } from './fun/home.js?v=f5.6a';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6a';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.6a';
+import { createFunUI } from './fun/ui.js?v=f5.6a';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.6a';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.6a';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.6a';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.6a';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.6a';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.6a';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.6a';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.5d';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.5d';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.5d';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.5d';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.6a';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.6a';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.6a';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.6a';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -298,7 +298,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.5d').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.6a').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -772,7 +772,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.5d', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.6a', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -839,7 +839,7 @@ const hooks = {
   soi: (from, to) => { if (!PROG.visited.includes(to)) { PROG.visited.push(to); PR.save(localStorage, PROG); fun.reveal(to); } else fun.call('🪐', 'Entering ' + P.BODIES[to].name + ' space', '#9cc3ff'); },
   chute: st => { if (st === 'failed') for (let k = 0; k < 30; k++) smoke.spawn(V.sub(v.r, V.scale(P.noseOf(v), -stackL() * 0.5)), jit(v.v, 12), 2, 1, 4, 0xff7a3c, null, 0.6); },
   recovered: () => { const up = V.norm(v.r); for (let k = 0; k < 60; k++) smoke.spawn(v.r, V.add(siteVel(v), V.add(V.scale(up, 4 + Math.random() * 10), [rnd(10), rnd(10), rnd(10)])), 2 + Math.random() * 2, 2, 9, 0xeaf4ff, null, 0.9); },
-  end: (ms, cond) => later(() => { if (opSess && !F.flags.dead) return; if (!F.flags.dead && !F.released && F.payloadPart() && F.alt > 100000 && F.body === 'earth') { updateEndFlightBtn(); return; } /* f5.4 (QA D4): a payload in orbit waits for 🛰 RELEASE, then ■ End flight shows the card */ if (cond()) { // QA f5a.2: an ops contract owns its ending (no card at orbit mid-contract)
+  end: (ms, cond) => later(() => { if (!F.flags.dead && !F.flags.deorbited) { updateEndFlightBtn(); return; } /* f5.6 (Aaron): reaching orbit / landing / any goal never ends the flight or pops a card; only destruction does (or the player picks Home) */ if (opSess && !F.flags.dead) return; if (!F.flags.dead && !F.released && F.payloadPart() && F.alt > 100000 && F.body === 'earth') { updateEndFlightBtn(); return; } /* f5.4 (QA D4): a payload in orbit waits for 🛰 RELEASE, then ■ End flight shows the card */ if (cond()) { // QA f5a.2: an ops contract owns its ending (no card at orbit mid-contract)
     if (academy && academy.active) academy.onEnd(); else showEnd(); } }, ms),
 };
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
