@@ -100,3 +100,7 @@ export function fillLight(day, k, sunK, phone = false) {
   const env = Math.max(phone ? 0.45 : 0.35, (0.35 + 0.65 * day) * (1 - 0.6 * k) * (0.3 + 0.7 * sunK));
   return { hemi, env };
 }
+
+// fx-4: plume shells fade by |n·v|^k at their silhouettes (fun/plumemat.js runs this on the GPU)
+export const SOFT_K = { glow: 2.2, plume: 1.4, bell: 2.6 };
+export const edgeFade = (nDotV, k) => Math.pow(Math.min(1, Math.abs(nDotV)), k);

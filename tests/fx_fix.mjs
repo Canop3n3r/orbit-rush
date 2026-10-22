@@ -49,4 +49,7 @@ ok(landAid(5000, -50, 20, 9.8) === null && landAid(500, 10, 20, 9.8) === null, '
 // 12. fx-3: airflow streaks fade out with altitude (no white streaks at 48 km)
 ok(FX.flowStreaks(9000, 1.2, 10000) > 0.9 && FX.flowStreaks(9000, 1.2, 48000) === 0 && FX.flowStreaks(9000, 1.2, 27000) < FX.flowStreaks(9000, 1.2, 20000), 'flow streaks fade above ~22 km, gone by 32 km');
 ok(FX.fxState({ q: 9000, mach: 3, machShown: 3, alt: 48000 }).flow === 0, 'fxState: no streaks at 48 km');
+// 13. fx-4: plume shells fade at their silhouette (no hard-edged cones / domes)
+{ const { edgeFade, SOFT_K } = FX;
+  ok(edgeFade(1, SOFT_K.glow) === 1 && edgeFade(0.1, SOFT_K.glow) < 0.01 && edgeFade(-0.5, SOFT_K.bell) === edgeFade(0.5, SOFT_K.bell), 'plume edge fade: full face-on, ~0 at grazing silhouettes, both sides'); }
 console.log(`fx_fix: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
