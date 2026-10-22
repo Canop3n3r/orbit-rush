@@ -8,7 +8,7 @@
 // shade, a cloud/haze sky, a launch tower or mount beside the vehicle and ground detail around a right-sized pad.
 import * as THREE from 'three/webgpu';
 import * as GX from '../gfx.js?v=f2';
-import { VEHICLES, build, setLegs, dispose } from './vehicles.js?v=f5.6c';
+import { VEHICLES, build, setLegs, dispose } from './vehicles.js?v=f5.6e';
 const q = new URLSearchParams(location.search);
 const renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL: q.has('webgl') });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = q.has('gameexp') ? 1.05 : 0.9;

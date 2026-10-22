@@ -967,3 +967,7 @@ body:not(.touch) #ignite{top:calc(70px + env(safe-area-inset-top,0px));font-size
 #mMenu .abort{color:#ff9b9b!important;border-color:#ff6262!important}
 body.touch.autoOn #nav,body.touch.autoOn #mThr{display:none!important}
 body.touch.splitOn #gcamBtn{top:auto!important;bottom:calc(10px + var(--sab))!important;right:auto!important;left:calc(50% + 10px)!important}
+/* f5.6e (QA f5.5d): menus always on top of every HUD piece; portrait split = two panes, small cards */
+#mMenu,#dMenu{z-index:95!important}body.menuOn #plain,body.menuOn #mright,body.menuOn #dCtl{visibility:hidden}
+#spPane2{display:none!important}
+@media (orientation:portrait){body.splitOn #relBtn{transform:scale(.85);transform-origin:left bottom}.spBall{width:56px!important;height:56px!important}#spHud,#spHud1{font-size:11px!important}}

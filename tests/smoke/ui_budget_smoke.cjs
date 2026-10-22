@@ -18,7 +18,6 @@ const B = {
   first_run:    { controls: 5, words: 3, ui: [12, 8], note: '0 extra screens: must already be Home' },
   home:         { controls: 5, words: 3, ui: [12, 8] },
   settings:     { controls: 8, words: 30, ui: [70, 70] },
-  missions_hub: { controls: 11, words: 20, ui: [35, 25] },
   build:        { controls: 14, words: 12, ui: [35, 25], below: 0 },
   hud_auto:     { controls: 5, words: 6, ui: [10, 6] },
   orbit_toast:  { words: 5, ui: [6, 6] },
@@ -107,7 +106,6 @@ async function runVp(br, vp) {
   const pickerCards = await ev(() => [...document.querySelectorAll('#picker .pkC')].filter(e => e.offsetParent).length).catch(() => 0); // f5.3b7: did ▦ actually open the picker?
   await ev(() => { const c = document.getElementById('pkClose'); c && c.offsetParent && c.click(); });
   await step('settings', async () => { await ev(() => document.getElementById('hGear').click()); await wait(600); await ev(() => { const b = [...document.querySelectorAll('#hGearM button')].find(b => /settings/i.test(b.textContent)); b && b.click(); }); }, 1000);
-  await step('missions_hub', async () => { await hide(); await ev(() => { const g = document.getElementById('hGearM'); g && g.offsetParent && document.getElementById('hGear').click(); document.getElementById('hnMis').click(); }); }, 1200);
   // f5.1f: the Build tab only shows with Sandbox on; otherwise go the real way: ▦ picker → Sandbox switch → 🔧 Build your own
   await step('build', async () => { await hide(); const tab = await ev(() => { const b = document.getElementById('hnBuild'); return !!(b && b.offsetParent); });
     if (tab) await ev(() => document.getElementById('hnBuild').click());
@@ -142,7 +140,7 @@ async function runVp(br, vp) {
     const portrait = h.H > h.W, inZone = portrait ? h.launch.cy >= h.H * 0.75 : (h.launch.cy >= h.H * 0.5 && h.launch.cx >= h.W * 0.5);
     rows.push({ vp, screen: 'home', metric: 'launch_h', val: h.launch.h, max: '≥64', ok: h.launch.h >= 64, info: '#' + h.launch.id });
     rows.push({ vp, screen: 'home', metric: 'thumb_zone', val: inZone ? 'in' : 'out', max: 'in', ok: inZone, info: portrait ? 'bottom 25%' : 'bottom-right quadrant' }); }
-  const gs = ['home', 'picker', 'missions_hub', 'build'].flatMap(s => (X(s) && X(s).groups || []).map(g => ({ s, ...g })));
+  const gs = ['home', 'picker', 'build'] /* f5.6e: missions_hub retired (no Missions UI) */.flatMap(s => (X(s) && X(s).groups || []).map(g => ({ s, ...g })));
   if (!gs.length) skip('picker', 'group_words', 'no company groups in UI yet ([data-company]/.co-chip)');
   else { const worst = gs.reduce((a, b) => (b.w > a.w ? b : a)); rows.push({ vp, screen: 'picker', metric: 'group_words', val: worst.w, max: 2, ok: worst.w <= 2, info: `${gs.length} groups; worst "${worst.t.slice(0, 24)}" on ${worst.s}` }); }
   const sb = ['settings', 'picker'].map(s => X(s) && X(s).sandbox).find(Boolean), hb = X('home'), pb = X('picker');
