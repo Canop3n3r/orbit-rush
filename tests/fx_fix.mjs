@@ -12,6 +12,7 @@ ok(FX.sheathAlpha(0.3, +800) === 0, 'no sheath on ascent at moderate plasma');
 ok(FX.sheathAlpha(0.04, -500) === 0, 'no sheath below the visible threshold on descent');
 ok(FX.sheathAlpha(0.8, -3000) > 0.3, 'strong sheath on a real reentry');
 ok(FX.sheathAlpha(0.9, +100) > 0, 'very hot ascent can still glow');
+ok(FX.plasmaGate(0.3, +1200) === 0 && FX.plasmaGate(0.3, -800) === 1 && FX.plasmaGate(0.3) === 1, 'fx-7: no plasma wake/bow on a climb (QA f5.6x maroon wedge)');
 // 2. hull halo: no faint red cylinder from tiny heating
 ok(FX.haloAlpha(0.05) === 0, 'no halo for k=0.05'); ok(FX.haloAlpha(0.6) > 0.2, 'halo when the hull really glows');
 // 3. flame puffs only in thick air (no white/orange puffs in vacuum)

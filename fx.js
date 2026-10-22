@@ -8,7 +8,7 @@
 //  - Shock cone / bow shock (Mach angle, standoff), compressed-air glow, transonic vapor cone (condensation collar),
 //    reentry plasma (bow cap, windward body glow, wake), coloured by stagnation temperature.
 import * as THREE from 'three/webgpu';
-import { fxState, QUALITY, shockStandoff } from './fxmap.js?v=f5.7a';
+import { fxState, QUALITY, shockStandoff, plasmaGate } from './fxmap.js?v=f5.7b';
 const T = THREE.TSL;
 const { Fn, If, instancedArray, instancedBufferAttribute, instanceIndex, uniform, vec3, vec4, float, hash, length, normalize, dot, cross, max, mix,
   smoothstep, exp, sqrt, clamp, abs, sin, cos, uv, positionLocal, normalLocal, normalView, positionView, pow, oneMinus, texture, time, vec2 } = T;
@@ -219,7 +219,7 @@ export class FX {
       this.vapor.scale.set(R, len, R); this.vaporU.inten.value = Math.min(1, s.vapor * 1.6);
     }
     // --- reentry plasma ---
-    const pl = s.plasma, col = s.plasmaColor;
+    const pl = s.plasma * plasmaGate(s.plasma, ctx.vUp), col = s.plasmaColor;
     this.bow.visible = pl > 0.01; this.wake.visible = Q.wake && pl > 0.03; this.shell.visible = Q.plasmaShell && pl > 0.02;
     if (this.bow.visible) {
       const blunt = L < 3 * ctx.d, H = blunt ? L * 1.6 + 2 : L * 1.25, tn = Math.max(blunt ? 1.5 * R / H : 0, Math.min(0.5, Math.tan(s.machAngle) * 1.3), 0.06);

@@ -1,6 +1,6 @@
 // Compact flight HUD (f1u): thin edge strips, one short self-hiding text line, everything secondary in one drawer.
 // It re-parents existing controls (warp arrows, MAP, ☰, TAKE OVER, Pilot buttons, desktop #ctl) so their handlers keep working.
-import { menuHTML, menuUpdate, toggleFull } from './flightmenu.js?v=f5.7a';
+import { menuHTML, menuUpdate, toggleFull } from './flightmenu.js?v=f5.7b';
 const $ = id => document.getElementById(id);
 // f2: hints are whole phrases, never cut mid-word with "…". Keep the first clause; if it still runs past
 // two lines (~76 chars) drop trailing comma-clauses, then trailing words at a word boundary.

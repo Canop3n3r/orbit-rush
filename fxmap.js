@@ -83,6 +83,8 @@ export function fxState(tel) {
 }
 // fx-1 (QA f5.5d): gates and shaping for the flight visuals.
 // Plasma sheath: only on a real reentry (descending) or a very hot ascent, never as a faint dome on a normal climb.
+// fx-7 (QA f5.6x): the plasma bow/wake/shell only on a descent (or a truly hot ascent): a Mach-5 climb at 48 km drew a maroon wedge from the nose wider than the stage
+export const plasmaGate = (pl, vUp) => (vUp === undefined || vUp < 0 ? 1 : smooth(0.75, 1.0, pl));
 export const sheathAlpha = (pl, vUp) => (vUp < 0 ? smooth(0.08, 0.5, pl) : smooth(0.75, 1.0, pl) * 0.6);
 // Hull heat halo: off until the skin really glows.
 export const haloAlpha = k => smooth(0.12, 0.6, k);

@@ -1,63 +1,63 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.7a';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.7b';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.7a';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.7a';
-import * as C from './physics/patched.js?v=f5.7a';
+import * as P from './physics.js?v=f5.7b';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.7b';
+import * as C from './physics/patched.js?v=f5.7b';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.7a';
-import { createCareerUI } from './fun/career-ui.js?v=f5.7a';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.7a';
-import { createSolarMap } from './solarmap.js?v=f5.7a';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.7a';
-import { FX } from './fx.js?v=f5.7a';
-import { createAcademy } from './academy-ui.js?v=f5.7a';
-import { createMobile, isTouch } from './mobile.js?v=f5.7a';
-import { localize } from './wording.js?v=f5.7a';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.7a';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.7a';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.7b';
+import { createCareerUI } from './fun/career-ui.js?v=f5.7b';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.7b';
+import { createSolarMap } from './solarmap.js?v=f5.7b';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.7b';
+import { FX } from './fx.js?v=f5.7b';
+import { createAcademy } from './academy-ui.js?v=f5.7b';
+import { createMobile, isTouch } from './mobile.js?v=f5.7b';
+import { localize } from './wording.js?v=f5.7b';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.7b';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.7b';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.7a';
-import { halfPose, buildHalves } from './fun/fairing.js?v=f5.7a';
-import { guardToasts } from './fun/toastzone.js?v=f5.7a';
-import * as GX from './gfx/gfx.js?v=f5.7a';
-import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.7a';
-import * as PR from './fun/progress.js?v=f5.7a';
-import * as WORLD from './fun/world.js?v=f5.7a';
-import { stageEngines, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.7a';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.7a';
-import { createAudio } from './fun/audio.js?v=f5.7a';
-import { createCompact } from './fun/compact.js?v=f5.7a';
-import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.7a';
-import { softPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.7a';
-import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.7a';
-import { createHome } from './fun/home.js?v=f5.7a';
-import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.7a';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.7a';
-import { createFunUI } from './fun/ui.js?v=f5.7a';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.7a';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.7a';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.7a';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.7a';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.7a';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.7a';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.7a';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.7b';
+import { halfPose, buildHalves } from './fun/fairing.js?v=f5.7b';
+import { guardToasts } from './fun/toastzone.js?v=f5.7b';
+import * as GX from './gfx/gfx.js?v=f5.7b';
+import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.7b';
+import * as PR from './fun/progress.js?v=f5.7b';
+import * as WORLD from './fun/world.js?v=f5.7b';
+import { stageEngines, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.7b';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.7b';
+import { createAudio } from './fun/audio.js?v=f5.7b';
+import { createCompact } from './fun/compact.js?v=f5.7b';
+import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.7b';
+import { softPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.7b';
+import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.7b';
+import { createHome } from './fun/home.js?v=f5.7b';
+import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.7b';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.7b';
+import { createFunUI } from './fun/ui.js?v=f5.7b';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.7b';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.7b';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.7b';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.7b';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.7b';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.7b';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.7b';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.7a';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.7a';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.7a';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.7a';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.7b';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.7b';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.7b';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.7b';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -301,7 +301,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.7a').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.7b').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -797,7 +797,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.7a', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.7b', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -1627,7 +1627,7 @@ function updateFX(rdt, pdt, base, nose, isMap) {
   rocketG.updateMatrixWorld(true); camBody.copy(camera.position); rocketG.worldToLocal(camBody);
   const list = g.list.filter(e => e.kind !== 'fins'), top = list[list.length - 1];
   const shoulderY = !top ? g.L : top.kind === 'fairing' ? top.y + top.h - 1.6 * top.d : top.y + top.h * 0.3;
-  const fs = fx.update(rdt, { tel, L: g.L, d: g.d, shoulderY, cam: camBody, on }, renderer); lastFx = fs;
+  const fs = fx.update(rdt, { tel, L: g.L, d: g.d, shoulderY, cam: camBody, on, vUp: V.dot(v.v, V.norm(v.r)) - V.dot(siteVel(v), V.norm(v.r)) }, renderer); lastFx = fs;
   // incandescent skins: hot parts glow from ~800 K (Draper point) to white-hot
   for (let j = v.cur; j < SG.length; j++) for (const hp of SG[j].userData.hot) {
     const T = hp.part && hp.part.Ts || 300, k = skinGlow(T);
@@ -2545,8 +2545,8 @@ function plumeAudit() {
   const live = new Set(SG.slice(v.cur));
   scene.traverse(o => { const u = o.userData; if (!u || !u.glow || !u.core || !o.visible) return; let vis = true; for (let p = o; p; p = p.parent) if (!p.visible) vis = false; if (!vis) return;
     o.getWorldPosition(wp); let dm = 1e9; for (const e of eng) dm = Math.min(dm, Math.hypot(wp.x - e.x, wp.z - e.z, 0) + 0 * e.y); const lat = Math.min(...eng.map(e => { const d = wp.clone().sub(e); const ax = new THREE.Vector3(0, 1, 0).applyQuaternion(rocketG.quaternion); return d.sub(ax.multiplyScalar(d.dot(ax))).length(); }));
-    let g = o; while (g.parent && !live.has(g) && g !== scene) g = g.parent; const own = live.has(g) || (booster && booster.mesh && (() => { let x = o; while (x) { if (x === booster.mesh) return true; x = x.parent; } return false; })());
-    out.plumes.push({ lat: +lat.toFixed(2), own }); if (!own || lat > Math.max(1.5, u.w * 2)) out.bad.push({ lat, own }); });
+    let g = o; while (g.parent && !live.has(g) && g !== scene) g = g.parent; const onB = !live.has(g) && [booster, booster2].some(bq => bq && bq.mesh && (() => { let x = o; while (x) { if (x === bq.mesh) return true; x = x.parent; } return false; })()), own = live.has(g) || onB; // fx-7: the booster's own flame is measured against the booster, not the upper's engines
+    out.plumes.push({ lat: +lat.toFixed(2), own, booster: onB }); if (!own || (!onB && lat > Math.max(1.5, u.w * 2))) out.bad.push({ lat, own }); });
   out.engines = eng.length;
   const sh = fx.shock, vp = fx.vapor; out.shock = sh.visible ? +Math.max(sh.scale.x, sh.scale.y).toFixed(1) : 0; out.vapor = vp.visible ? +Math.max(vp.scale.x, vp.scale.y).toFixed(1) : 0;
   out.flow = fx.flow && fx.flow.mesh.visible; out.L = P.stackGeom(v).L;
