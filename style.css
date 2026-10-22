@@ -911,3 +911,6 @@ body:not(.home) #hMenu{display:none}
 /* 844x390: smaller world chips in the 📍 picker */
 @media (orientation:landscape) and (max-height:500px){#sitePick .spBodies{gap:4px}#sitePick .spBodies button{padding:3px 7px!important;font-size:11px!important;min-height:26px!important;border-radius:9px}}
 #home #hCard{bottom:calc(16px + env(safe-area-inset-bottom,0px))}@media (min-width:900px) and (min-height:600px){#home #hCard{bottom:28px}}@media (orientation:landscape) and (max-height:500px){#home #hCard{bottom:auto}}
+
+/* f5.5a (Aaron): sim, not a mission game: no mission / career entry points anywhere in the UI */
+#hMis,#hnMis,#hnCareer,#missionsBtn,#nextMisBtn,#opTask,#pObj{display:none!important}

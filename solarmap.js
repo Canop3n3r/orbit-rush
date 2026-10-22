@@ -6,11 +6,11 @@
 // Markers and node handles are HTML (crisp, finger-sized). Mouse and touch.
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as GX from './gfx/gfx.js?v=f5.4n';
-import * as P from './physics.js?v=f5.4n';
-import * as C from './physics/patched.js?v=f5.4n';
-import { fmtDur } from './flight.js?v=f5.4n';
-import { layoutHandles } from './maplayout.js?v=f5.4n';
+import * as GX from './gfx/gfx.js?v=f5.5a';
+import * as P from './physics.js?v=f5.5a';
+import * as C from './physics/patched.js?v=f5.5a';
+import { fmtDur } from './flight.js?v=f5.5a';
+import { layoutHandles } from './maplayout.js?v=f5.5a';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
 const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : a >= 1e7 ? (m / 1e3).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' km' : a >= 1e4 ? (m / 1e3).toFixed(1) + ' km' : m.toFixed(0) + ' m'; };
