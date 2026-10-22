@@ -2,16 +2,16 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=f5.6j';
-import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.6j';
-import { elements, timeToAp } from './kepler.js?v=f5.6j';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.6j';
-import { massOf } from './vehicle.js?v=f5.6j';
-import { atmosphere } from './atmosphere.js?v=f5.6j';
-import { cd0 } from './aero.js?v=f5.6j';
-import { hoverslamSolve } from './hoverslam.js?v=f5.6j';
-import { sampleAscent } from '../timelines/ascent.js?v=f5.6j';
-import { BODIES, atmTop } from './solar.js?v=f5.6j';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f5.6k';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.6k';
+import { elements, timeToAp } from './kepler.js?v=f5.6k';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.6k';
+import { massOf } from './vehicle.js?v=f5.6k';
+import { atmosphere } from './atmosphere.js?v=f5.6k';
+import { cd0 } from './aero.js?v=f5.6k';
+import { hoverslamSolve } from './hoverslam.js?v=f5.6k';
+import { sampleAscent } from '../timelines/ascent.js?v=f5.6k';
+import { BODIES, atmTop } from './solar.js?v=f5.6k';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -233,6 +233,7 @@ export function boosterAutopilot(b, dtHint = 0.02) {
   let n = b._hs ? b.n : 1, sol = pick(n);
   if (!b._hs && (sol.lowTWR || sol.dStop > 0.8 * hp) && b.nMax > 1) { const s3 = pick(Math.min(3, b.nMax)); if (s3.ignite || sol.lowTWR) { n = Math.min(3, b.nMax); sol = s3; } }
   // late in a 3-engine burn drop to the centre engine once one engine can finish it at ≤ THR_AIM
+  if (b._hs && (b.nMax || 1) > n && sol.aReq > sol.aMax * 0.95) { n = Math.min(b.nMax, n + 2); sol = pick(n); } // fx-2: a burn that runs out of margin lights more engines (heavy boosters landed hard at 14 m/s)
   if (b._hs && n > 1) { const s1 = hoverslamSolve({ h: hp, vDown, m, Tmax: T1, thrMin: 0.4, g, aDrag, burning: true, lit: true }); if (s1.aReq < s1.aMax * 0.85) { n = 1; sol = s1; } }
   // landing-burn timing: the solve above only counts (half) today's drag, so high up in thin air it would light far too early
   // (rideshare RTLS lit at ~30 km). Look ahead along a drag-only fall and wait for the altitude where the solve, fed the
