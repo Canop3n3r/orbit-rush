@@ -491,7 +491,7 @@ export class Flight {
     if (!on && this.ret) { if (this.ret.auto && !quiet) this.toast('You have the capsule — parachutes stay armed (F hands it back)', '#9cc3ff'); this.ret.auto = false; this.v.steerDir = null; this.autoOn = false; if (this.v.auto) this.v.auto = false; return; }
     if (this.v.auto && !on) this.v.auto = false;
     this.autoOn = on; if (!on) this.v.steerDir = null;
-    if (on) { this.v.guid = null; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; }
+    if (on) { this.v.guid = null; this.v.holdAtt = null; this.v.sasHold = null; if (this.flyingBooster()) this.v.auto = true; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; } // f5.6u: AUTO re-entry re-plans from the current state (drops the navball hold)
     if (!quiet) this.toast(on ? 'AUTO on: gravity turn, Max-Q throttling, coast, circularize' : 'Manual flight (SAS ' + P.SAS_LABEL[this.v.sas] + ')', '#9cc3ff');
   }
   setSAS(mode) { const v = this.v; v.sas = mode; v.sasHold = null; v.holdAtt = null; if (this.autoOn && mode !== 'stab') this.setAuto(false, true); if (this.ret && this.ret.auto) this.setAuto(false); this.toast('SAS: ' + P.SAS_LABEL[mode], '#9cc3ff'); }
@@ -713,12 +713,17 @@ export class Flight {
     const W = this.effWarp(); let simDt = rdt * SIM_SPEED * W;
     if (this.warpTarget) simDt = Math.max(0, Math.min(simDt, this.warpTarget.t - this.tAbs));
     this.rails = W > 1 && this.railsOK();
-    if (this.rails) return this.railsAdvance(simDt);
+    if (this.rails) { this.stepAcc = 0; return this.railsAdvance(simDt); }
     const W2 = Math.min(W, 50), simDt2 = this.warpTarget ? Math.min(rdt * SIM_SPEED * W2, simDt || rdt * SIM_SPEED) : rdt * SIM_SPEED * W2;
-    const step = W2 > 4 ? PHYS_DT * 2 : PHYS_DT, N = Math.max(1, Math.ceil(simDt2 / step - 1e-9));
-    for (let i = 0; i < N; i++) this.step(simDt2 / N);
+    // f5.6u (QA P2): fixed-size physics steps with a carried remainder, so AUTO results no longer depend on the
+    // render frame rate / viewport (the old simDt2/N step size changed with every frame time).
+    const step = W2 > 4 ? PHYS_DT * 2 : PHYS_DT;
+    if (this.warpTarget) { this.stepAcc = 0; const N = Math.max(1, Math.ceil(simDt2 / step - 1e-9)); for (let i = 0; i < N; i++) this.step(simDt2 / N); this.checkSOI(); if (this.alarms.length) this.fireAlarms(); return simDt2; }
+    this.stepAcc = (this.stepAcc || 0) + simDt2; let N = Math.floor(this.stepAcc / step + 1e-9);
+    this.stepAcc -= N * step; if (this.stepAcc < 0) this.stepAcc = 0;
+    for (let i = 0; i < N; i++) this.step(step);
     this.checkSOI(); if (this.alarms.length) this.fireAlarms();
-    return simDt2;
+    return N * step;
   }
   // Event-bounded rails: one Kepler jump per frame, cut at the first SOI change, node lead, alarm or the
   // atmosphere / low-altitude boundary; the warp drops there.
