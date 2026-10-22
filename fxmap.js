@@ -79,3 +79,23 @@ export function fxState(tel) {
     ablate: ablationRate(tel.ablating || 0, tel.heat || 0), plume: plumeShape(tel.p || 0, tel.thrust > 0 ? 1 : 0), M, q,
   };
 }
+// fx-1 (QA f5.5d): gates and shaping for the flight visuals.
+// Plasma sheath: only on a real reentry (descending) or a very hot ascent, never as a faint dome on a normal climb.
+export const sheathAlpha = (pl, vUp) => (vUp < 0 ? smooth(0.08, 0.5, pl) : smooth(0.75, 1.0, pl) * 0.6);
+// Hull heat halo: off until the skin really glows.
+export const haloAlpha = k => smooth(0.12, 0.6, k);
+// Flame puff particles behind the nozzle: dense air only (ambient pressure ratio p); none in near-vacuum.
+export const flamePuffs = p => smooth(0.12, 0.4, p);
+// Smooth plume flicker (sum of slow sines, ±4%) instead of per-frame Math.random() strobing.
+export const plumeFlicker = (t, seed = 0) => 1 + 0.025 * Math.sin(t * 7.1 + seed) + 0.015 * Math.sin(t * 12.7 + seed * 1.7);
+// Nozzle glow sprite scale when the plume length is clamped (just after separation): fades with the flame.
+export const glowScaleK = (len, full) => clamp01((len / Math.max(full, 1e-6) - 0.05) / 0.6);
+// Liftoff ground cloud size multiplier (was ×2 with a 60 m/s burst): bounded, only near the pad.
+export const groundSmokeK = h => (h < 60 ? 1.25 : 1);
+// fx-1 (Aaron's phone video: pitch-black booster): fill-light floors so a hull in its own shadow (space, booster
+// pane looking into the sun) still reads. day 0..1, k = space factor 0..1, sunK = 1 in sunlight, phone adds a bit.
+export function fillLight(day, k, sunK, phone = false) {
+  const hemi = Math.max(phone ? 0.5 : 0.4, (0.25 + 0.75 * day) * (1 - k * 0.75));
+  const env = Math.max(phone ? 0.45 : 0.35, (0.35 + 0.65 * day) * (1 - 0.6 * k) * (0.3 + 0.7 * sunK));
+  return { hemi, env };
+}

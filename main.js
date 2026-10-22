@@ -1,60 +1,62 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.6g';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.6h';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.6g';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.6g';
-import * as C from './physics/patched.js?v=f5.6g';
+import * as P from './physics.js?v=f5.6h';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.6h';
+import * as C from './physics/patched.js?v=f5.6h';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.6g';
-import { createCareerUI } from './fun/career-ui.js?v=f5.6g';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.6g';
-import { createSolarMap } from './solarmap.js?v=f5.6g';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.6g';
-import { FX } from './fx.js?v=f5.6g';
-import { createAcademy } from './academy-ui.js?v=f5.6g';
-import { createMobile, isTouch } from './mobile.js?v=f5.6g';
-import { localize } from './wording.js?v=f5.6g';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.6g';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.6g';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.6h';
+import { createCareerUI } from './fun/career-ui.js?v=f5.6h';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.6h';
+import { createSolarMap } from './solarmap.js?v=f5.6h';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.6h';
+import { FX } from './fx.js?v=f5.6h';
+import { createAcademy } from './academy-ui.js?v=f5.6h';
+import { createMobile, isTouch } from './mobile.js?v=f5.6h';
+import { localize } from './wording.js?v=f5.6h';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.6h';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.6h';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.6g';
-import * as GX from './gfx/gfx.js?v=f5.6g';
-import { Director, MISSIONS } from './fun/director.js?v=f5.6g';
-import * as PR from './fun/progress.js?v=f5.6g';
-import * as WORLD from './fun/world.js?v=f5.6g';
-import { stageEngines, nozzles, nozzleR, LOOK as PLOOK } from './fun/exhaust.js?v=f5.6g';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.6g';
-import { createAudio } from './fun/audio.js?v=f5.6g';
-import { createCompact } from './fun/compact.js?v=f5.6g';
-import { attachNavStick } from './fun/navstick.js?v=f5.6g';
-import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH } from './fun/plainhud.js?v=f5.6g';
-import { createHome } from './fun/home.js?v=f5.6g';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6g';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.6g';
-import { createFunUI } from './fun/ui.js?v=f5.6g';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.6g';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.6g';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.6g';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.6g';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.6g';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.6g';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.6g';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.6h';
+import { halfPose, buildHalves } from './fun/fairing.js?v=f5.6h';
+import { guardToasts } from './fun/toastzone.js?v=f5.6h';
+import * as GX from './gfx/gfx.js?v=f5.6h';
+import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.6h';
+import * as PR from './fun/progress.js?v=f5.6h';
+import * as WORLD from './fun/world.js?v=f5.6h';
+import { stageEngines, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.6h';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.6h';
+import { createAudio } from './fun/audio.js?v=f5.6h';
+import { createCompact } from './fun/compact.js?v=f5.6h';
+import { attachNavStick } from './fun/navstick.js?v=f5.6h';
+import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH } from './fun/plainhud.js?v=f5.6h';
+import { createHome } from './fun/home.js?v=f5.6h';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6h';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.6h';
+import { createFunUI } from './fun/ui.js?v=f5.6h';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.6h';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.6h';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.6h';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.6h';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.6h';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.6h';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.6h';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.6g';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.6g';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.6g';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.6g';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.6h';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.6h';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.6h';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.6h';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -298,7 +300,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.6g').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.6h').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -430,7 +432,7 @@ let rgModel = null;
 function makeRocketGroups(design) {
   const vv = buildVehicle(design), out = []; rgModel = design.model || null;
   vv.stages.forEach((s, si) => {
-    if (s.radial) { out.push(makeRadialGroup(s, si)); return; }
+    if (s.radial) { const cs = vv.stages.find(x => !x.radial), coreR = cs ? Math.max(1.25, ...cs.parts.filter(p => p.kind !== 'fins' && p.kind !== 'fairing' && p.d > 0).map(p => p.d / 2)) : 1.25; out.push(makeRadialGroup(s, si, coreR)); return; } // fx-1: boosters sit on the real core radius
     const g = new THREE.Group(); let y = 0, engH = 0, payloadY = null, bellW = 1, nEng = 0, rMax = 1.25; const hot = [];
     for (const [pi, p] of s.parts.entries()) {
       if (p.kind === 'fins' || p.kind === 'fairing') continue;
@@ -478,10 +480,11 @@ function makeRocketGroups(design) {
   return out;
 }
 // Radial boosters: k copies of the booster column around the core, from the core's bottom up (no stack height)
-function makeRadialGroup(s, si) {
+const RADCOLS = new WeakMap(); RADCOLS.rB = new WeakMap();
+function makeRadialGroup(s, si, coreR = 1.25) {
   const g = new THREE.Group(), k = s.radial, cols = []; let rB = 0.9;
   for (let j = 0; j < k; j++) {
-    const a = j / k * Math.PI * 2 + Math.PI / 4, c = new THREE.Group(); let y = 0;
+    const a = j / k * Math.PI * 2 + (k === 2 ? 0 : Math.PI / 4), c = new THREE.Group(); let y = 0; // fx-1: a pair rides on ±x like the Heavy art
     for (const p of s.parts) {
       const r = (p.dr || 1.8) / 2; rB = Math.max(rB, r);
       if (p.kind === 'engine') bells(c, Math.max(1, Math.round((p.n || k) / k)), y, p.h, r);
@@ -490,14 +493,26 @@ function makeRadialGroup(s, si) {
     }
     const nose = new THREE.Mesh(new THREE.ConeGeometry(rB, rB * 2.4, 24), M.white); nose.position.y = y + rB * 1.2; c.add(nose);
     const strut = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.3), M.black); strut.position.set(-(rB + 0.2), y * 0.8, 0); c.add(strut);
-    const R0 = 1.25 + rB + 0.08; c.position.set(Math.cos(a) * R0, 0, Math.sin(a) * R0); c.rotation.y = -a; g.add(c); cols.push(c);
+    const R0 = coreR + rB + 0.08; c.position.set(Math.cos(a) * R0, 0, Math.sin(a) * R0); c.rotation.y = -a; g.add(c); cols.push(c);
   }
-  const rp = stageEngines(rgModel, 0, s.parts, true).prop; // f5.3: strap-ons burn their own propellant (solids: bright, heavy smoke)
-  const plume = makePlume(Math.max(0.8, rB * 0.9), rp); g.add(plume); plume.userData.prop = rp;
-  const extra = cols.slice(1).map(c => { const pl = makePlume(Math.max(0.8, rB * 0.9), rp, true); pl.position.copy(c.position); g.add(pl); return pl; });
-  plume.position.copy(cols[0].position); plume.userData.extra = extra;
-  g.userData = { h: 0, plume, legs: null, fair: null, fairH: 0, hot: [], stage: si, radial: k };
+  // fx-1 (QA: no flame on the Heavy side boosters): one plume per engine of each side booster (engines-1 count / k), at the column
+  const ei = stageEngines(rgModel, 0, s.parts, true, k), rp = ei.prop, nz = ei.n > 1 ? nozzles(ei, rB) : [[0, 0]], rn = ei.n > 1 ? nozzleR(ei.n, rB) : Math.max(0.8, rB * 0.9);
+  let plume = null; const extra = [], colP = [];
+  cols.forEach((c, ci) => { const list = []; nz.forEach((q, qi) => { const full = !plume, pl = makePlume(rn, rp, !full); pl.position.set(c.position.x + q[0], 0, c.position.z + q[1]); g.add(pl); if (full) { plume = pl; plume.userData.env = ei.n > 1 ? rB / rn : 1; } else extra.push(pl); list.push({ pl, q }); }); colP.push(list); });
+  plume.userData.prop = rp; plume.userData.extra = extra; plume.userData.nEng = nz.length * k;
+  g.userData = { h: 0, plume, legs: null, fair: null, fairH: 0, hot: [], stage: si, radial: k }; RADCOLS.set(g, colP); RADCOLS.rB.set(g, rB); // WeakMap: clone() JSON-copies userData
   return g;
+}
+// fx-1: once the art model is in, put the side-booster plumes under the art's side boosters (stages side0, side1, ...)
+function alignRadialPlumes() {
+  const rg = SG.find(g => g.userData.radial); if (!rg || !hero) return; const st = (hero.userData.hi || hero).userData.stages || {}, sides = Object.keys(st).filter(x => /^side\d/.test(x)).sort();
+  const colP = RADCOLS.get(rg); if (!colP || sides.length !== colP.length) return;
+  const p0 = rocketG.position.clone(), q0 = rocketG.quaternion.clone(); rocketG.position.set(0, 0, 0); rocketG.quaternion.identity(); rocketG.updateMatrixWorld(true);
+  const inv = rg.matrixWorld.clone().invert();
+  sides.forEach((k, ci) => { const b = new THREE.Box3().setFromObject(st[k]); if (b.isEmpty()) return; const c = b.getCenter(new THREE.Vector3()).applyMatrix4(inv);
+    const sz = b.getSize(new THREE.Vector3()), kq = Math.max(1, Math.min(2.2, Math.min(sz.x, sz.z) / 2 / (RADCOLS.rB.get(rg) || 0.9)));
+    for (const { pl, q } of colP[ci]) pl.position.set(c.x + q[0] * kq, 0, c.z + q[1] * kq); });
+  rocketG.position.copy(p0); rocketG.quaternion.copy(q0); rocketG.updateMatrixWorld(true);
 }
 // CoM / CoP markers for the hangar preview (drawn through the hull)
 const mk = (c) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 12), new THREE.MeshBasicMaterial({ color: c, depthTest: false, transparent: true })); m.renderOrder = 20; return m; };
@@ -773,7 +788,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.6g', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.6h', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -810,6 +825,29 @@ buildPalette();
 // ---------- game state ----------
 let state = 'build', F, v, booster, booster2 = null, shipVis2 = null, rocketG, SG = [], camMode, gen = 0;
 const debris = [];
+// fx-1 (QA D2): the fairing splits into two visible half shells that hinge open and fall away (fun/fairing.js)
+const fairHalves = [];
+function fairShells() { const out = []; if (hero) for (const lv of hero.levels || [{ object: hero }]) { const st = (lv.object.userData && lv.object.userData.stages) || {};
+    for (const k of ['payload', 'fairing']) if (st[k] && st[k].visible) out.push(st[k]); }
+  const f = SG.length && SG[SG.length - 1].userData.fair; if (f && f.visible && f.parent && f.parent.visible) out.push(f); return out; }
+function spawnFairHalves() {
+  if (!rocketG || state !== 'flight') return; const cand = fairShells(); heroFairing(false); heroFairing2(false); const shells = cand.filter(o => !o.visible || o === (SG.length && SG[SG.length - 1].userData.fair)); if (!shells.length) return; // only the shells the jettison really hides
+  const p0 = rocketG.position.clone(), q0 = rocketG.quaternion.clone(); rocketG.position.set(0, 0, 0); rocketG.quaternion.identity(); rocketG.updateMatrixWorld(true);
+  const box = new THREE.Box3(); for (const o of shells) { const b = new THREE.Box3().setFromObject(o); if (!b.isEmpty() && (box.isEmpty() || b.getSize(new THREE.Vector3()).y > 0.5)) box.union(b); }
+  rocketG.position.copy(p0); rocketG.quaternion.copy(q0); rocketG.updateMatrixWorld(true); if (box.isEmpty()) return;
+  const sz = box.getSize(new THREE.Vector3()), r = Math.max(0.4, Math.max(sz.x, sz.z) / 2), cone = Math.min(sz.y * 0.4, r * 2.6), body = Math.max(0.5, sz.y - cone);
+  const mat = M.white.clone(); mat.side = THREE.DoubleSide; mat.userData = { ...mat.userData };
+  const nose = P.noseOf(v), at = V.addS(V.sub(v.r, V.scale(nose, v.tel.ycom)), nose, box.min.y);
+  for (const h of buildHalves(THREE, { r, body, cone }, mat)) { h.quaternion.copy(q0); scene.add(h); fairHalves.push({ g: h, r: at.slice(), v: v.v.slice(), q0: q0.clone(), t: 0, mat }); }
+}
+const _fhq = new THREE.Quaternion(), _fhx = new THREE.Vector3(1, 0, 0), _fhz = new THREE.Vector3();
+function fairTick(dt, O) {
+  for (let k = fairHalves.length - 1; k >= 0; k--) { const f = fairHalves[k]; f.t += dt; const ps = halfPose(f.t, f.g.userData.side);
+    if (ps.gone || state !== 'flight') { scene.remove(f.g); f.g.traverse(o => o.geometry && o.geometry.dispose()); f.mat.dispose(); fairHalves.splice(k, 1); continue; }
+    const gr = V.scale(V.norm(f.r), -((P.BODIES[F.body] && P.BODIES[F.body].mu) || P.MU_E) / Math.max(1, V.dot(f.r, f.r))); f.v = V.addS(f.v, gr, dt); f.r = V.addS(f.r, f.v, dt); // ballistic shells (no thrust): the rocket pulls away
+    _fhz.set(0, 0, 1).applyQuaternion(f.q0); const lat = [_fhz.x * ps.lat, _fhz.y * ps.lat, _fhz.z * ps.lat];
+    setRel(f.g, V.add(f.r, lat), O); _fhq.setFromAxisAngle(_fhx, ps.ang); f.g.quaternion.copy(f.q0).multiply(_fhq); }
+}
 const keys = {};
 function later(fn, ms) { const g = gen; setTimeout(() => { if (g === gen) fn(); }, ms); }
 let shipVis = null;
@@ -829,7 +867,7 @@ const hooks = {
   drop: d => { if (opHooks) try { opHooks.drop(d); } catch (e) {} d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
   ship: s => { if (s.lz) { if (s.name === 'LZ-2') shipVis2 = makeLZ(s); else shipVis = makeLZ(s); return; } shipVis = makeShip(s); }, // RTLS: the landing zone is the pad area, no droneship
   shipMoved: s => shipVis && onSurface(shipVis, s.ef, 0),
-  jettison: () => { heroFairing(false); heroFairing2(false); const f = SG[SG.length - 1].userData.fair; if (f) { f.visible = false; const p = V.sub(v.r, V.scale(P.noseOf(v), -10)); for (let k = 0; k < 12; k++) smoke.spawn(p, jit(v.v, 15), 1.5, 1, 3, 0xffffff, null, 0.1); } beep(990); },
+  jettison: () => { try { spawnFairHalves(); } catch (e) { console.warn('[Orbit Rush] fairing halves', e); } heroFairing(false); heroFairing2(false); const f = SG[SG.length - 1].userData.fair; if (f) { f.visible = false; const p = V.sub(v.r, V.scale(P.noseOf(v), -10)); for (let k = 0; k < 12; k++) smoke.spawn(p, jit(v.v, 15), 1.5, 1, 3, 0xffffff, null, 0.1); } beep(990); },
   // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
   boosterControl: manual => { for (const k in keys) keys[k] = false; if (split.on && !split.full) { /* f5.6g: in split each pane keeps its own view */ } else if (manual) { camMode = 'booster'; camDist = 160; camUserT = -1e9; } else camMode = 'chase'; $('tProg').classList.toggle('on', F.autoOn); },
   boosterLost: (b, moving) => { explode(b.r, moving ? b.v : siteVel(b), false); b.mesh.visible = false; b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
@@ -919,7 +957,9 @@ function attachHero() { showFrame = null; // re-frame from the new model at once
   let L = 0; try { L = P.stackGeom(v).L; } catch (e) {} if (!(L > 0)) for (const g of SG) L += g.userData.h; const hH = new THREE.Box3().setFromObject(hero.userData.hi || hero).getSize(new THREE.Vector3()).y || L;
   hero.scale.setScalar(L / hH); rocketG.add(hero);
   for (const g of SG) g.traverse(o => { if (o.isMesh && !isPlumeChild(o, g)) o.visible = false; });
+  try { alignRadialPlumes(); } catch (e) { console.warn('[Orbit Rush] radial plumes', e); }
 }
+function parallelCore() { const vv = vehicleOf(design.model); return !!(vv && vv.stages && vv.stages.some(x => x.parallel)); }
 function isPlumeChild(o, g) { const pl = g.userData.plume, ex = (pl && pl.userData.extra) || []; for (let p = o; p && p !== g; p = p.parent) if (p === pl || ex.includes(p)) return true; return false; }
 function heroPiece(i) { // a copy of the dropped hero stage rides on the detached part group (debris / booster cam)
   if (!hero || !hero.userData.hi) return null; const st = hero.userData.hi.userData.stages || {};
@@ -997,7 +1037,7 @@ function updateEndFlightBtn() { let b = $('relBtn'); if (!b) { b = document.crea
 function reset() {
   gen++; freeSat();
   if (booster && booster.mesh) scene.remove(booster.mesh);
-  for (const d of debris) scene.remove(d.mesh); debris.length = 0;
+  for (const d of debris) scene.remove(d.mesh); debris.length = 0; for (const f of fairHalves) scene.remove(f.g); fairHalves.length = 0;
   if (shipVis) earth.remove(shipVis); if (shipVis2) earth.remove(shipVis2); shipVis2 = null; if (booster2 && booster2.mesh) scene.remove(booster2.mesh); booster2 = null;
   shipVis = null; booster = null; camMode = 'chase'; try { director = null; replay = null; slowMo = 0; recBuf.length = 0; for (const k in seen) delete seen[k]; dirPhase = ''; } catch (e) { }
   try { split.rec.length = 0; split.done = 0; split.closed = false; split.replay = null; split.full = null; } catch (e) { } if (typeof smap !== 'undefined') smap.reset();
@@ -1374,21 +1414,22 @@ function emit(veh, group, dt, bottom, dir) {
   if (!on || dt <= 0) return;
   const h = V.len(veh.r) - R, p = P.pressureRatio(h), thr = veh.throttle;
   // underexpanded jet (fxmap.plumeShape): the plume widens ~sqrt(pe/pa) as the ambient pressure drops
-  const ps = plumeShape(p * 101325, thr), pl = plumeLook(p * 101325, thr), ud = plume.userData, w0 = ud.w, fl = 0.97 + 0.06 * Math.random(); // f5.6c: less frame-to-frame flicker
-  let len = pl.len * w0 * fl * Math.sqrt(ud.env || 1);
-  if (veh === v && booster && booster.state === 'flying' && performance.now() - WV.pulse < 6000) { const gap = V.len(V.sub(v.r, booster.r)) * 0.55; if (gap < len) len = Math.max(1.5, gap); } // f5.6c (Aaron video): the upper-stage plume never pokes through the booster just after separation plume.scale.set(1, 1, 1); // f5.3: the engines' jets merge into one column as long as the whole base would make
+  const ps = plumeShape(p * 101325, thr), pl = plumeLook(p * 101325, thr), ud = plume.userData, w0 = ud.w, fl = plumeFlicker(performance.now() / 1000, group.id || 0); // fx-1: smooth flicker (no per-frame random strobe)
+  let len = pl.len * w0 * fl * Math.sqrt(ud.env || 1); const len0 = len;
+  if (veh === v && booster && booster.state === 'flying' && performance.now() - WV.pulse < 6000) { const gap = V.len(V.sub(v.r, booster.r)) * 0.55; if (gap < len) len = Math.max(1.5, gap); } // f5.6c (Aaron video): the upper-stage plume never pokes through the booster just after separation
+  plume.scale.set(1, 1, 1); const gk = glowScaleK(len, len0); // fx-1: the nozzle glow sprite fades with a clamped flame (no lone flat 2D sprite) // f5.3: the engines' jets merge into one column as long as the whole base would make
   const setL = (m, wk, lk = 1) => { m.scale.set(wk, len * lk, wk); m.position.y = -len * lk / 2; };
   const PM = ud.mats || plumeMats('kerolox'), LK = PM.look, env = ud.env || 1;
-  const applyTo = P0 => { const u = P0.userData; if (u.lite) { setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.1 * Math.random()); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl); return; }
-    setL(u.glow, pl.glowW * 1.15 * (0.95 + 0.1 * Math.random()) * Math.sqrt(env), 0.85); setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.1 * Math.random());
+  const applyTo = P0 => { const u = P0.userData; if (u.lite) { setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.05 * fl); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk); return; }
+    setL(u.glow, pl.glowW * 1.15 * fl * Math.sqrt(env), 0.85); setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.05 * fl);
     u.outer.visible = u.core.visible = !u.noCore;
-    u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW * env, len * 0.45 * Math.sqrt(env), pl.bellW * env); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * (u.noCore ? 0 : 1)); };
+    u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW * env, len * 0.45 * Math.sqrt(env), pl.bellW * env); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk * (u.noCore ? 0 : 1)); };
   applyTo(plume); if (ex) for (const e of ex) applyTo(e);
   const hiF = 1 - 0.92 * Math.min(1, Math.max(0, (h - 25000) / 15000)); // f4: above ~40 km the vacuum plume is just a faint glow
-  const kk = LK.k; PM.plume.opacity = Math.min(1, (0.55 + 0.35 * Math.random()) * pl.bright * (1 - 0.45 * pl.vac) * hiF * kk); PM.plumeGlow.opacity = Math.min(1, 0.42 * pl.bright * fl * hiF * kk); PM.plumeCore.opacity = Math.min(1, (0.75 + 0.25 * Math.random()) * (0.35 + 0.65 * hiF) * Math.max(0.5, kk));
-  PM.plumeBell.opacity = 0.5 * pl.bell * fl * hiF * Math.max(0.6, kk); PM.plumeSprite.opacity = Math.min(1, 0.9 * pl.bright * (0.4 + 0.6 * hiF) * Math.max(0.6, kk));
+  const kk = LK.k; PM.plume.opacity = Math.min(1, 0.72 * fl * pl.bright * (1 - 0.45 * pl.vac) * hiF * kk); PM.plumeGlow.opacity = Math.min(1, 0.42 * pl.bright * fl * hiF * kk * (1 - 0.9 * pl.vac)); PM.plume.opacity *= 1 - 0.8 * pl.vac; // fx-1: no dark-red/maroon cone in vacuum: a clean core + soft bell PM.plumeCore.opacity = Math.min(1, 0.87 * fl * (0.35 + 0.65 * hiF) * Math.max(0.5, kk));
+  PM.plumeBell.opacity = 0.5 * pl.bell * fl * Math.max(0.3, hiF) * Math.max(0.6, kk) * (LK.k < 0.5 ? 1 : 0.6); PM.plumeSprite.opacity = Math.min(1, 0.9 * pl.bright * (0.4 + 0.6 * hiF) * Math.max(0.6, kk));
   const dia = ud.dia; dia.visible = QUALITY[fx.q].diamonds && ps.diamonds > 0.02;
-  if (dia.visible) { PM.diamond.opacity = Math.min(1, ps.diamonds * (0.55 + 0.3 * Math.random()) * LK.dia);
+  if (dia.visible) { PM.diamond.opacity = Math.min(1, ps.diamonds * 0.7 * fl * LK.dia);
     dia.children.forEach((m, i) => { m.position.y = -(1.1 + i * 1.35) * w0 * (1 + 0.2 * thr); m.scale.set(1 - i * 0.12, 0.6, 1 - i * 0.12); }); }
   // continuous, thick, billowing exhaust column: puffs laid along the path since last frame (no gaps at 500 m/s),
   // warm and lit near the flame, drifting with the wind, thinning out as the air does
@@ -1404,11 +1445,11 @@ function emit(veh, group, dt, bottom, dir) {
     tr.rate = (tr.rate || 60) * 0.9 + 0.1 * N / Math.max(dt / SIM_SPEED, 1e-3); const lifeK = Math.min(1, smoke.n * 0.85 / (tr.rate * 9));
     const wind = siteVel(veh), ground = h < 60 ? 1 : 0, soot = LK.soot && cond <= 0.3, cA = cond > 0.3 ? 0xf6f8fb : soot ? 0x9a9690 : 0xe4e6ea, cB = cond > 0.3 ? 0xdfe6ee : soot ? 0x6e6a66 : 0xb9bfc8; // kerolox: sooty grey
     for (let i = 0; i < N; i++) { const pos = V.addS(V.addS(last, seg, (i + 0.5) / N), wind, -dt); // pre-step: update() moves it by vel·dt this same frame
-      const vel = ground ? V.add(wind, [rnd(60), rnd(60), rnd(60)]) : wind;
-      smoke.spawn(pos, vel, Math.max(1.5, (4 + 3 * cond) * (0.6 + 0.4 * sm) * lifeK * (1 - Math.min(0.6, h / 60000))), sz, wid * (2.6 + 1.4 * cond) * (1 + ground), cond > 0.3 ? cA : 0xffe4c4, cB, 0.35); }
+      const vel = ground ? V.add(wind, [rnd(25), rnd(25), rnd(25)]) : wind; // fx-1: calmer liftoff cloud
+      smoke.spawn(pos, vel, Math.max(1.5, (4 + 3 * cond) * (0.6 + 0.4 * sm) * lifeK * (1 - Math.min(0.6, h / 60000))), sz, wid * (2.6 + 1.4 * cond) * (ground ? groundSmokeK(h) : 1), cond > 0.3 ? cA : 0xffe4c4, cB, 0.35); }
   }
   tr.last = sm > 0.03 && h < 40000 && !vacW ? (() => { const va = V.sub(veh.v, siteVel(veh)), s0 = V.len(va); return V.addS(bottom, s0 > 30 ? V.scale(va, -1 / s0) : V.scale(dir, -1), len * 0.5); })() : null;
-  const n = h < 40000 && !(F && F.body !== 'earth' && !P.BODIES[F.body].atm) ? Math.min(6, Math.ceil(dt * 120)) : 0; /* f5.4d: airless worlds: the plume mesh is the glow, no flame puffs */ // f4.1: in vacuum the plume mesh is the glow; no flame particles (they read as dotted puffs)
+  const n = h < 40000 && !(F && F.body !== 'earth' && !P.BODIES[F.body].atm) ? Math.round(Math.min(6, Math.ceil(dt * 120)) * flamePuffs(p)) : 0; /* fx-1: no flame puffs in thin air / vacuum (the white puffs) */ /* f5.4d: airless worlds: the plume mesh is the glow, no flame puffs */ // f4.1: in vacuum the plume mesh is the glow; no flame particles (they read as dotted puffs)
   for (let i = 0; i < n; i++) {
     const sp = 60 + Math.random() * 40, spread = 6 + (1 - p) * 30;
     const fv = jit(V.addS(veh.v, dir, -sp), spread); fire.spawn(V.addS(V.addS(V.addS(bottom, dir, -2), fv, -dt), dir, -sp * dt * i / n), fv, /* f4.1: fully pre-step (update() moves it fv·dt this frame) — else it leads the nozzle by up to v·dt */ 0.25 + Math.random() * 0.25, 2.5, 6 + (1 - p) * 10, 0xffd9a0, 0x200800, 2);
@@ -1635,6 +1676,8 @@ renderer.setAnimationLoop(() => {
   if (state === 'flight' && !paused && replay) replayStep(rdt);
   else if (state === 'flight' && !paused && !photoOn) {
     readControls(rdt);
+    if (!director && F.ignited && F.autoOn && !F.flags.dead && isHopper(design)) director = hopAuto(F, { say: msg => fun.call('🦗', msg, '#ffe9b0') }); // fx-1 (QA B5): AUTO on a hopper = hop & land
+    if (director && director.active && director.m.hop && F.extAuto && !F.autoOn) director.takeOver(); // AUTO switched off: the player flies
     if (director && director.active) { director.tick(rdt); directorCam(rdt); }
     if (director && !director.active && director.result && !director._carded && !F.ended) { director._carded = 1; const d0 = director; // QA f5a.2: every director ending (Mars/Venus capture, flyby, miss) stops warp and gets a result card
       try { F.setWarp(0); } catch (e) { } later(() => { if (director === d0 && !F.ended) { try { F.setWarp(0); } catch (e) { } camMode = 'chase'; showEnd(); } }, 2500); }
@@ -1659,6 +1702,7 @@ renderer.setAnimationLoop(() => {
   worldVis(base, O, nose);
   if (state === 'flight' && !F.flags.dead && SG[v.cur]) emit(v, SG[v.cur], pdt, base, nose);
   else for (let j = v.cur; j < SG.length; j++) SG[j].userData.plume.visible = false;
+  if (state === 'flight' && !F.flags.dead && SG[v.cur] && SG[v.cur].userData.radial && SG[v.cur + 1] && parallelCore()) emit(v, SG[v.cur + 1], pdt, base, nose); // fx-1: Heavy core lights with its side boosters (Vehicle Specs: parallel stage)
   const ovl = (state === 'build' && !(home && home.on) && (TOUCH || document.body.classList.contains('buildAdv'))) || (SET.overlay && state === 'flight' && !F.flags.dead && camMode !== 'map');
   comMark.visible = copMark.visible = ovl; cotMark.visible = ovl && !!(v.stages[v.cur] && v.stages[v.cur].eng && v.stages[v.cur].eng.tv > 0);
   if (ovl) { const yB = 0; comMark.position.set(0, tel.ycom, 0); copMark.position.set(0, P.centerOfPressure(P.stackGeom(v), state === 'build' ? 0.5 : Math.max(0.3, tel.mach || 0.5)), 0); cotMark.position.set(0, yB, 0);
@@ -1669,7 +1713,7 @@ renderer.setAnimationLoop(() => {
     setRel(d.mesh, d.r, O); dirQ(d.mesh, d.dir);
     if (d.gone || d.t > 120) { scene.remove(d.mesh); debris.splice(k, 1); }
   }
-  updateSat(O, pdt); if ((F.met | 0) !== (updateEndFlightBtn.k | 0)) { updateEndFlightBtn.k = F.met; updateEndFlightBtn(); }
+  fairTick(pdt, O); updateSat(O, pdt); if ((F.met | 0) !== (updateEndFlightBtn.k | 0)) { updateEndFlightBtn.k = F.met; updateEndFlightBtn(); }
   for (const bq of [booster, booster2]) if (bq && bq.mesh && bq.mesh.visible) { // f4.2: each side booster
     setRel(bq.mesh, bq.r, O); dirQ(bq.mesh, bq.dir);
     const bh = V.len(bq.r) - R, legs = bq.mesh.userData.legs; if (legs) legs.visible = bq.state === 'landed' || (bq.state === 'flying' && (bq.legs || bh < 600));
@@ -1814,7 +1858,7 @@ function updateSplit(rdt) {
     if (!split.done && split.rec.length > 30) split.replay = { i: Math.max(0, split.rec.length - 240), k: 0 };
     split.done += rdt;
   }
-  document.body.classList.toggle('splitOn', !!want); placeTopStack(!!(want && split.full !== 'b')); // f5.3: focused halves keep the split HUD (own card, no shared strip)
+  document.body.classList.toggle('splitOn', !!want); placeTopStack(!!(want && split.full !== 'b')); { const nw = performance.now(); if (!(nw - (guardToasts.t || 0) < 150)) { guardToasts.t = nw; try { guardToasts(); } catch (e) { } } } // fx-1: the one toast line never covers a telemetry card // f5.3: focused halves keep the split HUD (own card, no shared strip)
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want && camMode !== 'map') { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
   if (!split.on) return;
   const nb = 1, R2 = paneRect(0, nb), fb = split.full === 'b'; // f5.6e (QA): two panes max on every screen (Heavy's 2nd booster has no pane)
@@ -1952,7 +1996,7 @@ function updateSun(O, U, h, k, isMap) {
   // aerial perspective near the ground: exponential haze in the sky colour, thinning with altitude
   scene.fog.color.copy(skyC).lerp(cHaze, 0.35 * day); scene.fog.density = isMap ? 0 : 2.2e-5 * Math.exp(-h / 4500) * (h < 40000 ? 1 : 0); // f4.1: high up the camera looks down through thin air (no grey slab at 22 km)
   sunL.intensity = 3.0 * sunK; sunL.color.setRGB(1, 0.85 + 0.15 * (1 - dusk), 0.7 + 0.3 * (1 - dusk));
-  hemi.intensity = (0.25 + 0.75 * day) * (1 - k * 0.75); scene.environmentIntensity = (0.35 + 0.65 * day) * (1 - 0.6 * k) * (0.3 + 0.7 * sunK);
+  { const fl = fillLight(day, k, sunK, TOUCH); hemi.intensity = fl.hemi; scene.environmentIntensity = fl.env; } // fx-1: fill floor (no pitch-black booster on phones)
   sunSprite.visible = !isMap && sunK > 0.02; sunSprite.position.copy(camera.position).addScaledVector(sunDirV, 5e7); sunSprite.scale.setScalar(5e7 * (0.12 + 0.1 * k)); sunSprite.material.opacity = sunK;
   const u = atmoMat.userData; atmo.position.set(cx, cy, cz); u.center.value.set(cx, cy, cz); u.sunDir.value.copy(sunDirV); u.Rp.value = R; u.Ra.value = ATMO_R;
   u.gain.value = isMap || (F && F.body && F.body !== 'earth') ? 0 : Math.min(1, Math.max(0, (h - 15000) / 45000)); atmo.visible = u.gain.value > 0.01;
@@ -1969,9 +2013,9 @@ function flashAt(r, size, color = [8, 7, 5], life = 0.35) {
 function ignitionClouds(veh) { if (thinAir()) return; // f5.4: no steam on airless worlds
  // ground steam/dust rolling out of the flame trench and across the pad
   const up = V.norm(veh.r), e = P.eastOf(veh.r), n = V.cross(up, e), base = V.sub(veh.r, V.scale(up, 2)), w = siteVel(veh);
-  const N = QUALITY[fx.q].diamonds ? 70 : 34;
+  const N = QUALITY[fx.q].diamonds ? 36 : 18; // fx-1: lighter liftoff steam (was a pad-filling cloud)
   for (let i = 0; i < N; i++) { const a = Math.random() * Math.PI * 2, sp = 25 + Math.random() * 45, dir = V.add(V.scale(e, Math.cos(a)), V.scale(n, Math.sin(a)));
-    smoke.spawn(V.addS(base, dir, 6 + Math.random() * 8), V.add(w, V.add(V.scale(dir, sp), V.scale(up, 3 + Math.random() * 8))), 5 + Math.random() * 5, 6, 26 + Math.random() * 18, Math.random() < 0.7 ? 0xf2f2f0 : 0xc9bba4, null, 0.35); }
+    smoke.spawn(V.addS(base, dir, 6 + Math.random() * 8), V.add(w, V.add(V.scale(dir, sp), V.scale(up, 3 + Math.random() * 8))), 3.5 + Math.random() * 3, 5, 14 + Math.random() * 10, Math.random() < 0.7 ? 0xf2f2f0 : 0xc9bba4, null, 0.35); }
   shake(1.0, 2.5);
 }
 function stagingDrama(at, vel, up) { // separation flash, sparks, ullage puffs on the upper stage
@@ -2161,14 +2205,15 @@ function heatVis(L, now) {
   k = Math.max(k, Math.min(1, (v.tel.heat || 0) / 6e5)); const pl = lastFx ? Math.min(1, lastFx.plasma || 0) : 0;
   if (WV.halo.parent !== rocketG) rocketG.add(WV.halo);
   const g = P.stackGeom(v), r = g.d / 2 * 1.12 + 0.15, flick = 0.85 + 0.15 * Math.sin(now / 37) * Math.sin(now / 91);
-  WV.halo.visible = k > 0.02; WV.halo.scale.set(r, g.L * 1.02, r); WV.halo.position.set(0, g.L / 2, 0);
-  _hc.setRGB(1, 0.25 + 0.6 * k * k, 0.08 + 0.75 * k * k * k); WV.hm.color.copy(_hc); WV.hm.opacity = 0.55 * k * flick;
-  const fb = v.tel.flowBody; WV.sheath.visible = pl > 0.03 && !!fb;
+  const hA = haloAlpha(k); WV.halo.visible = hA > 0.01; // fx-1: no faint red sleeve from mild heating
+  WV.halo.scale.set(r, g.L * 1.02, r); WV.halo.position.set(0, g.L / 2, 0);
+  _hc.setRGB(1, 0.25 + 0.6 * k * k, 0.08 + 0.75 * k * k * k); WV.hm.color.copy(_hc); WV.hm.opacity = 0.55 * hA * flick;
+  const fb = v.tel.flowBody, sA = sheathAlpha(pl, V.dot(v.v, V.norm(v.r)) - V.dot(siteVel(v), V.norm(v.r))); WV.sheath.visible = sA > 0.01 && !!fb; // fx-1: no 'maroon dome' ahead of the nose on a climb
   if (WV.sheath.visible) { const d = _wd.set(fb[0], fb[1], fb[2]).applyQuaternion(rocketG.quaternion).normalize(); // flow direction in world space
     const noseW = new THREE.Vector3(0, 1, 0).applyQuaternion(rocketG.quaternion), lead = fb[1] < 0 ? g.L : 0;
     WV.sheath.position.copy(rocketG.position).addScaledVector(noseW, lead).addScaledVector(d, -g.d * 0.15);
     WV.sheath.quaternion.setFromUnitVectors(_wy, d.clone().negate()); const R = g.d * (0.75 + 0.35 * pl); WV.sheath.scale.set(R, R * (1.6 + 2.2 * pl), R);
-    WV.sm.color.setRGB(1, 0.45 + 0.4 * pl, 0.3 + 0.6 * pl * pl); WV.sm.opacity = 0.5 * pl * flick; }
+    WV.sm.color.setRGB(1, 0.45 + 0.4 * pl, 0.3 + 0.6 * pl * pl); WV.sm.opacity = 0.5 * sA * flick; }
   if (document.body.classList.contains('endOn') || (TOUCH && camDist < 40)) { WV.sm.opacity *= 0.3; WV.hm.opacity *= 0.5; } // QA f5b.3: no full-screen orange glow under the end card / close phone camera
   WV.heat.halo = WV.halo.visible ? WV.hm.opacity : 0; WV.heat.sheath = WV.sheath.visible ? WV.sm.opacity : 0;
 }

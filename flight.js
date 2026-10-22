@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.6g';
-import * as C from './physics/patched.js?v=f5.6g';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6g';
-import { designReusable } from './vehicles/reusable.js?v=f5.6g';
+import * as P from './physics.js?v=f5.6h';
+import * as C from './physics/patched.js?v=f5.6h';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6h';
+import { designReusable } from './vehicles/reusable.js?v=f5.6h';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -752,7 +752,7 @@ export class Flight {
     if (!f.dead) {
       if (!this.ignited) { v.throttle = 0; v.steerDir = null; }
       else if (this.ret) { v.throttle = v.cur <= this.lastPow ? v.ut : 0; if (!this.ret.auto) v.steerDir = null; }
-      else if (this.autoOn && !v.clamped) {
+      else if (this.autoOn && !v.clamped && !this.extAuto) { // fx-1: extAuto = a director (hop) flies the AUTO
         if (v.ascentTable) v.ascentMet = this.met; // PR #12 hook: table-driven stage-1 ascent
         const gd = P.autoGuide(v); v.steerDir = gd.dir;
         if (gd.phase === 'done' && v.ut > 0) { v.ut = 0; if (!f.cutoff) { f.cutoff = 1; this.toast('AUTO cutoff — orbit reached', '#7dffa6'); } }

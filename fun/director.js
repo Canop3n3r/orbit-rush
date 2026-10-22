@@ -2,8 +2,8 @@
 // planner-built transfer nodes executed as finite burns, mid-course corrections, SOI warps, capture, Moon
 // landing) and tells the renderer which cinematic camera suits each phase. The player can take over anytime
 // (takeOver()); nothing here bypasses the physics. DOM-free, so tests/fun.mjs runs it headlessly.
-import * as P from '../physics.js?v=f5.6g';
-import * as C from '../physics/patched.js?v=f5.6g';
+import * as P from '../physics.js?v=f5.6h';
+import * as C from '../physics/patched.js?v=f5.6h';
 const V = P.V;
 export const MISSIONS = {
   orbit: { name: 'Orbit & home', icon: '🛰️', tpl: 'Orbit & home', target: null, blurb: 'Fly to orbit, then bring the capsule home under parachutes.' },
@@ -17,6 +17,11 @@ export const CAMS = { hop: 'chase', coast: 'wide', ascent: 'chase', plan: 'map',
 export const FLYBY_AIM = 30e6; // m: where the flyby correction aims
 export const FLYBY_MAX = 150e6; // m: closest approach that still counts as a flyby (AUTO reaches ~66,000 km; QA saw 448,666 km)
 export const MAX_CORR_WAIT = 400 * 86400; // s: never wait longer than this for a course-correction node
+// fx-1 (QA B5): with missions hidden, plain AUTO on a test hopper flies the hop profile (up ~3 km, coast, hoverslam
+// onto the pad) instead of the orbital gravity turn that crashed it inverted. F.extAuto keeps the AUTO pill on while
+// the Flight's own ascent guidance stands aside.
+export const isHopper = d => !!d && (d.name === 'Grasshopper' || d.hop === true);
+export function hopAuto(F, opts = {}) { const D = new Director(F, 'hop', opts); D.alt0 = F.alt - F.v.tel.ycom; F.extAuto = true; D.set('hop', 'Hop! Straight up to ' + (D.m.hop / 1000).toFixed(0) + ' km'); return D; }
 const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'lift', 'capture', 'brake', 'descent', 'home', 'done'];
 const WARP_BURN = () => 4;
 const STALL_PH = ['plan', 'burn', 'correct', 'capture', 'lift'];
@@ -32,9 +37,9 @@ export class Director {
     return L[this.phase] || this.phase;
   }
   get progress() { return ORDER.indexOf(this.phase) / (ORDER.length - 1); }
-  takeOver() { const F = this.F; this.active = false; F.setExec(false); F.setAuto(false, true); this.say('You have control — mission autopilot off'); }
+  takeOver() { const F = this.F; this.active = false; F.extAuto = false; F.setExec(false); F.setAuto(false, true); this.say('You have control — mission autopilot off'); }
   set(ph, msg) { this.phase = ph; this.t = 0; this._w0 = Date.now(); this.log.push(ph); if (msg) this.say(msg); }
-  finish(res, ok = true) { this.result = res; this.ok = ok; this.set('done', res); this.active = false; }
+  finish(res, ok = true) { this.result = res; this.ok = ok; this.set('done', res); this.active = false; if (this.m.hop) this.F.extAuto = false; }
   dvCap() { return 900; }
   execNext(node) { const F = this.F; if (this.target && this.target !== 'moon') node.cl = true; F.addNode(node); F.setExec(true); } // f5.1h: closed-loop guidance for interplanetary burns
   tick(dt) { // once per frame, before F.advance

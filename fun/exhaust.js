@@ -1,6 +1,6 @@
 // f5.3 exhaust (engines-1 data): one plume per engine at each nozzle, coloured by propellant.
-import { VEHICLES, ROSTER_BLUEH } from '../vehicles/catalog.js?v=f5.6g';
-import { rosterFor } from './specstack.js?v=f5.6g';
+import { VEHICLES, ROSTER_BLUEH } from '../vehicles/catalog.js?v=f5.6h';
+import { rosterFor } from './specstack.js?v=f5.6h';
 const ALL = [...VEHICLES, ...ROSTER_BLUEH], ALIAS = { 'titan-ss-v3': 'colossus-v3', 'titan-ss-v4': 'colossus-v4' };
 export const PROPS = ['kerolox', 'methalox', 'hydrolox', 'hypergolic', 'solid'];
 // look per propellant: plume/glow/core/bell colours, sprite HDR colour, opacity k, smoke amount, soot (dark smoke), diamond strength
@@ -16,11 +16,12 @@ export function vehicleOf(model) { if (!model) return null; const id = ALIAS[mod
 // propellant guess for a hand-built stage: hydrogen tanks/engines → hydrolox, else kerosene
 export const guessProp = parts => (parts.some(p => /h2|lark|osprey/.test(p.id || '')) ? 'hydrolox' : parts.some(p => p.id === 'spark') ? 'hypergolic' : 'kerolox');
 // stage info for design stage index si (catalog stages in order; extra design stages reuse the last)
-export function stageEngines(model, si, parts = [], radial = false) {
+export function stageEngines(model, si, parts = [], radial = false, k = 1) {
   const v = vehicleOf(model), st = v && v.stages || [];
-  const core = st.filter(x => x.propellant !== 'solid'), list = core.length ? core : st; // strap-on solids ride as radial stages
+  const core = st.filter(x => x.propellant !== 'solid' && !x.parallel), list = core.length ? core : st; // strap-on solids and parallel side boosters ride as radial stages (fx-1: Heavy core 9, upper 1)
   let s = list.length ? list[Math.min(si, list.length - 1)] : null;
-  if (radial) s = st.find(x => x.propellant === 'solid') || (st.length > list.length ? st[0] : null) || s;
+  if (radial) { s = st.find(x => x.parallel) || st.find(x => x.propellant === 'solid') || (st.length > list.length ? st[0] : null) || s;
+    if (s && s.engineCount > 0 && k > 1) s = { ...s, engineCount: Math.max(1, Math.round(s.engineCount / k)) }; } // per side booster
   const nParts = parts.filter(p => p.kind === 'engine').reduce((t, p) => t + (p.n || 1), 0) || 1;
   if (!s || !(s.engineCount > 0)) return { n: nParts, prop: guessProp(parts), layout: { type: nParts > 1 ? 'ring' : 'single' } };
   return { n: Math.min(40, s.engineCount), prop: LOOK[s.propellant] ? s.propellant : 'kerolox', layout: s.nozzleLayout || { type: 'ring' }, estimated: !!s.estimated };
