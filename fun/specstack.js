@@ -2,7 +2,7 @@
 // stage count, dry/propellant mass, engine thrust and Isp, booster stage, payload and fairing mass. The part list only
 // gives the stack its shape; the physics numbers are overridden from the roster (flight.js applies design.spec).
 // Rockets with any unsourced engine are UNMODELLED and keep the matched showroom stack.
-import * as CAT from '../vehicles/catalog.js?v=f5.6r';
+import * as CAT from '../vehicles/catalog.js?v=f5.6s';
 const ROSTER = [], ENG = {};
 for (const k in CAT) { if (k.startsWith('ROSTER_')) ROSTER.push(...CAT[k]); if (k.startsWith('ENGINES')) Object.assign(ENG, CAT[k]); }
 // art id -> roster [id, variant prefix]
@@ -31,7 +31,9 @@ export function specStages(v) {
     out.push({ dry: core.dry / 1000, fuel: (core.prop - coreUsed) / 1000, n: ce.n, tv: ce.tv, ispSl: ce.ispSl, ispVac: ce.ispVac }); }
   else out.push({ dry: core.dry / 1000, fuel: core.prop / 1000, n: ce.n, tv: ce.tv, ispSl: ce.ispSl, ispVac: ce.ispVac });
   for (const s of rest) { const e = engOf(s.engines); out.push({ dry: s.dry / 1000, fuel: s.prop / 1000, n: e.n, tv: e.tv, ispSl: e.ispSl, ispVac: e.ispVac }); }
-  const mode = (v.modes || [])[0]; out[out.length - 1].payload = (mode && mode.payload || 0) / 1000 * (LOAD[v.id + ':' + String(v.variant || '').split(' ')[0]] || LOAD[v.id] || 0.75);
+  const mode = (v.modes || [])[0];
+  if (mode && Array.isArray(mode.reserve) && mode.reserve.length === out.length) mode.reserve.forEach((r, i) => { if (r > 0) out[i].reserve = r / 1000; }); // fx-ng: sourced landing reserve (t) the booster keeps at separation
+  out[out.length - 1].payload = (mode && mode.payload || 0) / 1000 * (LOAD[v.id + ':' + String(v.variant || '').split(' ')[0]] || LOAD[v.id] || 0.75);
   return out;
 }
 const P = (id, n) => (n ? { id, n } : { id }), SYM = [2, 3, 4, 6];
@@ -42,7 +44,7 @@ export function specDesign(v, name, model) {
   for (let i = core.length - 1; i >= 0; i--) { if (i < core.length - 1) parts.push(P('dec')); parts.push(P(i ? 'tank-m' : 'tank-xl')); parts.push(P(i ? 'lark' : 'thumper', Math.min(5, Math.max(1, core[i].n)))); }
   parts.push(P('fins'));
   if (radial) { const k = SYM.reduce((a, b) => (Math.abs(b - radial.n) < Math.abs(a - radial.n) ? b : a), 2); parts.push(P('rdec', k), P('tank-r'), P('thumper', 1)); }
-  return { name, model, parts, spec: { stages: S, fairing: (v.fairing || 0) / 1000, src: v.src } };
+  return { name, model, parts, spec: { stages: S, fairing: (v.fairing || 0) / 1000, src: v.src, area: v.area || 0 } };
 }
 // house rockets verified by the f5.2 audit (tests/specstack.mjs): the roster stack reaches orbit on AUTO and its stages match the model.
 // The others keep the matched showroom stack: AUTO can't fly their roster numbers to orbit yet, or the model's stage groups differ.

@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.6r';
-import * as C from './physics/patched.js?v=f5.6r';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6r';
-import { designReusable } from './vehicles/reusable.js?v=f5.6r';
+import * as P from './physics.js?v=f5.6s';
+import * as C from './physics/patched.js?v=f5.6s';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6s';
+import { designReusable } from './vehicles/reusable.js?v=f5.6s';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -159,13 +159,14 @@ export const fmtDur = s => { s = Math.max(0, s); const d = Math.floor(s / 86400)
 
 // f5.2: a roster (rocketdb) stack: stage masses (t), engine thrust (kN, vacuum, per engine), Isp and count from Vehicle Specs
 export function applySpec(v, sp) { if (!sp || !sp.stages || sp.stages.length !== v.stages.length) return false;
-  v.stages.forEach((s, i) => { const o = sp.stages[i]; s.dry = o.dry; s.fuel = s.fuelMax = o.fuel; s.n = o.n; s.eng = { ...s.eng, tv: o.tv, ispSl: o.ispSl, ispVac: o.ispVac };
+  v.stages.forEach((s, i) => { const o = sp.stages[i]; s.dry = o.dry; s.fuel = s.fuelMax = o.fuel; s.n = o.n; s.eng = { ...s.eng, tv: o.tv, ispSl: o.ispSl, ispVac: o.ispVac }; if (o.reserve > 0) s.reserve = o.reserve;
     // the physics mass comes from the parts: scale the stage's structure to the roster dry mass; the payload part carries the payload
     const st = s.parts.filter(p => !['pod', 'payload', 'fairing'].includes(p.kind)), sum = st.reduce((t, p) => t + p.m, 0);
     if (sum > 0) for (const p of st) p.m *= o.dry / sum;
     const cap = s.parts.reduce((t, p) => t + (p.fuelCap || 0), 0); if (cap > 0) for (const p of s.parts) if (p.fuelCap) p.fuelCap *= o.fuel / cap; // tanks share the roster propellant
     if (o.payload > 0) { const pl = s.parts.find(p => p.kind === 'pod' || p.kind === 'payload'); if (pl) pl.m = o.payload; }
     if (sp.fairing > 0) { const f = s.parts.find(p => p.kind === 'fairing'); if (f) f.m = sp.fairing; } });
+  if (sp.area > 0) v.specArea = sp.area; // fx-ng: the roster frontal area (m²) sizes the spent booster's drag
   v.spec = sp.src || true; return true; }
 export class Flight {
   constructor(design, hooks = {}, opts = {}) {
@@ -763,8 +764,10 @@ export class Flight {
           const need = s0.dry * (Math.exp((1.4 * vh0 + 1900) / (s0.eng.ispVac * 9.80665)) - 1);
           if (s0.fuel <= need && (!s0.radial || this.alt > 30000 || s0.fuel < 0.5 * need)) { /* side boosters: not inside the Max-Q region (the lone core would over-pressure) */ this.toast(`AUTO: ${s0.radial ? 'side boosters' : 'booster'} away with ${s0.fuel.toFixed(1)} t for the flight home`, '#9cc3ff'); this.stage(); }
         } else if (v.cur === 0 && this.last > 0 && !v.stages[0].radial && this.autoStage !== false && this.alt > 2000 && this.canStage()) {
-          if (this._plan === undefined) { try { this._plan = this.design ? planBuild(this.design, { earthRot: v.earthRot !== false }) : null; } catch (e) { this._plan = null; } }
-          const pl = this._plan; if (pl && pl.orbit && pl.landed && v.stages[0].fuel <= pl.minReserve) { this.toast(`AUTO: staging — booster keeps ${v.stages[0].fuel.toFixed(1)} t to fly home`, '#9cc3ff'); this.stage(); }
+          if (this._plan === undefined && !(v.stages[0].reserve > 0)) { try { this._plan = this.design ? planBuild(this.design, { earthRot: v.earthRot !== false }) : null; } catch (e) { this._plan = null; } }
+          const pl = this._plan, s0 = v.stages[0];
+          if (s0.reserve > 0 && this.recovery === 'ship') { if (s0.fuel <= s0.reserve) { this.toast(`AUTO: staging — booster keeps ${s0.fuel.toFixed(0)} t to land on the drone ship`, '#9cc3ff'); this.stage(); } } // fx-ng: a sourced landing reserve (New Glendale 67 t)
+          else if (pl && pl.orbit && pl.landed && v.stages[0].fuel <= pl.minReserve) { this.toast(`AUTO: staging — booster keeps ${v.stages[0].fuel.toFixed(1)} t to fly home`, '#9cc3ff'); this.stage(); }
         }
         if (v.cur < this.lastPow && v.stages[v.cur].fuel <= 0 && this.canStage()) { this.toast(v.cur === 0 ? 'AUTO: booster empty, staging' : `AUTO: stage ${v.cur + 1} empty, staging`, '#9cc3ff'); this.stage(); }
       } else { v.throttle = this.autoOn ? Math.min(v.ut, P.qCap(v.tel ? v.tel.q : 0)) : v.ut; if (!this.autoOn) v.steerDir = null; }

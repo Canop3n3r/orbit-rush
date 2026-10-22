@@ -1,6 +1,6 @@
 // fx-2 (Aaron: cool landings): every reusable booster (Heron family, Colossus, New Glendale) under AUTO flies
 // boostback/entry burn/landing burn with grid fins onto the pad or the drone ship, and lands.
-// OPEN: new-glendale (staging early enough to land overheats its payload; see BOARD fx-2) — run `node tests/booster_land.mjs new-glendale`.
+// OPEN: new-glendale: with PR #49 masses it reaches orbit on AUTO and stages with its 67 t reserve at ~64 km / 2.9 km/s, but that reserve cannot cover entry + landing burns in this model (burns up or lands hard); see BOARD fx-ng. Run `node tests/booster_land.mjs new-glendale`.
 import * as P from '../physics.js?v=fx2';
 import { Flight } from '../flight.js?v=fx2';
 import { specFor, specDesign } from '../fun/specstack.js?v=fx2';
