@@ -26,7 +26,7 @@ let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and 
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
 import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.5d';
-import * as GX from './gfx/gfx.js?v=f5.5d';
+import * as GX from './gfx/gfx.js?v=f3a';
 import { Director, MISSIONS } from './fun/director.js?v=f5.5d';
 import * as PR from './fun/progress.js?v=f5.5d';
 import * as WORLD from './fun/world.js?v=f5.5d';

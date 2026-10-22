@@ -2,8 +2,8 @@
 // Earth day/night/clouds/ocean glint + analytic atmospheric scattering, Sun + bloom, Milky Way, HDR tone mapping,
 // PBR environment, quality presets (low keeps phones and software GPUs working). No physics here.
 import * as THREE from 'three/webgpu';
-import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass, attribute, normalView } from 'three/tsl';
-import { oceanLook, oceanDisplace, oceanTime } from './ocean.js?v=f5.5d';
+import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass, attribute, normalView, positionView, sign } from 'three/tsl';
+import { oceanLook, oceanDisplace, oceanTime } from './ocean.js?v=f3a';
 export { oceanTime };
 export { GFX, GFX_ORDER } from './presets.js?v=f5.5d';
 import { GFX } from './presets.js?v=f5.5d';
@@ -138,7 +138,7 @@ export const BODY_TEX = { mercury: 'mercury', venus: 'venus', moon: 'moon', mars
 // carved dark "scrub" blot in open water: the speckle seen at ~2 km. Now the coastline is the mask's 0.5 contour with a
 // small multi-km wobble, and land carved out of the sea is beach/scrub land colour, not a dark slab.
 export function tileMaterial(sunPos = uniform(new THREE.Vector3(1e11, 0, 0)), tier = 'med') {
-  const m = new THREE.MeshStandardNodeMaterial({ vertexColors: true });
+  const m = new THREE.MeshStandardNodeMaterial(); // f3: no vertexColors flag: colorNode already reads the colour attribute (the flag multiplied it in again: vc^2, near-black ground and sea)
   const p = positionLocal, n1 = mx_noise_float(p.mul(0.004)), n2 = mx_noise_float(p.mul(0.05)), n3 = mx_noise_float(p.mul(0.6));
   const d = length(positionWorld), fade = smoothstep(4000.0, 300.0, d);
   const r0 = mx_noise_float(p.mul(0.00006)), r1 = mx_noise_float(p.mul(0.00035)), r2 = mx_noise_float(p.mul(0.0016));
@@ -148,8 +148,9 @@ export function tileMaterial(sunPos = uniform(new THREE.Vector3(1e11, 0, 0)), ti
   const land = mix(vc, vc.mul(tint), saturate(r0.mul(0.6).add(0.55))).mul(k);
   const sea = oceanLook({ vc, w0, w, sunPos, tier });
   if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('oceandbg') === '7') { m.colorNode = vec3(0, 0, 0); m.emissiveNode = vec3(w0, w, 1); return m; } // test-only: raw mask, shaped mask
+  if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('oceandbg') === '8') { const nw = normalWorld.mul(sign(dot(normalWorld, cameraPosition.sub(positionWorld)).add(1e-4))); m.colorNode = vec3(0, 0, 0); m.emissiveNode = vec3(saturate(dot(nw, normalize(sunPos))), land.x.mul(4), saturate(dot(nw, normalize(positionWorld)))); return m; } // test-only: n.L, land albedo, n.up
   m.colorNode = mix(land, sea.color, w); m.roughnessNode = mix(float(0.95).sub(n2.mul(0.05)), sea.rough, w); m.metalnessNode = float(0);
-  m.normalNode = mix(normalView, sea.normalView, w); m.emissiveNode = sea.emissive.mul(w);
+  const nfv = normalView.mul(sign(dot(normalView, positionView.negate()).add(1e-4))); m.normalNode = mix(nfv, sea.normalView, w); // f3: tile winding gave inward normals -> unlit black ground m.emissiveNode = sea.emissive.mul(w);
   const disp = oceanDisplace(w0, tier); if (disp) m.positionNode = disp;
   return m;
 }

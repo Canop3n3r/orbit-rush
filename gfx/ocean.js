@@ -5,7 +5,7 @@
 // surf foam along the coast (med/high), true vertex displacement of the two longest swells near the camera (high only).
 import * as THREE from 'three/webgpu';
 import { uniform, float, vec3, vec4, positionLocal, positionWorld, cameraPosition, normalWorld, normalLocal, modelWorldMatrix, cameraViewMatrix,
-  normalize, dot, length, mix, smoothstep, pow, saturate, max, sin, cos, mx_noise_float, reflect } from 'three/tsl';
+  normalize, dot, sign, length, mix, smoothstep, pow, saturate, max, sin, cos, mx_noise_float, reflect } from 'three/tsl';
 export const oceanTime = uniform(0); // seconds; main.js advances it every frame
 // [wavelength m, steepness (A*k), direction (unit, tile-local), phase]
 const WAVES = [[220, 0.16, [0.80, 0.55, 0.24], 0.0], [90, 0.18, [0.35, 0.90, -0.25], 1.3], [37, 0.18, [0.95, -0.20, 0.24], 2.1], [13, 0.15, [-0.30, 0.85, 0.43], 0.7], [5.2, 0.12, [0.60, 0.30, -0.74], 4.2]];
@@ -24,19 +24,19 @@ function waveTerms(p, dist, ids) { // -> { grad (local), crest (-1..1 weighted),
 export function oceanLook({ vc, w0, w, sunPos, tier = 'med' }) {
   const T = OCEAN_TIERS[tier] || OCEAN_TIERS.med, p = positionLocal, dist = length(positionWorld.sub(cameraPosition));
   const { grad, crest } = waveTerms(p, dist, T.waves);
-  const gW = modelWorldMatrix.mul(vec4(grad, 0)).xyz, n0 = normalWorld, gt = gW.sub(n0.mul(dot(gW, n0)));
+  const Vf = normalize(cameraPosition.sub(positionWorld)), nfs = sign(dot(normalWorld, Vf).add(1e-4)), gW = modelWorldMatrix.mul(vec4(grad, 0)).xyz, n0 = normalWorld.mul(nfs), gt = gW.sub(n0.mul(dot(gW, n0)));
   const n = normalize(n0.sub(gt)), V = normalize(cameraPosition.sub(positionWorld)), L = normalize(sunPos.sub(positionWorld));
   const ndl = dot(n0, L), day = smoothstep(-0.12, 0.25, ndl), cosV = saturate(dot(n, V));
-  const fres = float(0.04).add(pow(float(1).sub(cosV), 4.0).mul(0.96));
+  const fres = float(0.02).add(pow(float(1).sub(cosV), 5.0).mul(0.5)); // f3: capped (grazing horizon read as white)
   // water body colour: navy offshore, turquoise where the mask says shallow/coastal; a hint of the map colour keeps regions
-  const shallow = smoothstep(0.97, 0.62, w0), deep = vec3(0.02, 0.08, 0.15), shal = vec3(0.04, 0.24, 0.24);
-  const body = mix(mix(deep, shal, shallow.mul(0.8)), vc.mul(vec3(0.7, 0.9, 1.2)), 0.25).mul(day.mul(0.85).add(0.15));
-  const sky = mix(vec3(0.20, 0.34, 0.60), vec3(0.55, 0.68, 0.85), pow(float(1).sub(cosV), 3.0)).mul(day.mul(0.9).add(0.05));
+  const shallow = smoothstep(0.97, 0.62, w0), deep = vec3(0.015, 0.06, 0.14), shal = vec3(0.03, 0.16, 0.19);
+  const body = mix(mix(deep, shal, shallow.mul(0.8)), vc.mul(vec3(0.7, 0.9, 1.2)), 0.15).mul(day.mul(0.85).add(0.15));
+  const sky = mix(vec3(0.07, 0.16, 0.36), vec3(0.18, 0.30, 0.50), pow(float(1).sub(cosV), 3.0)).mul(day.mul(0.9).add(0.05));
   const near = smoothstep(9000.0, 600.0, dist); // ripple detail is resolved: sharp glint; far: broad statistical glint
   const R = reflect(V.negate(), n), rl = saturate(dot(R, L));
-  const glint = pow(rl, mix(float(60), float(900), near)).mul(mix(float(2.0), float(14.0), near)).mul(fres.mul(4).add(0.2)).mul(day).mul(smoothstep(0.0, 0.08, ndl));
+  const glint = pow(rl, mix(float(400), float(1500), near)).mul(mix(float(0.6), float(4.0), near)).mul(fres.mul(2).add(0.1)).mul(day).mul(smoothstep(0.0, 0.08, ndl));
   let color = body.mul(float(1).sub(fres)), foam = float(0); // sky reflection is light, not albedo: it goes to emissive below
-  if (T.caps) { const nz = mx_noise_float(p.mul(0.05).add(vec3(oceanTime.mul(0.4), 0, 0))); foam = foam.add(smoothstep(0.55, 0.9, crest.add(nz.mul(0.35))).mul(smoothstep(4000.0, 300.0, dist)).mul(0.8)); }
+  if (T.caps) { const nz = mx_noise_float(p.mul(0.05).add(vec3(oceanTime.mul(0.4), 0, 0))); foam = foam.add(smoothstep(0.78, 0.98, crest.add(nz.mul(0.25))).mul(smoothstep(2500.0, 300.0, dist)).mul(0.6)); }
   if (T.surf) { const band = smoothstep(0.5, 0.58, w).mul(smoothstep(0.86, 0.62, w0.add(mx_noise_float(p.mul(0.002)).mul(0.08))));
     const surge = sin(dot(p, vec3(0.6, 0.6, 0.5)).mul(0.08).sub(oceanTime.mul(1.1))).mul(0.5).add(0.5), nz2 = mx_noise_float(p.mul(0.03).add(vec3(0, oceanTime.mul(0.3), 0)));
     foam = foam.add(band.mul(smoothstep(0.35, 0.8, surge.mul(0.7).add(nz2.mul(0.4)))).mul(smoothstep(12000.0, 500.0, dist))); }
