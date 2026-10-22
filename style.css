@@ -1012,14 +1012,17 @@ body:has(#dCtl:not(.hidden)) #badge{display:none!important}
 body.plLandOn #apPe,body.plLandOn #dvStages{display:none}
 @media (orientation:landscape){#mright #mAbort{position:absolute;grid-row:auto;right:calc(100% + 8px);bottom:0}} /* f5.6q: landscape ABORT beside the cluster, off the navball */
 /* f5.6u (QA f5.6s P1): phone split chrome = one small label per pane (tap = focus); no ⇄/✕ walls; landed card; orbit hides the empty upper card */
-body.touch #split #spCtl,body.touch #split #spClose,body.touch #split #spCtlU,body.touch #split #spCloseU{display:none!important}
-body.touch #split .spBtns button{font:700 10px/1 var(--ui,system-ui)!important;padding:4px 7px!important;min-height:0!important;min-width:0!important;background:#0b142499!important;border:1px solid #ffffff22!important;letter-spacing:.05em;opacity:.85}
+#split #spCtl,#split #spClose,#split #spCtlU,#split #spCloseU{display:none!important} /* f5.6x (QA f5.6w P2): desktop too (Y swaps, the pane's ball takes control) */
+#split .spBtns button{font:700 10px/1 var(--ui,system-ui)!important;padding:4px 7px!important;min-height:0!important;min-width:0!important;background:#0b142499!important;border:1px solid #ffffff22!important;letter-spacing:.05em;opacity:.85}
 .spStrip .spT b{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .spStrip .spLand b{color:#7dffb0;letter-spacing:.06em}
-body.touch #split.uOrbit #spCardU,body.touch #split.uOrbit #spBtnsU{display:none!important}
 /* f5.6u (QA f5.6s P1 budgets): phone AUTO HUD = navball + AUTO/STAGE + one small ⛔/throttle cluster; no "×1", no THR words; orbit drops ⛔ + throttle */
 body.touch.autoOn #mAbort .mAbT{display:none}
 body.touch.autoOn #mAbort{font-size:15px!important;padding:4px 0!important;min-width:44px!important;min-height:36px!important}
 body.touch.autoOn #mThr b,body.touch.autoOn #mThr u{display:none!important}
 body.touch.warp1 #wVal{display:none!important}
 body.touch.inOrbit #mAbort,body.touch.inOrbit.autoOn #mThr{display:none!important}
+/* f5.6x (QA f5.6w P1): the end card hides the whole live HUD at every size (visibility, so no display:!important rule can bring a piece back) */
+body.endOn #plain,body.endOn #nav,body.endOn #navBall,body.endOn #mright,body.endOn #mleft,body.endOn #mhud,body.endOn #mThr,body.endOn #mAbort,body.endOn #dCtl,body.endOn #split,body.endOn .spCard,body.endOn #spPane2,body.endOn #hud,body.endOn #pilot,body.endOn #ctl,body.endOn #warpBar,body.endOn #topStack,body.endOn #hintS,body.endOn #badge,body.endOn #relBtn,body.endOn #gcamBtn,body.endOn #dMenu,body.endOn #mMenu,body.endOn #ignite{visibility:hidden!important;pointer-events:none!important}
+body.noStage #mStage,body.noStage #dStage{opacity:.35;filter:grayscale(1);box-shadow:none!important;animation:none!important}
+body.splitOn:not(.touch):not(.mapOn):has(#split:not(.hidden):not(.fullB):not(.fullU):not(.portrait)) #dCtl{right:auto!important;left:25%!important;transform:translateX(-50%)} /* f5.6x (QA f5.6w P2): desktop split: the AUTO/STAGE row belongs to the upper pane you fly */
