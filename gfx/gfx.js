@@ -143,10 +143,11 @@ export function tileMaterial(sunPos = uniform(new THREE.Vector3(1e11, 0, 0)), ti
   const d = length(positionWorld), fade = smoothstep(4000.0, 300.0, d);
   const r0 = mx_noise_float(p.mul(0.00006)), r1 = mx_noise_float(p.mul(0.00035)), r2 = mx_noise_float(p.mul(0.0016));
   const k = float(1).add(r0.mul(0.28)).add(r1.mul(0.22)).add(r2.mul(0.14)).add(n1.mul(0.16)).add(n2.mul(0.1)).add(n3.mul(0.12).mul(fade));
-  const vc = vertexColor().rgb, tint = mix(vec3(0.82, 1.08, 0.72), vec3(1.12, 0.98, 0.78), saturate(r1.mul(0.9).add(0.5)));
-  const w0 = attribute('wat', 'float'), w = smoothstep(0.47, 0.53, w0.add(r1.mul(0.05)).add(r2.mul(0.015)));
+  const vc = attribute('color', 'vec4').xyz, tint = mix(vec3(0.82, 1.08, 0.72), vec3(1.12, 0.98, 0.78), saturate(r1.mul(0.9).add(0.5)));
+  const w0 = attribute('color', 'vec4').w, w = smoothstep(0.47, 0.53, w0.add(r1.mul(0.05)).add(r2.mul(0.015)));
   const land = mix(vc, vc.mul(tint), saturate(r0.mul(0.6).add(0.55))).mul(k);
   const sea = oceanLook({ vc, w0, w, sunPos, tier });
+  if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('oceandbg') === '7') { m.colorNode = vec3(0, 0, 0); m.emissiveNode = vec3(w0, w, 1); return m; } // test-only: raw mask, shaped mask
   m.colorNode = mix(land, sea.color, w); m.roughnessNode = mix(float(0.95).sub(n2.mul(0.05)), sea.rough, w); m.metalnessNode = float(0);
   m.normalNode = mix(normalView, sea.normalView, w); m.emissiveNode = sea.emissive.mul(w);
   const disp = oceanDisplace(w0, tier); if (disp) m.positionNode = disp;
