@@ -970,7 +970,7 @@ body.touch.splitOn #gcamBtn{top:auto!important;bottom:calc(10px + var(--sab))!im
 /* f5.6e (QA f5.5d): menus always on top of every HUD piece; portrait split = two panes, small cards */
 #mMenu,#dMenu{z-index:95!important}body.menuOn #plain,body.menuOn #mright,body.menuOn #dCtl{visibility:hidden}
 #spPane2{display:none!important}
-@media (orientation:portrait){body.splitOn #relBtn{transform:scale(.85);transform-origin:left bottom}.spBall{width:56px!important;height:56px!important}#spHud,#spHud1{font-size:11px!important}}
+@media (orientation:portrait){.spBall{width:56px!important;height:56px!important}#spHud,#spHud1{font-size:11px!important}}
 /* f5.6g (QA spec): one "Fly" verb, one button shape: 12 px corners (STAGE and icon circles stay round) */
 #home button:not(#hMenuB):not(#hPick):not(#hnCareer):not(#hGear),#build button,#mMenu button,#dMenu button,#end button,#picker button,#sitePick button,.spBtns button,#gcamBtn,#relBtn,#ctl button,#mAuto,#dCtl button:not(#dStage),#hMenu button,.mcAct button{border-radius:12px!important}
 #hFly,#launchBtn{text-transform:none!important;letter-spacing:.02em}
@@ -1017,9 +1017,9 @@ body.plLandOn #apPe,body.plLandOn #dvStages{display:none}
 .spStrip .spT b{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .spStrip .spLand b{color:#7dffb0;letter-spacing:.06em}
 /* f5.6u (QA f5.6s P1 budgets): phone AUTO HUD = navball + AUTO/STAGE + one small ⛔/throttle cluster; no "×1", no THR words; orbit drops ⛔ + throttle */
-body.touch.autoOn #mAbort .mAbT{display:none}
+body.touch.autoOn #mAbort .mAbT{font-size:9px;letter-spacing:.04em;display:block;line-height:1} /* f5.7e (QA f5.7c P2): ⛔ keeps a tiny ABORT label */
 body.touch.autoOn #mAbort{font-size:15px!important;padding:4px 0!important;min-width:44px!important;min-height:36px!important}
-body.touch.autoOn #mThr b,body.touch.autoOn #mThr u{display:none!important}
+body.touch.autoOn #mThr u{display:none!important}body.touch.autoOn #mThr b{font-size:9px!important} /* f5.7e: the throttle bar keeps its THR label */
 body.touch.warp1 #wVal{display:none!important}
 body.touch.inOrbit #mAbort,body.touch.inOrbit.autoOn #mThr{display:none!important}
 /* f5.6x (QA f5.6w P1): the end card hides the whole live HUD at every size (visibility, so no display:!important rule can bring a piece back) */
@@ -1027,5 +1027,13 @@ body.endOn #plain,body.endOn #nav,body.endOn #navBall,body.endOn #mright,body.en
 body.noStage #mStage,body.noStage #dStage{opacity:.35;filter:grayscale(1);box-shadow:none!important;animation:none!important}
 body.splitOn:not(.touch):not(.mapOn):has(#split:not(.hidden):not(.fullB):not(.fullU):not(.portrait)) #dCtl{right:auto!important;left:25%!important;transform:translateX(-50%)} /* f5.6x (QA f5.6w P2): desktop split: the AUTO/STAGE row belongs to the upper pane you fly */
 /* f5.6z (QA f5.6x): phone landscape RELEASE sits top-left under the top bar (it drew over the navball); desktop orbit drops ABORT + throttle like the phone */
-@media (pointer:coarse) and (orientation:landscape){#relBtn:not(.done){top:calc(64px + var(--sat,0px))!important;bottom:auto!important;left:calc(12px + env(safe-area-inset-left,0px))!important;right:auto!important}}
 body.inOrbit #dAbort,body.inOrbit.autoOn #dThr{display:none!important}
+/* f5.7e (QA f5.7c P1): RELEASE / End flight has ONE fixed spot in split and single view, every size: top-left, clear of the top bar (right), toasts (centre) and navball; taps land because it never moves */
+#relBtn,#relBtn.done,body.splitOn #relBtn{position:fixed!important;top:calc(12px + var(--sat,0px))!important;left:calc(12px + env(safe-area-inset-left,0px))!important;right:auto!important;bottom:auto!important;transform:none!important;translate:none!important;z-index:40!important}
+/* f5.7e (QA f5.7c P2): phone portrait split: the band under the booster strip is solid HUD, so AUTO/STAGE sit on the HUD, not in the booster's picture */
+@media (orientation:portrait){body.touch #split:not(.fullB):not(.fullU) #spCardB{background:linear-gradient(#0b142400,#0b1424e6 22%,#0b1424f5 60%)!important}}
+/* f5.7e (QA f5.7c P2): pause fits short landscape phones (it clipped Settings @844); GROUND sits clear of the desktop STAGE row */
+#pause .mbox{max-height:calc(100vh - 24px);overflow:auto}
+@media (max-height:500px){#pause .mbox{padding:12px 16px!important}#pause h2{margin:0 0 6px!important;font-size:18px!important}#pause .col{display:grid!important;grid-template-columns:1fr 1fr;gap:6px}#pause .col .big{grid-column:1/-1}#pause button{min-height:40px!important;padding:6px 10px!important}}
+body:not(.touch) #gcamBtn:not([data-sp-pin]){bottom:auto!important;top:calc(72px + var(--sat,0px))!important;right:16px!important}
+body.touch #relBtn{padding:8px 12px!important;font-size:13px!important;min-height:40px!important} /* f5.7e: smaller fixed RELEASE on phones */

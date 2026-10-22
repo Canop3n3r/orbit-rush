@@ -19,6 +19,9 @@ export function pitchHeading(H, d) { const u = dot(d, H.up), p = Math.asin(Math.
 export function attitude(F, H) {
   const { pitch, heading } = pitchHeading(H, F.n), un = dot(H.up, F.n), u = [H.up[0] - F.n[0] * un, H.up[1] - F.n[1] * un, H.up[2] - F.n[2] * un];
   const roll = Math.hypot(...u) < 1e-4 ? 0 : Math.atan2(dot(u, F.r), dot(u, F.t)) * 180 / Math.PI;
+  // f5.7e (QA f5.7c P2): within 10° of straight up/down the nose heading is noise (pad 090 flipped to 270 / ROLL ±180 at
+  // liftoff): read the heading off the ship's belly (opposite its top, the way the nose will tip) and roll as 0 there
+  if (Math.abs(pitch) > 80) { const tb = pitchHeading(H, [-F.t[0], -F.t[1], -F.t[2]]).heading; return { heading: pitch > 0 ? tb : (tb + 180) % 360, pitch, roll: 0 }; }
   return { heading, pitch, roll };
 }
 export const MARKERS = { pro: '#7dffa6', retro: '#7dffa6', nrm: '#d58cff', anti: '#d58cff', radOut: '#4ad6ff', radIn: '#4ad6ff', node: '#5aa0ff', tgt: '#ff6ad5', antiTgt: '#ff6ad5' };

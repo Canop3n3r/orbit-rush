@@ -1061,7 +1061,7 @@ function reset() {
   $('end').classList.add('hidden'); $('toasts').innerHTML = '';
   showPreview();
 }
-function launch() { academy.hideFirst && academy.hideFirst();
+function launch() { academy.hideFirst && academy.hideFirst(); { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); } // f5.7e: a new flight starts with ☰ closed
   if (typeof home !== 'undefined' && home && home.on) home.show(false);
   initAudio(); reset(); state = 'flight'; mobile.buzzed = false;
   const sc = params.get('scenario');
@@ -1139,7 +1139,7 @@ function toast(msg, color = '#7dffa6') { msg = localize(msg, TOUCH); if (msg ===
 // ---------- pause, quicksave / quickload, revert (Milestone Q) ----------
 let paused = false;
 const QS_KEY = 'orbitrush.quicksave.v1';
-function setPause(on) { if (state !== 'flight') on = false; paused = !!on; qol.pause(paused); if (paused) { for (const k in keys) keys[k] = false; } }
+function setPause(on) { if (state !== 'flight') on = false; paused = !!on; if (paused) { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); try { mobile.closeMenu(); } catch (e) { } document.body.classList.remove('menuOn'); } /* f5.7e (QA f5.7c P2): one menu at a time */ qol.pause(paused); if (paused) { for (const k in keys) keys[k] = false; } }
 function quicksave() {
   if (state !== 'flight' || F.flags.dead) { toast('Nothing to save', '#ffb35c'); return false; }
   if (F.rails && F.warpI > 0) F.setWarp(0, true);
@@ -1408,7 +1408,7 @@ function showEnd() {
   $('shareBtn').textContent = 'Share score';
   // f5 lean end card (playtest ui_ideal_path #14 budget): ONE line + ↻ Retry + ▶ Next + ⋯; everything else lives in the ⋯ sheet
   { const L = out && out.ladder, starTxt = noStars ? '' : '★'.repeat(stars) + '☆'.repeat(3 - stars);
-    const what = design.sub && flags.space && !director ? 'Touched space ✓' : flags.dead ? 'Crashed' : F.released && F.released.saved && !director ? 'Delivered · ' + F.released.saved.name : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${Math.round(apKm)} km` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
+    const what = design.sub && flags.space && !director ? 'Touched space ✓' : flags.dead ? 'Crashed' : F.released && F.released.saved && !director ? 'Delivered · ' + F.released.saved.name : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${Math.round(apKm * 0.621371)} mi` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
     const earn = false && L && (L.cash || L.sci) ? ` <span class="eLine">+$${L.cash}M${L.sci ? ' 🔬' + L.sci : ''}</span>` : '';
     $('endTitle').innerHTML = `<span class="eStars">${starTxt}</span> ${what}${earn}`;
     const nb = $('nextMisBtn'), n = careerUI.next(nb && nb.dataset.after || null); if (nb) nb.dataset.home = director && !stars ? '1' : ''; if (nb) nb.innerHTML = n && !rungLocked(n) && !(director && !stars) ? `▶ Next<small>${rungLabel(n)}</small>` : '▶ Home';
@@ -1886,13 +1886,14 @@ function updateSplit(rdt) {
   const b = booster, flyA = b && b.state === 'flying' && b.mesh && b.mesh.visible !== false, flying = flyA || !!(booster2 && booster2.state === 'flying');
   if (flyA) { split.rec.push({ r: b.r.slice(), dir: b.dir.slice(), thr: b.thrust, n: b.n }); if (split.rec.length > 900) split.rec.shift(); split.done = 0; }
   const want = split.enabled && !split.closed && state === 'flight' && $('end').classList.contains('hidden') && /* f4.2: the end card replaces the split */ camMode !== 'map' && F.body === 'earth' && !photoOn && !replay && !F.flags.dead && b && (flying || split.done < 6);
-  if (!flying && b && split.on && b.state === 'landed' && !(booster2 && booster2.state === 'flying')) { split.replay = null; split.done += rdt; if (split.done > 1.5) split.done = 99; } // f5.6x (QA f5.6w P1): a landed booster closes its pane (back to single view; the BOOSTER LANDED toast says it) — no replay, no sideways landed framing
+  if (!flying && b && split.on && b.state !== 'flying' && !(booster2 && booster2.state === 'flying')) /* f5.7e: landed OR crashed/lost (NG burn-up) closes the pane */ { split.replay = null; const nw = performance.now(); if (!split.landT) split.landT = nw; split.done = nw - split.landT > 1200 ? 99 : 0.01; } // f5.7e: wall-clock (slow frames kept the landed pane up on desktop) // f5.6x (QA f5.6w P1): a landed booster closes its pane (back to single view; the BOOSTER LANDED toast says it) — no replay, no sideways landed framing
   else if (!flying && b && split.on) { // lost: hold, then a slow replay of the last seconds, then close
     if (!split.done && split.rec.length > 30) split.replay = { i: Math.max(0, split.rec.length - 240), k: 0 };
     split.done += rdt;
   }
   document.body.classList.toggle('splitOn', !!want); placeTopStack(!!(want && split.full !== 'b')); { const nw = performance.now(); if (!(nw - (guardToasts.t || 0) < 150)) { guardToasts.t = nw; try { guardToasts(); } catch (e) { } } } // fx-1: the one toast line never covers a telemetry card // f5.3: focused halves keep the split HUD (own card, no shared strip)
   if (want !== split.on && !want) for (const id of ['relBtn', 'gcamBtn']) { const el = $(id); if (el && el.dataset.spPin) { for (const k of ['top', 'bottom', 'left', 'right']) el.style.removeProperty(k); delete el.dataset.spPin; } } // f5.6h: unpin when the split closes
+  if (flying) split.landT = 0;
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want && camMode !== 'map') { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
   if (!split.on) return;
   const nb = 1, R2 = paneRect(0, nb), fb = split.full === 'b'; // f5.6e (QA): two panes max on every screen (Heavy's 2nd booster has no pane)
@@ -1905,7 +1906,7 @@ function updateSplit(rdt) {
     const card = (b, label, hud, ball, rp) => { const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
       const bf = b.stages[0], bs = V.len(bva), bPh = rp ? '⟲ REPLAY' : b.state === 'landed' ? '✔ LANDED' : b.state !== 'flying' ? '✘ LOST' : b.manual ? '🎮 YOU' : 'AUTO · ' + apPill(b.phase);
       spStrip(hud, label.replace(' · ', ' '), bPh.replace('AUTO · ', ''), /BURN|LANDING/.test(bPh), bs, bh, b, 0, false, b.state === 'landed');
-      miniBall($(ball), b.dir, b.r, bva, b.holdDir && b.manual ? b.holdDir : null); };
+      { const cv = $(ball); if (cv) { const ld = b.state !== 'flying'; cv.style.visibility = ld ? 'hidden' : ''; if (!ld) miniBall(cv, b.dir, b.r, bva, b.holdDir && b.manual ? b.holdDir : null); } } }; // f5.7e (QA f5.7c P2): a landed booster has no attitude to show (the '- -' ball on a blocky backdrop)
     const bLab = (i, lz) => { const k = 'AB'[i]; return TOUCH ? 'BOOSTER ' + k : 'BOOSTER ' + k + ' · ' + (lz || 'LZ-' + (i + 1)); }; // f5.6u (QA P1): phones drop the pad name (it clipped)
     card(b, booster2 ? bLab(0, b.lzName) : 'BOOSTER',
       'spHud', 'spBallB', !!split.replay);
@@ -1937,7 +1938,7 @@ function layoutSplitCards(nb, fb) {
   const ur = upperRect(nb), pinBottom = (el, side) => { if (!el) return; const st = el.style; if (!(!fb && split.full !== 'u')) { /* f5.6h (QA P2): landscape too: RELEASE / GROUND belong to the upper pane */ if (el.dataset.spPin) { for (const k of ['top', 'bottom', 'left', 'right']) st.removeProperty(k); delete el.dataset.spPin; } return; }
     el.dataset.spPin = '1'; st.setProperty('top', Math.round(ur.y + ur.h - el.offsetHeight - 10 - (($('spCardU') || {}).offsetHeight || 0)) + 'px', 'important'); /* f5.6h: above the upper strip */ st.setProperty('bottom', 'auto', 'important');
     st.setProperty(side, (side === 'left' ? ur.x + 10 : innerWidth - ur.x - ur.w + 10) + 'px', 'important'); st.setProperty(side === 'left' ? 'right' : 'left', 'auto', 'important'); };
-  pinBottom($('relBtn'), 'left'); pinBottom($('gcamBtn'), 'right');
+  pinBottom($('gcamBtn'), 'right'); // f5.7e (QA f5.7c P1): RELEASE is no longer pinned into the split; it has one fixed spot (style.css)
   if (nb > 1) placeIn($('spCardB2'), paneRect(1, nb), 'strip');
 }
 // f5.6h (Aaron): each split half gets the same bottom strip: a simple navball centered, mph + altitude on its left,
@@ -2055,7 +2056,7 @@ function updateSun(O, U, h, k, isMap) {
   const nightFill = F && F.body === 'moon' ? 0.9 : F && F.body === 'mars' ? 0.7 : 0.25; /* flight-ground-2: earthshine (Moon) / dusty skylight (Mars) keep a night site readable */
   hemi.intensity = (nightFill + (1 - nightFill) * day) * (1 - k * 0.75); hemi.groundColor.set(F && F.body === 'mars' ? 0x5a3424 : F && F.body === 'moon' ? 0x3a3a3a : 0x334433); hemi.color.set(F && F.body === 'mars' ? 0xd8b090 : 0xcfe3ff); scene.environmentIntensity = (0.35 + 0.65 * day) * (1 - 0.6 * k) * (0.3 + 0.7 * sunK);
   { const fl = fillLight(day, k, sunK, TOUCH); hemi.intensity = Math.max(hemi.intensity, fl.hemi); scene.environmentIntensity = Math.max(scene.environmentIntensity, fl.env); } // fx-1 fill floor kept on top of flight-ground-2's per-world fill
-  sunSprite.visible = !isMap && sunK > 0.02; sunSprite.position.copy(camera.position).addScaledVector(sunDirV, 5e7); sunSprite.scale.setScalar(5e7 * (0.12 + 0.1 * k)); sunSprite.material.opacity = sunK;
+  sunSprite.visible = !isMap && sunK > 0.02; sunSprite.position.copy(camera.position).addScaledVector(sunDirV, 5e7); sunSprite.scale.setScalar(5e7 * (0.12 + 0.1 * k) * (TOUCH ? 0.55 : 0.75)); sunSprite.material.opacity = sunK * (TOUCH ? 0.4 : 0.6); // f5.7e (QA f5.7c P2): softer sun glare (the starburst filled the phone's top third)
   const u = atmoMat.userData; atmo.position.set(cx, cy, cz); u.center.value.set(cx, cy, cz); u.sunDir.value.copy(sunDirV); u.Rp.value = R; u.Ra.value = ATMO_R;
   u.gain.value = isMap || (F && F.body && F.body !== 'earth') ? 0 : Math.min(1, Math.max(0, (h - 15000) / 45000)); atmo.visible = u.gain.value > 0.01;
   post.strength = 0.35 + 0.4 * k;
@@ -2210,8 +2211,8 @@ function funTick(rdt) {
   if (f.maxq) once('maxq', '💨', 'MAX-Q — through the worst of it', '#ffd23a');
   if (seen.cur !== undefined && cur > seen.cur) fun.call('⚡', 'STAGE ' + (cur + 1) + ' — SEPARATION', '#ffd23a'); seen.cur = cur;
   if (f.space) once('space', '🌌', 'SPACE!', '#c9a8ff', true);
-  if (f.orbit) once('orbit', '🛰️', TOUCH ? 'ORBIT!' : 'ORBIT ACHIEVED', '#7dffa6', true); // f5.6u: phones get the one-word banner
-  if (booster && booster.state === 'landed') once('bland', '🎯', 'BOOSTER LANDED', '#7dffa6', true);
+  if (f.orbit && !seen.orbit) seen.orbitT = performance.now(); if (f.orbit) once('orbit', '🛰️', TOUCH ? 'ORBIT!' : 'ORBIT ACHIEVED', '#7dffa6', true); // f5.6u: phones get the one-word banner
+  if (booster && booster.state === 'landed' && !(seen.orbitT && performance.now() - seen.orbitT < 4000)) once('bland', '🎯', 'BOOSTER LANDED', '#7dffa6', false); // f5.7e (QA f5.7c P2): small, and never stacked on the orbit banner (waits 4 s)
   if (f.recovered) once('home', '🪂', 'WELCOME HOME', '#7dffa6', true);
   if (f.landed) once('land', '🏳️', 'TOUCHDOWN on the ' + P.BODIES[F.body].name, '#7dffa6', true);
   seen.mach = seen.mach; seen.maxMach = Math.max(seen.maxMach || 0, tel.machShown || 0);
@@ -2346,6 +2347,7 @@ function stripTick() {
   // f5.6h (Aaron): trackball navball. The ball turns under the finger; the attitude it puts at center is a target that SAS holds
   const upCur = () => F && v ? { n: P.noseOf(v), t: V.qrot(v.q, [0, 0, -1]) } : null;
   const upHold = G => { if (!F || !v || v.clamped || F.flags.dead || (P.altOf(v) < 60 && V.len(P.airVel(v)) < 5)) return; // sitting on the pad: nothing to steer if (director && director.active) director.takeOver(); if (v.auto) F.takeOverUpper(); if (F.ret && F.ret.auto) F.setAuto(false);
+    if (!window.__dragTold) { window.__dragTold = 1; toast('Navball: you drag the sky — drag ⬆ = nose down, ⬇ = nose up', '#9cc3ff'); } // f5.7e (QA f5.7c P2): say which way the drag turns the nose, once
     if (F.autoOn) { F.setAuto(false, true); $('tProg').classList.remove('on'); } const q = (v.tel && v.tel.q) || 0, lim = limitToPrograde(G.n, P.progradeOf(v), aoaLimit(q, QALPHA_MAX)); // f5.6h (QA P1): stay near prograde at high Q
     if (lim.limited) { G = frameOf(lim.n, G.t); if (performance.now() - (upHold.w || 0) > 2500) { upHold.w = performance.now(); toast(`⚠ High Q (${(q / 1000).toFixed(0)} kPa): steering held within ${Math.round(aoaLimit(q, QALPHA_MAX) * 57.3)}° of prograde`, '#ffcf4a'); } }
     if (v.sas !== 'stab') F.setSAS('stab'); v.sasHold = G.n.slice(); v.holdAtt = { n: G.n.slice(), t: G.t.slice() }; };
@@ -2365,6 +2367,7 @@ const dCtl = (() => { if (TOUCH) return null; const d = document.createElement('
   $('dThr').onpointerdown = e => { const r = e.currentTarget.getBoundingClientRect(), set = y => setThrottleTouch(Math.max(0, Math.min(1, 1 - (y - r.top) / r.height))); set(e.clientY); const mv = ev => set(ev.clientY), up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); };
   return d; })();
 function dCtlTick() { if (!dCtl) return; const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); dCtl.classList.toggle('hidden', !on); if (!on) { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); return; } // f5.6h (QA): the ☰ never stays open over the end card
+  if (F.ignited && dCtlTick.ig !== F) { dCtlTick.ig = F; const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); try { mobile.closeMenu(); } catch (e) { } } // f5.7e (QA f5.7c P2): ☰ closes at liftoff (it stayed open from ascent to orbit)
   const t = Math.round(100 * (v.throttle || 0)); $('dThr').querySelector('i').style.height = t + '%'; $('dThr').querySelector('u').textContent = t + '%'; $('dAuto').classList.toggle('on', !!F.autoOn); } // f5.5c (Aaron): plain telemetry: mph, Ap/Pe with T−/+, Δv per stage
 function plainTick() {
   if (F && F.ignited) { const ig = $('ignite'); if (ig && !ig.classList.contains('hidden')) ig.classList.add('hidden'); } // f5.6o (QA): the pad hint goes away at ignition, however you staged

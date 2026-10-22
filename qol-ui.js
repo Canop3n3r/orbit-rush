@@ -22,7 +22,7 @@ export function createQoL(api) {
   const root = document.createElement('div'); root.id = 'qol';
   root.innerHTML = `<div id="pause" class="modal hidden"><div class="mbox"><h2>⏸ Paused</h2>
       <div class="col"><button data-q="resume" class="big">▶ Resume<kbd> (Esc)</kbd></button><button data-q="save">💾 Quicksave<kbd> (F5)</kbd></button><button data-q="load">📂 Quickload<kbd> (F9)</kbd></button>
-      <button data-q="revertLaunch">↺ Revert to launch</button><button data-q="hangar">🏗 Revert to hangar</button><button data-q="settings">⚙ Settings</button><button data-q="dv">Δv map</button></div>
+      <button data-q="revertLaunch">↺ Restart</button><button data-q="settings">⚙ Settings</button></div>
       <p id="qsInfo" class="sm"></p></div></div>
     <div id="settings" class="modal hidden"><div class="mbox wide"><h2>⚙ Settings</h2><div id="setBody"></div><div class="row"><button data-q="closeSet" class="big">Done</button></div></div></div>
     <div id="dvModal" class="modal hidden"><div class="mbox wide"><h2>Δv map</h2><div id="dvBody"></div><div class="row"><button data-q="closeDv" class="big">Close</button></div></div></div>

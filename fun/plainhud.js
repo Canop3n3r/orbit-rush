@@ -50,7 +50,7 @@ export function createPlainHud() {
     const la = d.land || null; $('plLand').classList.toggle('hidden', !la); document.body.classList.toggle('plLandOn', !!la); if (la) { set('plVs', 'V/S ' + la.vs + ' mph'); set('plImp', 'Impact ' + la.tImp.toFixed(1) + ' s');
       set('plBurn', la.state === 'low' ? 'TWR too low' : la.state === 'now' ? '🔥 BURN NOW' : 'Burn in ' + la.burnIn.toFixed(1) + ' s'); $('plLand').className = 'on ' + la.state; }
     const key = d.dv.map(s => s.n + ':' + Math.round(s.dv) + (s.on ? '*' : '')).join(',');
-    if (last.dv !== key) { last.dv = key; $('dvStages').innerHTML = '<b class="dvH">Δv left</b>' + d.dv.map(s => `<div class="dvS${s.on ? ' on' : ''}"><span>Stage ${s.n}</span><em>${c0(s.dv)} m/s</em></div>`).join(''); }
+    if (last.dv !== key) { last.dv = key; $('dvStages').innerHTML = '<b class="dvH">Δv left</b>' + d.dv.map(s => `<div class="dvS${s.on ? ' on' : ''}"><span>Stage ${s.n}</span><em>${c0(s.dv / 0.3048)} ft/s</em></div>`).join(''); }
   }
   return { el, update };
 }
