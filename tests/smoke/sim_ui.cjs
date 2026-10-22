@@ -19,6 +19,7 @@ require('fs').mkdirSync(OUT, { recursive: true });
   const st = await pg.evaluate(() => { const g = window.__game; return { state: g.state, ign: g.ignited, auto: !!g.F.autoOn, dir: !!(g.director && g.director.active), alt: g.F.alt }; });
   if (ONLY.includes('2')) {
    ok(st.state === 'flight' && !st.ign && !st.auto && !st.dir, `${tag}: FLY lands on the pad idle, no AUTO, no director (${JSON.stringify(st)})`);
+   await pg.evaluate(() => { window.__game.press('KeyF'); }); const af = await pg.evaluate(() => ({ auto: !!window.__game.F.autoOn, ign: window.__game.ignited })); ok(af.auto && !af.ign, `${tag}: AUTO can be armed on the pad without launching ${JSON.stringify(af)}`); await pg.evaluate(() => window.__game.press('KeyF'));
    const mt = await vis('#opTask, .mcIn'); ok(!mt, `${tag}: no mission prompt in flight`); }
   if (ONLY.includes('3')) {
    const t = await pg.evaluate(() => { const e = document.getElementById('spd'); if (!e) return null; const r = e.getBoundingClientRect(); return { txt: e.textContent, l: r.left, b: r.bottom, h: r.height, fs: parseFloat(getComputedStyle(e.querySelector('.spV') || e).fontSize) }; });

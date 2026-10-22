@@ -7,7 +7,9 @@ import * as THREE from 'three/webgpu';
 import { uniform, texture, float, vec2, vec3, positionWorld, cameraPosition, normalWorld, normalize, dot, length, mix, pow, saturate, smoothstep, max, abs, exp, vec4, cameraViewMatrix } from 'three/tsl';
 import { WORLD_TIERS, CLOUD_LAYER } from './tiers.js?v=w1';
 import { dirUV, detailNormal, fbm, PW, CP } from './common.js?v=w1';
-export function surfaceUniforms(o = {}) { return { center: uniform(new THREE.Vector3()), sunDir: uniform(new THREE.Vector3(1, 0, 0)), R: uniform(o.R ?? 6371), time: uniform(0), cloudUV: o.cloudUV || uniform(new THREE.Vector2()), cloudShadow: uniform(o.cloudShadow ?? 0.6) }; }
+export function surfaceUniforms(o = {}) { return { center: uniform(new THREE.Vector3()), sunDir: uniform(new THREE.Vector3(1, 0, 0)), R: uniform(o.R ?? 6371), time: uniform(0), cloudUV: o.cloudUV || uniform(new THREE.Vector2()), cloudShadow: uniform(o.cloudShadow ?? 0.6), rot: uniform(new THREE.Matrix3()) }; }
+// map direction: U.rot takes the world direction into the map's Y-up frame (identity in world.html; the game's bodies are Z-up)
+const mapDir = (U, d) => U.rot ? normalize(U.rot.mul(d)) : d;
 const wrapU = v => vec2(v.x.fract(), v.y);
 const toView = n => normalize(cameraViewMatrix.mul(vec4(n, 0.0)).xyz); // normalNode is view-space
 const camAlt = U => length(CP.sub(U.center)).sub(U.R);
@@ -47,7 +49,7 @@ export function earthSurfaceMaterial(t, tier = 'high', U = surfaceUniforms()) {
 }
 export function moonSurfaceMaterial(t, tier = 'high', U = surfaceUniforms({ R: 1737.4 })) {
   const T = WORLD_TIERS[tier], m = new THREE.MeshStandardNodeMaterial();
-  const d = normalize(PW.sub(U.center)), uv = dirUV(d), base = texture(t.moon, uv).rgb;
+  const d = normalize(PW.sub(U.center)), uv = dirUV(mapDir(U, d)), base = texture(t.moon, uv).rgb;
   const pkm = PW.sub(U.center), alt = camAlt(U), near = smoothstep(300.0, 2.0, alt).mul(smoothstep(25.0, 2.0, length(CP.sub(PW)))); // per-pixel distance fade: no moire
   // regolith: fine fbm albedo grain + small crater-ish pits; mid-scale ejecta brightening
   const warp = vec3(fbm(pkm.mul(0.35), 2), fbm(pkm.mul(0.35).add(17.0), 2), 0).mul(2.5); // domain warp breaks the repeating look
@@ -59,7 +61,7 @@ export function moonSurfaceMaterial(t, tier = 'high', U = surfaceUniforms({ R: 1
 }
 export function marsSurfaceMaterial(t, tier = 'high', U = surfaceUniforms({ R: 3389.5 })) {
   const T = WORLD_TIERS[tier], m = new THREE.MeshStandardNodeMaterial();
-  const d = normalize(PW.sub(U.center)), uv = dirUV(d), base = texture(t.mars, uv).rgb;
+  const d = normalize(PW.sub(U.center)), uv = dirUV(mapDir(U, d)), base = texture(t.mars, uv).rgb;
   const pkm = PW.sub(U.center), alt = camAlt(U), near = smoothstep(300.0, 3.0, alt).mul(smoothstep(30.0, 2.0, length(CP.sub(PW))));
   const warp = vec3(fbm(pkm.mul(0.3), 2), fbm(pkm.mul(0.3).add(9.0), 2), 0).mul(3.0), macro = fbm(pkm.mul(0.05), 2).mul(0.5).add(0.5);
   const dunes = fbm(pkm.add(warp.mul(0.06)).mul(9.0), T.detail).mul(0.5).add(0.5);

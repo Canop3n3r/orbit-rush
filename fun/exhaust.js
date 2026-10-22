@@ -1,6 +1,6 @@
 // f5.3 exhaust (engines-1 data): one plume per engine at each nozzle, coloured by propellant.
-import { VEHICLES, ROSTER_BLUEH } from '../vehicles/catalog.js?v=f5.5a';
-import { rosterFor } from './specstack.js?v=f5.5a';
+import { VEHICLES, ROSTER_BLUEH } from '../vehicles/catalog.js?v=f5.5b';
+import { rosterFor } from './specstack.js?v=f5.5b';
 const ALL = [...VEHICLES, ...ROSTER_BLUEH], ALIAS = { 'titan-ss-v3': 'colossus-v3', 'titan-ss-v4': 'colossus-v4' };
 export const PROPS = ['kerolox', 'methalox', 'hydrolox', 'hypergolic', 'solid'];
 // look per propellant: plume/glow/core/bell colours, sprite HDR colour, opacity k, smoke amount, soot (dark smoke), diamond strength
