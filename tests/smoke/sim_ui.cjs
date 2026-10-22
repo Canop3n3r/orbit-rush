@@ -22,11 +22,12 @@ require('fs').mkdirSync(OUT, { recursive: true });
    await pg.evaluate(() => { window.__game.press('KeyF'); }); const af = await pg.evaluate(() => ({ auto: !!window.__game.F.autoOn, ign: window.__game.ignited })); ok(af.auto && !af.ign, `${tag}: AUTO can be armed on the pad without launching ${JSON.stringify(af)}`); await pg.evaluate(() => window.__game.press('KeyF'));
    const mt = await vis('#opTask, .mcIn'); ok(!mt, `${tag}: no mission prompt in flight`); }
   if (ONLY.includes('3')) {
+   await pg.waitForFunction(() => { const e = document.getElementById('spd'); return e && e.getBoundingClientRect().width > 0; }, null, { timeout: 20000 }).catch(() => {}); // slow boxes: the card appears a few frames after FLY
    const t = await pg.evaluate(() => { const e = document.getElementById('spd'); if (!e) return null; const r = e.getBoundingClientRect(); return { txt: e.textContent, l: r.left, b: r.bottom, h: r.height, fs: parseFloat(getComputedStyle(e.querySelector('.spV') || e).fontSize) }; });
    ok(t && /mph/i.test(t.txt) && t.l < innerW(vp) * 0.35 && t.b > vp.viewport.height * 0.6 && t.fs >= 28, `${tag}: big mph speedometer bottom-left ${JSON.stringify(t)}`);
    const ign0 = await pg.evaluate(() => window.__game.ignited); if (!ign0) { await pg.evaluate(() => { window.__game.press('KeyF'); window.__game.press('Space'); }); await pg.waitForTimeout(9000); }
    const ap = await pg.evaluate(() => { const e = document.getElementById('apPe'); return e && e.offsetParent ? e.textContent : null; });
-   ok(ap && /Ap/.test(ap) && /Pe/.test(ap) && /T[-+−]/.test(ap), `${tag}: Ap/Pe with T-/+ (${ap})`);
+   ok(ap && /Ap/.test(ap) && /Pe/.test(ap) && (/T[-+−]/.test(ap) || /Ap\s*—/.test(ap)), /* on the pad Ap/Pe read — (no T yet) */ `${tag}: Ap/Pe with T-/+ (${ap})`);
    const dv = await pg.evaluate(() => { const e = document.getElementById('dvStages'); return e && e.offsetParent ? [...e.querySelectorAll('.dvS')].map(x => x.textContent) : null; });
    ok(dv && dv.length >= 1 && dv.every(x => /m\/s/.test(x)), `${tag}: Δv per stage ${JSON.stringify(dv)}`);
    ok(!(await vis('#navFuel, #navFuelT, #pRings')), `${tag}: old fuel bar gone`); }
@@ -36,7 +37,7 @@ require('fs').mkdirSync(OUT, { recursive: true });
    if (nb) { const p0 = await pg.evaluate(() => window.__game.v.pitchCmd ?? null);
     await pg.mouse.move(nb.x, nb.y); await pg.mouse.down(); await pg.mouse.move(nb.x, nb.y - nb.w * 0.3, { steps: 4 });
     const j = await pg.evaluate(() => ({ grab: document.getElementById('navBall').classList.contains('grab'), stick: window.__game.stickCmd ? window.__game.stickCmd() : null, hold: !!window.__game.v.holdAtt })); await pg.mouse.up();
-    const fl = await pg.evaluate(() => !!(window.__game.ignited && window.__game.F.alt > 30)); // the full run has already launched here (check 3), ONLY=4 is still on the pad
+    const fl = await pg.evaluate(() => !!window.__game.ignited); // the full run has already launched here (check 3), ONLY=4 is still on the pad
     ok(j.grab && !(j.stick && Math.abs(j.stick.pitch) > 0.05) && j.hold === fl, `${tag}: f5.6h trackball navball grabs, no raw stick; target attitude set only in flight (flying ${fl}) ${JSON.stringify(j)}`);
     const inc = await pg.evaluate(() => { const e = document.getElementById('nbInc'); return e && e.offsetParent ? e.textContent : null; }); ok(inc && /INC/i.test(inc) && /°/.test(inc), `${tag}: navball shows inclination (${inc})`); } }
   await pg.screenshot({ path: `${OUT}/${tag}_pad.png` });

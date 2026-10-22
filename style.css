@@ -1010,3 +1010,4 @@ body:has(#dCtl:not(.hidden)) #badge{display:none!important}
 
 /* fx-3: the landing aid replaces Ap/Pe + Δv rows so the speed card does not grow over the navball */
 body.plLandOn #apPe,body.plLandOn #dvStages{display:none}
+@media (orientation:landscape){#mright #mAbort{position:absolute;grid-row:auto;right:calc(100% + 8px);bottom:0}} /* f5.6q: landscape ABORT beside the cluster, off the navball */
