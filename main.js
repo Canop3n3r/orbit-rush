@@ -347,7 +347,8 @@ const tile = new THREE.Mesh(tileGeo, GX.tileMaterial(sunPos, worldTier(gfxQ, TOU
 let tileC = null, earthPx = null; GX.earthPixels(gfxQ).then(px => { earthPx = px; tileC = null; });
 const tileRGBA = [0, 0, 0, 0];
 function updateTile(ef) {
-  if (tileC && V.dot(tileC, ef) > Math.cos(25000 / R)) return;
+  const siteE = typeof F !== 'undefined' && F && F.homeBody === 'earth' && F.siteEf && F.siteEf[0] < 0.99999 ? F.siteEf : null; // flight-ground-3: sandbox Earth sites
+  if (tileC && V.dot(tileC, ef) > Math.cos(25000 / R) && updateTile.site === siteE) return; updateTile.site = siteE;
   const c = V.norm(ef), e = P.eastOf(c), nn = V.cross(c, e), pos = tileGeo.attributes.position.array, col = tileGeo.attributes.color.array, wat = tileGeo.attributes.wat.array, rgb = [0, 0, 0];
   tileC = c; tile.position.set(c[0] * R, c[1] * R, c[2] * R);
   const put = (k, th, ph) => {
@@ -360,7 +361,9 @@ function updateTile(ef) {
         const beach = Math.max(0, 1 - Math.abs(eM - coast + 120) / 160), scrub = 0.85 + 0.3 * fbm(eM * 0.002, nM * 0.002, 2.2);
         const lr = 0.030 * scrub + beach * 0.07, lg = 0.043 * scrub + beach * 0.06, lb = 0.020 * scrub + beach * 0.045;
         if (wC < 0.5) { tileRGBA[0] += (lr - tileRGBA[0]) * blend; tileRGBA[1] += (lg - tileRGBA[1]) * blend; tileRGBA[2] += (lb - tileRGBA[2]) * blend; }
-        tileRGBA[3] += (wC * 0.9 + (wC > 0.5 ? 0.1 : 0) - tileRGBA[3]) * blend; } const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
+        tileRGBA[3] += (wC * 0.9 + (wC > 0.5 ? 0.1 : 0) - tileRGBA[3]) * blend; }
+      if (siteE) { const dS = Math.acos(Math.min(1, V.dot(dd, siteE))) * R, lk = Math.min(1, Math.max(0, (4000 - dS) / 1500)); /* the pad complex stands on land: a ~3 km land/scrub apron, then the map's own coast */
+        if (lk > 0) { const sc = 0.85 + 0.3 * fbm(dd[0] * 3000, dd[1] * 3000, dd[2] * 3000); tileRGBA[0] += (0.030 * sc - tileRGBA[0]) * lk; tileRGBA[1] += (0.043 * sc - tileRGBA[1]) * lk; tileRGBA[2] += (0.020 * sc - tileRGBA[2]) * lk; tileRGBA[3] *= 1 - lk; } } const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
       col[k * 3] = tileRGBA[0] * (w > 0.5 ? 1 : f); col[k * 3 + 1] = tileRGBA[1] * (w > 0.5 ? 1 : f); col[k * 3 + 2] = tileRGBA[2] * (w > 0.5 ? 1 : f); wat[k] = w; }
     else { planetColor(dd, rgb, true); col[k * 3] = (rgb[0] / 255) ** 2.2; col[k * 3 + 1] = (rgb[1] / 255) ** 2.2; col[k * 3 + 2] = (rgb[2] / 255) ** 2.2; }
   };
@@ -1927,8 +1930,14 @@ function skyAlt(h) { // altitude that drives sky colour + haze: real altitude wh
   const b = F && F.body || 'earth'; if (b === 'earth') return h;
   if (!AIR[b]) return 1e9; const a = F.alt; return isFinite(a) ? Math.max(0, a / AIR[b]) : 1e9;
 }
+const SUN_DAY = params.get('sun') === 'day' ? 'all' : (() => { try { return localStorage.getItem('or_daylight') !== '0' ? 'offworld' : ''; } catch (e) { return 'offworld'; } })(); // sandbox off-world sites start in daylight unless or_daylight=0
 function updateSun(O, U, h, k, isMap) {
-  const sd = P.sunDir(F && F.body || 'earth', F.tAbs); sunDirV.set(sd[0], sd[1], sd[2]); // flight-ground-2: each world's flight frame is its own (flight.js transfer), so light it with its own Sun direction (was always Earth's)
+  let sd = P.sunDir(F && F.body || 'earth', F.tAbs);
+  // flight-ground-3: ?sun=day (tests/shots) or the sandbox 'daylight' setting for off-world sites keeps the Sun ~35° up at the site
+  // (from the site's east-south side), so a launch never starts in the dark. The real ephemeris Sun is used otherwise.
+  if (SUN_DAY === 'all' || (SUN_DAY === 'offworld' && F && F.body && F.body !== 'earth')) { if (!updateSun.up || (F && F.alt < 200)) updateSun.up = [U.x, U.y, U.z];
+    const u = updateSun.up, ax = Math.abs(u[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0], e = V.norm(V.cross(ax, u)), s35 = Math.sin(0.61), c35 = Math.cos(0.61); sd = V.norm([u[0] * s35 + e[0] * c35 + sd[0] * 0.15, u[1] * s35 + e[1] * c35 + sd[1] * 0.15, u[2] * s35 + e[2] * c35 + sd[2] * 0.15]); }
+  sunDirV.set(sd[0], sd[1], sd[2]); // flight-ground-2: each world's flight frame is its own (flight.js transfer), so light it with its own Sun direction (was always Earth's)
   sunL.position.copy(sunDirV); sunPos.value.copy(sunDirV).multiplyScalar(1e11);
   // eclipse: does the ray from the craft toward the Sun hit the Earth? (soft edge ~ the atmosphere's thickness)
   const cx = -O[0], cy = -O[1], cz = -O[2], tca = cx * sd[0] + cy * sd[1] + cz * sd[2], d2 = cx * cx + cy * cy + cz * cz - tca * tca;
