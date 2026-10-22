@@ -2,17 +2,17 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=f5.6w';
-import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.6w';
-import { elements, timeToAp } from './kepler.js?v=f5.6w';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.6w';
-import { massOf } from './vehicle.js?v=f5.6w';
-import { thermalOf } from './thermal.js?v=f5.6w';
-import { atmosphere } from './atmosphere.js?v=f5.6w';
-import { cd0 } from './aero.js?v=f5.6w';
-import { hoverslamSolve } from './hoverslam.js?v=f5.6w';
-import { sampleAscent } from '../timelines/ascent.js?v=f5.6w';
-import { BODIES, atmTop } from './solar.js?v=f5.6w';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f5.6x';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.6x';
+import { elements, timeToAp } from './kepler.js?v=f5.6x';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.6x';
+import { massOf } from './vehicle.js?v=f5.6x';
+import { thermalOf } from './thermal.js?v=f5.6x';
+import { atmosphere } from './atmosphere.js?v=f5.6x';
+import { cd0 } from './aero.js?v=f5.6x';
+import { hoverslamSolve } from './hoverslam.js?v=f5.6x';
+import { sampleAscent } from '../timelines/ascent.js?v=f5.6x';
+import { BODIES, atmTop } from './solar.js?v=f5.6x';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -98,8 +98,13 @@ export function autoGuide(v) {
   const pgAir = spAir > 5 ? pitchOfVec(va, f) : 0, pgIn = pitchOfVec(v.v, f);
   const blend = clamp((h - 40000) / 30000, 0, 1), pg = pgAir + wrapA(pgIn - pgAir) * blend;
   let ph = v.guid || 'ascent';
-  if (o.pe >= TARGET_PE && h > KARMAN) ph = 'done';
+  if (o.pe >= TARGET_PE && h > KARMAN) ph = ph === 'circ' && o.ap < TARGET_AP - 8000 ? 'raise' : ph === 'raise' ? 'raise' : 'done'; // fx-site: circularized low → raise Ap to the target
   else if (ph === 'done') ph = o.ap >= TARGET_AP - 3000 ? 'coast' : 'ascent';
+  // fx-site: a weak upper stage that topped out at the target apoapsis too slow sinks while it circularizes and can end up
+  // circular BELOW the target perigee (~150 km); its perigee can't pass its own altitude, so it used to burn on to an escape
+  // orbit (Ap ~40,000 km from the higher-latitude pads). Once it is in orbit there, raise the apoapsis and circularize again.
+  if (ph === 'circ' && h > KARMAN + 20000 && o.pe >= Math.min(TARGET_PE, h - 3000)) ph = o.ap < TARGET_AP - 8000 ? 'raise' : 'done';
+  if (ph === 'raise' && o.ap >= TARGET_AP) ph = 'coast';
   // direct insertion (v.direct): the upper stage burns straight through to orbit (one long burn, no coast-then-circularize),
   // as the real two-stage flights do; SECO lands at insertion instead of after a half-orbit coast
   if (v.direct && v.cur > 0 && ph === 'ascent' && h > KARMAN - 20000 && o.ap >= TARGET_AP - 1000) ph = 'insert';
@@ -112,7 +117,7 @@ export function autoGuide(v) {
   if (ph === 'coast') {
     const tb = burnTimeFor(v, circBurn(v).dv), tAp = timeToAp(v.r, v.v);
     if (h < KARMAN - 5000 && o.ap < TARGET_AP - 3000) ph = 'ascent';
-    else if (vr < 0 || tAp <= tb * 0.5 + 5) ph = 'circ';
+    else if ((vr < 0 && h > TARGET_AP - 15000) || tAp <= tb * 0.5 + 5) ph = 'circ';
   }
   v.guid = ph;
   let pitch, thr;
@@ -165,6 +170,7 @@ export function autoGuide(v) {
     pitch = holdPitch(v, f, vrDes, 0.05); thr = 1;
     const tMax = s && s.eng ? s.eng.tv * 1000 * s.n : 0; if (tMax > 0) thr = Math.min(1, G_LIMIT * 9.80665 * m / tMax);
   } else if (ph === 'coast' || ph === 'done') { pitch = pgIn; thr = 0; }
+  else if (ph === 'raise') { pitch = pgIn; thr = 1; } // fx-site: prograde apoapsis raise from a low circular orbit
   else { pitch = holdPitch(v, f, 0, 0.05); thr = 1; }
   const lim2 = qPa > 15000 ? 0.08 : qPa > 3000 ? 0.2 : qPa > 500 ? 0.5 : 1.4;
   // heavy: the q-limited prograde clamp may tilt UP a little more (never down) while the climb is under the floor

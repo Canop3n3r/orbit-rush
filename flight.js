@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.6w';
-import * as C from './physics/patched.js?v=f5.6w';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6w';
-import { designReusable } from './vehicles/reusable.js?v=f5.6w';
+import * as P from './physics.js?v=f5.6x';
+import * as C from './physics/patched.js?v=f5.6x';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6x';
+import { designReusable } from './vehicles/reusable.js?v=f5.6x';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -845,7 +845,7 @@ export class Flight {
     f.maxAlt = Math.max(f.maxAlt, h);
     if (!f.space && h > P.KARMAN) { f.space = 1; this.toast('🌌 SPACE! Kármán line (100 km) +1000', '#b98cff'); this.call('sound', 'beep', 1200); }
     const o = P.orbitOf(v);
-    if (h > ATM && !f.orbit && o.pe > P.ORBIT_PE) { f.orbit = 1; this.toast('🛰️ ORBIT ACHIEVED! +3000', '#7dffa6'); this.call('sound', 'orbit'); }
+    if (h > ATM && !f.orbit && o.pe > P.ORBIT_PE && isFinite(o.ap) && !(this.autoOn && v.thrust > 0 && /^(ascent|circ|raise|insert)$/.test(v.guid || ''))) { /* fx-site: under AUTO the ORBIT call waits for the burn to end (it fired mid-burn on a run-away 28,742 × 137 km circularization) */ f.orbit = 1; this.toast('🛰️ ORBIT ACHIEVED! +3000', '#7dffa6'); this.call('sound', 'orbit'); }
     if (!f.orbit && !f.stranded && v.cur >= this.lastPow && (v.cur > this.lastPow || v.stages[v.cur].fuel <= 0) && !this.ret) {
       f.stranded = 1; f.apAtOut = o.ap; f.peAtOut = o.pe; f.cause = this.diagnose();
       if (this.rec.capsule && this.rec.chute) this.toast('Out of fuel — suborbital. Press O to separate the capsule and ride it home', '#ffb35c');
