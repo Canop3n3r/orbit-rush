@@ -2,11 +2,11 @@
 // and the tests. Output is a body-frame torque command (N·m) that dynamics.js splits between reaction
 // wheels, engine gimbal and RCS. Body axes: +Y nose, +Z heading/"belly" (east on the pad), +X = Y x Z.
 // Pitch = about X (W tips the nose toward +Z), roll = about Y, yaw = about Z.
-import { R_E } from './constants.js?v=f5.6f';
-import { sub, scale, dot, cross, len, norm, qrot, qinv, clamp } from './vec.js?v=f5.6f';
-import { authority, airVel, engineOut, radOf, atmAt } from './dynamics.js?v=f5.6f';
-import { stackGeom, massProps } from './vehicle.js?v=f5.6f';
-import { atmosphere } from './atmosphere.js?v=f5.6f';
+import { R_E } from './constants.js?v=f5.6g';
+import { sub, scale, dot, cross, len, norm, qrot, qinv, clamp } from './vec.js?v=f5.6g';
+import { authority, airVel, engineOut, radOf, atmAt } from './dynamics.js?v=f5.6g';
+import { stackGeom, massProps } from './vehicle.js?v=f5.6g';
+import { atmosphere } from './atmosphere.js?v=f5.6g';
 export const SAS_MODES = ['off', 'stab', 'prograde', 'retrograde', 'radial', 'antiradial', 'normal', 'antinormal', 'node'];
 export const SAS_LABEL = { off: 'OFF', stab: 'STABILITY', prograde: 'PROGRADE', retrograde: 'RETROGRADE', radial: 'RADIAL OUT', antiradial: 'RADIAL IN', normal: 'NORMAL', antinormal: 'ANTI-NORMAL', node: 'MANEUVER', target: 'TARGET', antitarget: 'ANTI-TARGET' };
 // Prograde reference: air-relative below 40 km (what the airflow sees), inertial (orbital) above.
@@ -48,6 +48,8 @@ export function updateControl(v) {
   if (target) tau = steerTorque(v, target, ctx);
   else if (v.sas === 'off') tau = [0, 0, 0];
   for (let k = 0; k < 3; k++) if (manual[k]) tau[k] = manual[k] * auth[k];
+  if (manual.some(Boolean) && v.w) { const I = [mp.Ixx, mp.Iyy, mp.Ixx]; // f5.6g (QA): axes you are not commanding hold still (D yawed AND rolled −78°)
+    for (let k = 0; k < 3; k++) if (!manual[k]) tau[k] = Math.max(-auth[k], Math.min(auth[k], I[k] * (0 - v.w[k]) * 4)); }
   if (manual.some(Boolean)) v.sasHold = null; else if (v.sas === 'stab' && !v.sasHold) v.sasHold = qrot(v.q, [0, 1, 0]);
   v.cmdTorque = tau; v.auth = auth;
   return tau;

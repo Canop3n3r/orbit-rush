@@ -971,3 +971,6 @@ body.touch.splitOn #gcamBtn{top:auto!important;bottom:calc(10px + var(--sab))!im
 #mMenu,#dMenu{z-index:95!important}body.menuOn #plain,body.menuOn #mright,body.menuOn #dCtl{visibility:hidden}
 #spPane2{display:none!important}
 @media (orientation:portrait){body.splitOn #relBtn{transform:scale(.85);transform-origin:left bottom}.spBall{width:56px!important;height:56px!important}#spHud,#spHud1{font-size:11px!important}}
+/* f5.6g (QA spec): one "Fly" verb, one button shape: 12 px corners (STAGE and icon circles stay round) */
+#home button:not(#hMenuB):not(#hPick):not(#hnCareer):not(#hGear),#build button,#mMenu button,#dMenu button,#end button,#picker button,#sitePick button,.spBtns button,#gcamBtn,#relBtn,#ctl button,#mAuto,#dCtl button:not(#dStage),#hMenu button,.mcAct button{border-radius:12px!important}
+#hFly,#launchBtn{text-transform:none!important;letter-spacing:.02em}

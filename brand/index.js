@@ -1,7 +1,7 @@
 // Brand lookup. Every user-visible vehicle/payload/mission name and the title go through B()/vehicleName()/missionName().
 // Pack selection: build-time window.ORBIT_BRAND (set by a private build's index.html) or ?brand=<id> (loads brand/<id>.js).
 // The public repo ships only brand/default.js; a missing pack falls back to it silently.
-import DEFAULT from './default.js?v=f5.6f';
+import DEFAULT from './default.js?v=f5.6g';
 import { setBrandPack as setNames, displayName } from '../vehicles/brand.js';
 let PACK = DEFAULT;
 const merge = (a, b) => { const o = { ...a }; for (const k in b || {}) o[k] = b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) ? { ...(a[k] || {}), ...b[k] } : b[k]; return o; };
@@ -12,7 +12,7 @@ export function brandId() {
 export async function loadBrand(id = brandId()) {
   if (id !== 'default') { try { const m = await import(`./${id}.js?v=f4`); PACK = merge(DEFAULT, m.default || m); } catch (e) { PACK = DEFAULT; } }
   setNames({ ...(PACK.vehicles || {}), ...(PACK.engines || {}), ...(PACK.missions || {}) });
-  if (PACK.decals && Object.keys(PACK.decals).length) { try { (await import('../gfx/vehicles/decals.js?v=f5.6f')).setBrandPack(PACK.decals); } catch (e) {} }
+  if (PACK.decals && Object.keys(PACK.decals).length) { try { (await import('../gfx/vehicles/decals.js?v=f5.6g')).setBrandPack(PACK.decals); } catch (e) {} }
   return PACK;
 }
 export const brand = () => PACK;

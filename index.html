@@ -5,7 +5,7 @@
 <title>Orbit Rush — WebGPU rocket launch game</title>
 <meta name="description" content="Learn real rocket science by flying it: build a rocket from parts and fly it to a full-scale Earth orbit: real gravity, the 1976 standard atmosphere, Mach-dependent aerodynamics, reentry heating and 6-DOF flight. Land the booster, bring the capsule home. Free in your browser, powered by WebGPU.">
 <meta property="og:title" content="Orbit Rush 🚀"><meta property="og:description" content="Build a rocket. Reach orbit. Land the booster. WebGPU in your browser.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=f5.6f"><meta name="orbit-rush-build" content="2026-10-19-f1u">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=f5.6g"><meta name="orbit-rush-build" content="2026-10-19-f1u">
 <script type="importmap">{"imports":{"three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/tsl":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.tsl.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"}}</script>
 </head><body>
 <div id="badge">…</div>
@@ -29,7 +29,7 @@
     <div><div class="colH">Parts</div><div id="palette"></div></div>
     <div><div class="colH">Your rocket <small>top → bottom · separators split stages</small></div><div id="stack"></div></div>
     <div><div class="colH">Stages <small>fire from Stage 1 upward</small></div><div id="readout"></div>
-      <button id="launchBtn" class="big">ROLL TO PAD ▶</button><div class="tests"><button id="standBtn" title="Static fire on the test stand: engines lit, held down">🔥 Test stand</button><button id="tunnelBtn" title="Wind tunnel: airflow, CoM/CoP and flip tendency">🌬️ Wind tunnel</button><button id="dropBtn" title="Drop it from 1.5 km and watch what happens">📦 Drop test</button></div>
+      <button id="launchBtn" class="big">Fly</button><div class="tests"><button id="standBtn" title="Static fire on the test stand: engines lit, held down">🔥 Test stand</button><button id="tunnelBtn" title="Wind tunnel: airflow, CoM/CoP and flip tendency">🌬️ Wind tunnel</button><button id="dropBtn" title="Drop it from 1.5 km and watch what happens">📦 Drop test</button></div>
       <details><summary>How to fly</summary><ul>
         <li><b>Space</b> ignite, then stage &nbsp; <b>Shift/Ctrl</b> (or ↑/↓) throttle &nbsp; <b>Z/X</b> full/cut</li>
         <li><b>W/S</b> pitch · <b>A/D</b> yaw · <b>Q/E</b> roll (gimbal, reaction wheels, RCS). SAS holds attitude: <b>1</b> stability <b>2</b> prograde <b>3</b> retrograde <b>4/5</b> radial out/in <b>6/7</b> normal/anti · <b>V</b> SAS on/off</li>
@@ -62,6 +62,6 @@
 <div id="end" class="panel hidden"><h2 id="endTitle"></h2><div id="endBody"></div>
   <div class="endMain"><button id="relaunchBtn" class="big">↻ Retry</button><button id="replayBtn" class="hidden">⟲ Instant replay</button><button id="againBtn">⌂ Home</button><button id="contBtn">Continue ▸</button></div>
   <div class="endShare"><button id="shareBtn">Share score</button><button id="xBtn">Post on X</button></div></div>
-<script type="module" src="main.js?v=f5.6f"></script>
+<script type="module" src="main.js?v=f5.6g"></script>
 <script>if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});</script>
 </body></html>

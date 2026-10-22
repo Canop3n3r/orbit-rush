@@ -1,5 +1,5 @@
 // f5.4 sandbox launch-from-anywhere picker (Home 📍 button): world → preset base or tap a spot on the map.
-import { SITES, GAS } from '../sites.js?v=f5.6f';
+import { SITES, GAS } from '../sites.js?v=f5.6g';
 const KEY = 'orbitRush.site.v1';
 export function loadSite() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && s.body ? s : null; } catch (e) { return null; } }
 export function saveSite(s) { try { s ? localStorage.setItem(KEY, JSON.stringify(s)) : localStorage.removeItem(KEY); } catch (e) { } }
@@ -7,7 +7,7 @@ export const siteLabel = (s, BODIES) => s ? `${s.name} · ${BODIES[s.body].name}
 export function createSitePicker({ BODIES, onPick }) {
   const el = document.createElement('div'); el.id = 'sitePick'; el.className = 'hidden';
   const order = Object.values(BODIES).filter(b => !GAS.has(b.id)).sort((a, b) => (a.parent === 'sun' ? 0 : 1) - (b.parent === 'sun' ? 0 : 1)).map(b => b.id);
-  el.innerHTML = `<div class="spBox"><div class="spHead"><b>Launch from anywhere</b><span class="spSub">Sandbox: every rocket unlocked</span><button class="spX" aria-label="Close">✕</button></div>
+  el.innerHTML = `<div class="spBox"><div class="spHead"><b>Launch site</b><span class="spSub">Sandbox: every rocket unlocked</span><button class="spX" aria-label="Close">✕</button></div>
     <div class="spBodies">${order.map(id => `<button data-b="${id}">${BODIES[id].name}</button>`).join('')}</div>
     <div class="spInfo"></div><div class="spSites"></div>
     <canvas class="spMap" width="640" height="320" aria-label="Tap a spot to launch from there"></canvas><div class="spHint">Tap the map to pick any spot</div>

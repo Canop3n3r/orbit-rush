@@ -6,14 +6,14 @@ export function createHome({ list, onSelect, onFly, onMission, onBuild, onMissio
   el.innerHTML = `<div id="hTop"><div class="hLogo">ORBIT <b>RUSH</b></div><span class="hTopR"><button id="hnCareer" aria-label="Career progress" title="Career progress">🏆</button><button id="hGear" aria-label="Settings" title="Settings">⚙</button></span></div>
   <button id="hPrev" class="hArr" aria-label="Previous rocket">‹</button><button id="hNext" class="hArr" aria-label="Next rocket">›</button>
   <div id="hCard"><div class="hRow"><div><div id="hName"></div><div id="hRole"></div></div></div>
-    <div class="hRow hAct"><button id="hFly">FLY</button><button id="hMis"></button></div><div id="hDots">${list.map((_, i) => `<i data-i="${i}"></i>`).join('')}</div></div>
+    <div class="hRow hAct"><button id="hFly">Fly</button><button id="hMis"></button></div><div id="hDots">${list.map((_, i) => `<i data-i="${i}"></i>`).join('')}</div></div>
   <nav id="hNav"><button id="hnFly" class="on">🚀<span>Fly</span></button><button id="hnBuild">🔧<span>Build</span></button><button id="hnMis">🎯<span>Missions</span></button><button id="hnAtlas">🪐<span>Atlas</span></button></nav>`;
   document.body.appendChild(el);
   let i = 0, on = false;
   const set = (k, quiet) => { i = (k + list.length) % list.length; const r = list[i];
     $('hName').textContent = r.name; $('hRole').textContent = r.role;
     $('hMis').textContent = r.mission ? r.missionLabel + ' ▸' : ''; $('hMis').classList.toggle('hidden', !r.mission); // QA f5.1c: Customize lives in Build (🔧) $('hMis').title = r.mission ? 'One-tap mission: the director flies it, you watch (or take over)' : 'Open it in the builder as a copy';
-    const lk = locked(i); $('hFly').textContent = lk ? '🔒 LOCKED' : 'FLY'; $('hFly').classList.toggle('locked', lk); el.classList.toggle('lockedV', lk);
+    const lk = locked(i); $('hFly').textContent = lk ? '🔒 LOCKED' : 'Fly'; $('hFly').classList.toggle('locked', lk); el.classList.toggle('lockedV', lk);
     [...$('hDots').children].forEach((d, j) => d.classList.toggle('on', j === i));
     if (!quiet) onSelect(i); };
   const tap = (id, fn) => { $(id).onclick = e => { e.currentTarget.blur(); fn(); }; };
