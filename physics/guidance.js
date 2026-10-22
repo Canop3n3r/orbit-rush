@@ -2,17 +2,17 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=f5.7f';
-import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.7f';
-import { elements, timeToAp } from './kepler.js?v=f5.7f';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.7f';
-import { massOf } from './vehicle.js?v=f5.7f';
-import { thermalOf } from './thermal.js?v=f5.7f';
-import { atmosphere } from './atmosphere.js?v=f5.7f';
-import { cd0 } from './aero.js?v=f5.7f';
-import { hoverslamSolve } from './hoverslam.js?v=f5.7f';
-import { sampleAscent } from '../timelines/ascent.js?v=f5.7f';
-import { BODIES, atmTop } from './solar.js?v=f5.7f';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f5.7g';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.7g';
+import { elements, timeToAp } from './kepler.js?v=f5.7g';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.7g';
+import { massOf } from './vehicle.js?v=f5.7g';
+import { thermalOf } from './thermal.js?v=f5.7g';
+import { atmosphere } from './atmosphere.js?v=f5.7g';
+import { cd0 } from './aero.js?v=f5.7g';
+import { hoverslamSolve } from './hoverslam.js?v=f5.7g';
+import { sampleAscent } from '../timelines/ascent.js?v=f5.7g';
+import { BODIES, atmTop } from './solar.js?v=f5.7g';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -240,8 +240,7 @@ export function boosterAutopilot(b, dtHint = 0.02) {
       if (b._ieT <= 0) { b._ieT = 0.5; const im = predictImpact(b); if (im) { const e = sub(b.tgtAt ? b.tgtAt(im.t) : b.tgtR, im.r), u2 = norm(im.r), eh = sub(e, scale(u2, dot(e, u2))), E = len(eh); b.impErr = E; b._ieV = E > 1 ? scale(eh, Math.min(0.4, E / 4000) / E) : null; } }
       if (b._ieV) b.dir = norm(add(b.dir, b._ieV));
     }
-    const keepLo = sE.dry * (Math.exp(380 / (sE.eng.ispSl * 9.80665)) - 1), deep = !b.rtls && sE.dry > 60 && b.entryPeak && b.entryPeak.q > ENTRY_Q_MAX * 1.5; // f5.7e (QA f5.6x NG burn-up): a heavy droneship booster whose peaks are still far over the limit may dip into the landing budget (a dense booster lands from ~250 m/s terminal speed)
-    if (b._eNeed && sE.fuel > (deep ? keepLo : keep * (b.rtls ? 2.8 : 1.1))) { b.n = Math.min(deep ? b.nMax : 3, b.nMax); b.throttle = 1; b.phase = 'entry burn'; b.entryBurned = (b.entryBurned || 0) + dtHint; return; }
+    if (b._eNeed && sE.fuel > keep * (b.rtls ? 2.8 : 1.1)) { b.n = Math.min(3, b.nMax); b.throttle = 1; b.phase = 'entry burn'; b.entryBurned = (b.entryBurned || 0) + dtHint; return; }
     if (b.entryBurned) b.entryDone = true;
   }
   if (h <= 25000) b.entryDone = true;

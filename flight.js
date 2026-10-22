@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.7f';
-import * as C from './physics/patched.js?v=f5.7f';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.7f';
-import { designReusable } from './vehicles/reusable.js?v=f5.7f';
+import * as P from './physics.js?v=f5.7g';
+import * as C from './physics/patched.js?v=f5.7g';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.7g';
+import { designReusable } from './vehicles/reusable.js?v=f5.7g';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -70,6 +70,7 @@ const burnedUp = (b, h, sp) => h < 30000 && sp > 1700 && V.dot(b.r, b.v) < 0;
 export function landsWith(v, fuel) { const b = P.makeBooster(v); b.stages[0].fuel = fuel; return landingCheck(b).lands; }
 // Hangar planning: fly AUTO headlessly, find the smallest booster reserve (t) that still auto-lands, and
 // whether the upper stages still reach orbit when staged with that reserve.
+export const RESERVE_DV_K = 0.8; // f5.7g: booster Δv kept for entry + landing, as a share of its speed at separation
 export function planBuild(design, opts = {}) {
   if (!validate(design).ok) return { minReserve: null, orbit: false, reason: 'invalid' };
   const s = designStats(design); if (s.twr < 1) return { minReserve: null, orbit: false, reason: 'twr' };
@@ -771,7 +772,7 @@ export class Flight {
         } else if (v.cur === 0 && this.last > 0 && !v.stages[0].radial && this.autoStage !== false && this.alt > 2000 && this.canStage()) {
           if (this._plan === undefined && !(v.stages[0].reserve > 0)) { try { this._plan = this.design ? planBuild(this.design, { earthRot: v.earthRot !== false }) : null; } catch (e) { this._plan = null; } }
           const pl = this._plan, s0 = v.stages[0];
-          if (s0.reserve > 0 && this.recovery === 'ship') { if (s0.fuel <= s0.reserve) { this.toast(`AUTO: staging — booster keeps ${s0.fuel.toFixed(0)} t to land on the drone ship`, '#9cc3ff'); this.stage(); } } // fx-ng: a sourced landing reserve (New Glendale 67 t)
+          if (s0.reserve > 0 && this.recovery === 'ship') { const keepT = Math.max(s0.reserve, s0.dry * (Math.exp(RESERVE_DV_K * V.len(v.v) / (s0.eng.ispSl * 9.80665)) - 1)); /* f5.7g (QA NG landing): the sourced reserve is a floor; AUTO stages once the booster has only the Δv (~0.75 × its speed) for entry + landing burns — New Glendale: ~100 t at ~2.7 km/s instead of 67 t at 2.9 km/s, which burned up / crashed */ if (s0.fuel <= keepT) { this.toast(`AUTO: staging — booster keeps ${s0.fuel.toFixed(0)} t to land on the drone ship`, '#9cc3ff'); this.stage(); } } // fx-ng: a sourced landing reserve (New Glendale 67 t)
           else if (pl && pl.orbit && pl.landed && v.stages[0].fuel <= pl.minReserve) { this.toast(`AUTO: staging — booster keeps ${v.stages[0].fuel.toFixed(1)} t to fly home`, '#9cc3ff'); this.stage(); }
         }
         if (v.cur < this.lastPow && v.stages[v.cur].fuel <= 0 && this.canStage()) { this.toast(v.cur === 0 ? 'AUTO: booster empty, staging' : `AUTO: stage ${v.cur + 1} empty, staging`, '#9cc3ff'); this.stage(); }

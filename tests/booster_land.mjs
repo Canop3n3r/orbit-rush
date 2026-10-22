@@ -1,6 +1,6 @@
 // fx-2 (Aaron: cool landings): every reusable booster (Heron family, Colossus, New Glendale) under AUTO flies
 // boostback/entry burn/landing burn with grid fins onto the pad or the drone ship, and lands.
-// OPEN: new-glendale: with PR #49 masses it reaches orbit on AUTO and stages with its 67 t reserve at ~64 km / 2.9 km/s, but that reserve cannot cover entry + landing burns in this model (burns up or lands hard); see BOARD fx-ng. Run `node tests/booster_land.mjs new-glendale`.
+// new-glendale (f5.7g): AUTO stages it earlier/slower (~2.6 km/s, ~110 t) so entry + landing burns fit; it lands on the droneship (tests/ng_entry.mjs).
 import * as P from '../physics.js?v=fx2';
 import { Flight } from '../flight.js?v=fx2';
 import { specFor, specDesign } from '../fun/specstack.js?v=fx2';
@@ -8,7 +8,7 @@ import { SHOWROOM, MODEL_OF } from '../fun/showroom.js?v=fx2';
 let pass = 0, fail = 0; const ok = (c, m) => { c ? pass++ : fail++; console.log(c ? '  ✔' : 'FAIL', m); };
 const T0 = P.tFromDate(Date.UTC(2026, 9, 19, 15)), ONLY = process.argv[2];
 const design = id => { const r = SHOWROOM.find(x => MODEL_OF[x.id] === id); if (r) return { ...r.design, model: id }; const s = specFor(id); return s ? specDesign(s) : null; };
-for (const id of (ONLY ? [ONLY] : ['heron-9', 'heron-heavy', 'titan-ss-v3'])) {
+for (const id of (ONLY ? [ONLY] : ['heron-9', 'heron-heavy', 'titan-ss-v3', 'new-glendale'])) {
   const d = design(id); if (!d) { ok(false, id + ': no design'); continue; }
   const F = new Flight(d, {}, { t0: T0 }); F.setAuto(true, true); F.stagePress(); const ph = new Set(); let fins = false;
   for (let i = 0; i < 60 * 30 * 20 && !F.flags.dead; i++) { F.advance(1 / 30); const b = F.booster; if (b) { ph.add(b.phase); if (b.fin && Math.hypot(...b.fin) > 0.01) fins = true; if (b.state !== 'flying') break; } }
