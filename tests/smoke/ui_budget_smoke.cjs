@@ -3,7 +3,7 @@
 // Per screen it measures controls / words / UI coverage (and taps open→liftoff) and compares them with the spec budgets.
 // Counting rules = playtest/ui_audit_menus.cjs: only controls/text that are topmost at their centre count; UI% = 8 px grid
 // of points whose topmost element has an opaque-ish surface (or is a control). Default = report-only (always exit 0,
-// prints PASS/FAIL per budget). f5.1h: picker_group_words + builder_gated measured on the grouped picker (#picker, Sandbox switch). --strict exits 1 if fewer budgets pass than the ratchet baseline (UI_BASELINE, default 43). Needs playwright-core (PW_CORE=) + Chrome (CHROME=).
+// prints PASS/FAIL per budget). f5.1h: picker_group_words + builder_gated measured on the grouped picker (#picker, Sandbox switch). --strict exits 1 if fewer budgets pass than the ratchet baseline (UI_BASELINE, default 57 since QA f5.7c). Needs playwright-core (PW_CORE=) + Chrome (CHROME=).
 const PW = process.env.PW_CORE || (() => { try { return require.resolve('playwright-core'); } catch (e) { return '/workspace/pwt/node_modules/playwright-core'; } })();
 const { chromium } = require(PW);
 const args = process.argv.slice(2), flag = k => { const i = args.indexOf(k); return i >= 0 ? (args.splice(i, 1), true) : false; };
@@ -133,8 +133,15 @@ async function runVp(br, vp) {
       OS.split = await ev2(() => { const sp = document.getElementById('split'), on = !!sp && !sp.classList.contains('hidden'), t = on ? sp.textContent : '', u = (document.getElementById('spHud1R') || {}).textContent || '';
         return { on, upper: /Ap/.test(u) && /Δv/.test(u), landed: (t.match(/LANDED/g) || []).length, alt0: /ALT\s*-?0 ft/.test(t) }; }); OS.split.at = at;
       if (shots) await p2.screenshot({ path: `${shots}/uib_${tag}_orbit_split.png`, timeout: 180000 });
-      await ev2(() => { const F = window.__game.F; for (let i = 0; i < 60 * 1500 && !(F.flags.orbit && F.v.guid === 'done'); i++) F.advance(1 / 60); }); await w2(1500);
-      await ev2(() => { const b = document.getElementById('relBtn'); b && b.click(); }); await w2(1200); await ev2(() => { const b = document.getElementById('relBtn'); b && /End flight/i.test(b.textContent) && b.click(); }); await w2(3000);
+      await ev2(() => { const F = window.__game.F; for (let i = 0; i < 60 * 1500 && !(F.flags.orbit && F.v.guid === 'done'); i++) F.advance(1 / 60); }); await w2(100);
+      // f5.7c QA: RELEASE must stay put while the landed booster's pane closes (it jumped ~250 px, so a real tap at that moment missed:
+      // QA f5.7c rubric 390/844 lost the payload), and a real tap (touch on phone) on it must release the payload.
+      const rel = () => ev2(() => { const b = document.getElementById('relBtn'), sp = document.getElementById('split'); if (!b || b.classList.contains('hidden')) return null; const r = b.getBoundingClientRect(); if (r.width < 2) return null;
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2, t: b.textContent, split: !!sp && !sp.classList.contains('hidden') && sp.getBoundingClientRect().width > 1, released: !!window.__game.F.released }; });
+      let r0 = null, r1 = null; for (let k = 0; k < 40; k++) { const r = await rel(); if (r && r.split && !r0) r0 = r; if (r) r1 = r; if (r0 && r && !r.split) break; await w2(150); } await w2(1000); r1 = (await rel()) || r1;
+      OS.relMove = r0 && r1 ? { px: Math.round(Math.hypot(r1.x - r0.x, r1.y - r0.y)), from: [Math.round(r0.x), Math.round(r0.y)], to: [Math.round(r1.x), Math.round(r1.y)], split0: r0.split, split1: r1.split } : null;
+      if (r1 && /RELEASE/.test(r1.t)) { if (phone) await p2.touchscreen.tap(r1.x, r1.y); else await p2.mouse.click(r1.x, r1.y); await w2(1200); OS.relTap = await ev2(() => !!window.__game.F.released); }
+      await ev2(() => { const b = document.getElementById('relBtn'); b && /RELEASE/.test(b.textContent) && b.click(); }); await w2(1200); await ev2(() => { const b = document.getElementById('relBtn'); b && /End flight/i.test(b.textContent) && b.click(); }); await w2(3000);
       await ev2(() => { const e = document.getElementById('end'); if (e && e.classList.contains('hidden')) window.__game.press('Escape'); }); await w2(500);
       await p2.evaluate(() => { for (const a of document.getAnimations()) try { a.finish(); } catch (e) {} });
       OS.end = await ev2(measure); OS.end.x = await ev2(extra); if (shots) await p2.screenshot({ path: `${shots}/uib_${tag}_end_card_orbit.png`, timeout: 180000 });
@@ -157,6 +164,8 @@ async function runVp(br, vp) {
   else { rows.push({ vp, screen: 'orbit_split', metric: 'upper_card', val: OS.split.upper ? 'yes' : 'no', max: 'yes', ok: OS.split.upper, info: OS.split.at });
     rows.push({ vp, screen: 'orbit_split', metric: 'landed_x', val: OS.split.landed, max: 1, ok: OS.split.landed <= 1 });
     rows.push({ vp, screen: 'orbit_split', metric: 'alt_0ft', val: OS.split.alt0 ? 'yes' : 'no', max: 'no', ok: !OS.split.alt0 }); }
+  if (!OS.relMove) skip('orbit_release', 'stays_put', 'RELEASE never seen while the split was open'); else rows.push({ vp, screen: 'orbit_release', metric: 'stays_put', val: OS.relMove.px, max: 24, ok: OS.relMove.px <= 24, info: `px moved ${OS.relMove.from}→${OS.relMove.to} (split ${OS.relMove.split0 ? 'on' : 'off'}→${OS.relMove.split1 ? 'on' : 'off'})` });
+  if (OS.relTap == null) skip('orbit_release', 'real_tap', 'no RELEASE to tap'); else rows.push({ vp, screen: 'orbit_release', metric: 'real_tap', val: OS.relTap ? 'yes' : 'no', max: 'yes', ok: OS.relTap, info: (phone ? 'touchscreen' : 'mouse') + ' tap → payload released' });
   if (!OS.end || !OS.end.x || !OS.end.x.endUp) rows.push({ vp, screen: 'end_card_orbit', metric: 'shown', val: 'no', max: 'yes', ok: false, info: OS.err || 'RELEASE → End flight gave no end card' });
   else { chk('end_card_orbit', 'controls', OS.end.controls, 3); chk('end_card_orbit', 'words', OS.end.words, 6);
     rows.push({ vp, screen: 'end_card_orbit', metric: 'hud_hidden', val: OS.end.x.hudVis.length, max: 0, ok: OS.end.x.hudVis.length === 0, info: OS.end.x.hudVis.slice(0, 6).join(',') }); }
@@ -188,7 +197,7 @@ async function runVp(br, vp) {
   console.log(`${rows.length - fails - skips}/${rows.length - skips} budgets pass (${skips} skipped)`);
   if (jsonOut) require('fs').writeFileSync(jsonOut, JSON.stringify(all, null, 1));
   // f5.6h (QA ratchet): --strict fails only below the baseline pass count (43 of 74 on f5.6f); raise BASELINE as rows get fixed
-  const BASELINE = +(process.env.UI_BASELINE || 43), passN = rows.length - fails - skips;
+  const BASELINE = +(process.env.UI_BASELINE || 57) /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
   if (strict) console.log(`ratchet: ${passN} pass vs baseline ${BASELINE} → ${passN >= BASELINE ? 'OK' : 'REGRESSION'}`);
   process.exit(strict && passN < BASELINE ? 1 : 0);
 })().catch(e => { console.error('FATAL', e.message); process.exit(strict ? 1 : 0); });
