@@ -177,7 +177,7 @@ function starTexture() {
   for (let i = 0; i < 3000; i++) { const b = Math.random() ** 3; c.fillStyle = `rgba(${200 + 55 * Math.random()},${210 + 45 * Math.random()},255,${0.3 + b * 0.7})`; const s = b > 0.9 ? 2 : 1; c.fillRect(Math.random() * 2048, Math.random() * 1024, s, s); }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }// ---------- planet colours (shared by the globe texture and the high-res ground tile) ----------
-const PAD_EF = [1, 0, 0], PAD_Z = 0.4, DECK = 3, PAD_LAND_COS = Math.cos(2500 / 6378137);
+const PAD_EF = [1, 0, 0], PAD_Z = 0.4, DECK = 3, PAD_LAND_COS = Math.cos(2500 / 6378137), PAD_COAST_COS = Math.cos(30000 / 6378137);
 function planetColor(d, out, fine) { // d: Earth-fixed unit vector → [r,g,b] 0..255
   let n = fbm(d[0] * 2.2 + 5, d[1] * 2.2, d[2] * 2.2);
   if (d[0] > 0.9) { // around the launch site: land to the west, open ocean downrange (boosters land at sea)
@@ -285,7 +285,7 @@ function placeBodies(O, th) { // returns false when the current SOI is the Earth
   placeBodies.t = performance.now();
   const Rb = b.R; bodySph.scale.setScalar(Rb - 60); bodyG.position.set(-O[0], -O[1], -O[2]); bodyG.visible = true;
   const e = V.sub(_bAbs('earth', F.tAbs), _bAbs(id, F.tAbs)); earth.position.set(e[0] - O[0], e[1] - O[1], e[2] - O[2]); earth.rotation.z = th; earth.visible = V.len(e) > Rb * 2;
-  { const U = bodyU[id]; if (U) { U.center.value.set(-O[0], -O[1], -O[2]).multiplyScalar(0.001); U.sunDir.value.copy(sunDirV); } }
+  { const U = bodyU[id]; if (U) { U.center.value.set(-O[0], -O[1], -O[2]).multiplyScalar(0.001); U.sunDir.value.copy(sunDirV); if (F && F.alt < 200 && state !== 'map') { const l = V.len(O); U.site.value.set(O[0] / l, O[1] / l, O[2] / l); } /* flight-ground-2: flatten relief under the pad the craft stands on */ } }
   const alt = V.len(O) - Rb; bodyGround.visible = alt < 30000 && alt > -500;
   if (bodyGround.visible) { const u = V.norm(O); bodyGround.position.set(u[0] * Rb - O[0], u[1] * Rb - O[1], u[2] * Rb - O[2]); bodyGround.lookAt(bodyGround.position.x + u[0], bodyGround.position.y + u[1], bodyGround.position.z + u[2]); }
   siteHolder.rotation.z = P.omegaOf(F.v) * (F.v.clock || 0); // the art complex turns with the world
@@ -343,7 +343,7 @@ const tileGeo = new THREE.BufferGeometry();
   for (let i = 0; i < TNR - 1; i++) for (let j = 0; j < TNS; j++) { const a = 1 + i * TNS + j, b = 1 + i * TNS + (j + 1) % TNS, c = a + TNS, d = b + TNS; idx.push(a, c, b, b, c, d); }
   tileGeo.setIndex(idx);
   const nrm = new Float32Array(n * 3); for (let k = 0; k < n; k++) nrm[k * 3 + 1] = 1; tileGeo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3)); } // normals exist before the first compile
-const tile = new THREE.Mesh(tileGeo, GX.tileMaterial()); tile.frustumCulled = false; earth.add(tile);
+const tile = new THREE.Mesh(tileGeo, GX.tileMaterial(sunPos, worldTier(gfxQ, TOUCH) === 'low' ? 'low' : gfxQ === 'high' ? 'high' : 'med')); tile.frustumCulled = false; earth.add(tile);
 let tileC = null, earthPx = null; GX.earthPixels(gfxQ).then(px => { earthPx = px; tileC = null; });
 const tileRGBA = [0, 0, 0, 0];
 function updateTile(ef) {
@@ -355,7 +355,12 @@ function updateTile(ef) {
     const off = [c[0] * cm1 + e[0] * dx + nn[0] * dy, c[1] * cm1 + e[1] * dx + nn[1] * dy, c[2] * cm1 + e[2] * dx + nn[2] * dy];
     pos[k * 3] = off[0] * R; pos[k * 3 + 1] = off[1] * R; pos[k * 3 + 2] = off[2] * R;
     const dd = V.norm(V.add(c, off));
-    if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); if (dd[0] > PAD_LAND_COS) tileRGBA[3] = Math.min(tileRGBA[3], 0.3); /* f5: the 1k mask's coastal texel at LC-39A is mixed; the pad complex is land */ const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
+    if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); if (dd[0] > PAD_COAST_COS) { /* flight-ground-2: the 1k mask's ~40 km coastal texel made the pad an island on a beige-grey smear; shape a real coast instead: land (scrub) to the west, a beach, open Atlantic ~1.5 km east of the pad */
+        const eM = dd[1] * R, nM = dd[2] * R, coast = 1500 + 900 * (fbm(nM * 0.00025, 3.1, 7.7) - 0.5) * 2 + 0.25 * Math.max(0, nM) * 0.12, wC = Math.min(1, Math.max(0, (eM - coast) / 300 + 0.5)), blend = Math.min(1, (dd[0] - PAD_COAST_COS) / (1 - PAD_COAST_COS) * 6);
+        const beach = Math.max(0, 1 - Math.abs(eM - coast + 120) / 160), scrub = 0.85 + 0.3 * fbm(eM * 0.002, nM * 0.002, 2.2);
+        const lr = 0.030 * scrub + beach * 0.07, lg = 0.043 * scrub + beach * 0.06, lb = 0.020 * scrub + beach * 0.045;
+        if (wC < 0.5) { tileRGBA[0] += (lr - tileRGBA[0]) * blend; tileRGBA[1] += (lg - tileRGBA[1]) * blend; tileRGBA[2] += (lb - tileRGBA[2]) * blend; }
+        tileRGBA[3] += (wC * 0.9 + (wC > 0.5 ? 0.1 : 0) - tileRGBA[3]) * blend; } const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
       col[k * 3] = tileRGBA[0] * (w > 0.5 ? 1 : f); col[k * 3 + 1] = tileRGBA[1] * (w > 0.5 ? 1 : f); col[k * 3 + 2] = tileRGBA[2] * (w > 0.5 ? 1 : f); wat[k] = w; }
     else { planetColor(dd, rgb, true); col[k * 3] = (rgb[0] / 255) ** 2.2; col[k * 3 + 1] = (rgb[1] / 255) ** 2.2; col[k * 3 + 2] = (rgb[2] / 255) ** 2.2; }
   };
@@ -1610,6 +1615,7 @@ await renderer.compileAsync(scene, camera).catch(() => {});
 $('loading') && $('loading').remove();
 if (!params.has('scenario') && !params.has('noacademy')) academy.firstRun();
 renderer.setAnimationLoop(() => {
+  GX.oceanTime.value = performance.now() / 1000; // flight-ground-2: ocean wave clock
   const now = performance.now(), rdt = Math.min(0.1, (now - last) / 1000); last = now;
   let pdt = 0;
   slowT = rdt > 0.045 ? slowT + rdt : Math.max(0, slowT - rdt * 0.5);
@@ -1922,12 +1928,12 @@ function skyAlt(h) { // altitude that drives sky colour + haze: real altitude wh
   if (!AIR[b]) return 1e9; const a = F.alt; return isFinite(a) ? Math.max(0, a / AIR[b]) : 1e9;
 }
 function updateSun(O, U, h, k, isMap) {
-  const sd = P.sunDir('earth', F.tAbs); sunDirV.set(sd[0], sd[1], sd[2]);
+  const sd = P.sunDir(F && F.body || 'earth', F.tAbs); sunDirV.set(sd[0], sd[1], sd[2]); // flight-ground-2: each world's flight frame is its own (flight.js transfer), so light it with its own Sun direction (was always Earth's)
   sunL.position.copy(sunDirV); sunPos.value.copy(sunDirV).multiplyScalar(1e11);
   // eclipse: does the ray from the craft toward the Sun hit the Earth? (soft edge ~ the atmosphere's thickness)
   const cx = -O[0], cy = -O[1], cz = -O[2], tca = cx * sd[0] + cy * sd[1] + cz * sd[2], d2 = cx * cx + cy * cy + cz * cz - tca * tca;
   const shadow = F && F.body && F.body !== 'earth' ? 0 : tca > 0 ? Math.min(1, Math.max(0, (R + 30000 - Math.sqrt(Math.max(0, d2))) / 60000)) : 0, sunK = 1 - shadow;
-  const el = U.x * sd[0] + U.y * sd[1] + U.z * sd[2], day = Math.min(1, Math.max(0, (el + 0.08) / 0.25)), dusk = Math.max(0, 1 - Math.abs(el - 0.02) / 0.18) * (1 - k);
+  const el = U.x * sd[0] + U.y * sd[1] + U.z * sd[2], tw = F && F.body && BODY_SKY[F.body] ? 0.22 : 0.08 /* dusty air: long twilight skylight */, day = Math.min(1, Math.max(0, (el + tw) / (0.17 + tw))), dusk = Math.max(0, 1 - Math.abs(el - 0.02) / 0.18) * (1 - k);
   siteNight(Math.asin(Math.max(-1, Math.min(1, el))) * 180 / Math.PI); // f5.4j: the craft sits at the site, so its local sun is the site's
   const bs = F && F.body && F.body !== 'earth' ? BODY_SKY[F.body] : null, hs0 = bs && state !== 'flight'; // f5.4e: the sky follows the world; Home shows it in daylight
   skyC.copy(cNight).lerp(bs ? bs[0] : cSky, hs0 ? 1 : day).lerp(bs ? bs[1] : cHor, hs0 ? 0 : dusk * 0.55).multiplyScalar(1 - k);
@@ -1935,7 +1941,8 @@ function updateSun(O, U, h, k, isMap) {
   // aerial perspective near the ground: exponential haze in the sky colour, thinning with altitude
   scene.fog.color.copy(skyC).lerp(cHaze, 0.35 * day); scene.fog.density = isMap ? 0 : 2.2e-5 * Math.exp(-h / 4500) * (h < 40000 ? 1 : 0); // f4.1: high up the camera looks down through thin air (no grey slab at 22 km)
   sunL.intensity = 3.0 * sunK; sunL.color.setRGB(1, 0.85 + 0.15 * (1 - dusk), 0.7 + 0.3 * (1 - dusk));
-  hemi.intensity = (0.25 + 0.75 * day) * (1 - k * 0.75); scene.environmentIntensity = (0.35 + 0.65 * day) * (1 - 0.6 * k) * (0.3 + 0.7 * sunK);
+  const nightFill = F && F.body === 'moon' ? 0.9 : F && F.body === 'mars' ? 0.7 : 0.25; /* flight-ground-2: earthshine (Moon) / dusty skylight (Mars) keep a night site readable */
+  hemi.intensity = (nightFill + (1 - nightFill) * day) * (1 - k * 0.75); hemi.groundColor.set(F && F.body === 'mars' ? 0x5a3424 : F && F.body === 'moon' ? 0x3a3a3a : 0x334433); hemi.color.set(F && F.body === 'mars' ? 0xd8b090 : 0xcfe3ff); scene.environmentIntensity = (0.35 + 0.65 * day) * (1 - 0.6 * k) * (0.3 + 0.7 * sunK);
   sunSprite.visible = !isMap && sunK > 0.02; sunSprite.position.copy(camera.position).addScaledVector(sunDirV, 5e7); sunSprite.scale.setScalar(5e7 * (0.12 + 0.1 * k)); sunSprite.material.opacity = sunK;
   const u = atmoMat.userData; atmo.position.set(cx, cy, cz); u.center.value.set(cx, cy, cz); u.sunDir.value.copy(sunDirV); u.Rp.value = R; u.Ra.value = ATMO_R;
   u.gain.value = isMap || (F && F.body && F.body !== 'earth') ? 0 : Math.min(1, Math.max(0, (h - 15000) / 45000)); atmo.visible = u.gain.value > 0.01;
