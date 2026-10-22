@@ -2,12 +2,12 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import { MISSIONS } from './director.js?v=f5.6b';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.6b';
-import { ATLAS, poisOf } from './lore.js?v=f5.6b';
+import { MISSIONS } from './director.js?v=f5.6c';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.6c';
+import { ATLAS, poisOf } from './lore.js?v=f5.6c';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f5.6b';
+import { createNavball } from './navball.js?v=f5.6c';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();
@@ -63,7 +63,7 @@ export function createFunUI(ctx) {
     { const cv = $('navBall'), want = Math.min(256, Math.max(96, Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1)))); if (cv.clientWidth && Math.abs(cv.width - want) > 4) { cv.width = cv.height = want; } } // f5: crisp ticks/labels at the shown size
     const att = navball.draw({ nose: st.nose, top: st.top, r: st.r, markers: m });
     if (att) { const sg = x => (x >= 0 || Math.round(-x) === 0 ? '+' : '−') + String(Math.round(Math.abs(x))).padStart(2, '0'), hT = String(Math.round(att.heading) % 360).padStart(3, '0');
-      if ($('nrH').textContent !== hT) $('nrH').textContent = hT; $('nrP').textContent = sg(att.pitch); $('nrR').textContent = sg(att.roll); navOut.att = att; } if (isFinite(st.inc)) { const it = st.inc.toFixed(1); if ($('nrI').textContent !== it) $('nrI').textContent = it; } // f5.5d
+      if ($('nrH').textContent !== hT) $('nrH').textContent = hT; $('nrP').textContent = sg(att.pitch); $('nrR').textContent = sg(att.roll); navOut.att = att; } { const it = isFinite(st.inc) ? st.inc.toFixed(1) : '—'; if ($('nrI').textContent !== it) $('nrI').textContent = it; } // f5.5d
     $('navThr').style.strokeDashoffset = THR_LEN * (1 - st.throttle); $('navThrT').textContent = Math.round(st.throttle * 100) + '%';
     $('navFuel').style.strokeDashoffset = THR_LEN * (1 - st.fuel); $('navFuelT').textContent = 'S' + st.stage; $('navFuel').classList.toggle('low', st.fuel < 0.15);
     navEl.querySelectorAll('#navSas button').forEach(b => { const k = b.dataset.sas; b.classList.toggle('on', st.sas === k || (k === 'radial' && st.sas === 'antiradial') || (k === 'normal' && st.sas === 'antinormal'));

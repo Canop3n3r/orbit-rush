@@ -942,3 +942,28 @@ body.touch #mleft{left:calc(12px + var(--sal))}
 
 /* f5.6 (Aaron 7:23): rockets, flying, crashing, landing. No Missions, Career, Academy, Dailies, rewards anywhere */
 #academyBtn,#learnBtn,#firstRun,#learn,#learnTip,#hnCareer,#hnMis,#missionsBtn,#hub,#careerM,.eLine,.lockTag,.pkLock{display:none!important}
+/* f5.6c (Aaron video): one card per half, no duplicates; flight HUD only in flight; map shows only the map bar */
+#hud.hidden ~ #plain,#hud.hidden ~ #nav,#hud.hidden ~ #strip,#hud.hidden ~ #strip2,#hud.hidden ~ #hintS,#hud.hidden ~ #gcamBtn,#hud.hidden ~ #relBtn{display:none!important}
+body.splitOn #plain,body.splitOn #nav{display:none!important}
+.spBall{pointer-events:auto;touch-action:none;cursor:grab;border-radius:50%}
+body.mapOn #plain,body.mapOn #nav,body.mapOn #mright,body.mapOn #mleft,body.mapOn #gcamBtn,body.mapOn #relBtn,body.mapOn .spCard,body.mapOn #split .spBtns,body.mapOn #hintS,body.mapOn #ignite{display:none!important}
+.spBall{width:72px!important;height:72px!important}.spCard{padding:8px 10px}#spHud,#spHud1,#spHud2{font:700 13px/1.35 var(--ui,system-ui)!important}.spG b{color:#fff}
+body.touch #navRd{display:grid!important;grid-template-columns:auto auto;gap:0 8px;width:max-content;max-width:150px;white-space:nowrap;font-size:10px}
+#gcamBtn{min-height:44px!important;font:800 15px system-ui!important;padding:10px 16px!important;border-radius:12px!important}
+#navMode{min-height:44px!important;font-size:14px!important;padding:8px 14px!important}
+#mStage.flash,#dStage.flash{animation:stFlash .45s ease-out}@keyframes stFlash{0%{box-shadow:0 0 0 0 #ffd23a,0 0 30px #ffd23a;filter:brightness(1.8)}100%{box-shadow:0 0 0 14px #ffd23a00;filter:none}}
+body:not(.touch) #ignite{top:calc(70px + env(safe-area-inset-top,0px));font-size:18px;padding:8px 16px;transform:translateX(-50%)}
+#hud.hidden ~ #split,#hud.hidden ~ #spPane2{display:none!important}
+/* f5.6d: ☰ = compact right-side sheet, big buttons, one column pair */
+#mMenu{left:auto!important;right:calc(6px + var(--sar))!important;top:calc(56px + var(--sat))!important;bottom:auto!important;width:min(300px,calc(100vw - 16px))!important;max-height:calc(100dvh - 66px - var(--sat) - var(--sab))!important;transform:none!important;border-radius:12px!important;padding:10px!important}
+#mMenu .mg,#mMenu .mTop{grid-template-columns:1fr 1fr!important;gap:8px!important}#mMenu button{min-height:48px!important;font:700 15px var(--ui,system-ui)!important;border-radius:12px!important;text-align:left;padding:6px 12px!important}
+#mMenu .mh b{font:800 15px var(--ui,system-ui)}#mMenu #pObj,#mMenu #pPhoto,#mMenu #pMark,#mMenu #dPilot h5{display:none!important}#mMenu #dPilot{grid-template-columns:1fr 1fr!important;gap:8px}
+#dCtl{position:fixed;z-index:26;right:calc(16px + env(safe-area-inset-right,0px));bottom:16px;display:flex;align-items:flex-end;gap:10px}#dCtl.hidden,body.mapOn #dCtl{display:none!important}
+#dCtl button{min-height:44px;padding:8px 14px;border-radius:12px;font:800 15px var(--ui,system-ui);color:#fff;background:#1b2a44;border:1px solid #ffffff33;display:flex;flex-direction:column;align-items:center;gap:2px}
+#dCtl #dStage{width:96px;height:96px;border-radius:50%;background:#e8642a;border:3px solid #ffd2a8;font-size:17px;justify-content:center}#dCtl #dAuto.on{background:#2a6de8;border-color:#9cc3ff}#dCtl #dAbort{background:transparent;border-color:#ff6262;color:#ff9b9b}
+#dCtl kbd{font:700 10px var(--mono,monospace);opacity:.75;background:#0006;border-radius:4px;padding:1px 5px}
+#dThr{position:relative;width:44px;height:120px;border-radius:12px;background:#0b1424cc;border:1px solid #ffffff33;overflow:hidden;cursor:ns-resize;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:4px 0;font:800 10px var(--ui,system-ui);color:#fff}
+#dThr i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#ffb35c,#e8642a);z-index:0}#dThr b,#dThr u,#dThr kbd{position:relative;z-index:1;text-decoration:none}
+#mMenu .abort{color:#ff9b9b!important;border-color:#ff6262!important}
+body.touch.autoOn #nav,body.touch.autoOn #mThr{display:none!important}
+body.touch.splitOn #gcamBtn{top:auto!important;bottom:calc(10px + var(--sab))!important;right:auto!important;left:calc(50% + 10px)!important}

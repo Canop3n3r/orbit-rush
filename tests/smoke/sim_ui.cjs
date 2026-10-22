@@ -30,7 +30,7 @@ require('fs').mkdirSync(OUT, { recursive: true });
    const dv = await pg.evaluate(() => { const e = document.getElementById('dvStages'); return e && e.offsetParent ? [...e.querySelectorAll('.dvS')].map(x => x.textContent) : null; });
    ok(dv && dv.length >= 1 && dv.every(x => /m\/s/.test(x)), `${tag}: Δv per stage ${JSON.stringify(dv)}`);
    ok(!(await vis('#navFuel, #navFuelT, #pRings')), `${tag}: old fuel bar gone`); }
-  if (ONLY.includes('4')) {
+  if (ONLY.includes('4')) { await pg.evaluate(() => { if (window.__game.F.autoOn) window.__game.press('KeyF'); }); await pg.waitForTimeout(300);
    const nb = await pg.evaluate(() => { const c = document.getElementById('navBall'); if (!c) return null; const r = c.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width }; });
    ok(!!nb, `${tag}: navball found ${JSON.stringify(nb)}`);
    if (nb) { const p0 = await pg.evaluate(() => window.__game.v.pitchCmd ?? null);

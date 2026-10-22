@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.6b';
-import * as C from './physics/patched.js?v=f5.6b';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6b';
-import { designReusable } from './vehicles/reusable.js?v=f5.6b';
+import * as P from './physics.js?v=f5.6c';
+import * as C from './physics/patched.js?v=f5.6c';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6c';
+import { designReusable } from './vehicles/reusable.js?v=f5.6c';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -504,9 +504,10 @@ export class Flight {
     b.manual = !b.manual;
     if (b.manual) {
       b.ut = 0; b.retro = true; this.autoWarp = false;
-      if (!this.flags.dead) { this.v.auto = true; this.autoOn = true; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; }
-      this.toast('YOU HAVE THE BOOSTER — upper stage on autopilot', '#ffd23a');
-    } else this.toast('Booster on auto-land (smaller bonus). Upper stage stays on AUTO', '#9cc3ff');
+      const up = !this.flags.dead && this.autoOn; // f5.6c (Aaron): the upper stage only flies itself if the player armed AUTO for it
+      if (up) { this.v.auto = true; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; } else { this.v.ut = 0; this.v.throttle = 0; }
+      this.toast(up ? 'YOU HAVE THE BOOSTER — upper stage on AUTO' : 'YOU HAVE THE BOOSTER — upper stage coasting', '#ffd23a');
+    } else this.toast('Booster on auto-land. You have the upper stage' + (this.autoOn ? ' (AUTO on)' : ''), '#9cc3ff');
     this.call('boosterControl', b.manual);
     return true;
   }

@@ -21,13 +21,10 @@ export function createMobile(api) {
     <div id="mleft"><div id="mRoll"><i></i><span>ROLL</span></div><div id="mStick" data-l="pitch"><i></i></div></div>
     <div id="mright"><button id="mAuto">AUTO</button><button id="mChute" class="hidden">CHUTE</button><button id="mStage">STAGE</button>
       <div id="mThr" data-l="thr"><i></i><b>THR</b><u>0%</u></div></div>
-    <div id="mMenu" class="hidden"><div class="mh"><span id="mWarp"></span><button id="mClose" aria-label="Close">✕</button></div>
-      <div class="mg mTop"><button data-p="Escape">⏸ PAUSE</button><button data-p="Comma">WARP −</button><button data-p="KeyT">WARP +</button><button data-p="KeyG">⏩ AP</button>
-      <button data-p="KeyO" id="mHome">HOME</button><button data-p="KeyP">CHUTE</button><button data-p="Quote">📷 PHOTO</button><button data-p="KeyR">HANGAR</button></div>
-      <details class="mMore"><summary>More</summary><div class="mg"><h5>SAS</h5>${SAS.map(([k, t]) => `<button data-sas="${k}">${t}</button>`).join('')}</div>
-      <div class="mg"><h5>Flight</h5><button data-p="KeyC" id="mRcs">RCS</button><button data-p="KeyY">FLY BOOSTER</button><button data-p="KeyB">BOOSTER CAM</button><button data-p="Backquote">CAM FREE/LOCK</button><button data-p="Backslash">CoM/CoP</button></div>
-      <div class="mg"><h5>Game</h5><button data-p="F5">💾 QUICKSAVE</button><button data-p="F9">📂 QUICKLOAD</button></div>
-      <div class="mg"><h5>View</h5><button data-p="KeyU" id="mFx">FX</button><button data-p="Slash">LEARN</button><button id="mFull">FULLSCREEN</button></div></details></div>`;
+    <div id="mMenu" class="hidden"><div class="mh"><b>Menu</b><span id="mWarp" hidden></span><button id="mClose" aria-label="Close">✕</button></div>
+      <div class="mg mTop"><button data-p="Escape">⏸ Pause</button><button data-p="Comma">◀◀ Warp −</button><button data-p="KeyT">Warp + ▶▶</button><button data-p="KeyG">⏩ Warp to Ap</button>
+      <button data-p="KeyP">🪂 Chute</button><button data-p="KeyY">🎮 Fly booster</button><button data-p="KeyB">🎥 Booster cam</button><button data-p="KeyO" id="mHome">Return</button><button id="mFull">⛶ Full screen</button><button data-p="Backspace" class="abort">⛔ Abort</button><button data-p="KeyR">🏠 Home</button></div>
+      <div hidden><button id="mRcs"></button><button id="mFx"></button></div></div>`; // f5.6d (Aaron video + QA #8): one compact side sheet, ~10 big buttons, one Home, one chute, no debug text
   document.body.appendChild(root);
   const $ = id => document.getElementById(id);
   const vib = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) { /* not supported (iOS) */ } };
