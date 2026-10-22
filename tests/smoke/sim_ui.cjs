@@ -24,6 +24,7 @@ require('fs').mkdirSync(OUT, { recursive: true });
   if (ONLY.includes('3')) {
    const t = await pg.evaluate(() => { const e = document.getElementById('spd'); if (!e) return null; const r = e.getBoundingClientRect(); return { txt: e.textContent, l: r.left, b: r.bottom, h: r.height, fs: parseFloat(getComputedStyle(e.querySelector('.spV') || e).fontSize) }; });
    ok(t && /mph/i.test(t.txt) && t.l < innerW(vp) * 0.35 && t.b > vp.viewport.height * 0.6 && t.fs >= 28, `${tag}: big mph speedometer bottom-left ${JSON.stringify(t)}`);
+   const ign0 = await pg.evaluate(() => window.__game.ignited); if (!ign0) { await pg.evaluate(() => { window.__game.press('KeyF'); window.__game.press('Space'); }); await pg.waitForTimeout(9000); }
    const ap = await pg.evaluate(() => { const e = document.getElementById('apPe'); return e && e.offsetParent ? e.textContent : null; });
    ok(ap && /Ap/.test(ap) && /Pe/.test(ap) && /T[-+−]/.test(ap), `${tag}: Ap/Pe with T-/+ (${ap})`);
    const dv = await pg.evaluate(() => { const e = document.getElementById('dvStages'); return e && e.offsetParent ? [...e.querySelectorAll('.dvS')].map(x => x.textContent) : null; });

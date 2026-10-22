@@ -914,3 +914,18 @@ body:not(.home) #hMenu{display:none}
 
 /* f5.5a (Aaron): sim, not a mission game: no mission / career entry points anywhere in the UI */
 #hMis,#hnMis,#hnCareer,#missionsBtn,#nextMisBtn,#opTask,#pObj{display:none!important}
+/* f5.5c (Aaron): plain telemetry card, bottom-left, big and readable; jargon chips only in 📊 Details (engineer) */
+#plain{position:fixed;z-index:25;left:calc(14px + env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));min-width:180px;max-width:230px;padding:10px 14px 10px;border-radius:16px;background:rgba(8,14,28,.62);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 14px var(--ui,system-ui);font-variant-numeric:tabular-nums;pointer-events:none;backdrop-filter:blur(6px)}
+#plain.hidden,body.mapOn #plain,body.photo #plain{display:none}
+#spd{display:flex;align-items:baseline;gap:6px;line-height:1}
+#spd .spV{font:800 52px/1 var(--ui,system-ui);letter-spacing:-1px;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+#spd small{font:800 16px var(--ui,system-ui);color:#ffd23a}
+#plAlt{margin:2px 0 6px;font-size:15px;color:#cfe3ff}
+#apPe div{display:flex;gap:6px;align-items:baseline;font-size:15px;white-space:nowrap}#apPe b{color:#7dffa6;width:22px}#apPe i{font-style:normal;color:#ffd23a;margin-left:auto}
+#dvStages{margin-top:6px;border-top:1px solid rgba(255,255,255,.14);padding-top:5px}#dvStages .dvH{font-size:11px;color:#9cc3ff;letter-spacing:.06em;text-transform:uppercase}
+#dvStages .dvS{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#b8c6dd}#dvStages .dvS.on{color:#fff;font-weight:800}#dvStages .dvS em{font-style:normal}
+body:not(.eng) #strip #sL,body:not(.eng) #strip2{display:none!important}
+#navFuel,#navFuelT,#pRings,.bar.fuel{display:none!important}
+@media (max-height:500px){#plain{min-width:150px;padding:7px 10px;bottom:calc(8px + env(safe-area-inset-bottom,0px));left:calc(8px + env(safe-area-inset-left,0px))}#spd .spV{font-size:38px}#plAlt{margin:1px 0 3px;font-size:13px}#apPe div{font-size:13px}#dvStages{margin-top:3px;padding-top:3px}#dvStages .dvS{font-size:12px}}
+body.touch #mleft{left:calc(178px + var(--sal))}
+body:not(.eng) #strip{justify-content:flex-end}

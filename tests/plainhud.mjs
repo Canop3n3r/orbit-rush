@@ -1,0 +1,16 @@
+import { fmtHeight, fmtClock, apsisLine, stageDvs, MPH } from '../fun/plainhud.js';
+let p = 0, f = 0; const t = (c, m) => { if (c) { p++; console.log('  ✔ ' + m); } else { f++; console.log('  ✘ ' + m); } };
+t(fmtHeight(300) === '984 ft', 'feet under a mile ' + fmtHeight(300));
+t(fmtHeight(185200) === '115 mi' && fmtHeight(80467) === '50.0 mi', 'miles ' + fmtHeight(185200) + ' ' + fmtHeight(80467));
+t(fmtClock(83) === '1:23' && fmtClock(3700) === '1:01:40', 'clock');
+t(Math.round(100 * MPH) === 224, 'm/s → mph');
+const sub = { ap: 80000, pe: -6e6, T: 3000, vr: 200 };
+t(apsisLine('ap', sub, 120, 2).t === 'T−1:00', 'climbing: T− to Ap (real seconds)');
+t(apsisLine('ap', { ...sub, vr: -50 }, 2900, 2).t === 'T+0:50', 'falling past Ap: T+');
+t(apsisLine('pe', sub, 10).h === 'below ground', 'suborbital Pe');
+t(apsisLine('ap', { ap: Infinity, pe: 1e5 }, NaN).h === 'escape', 'escape');
+t(apsisLine('ap', sub, 1, 1, true).h === '—', 'pad');
+const st = [{ eng: { tv: 1, ispVac: 300 }, fuel: 90, dry: 10 }, { eng: { tv: 1, ispVac: 340 }, fuel: 18, dry: 2 }];
+const d = stageDvs(st, 0, 120); t(d.length === 2 && d[0].on && d[0].dv > 2000 && d[1].dv > 3000, 'Δv per stage ' + d.map(x => Math.round(x.dv)));
+t(stageDvs(st, 1, 20).length === 1, 'staged stages drop off');
+console.log(`plainhud: ${p} passed, ${f} failed`); process.exit(f ? 1 : 0);
