@@ -939,3 +939,6 @@ body.autoOn #nav{display:flex!important}
 body.touch #mleft,#mStick,#mRoll{display:none!important}
 body.touch #mleft{left:calc(12px + var(--sal))}
 #navRd #nbInc b{color:#d58cff}
+
+/* f5.6 (Aaron 7:23): rockets, flying, crashing, landing. No Missions, Career, Academy, Dailies, rewards anywhere */
+#academyBtn,#learnBtn,#firstRun,#learn,#learnTip,#hnCareer,#hnMis,#missionsBtn,#hub,#careerM,.eLine,.lockTag,.pkLock{display:none!important}
