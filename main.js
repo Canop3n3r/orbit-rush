@@ -179,7 +179,7 @@ function starTexture() {
   for (let i = 0; i < 3000; i++) { const b = Math.random() ** 3; c.fillStyle = `rgba(${200 + 55 * Math.random()},${210 + 45 * Math.random()},255,${0.3 + b * 0.7})`; const s = b > 0.9 ? 2 : 1; c.fillRect(Math.random() * 2048, Math.random() * 1024, s, s); }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }// ---------- planet colours (shared by the globe texture and the high-res ground tile) ----------
-const PAD_EF = [1, 0, 0], PAD_Z = 0.4, DECK = 3, PAD_LAND_COS = Math.cos(2500 / 6378137);
+const PAD_EF = [1, 0, 0], PAD_Z = 0.4, DECK = 3, PAD_LAND_COS = Math.cos(2500 / 6378137), PAD_COAST_COS = Math.cos(30000 / 6378137);
 function planetColor(d, out, fine) { // d: Earth-fixed unit vector → [r,g,b] 0..255
   let n = fbm(d[0] * 2.2 + 5, d[1] * 2.2, d[2] * 2.2);
   if (d[0] > 0.9) { // around the launch site: land to the west, open ocean downrange (boosters land at sea)
@@ -287,7 +287,7 @@ function placeBodies(O, th) { // returns false when the current SOI is the Earth
   placeBodies.t = performance.now();
   const Rb = b.R; bodySph.scale.setScalar(Rb - 60); bodyG.position.set(-O[0], -O[1], -O[2]); bodyG.visible = true;
   const e = V.sub(_bAbs('earth', F.tAbs), _bAbs(id, F.tAbs)); earth.position.set(e[0] - O[0], e[1] - O[1], e[2] - O[2]); earth.rotation.z = th; earth.visible = V.len(e) > Rb * 2;
-  { const U = bodyU[id]; if (U) { U.center.value.set(-O[0], -O[1], -O[2]).multiplyScalar(0.001); U.sunDir.value.copy(sunDirV); } }
+  { const U = bodyU[id]; if (U) { U.center.value.set(-O[0], -O[1], -O[2]).multiplyScalar(0.001); U.sunDir.value.copy(sunDirV); if (F && F.alt < 200 && state !== 'map') { const l = V.len(O); U.site.value.set(O[0] / l, O[1] / l, O[2] / l); } /* flight-ground-2: flatten relief under the pad the craft stands on */ } }
   const alt = V.len(O) - Rb; bodyGround.visible = alt < 30000 && alt > -500;
   if (bodyGround.visible) { const u = V.norm(O); bodyGround.position.set(u[0] * Rb - O[0], u[1] * Rb - O[1], u[2] * Rb - O[2]); bodyGround.lookAt(bodyGround.position.x + u[0], bodyGround.position.y + u[1], bodyGround.position.z + u[2]); }
   siteHolder.rotation.z = P.omegaOf(F.v) * (F.v.clock || 0); // the art complex turns with the world
@@ -339,17 +339,18 @@ const TILE_R = 150000, TNR = 56, TNS = 120;
 const tileGeo = new THREE.BufferGeometry();
 { const n = TNR * TNS + 1, idx = [];
   tileGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
-  tileGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  tileGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 4), 4)); // flight-ground-3: rgb + water mask in .a (the separate 'wat' attribute never re-uploaded after a rebuild: the shader read 0 = all land)
   tileGeo.setAttribute('wat', new THREE.BufferAttribute(new Float32Array(n), 1)); // f5: water mask (0 land .. 1 sea) drives colour + specular
   for (let j = 0; j < TNS; j++) idx.push(0, 1 + j, 1 + (j + 1) % TNS);
   for (let i = 0; i < TNR - 1; i++) for (let j = 0; j < TNS; j++) { const a = 1 + i * TNS + j, b = 1 + i * TNS + (j + 1) % TNS, c = a + TNS, d = b + TNS; idx.push(a, c, b, b, c, d); }
   tileGeo.setIndex(idx);
   const nrm = new Float32Array(n * 3); for (let k = 0; k < n; k++) nrm[k * 3 + 1] = 1; tileGeo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3)); } // normals exist before the first compile
-const tile = new THREE.Mesh(tileGeo, GX.tileMaterial()); tile.frustumCulled = false; earth.add(tile);
+const tile = new THREE.Mesh(tileGeo, GX.tileMaterial(sunPos, worldTier(gfxQ, TOUCH) === 'low' ? 'low' : gfxQ === 'high' ? 'high' : 'med')); tile.frustumCulled = false; earth.add(tile);
 let tileC = null, earthPx = null; GX.earthPixels(gfxQ).then(px => { earthPx = px; tileC = null; });
 const tileRGBA = [0, 0, 0, 0];
 function updateTile(ef) {
-  if (tileC && V.dot(tileC, ef) > Math.cos(25000 / R)) return;
+  const siteE = typeof F !== 'undefined' && F && F.homeBody === 'earth' && F.siteEf ? F.siteEf : null; // flight-ground-3: sandbox Earth sites
+  if (tileC && V.dot(tileC, ef) > Math.cos(25000 / R) && updateTile.site === siteE) return; updateTile.site = siteE;
   const c = V.norm(ef), e = P.eastOf(c), nn = V.cross(c, e), pos = tileGeo.attributes.position.array, col = tileGeo.attributes.color.array, wat = tileGeo.attributes.wat.array, rgb = [0, 0, 0];
   tileC = c; tile.position.set(c[0] * R, c[1] * R, c[2] * R);
   const put = (k, th, ph) => {
@@ -357,9 +358,16 @@ function updateTile(ef) {
     const off = [c[0] * cm1 + e[0] * dx + nn[0] * dy, c[1] * cm1 + e[1] * dx + nn[1] * dy, c[2] * cm1 + e[2] * dx + nn[2] * dy];
     pos[k * 3] = off[0] * R; pos[k * 3 + 1] = off[1] * R; pos[k * 3 + 2] = off[2] * R;
     const dd = V.norm(V.add(c, off));
-    if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); if (dd[0] > PAD_LAND_COS) tileRGBA[3] = Math.min(tileRGBA[3], 0.3); /* f5: the 1k mask's coastal texel at LC-39A is mixed; the pad complex is land */ const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
-      col[k * 3] = tileRGBA[0] * (w > 0.5 ? 1 : f); col[k * 3 + 1] = tileRGBA[1] * (w > 0.5 ? 1 : f); col[k * 3 + 2] = tileRGBA[2] * (w > 0.5 ? 1 : f); wat[k] = w; }
-    else { planetColor(dd, rgb, true); col[k * 3] = (rgb[0] / 255) ** 2.2; col[k * 3 + 1] = (rgb[1] / 255) ** 2.2; col[k * 3 + 2] = (rgb[2] / 255) ** 2.2; }
+    if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); if (dd[0] > PAD_COAST_COS) { /* flight-ground-2: the 1k mask's ~40 km coastal texel made the pad an island on a beige-grey smear; shape a real coast instead: land (scrub) to the west, a beach, open sea ~1.5 km east of the pad */
+        const eM = dd[1] * R, nM = dd[2] * R, coast = 1500 + 900 * (fbm(nM * 0.00025, 3.1, 7.7) - 0.5) * 2 + 0.25 * Math.max(0, nM) * 0.12, wC = Math.min(1, Math.max(0, (eM - coast) / 300 + 0.5)), blend = Math.min(1, (dd[0] - PAD_COAST_COS) / (1 - PAD_COAST_COS) * 6);
+        const beach = Math.max(0, 1 - Math.abs(eM - coast + 120) / 160), scrub = 0.85 + 0.3 * fbm(eM * 0.002, nM * 0.002, 2.2);
+        const lr = 0.030 * scrub + beach * 0.07, lg = 0.043 * scrub + beach * 0.06, lb = 0.020 * scrub + beach * 0.045;
+        if (wC < 0.5) { tileRGBA[0] += (lr - tileRGBA[0]) * blend; tileRGBA[1] += (lg - tileRGBA[1]) * blend; tileRGBA[2] += (lb - tileRGBA[2]) * blend; }
+        tileRGBA[3] += (wC * 0.9 + (wC > 0.5 ? 0.1 : 0) - tileRGBA[3]) * blend; }
+      if (siteE) { const dS = Math.acos(Math.min(1, V.dot(dd, siteE))) * R, lk = Math.min(1, Math.max(0, (800 - dS) / 300)); /* the pad complex stands on land: a ~0.5-0.8 km land/scrub apron, then the map's own coast */
+        if (lk > 0) { const sc = 0.85 + 0.3 * fbm(dd[0] * 3000, dd[1] * 3000, dd[2] * 3000); tileRGBA[0] += (0.030 * sc - tileRGBA[0]) * lk; tileRGBA[1] += (0.043 * sc - tileRGBA[1]) * lk; tileRGBA[2] += (0.020 * sc - tileRGBA[2]) * lk; tileRGBA[3] *= 1 - lk; } } const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
+      col[k * 4] = tileRGBA[0] * (w > 0.5 ? 1 : f); col[k * 4 + 1] = tileRGBA[1] * (w > 0.5 ? 1 : f); col[k * 4 + 2] = tileRGBA[2] * (w > 0.5 ? 1 : f); wat[k] = w; col[k * 4 + 3] = w; }
+    else { planetColor(dd, rgb, true); col[k * 4] = (rgb[0] / 255) ** 2.2; col[k * 4 + 1] = (rgb[1] / 255) ** 2.2; col[k * 4 + 2] = (rgb[2] / 255) ** 2.2; col[k * 4 + 3] = 0; }
   };
   put(0, 0, 0);
   for (let i = 0; i < TNR; i++) { const th = TILE_R / R * ((i + 1) / TNR) ** 1.8; for (let j = 0; j < TNS; j++) put(1 + i * TNS + j, th, 2 * Math.PI * j / TNS); }
@@ -1680,6 +1688,7 @@ await renderer.compileAsync(scene, camera).catch(() => {});
 $('loading') && $('loading').remove();
 // f5.6 (Aaron): no Academy / welcome card
 renderer.setAnimationLoop(() => {
+  GX.oceanTime.value = performance.now() / 1000; // flight-ground-2: ocean wave clock
   const now = performance.now(), rdt = Math.min(0.1, (now - last) / 1000); last = now;
   let pdt = 0;
   slowT = rdt > 0.045 ? slowT + rdt : Math.max(0, slowT - rdt * 0.5);
@@ -2008,13 +2017,19 @@ function skyAlt(h) { // altitude that drives sky colour + haze: real altitude wh
   const b = F && F.body || 'earth'; if (b === 'earth') return h;
   if (!AIR[b]) return 1e9; const a = F.alt; return isFinite(a) ? Math.max(0, a / AIR[b]) : 1e9;
 }
+const SUN_DAY = params.get('sun') === 'day' ? 'all' : (() => { try { return localStorage.getItem('or_daylight') !== '0' ? 'offworld' : ''; } catch (e) { return 'offworld'; } })(); // sandbox off-world sites start in daylight unless or_daylight=0
 function updateSun(O, U, h, k, isMap) {
-  const sd = P.sunDir('earth', F.tAbs); sunDirV.set(sd[0], sd[1], sd[2]);
+  let sd = P.sunDir(F && F.body || 'earth', F.tAbs);
+  // flight-ground-3: ?sun=day (tests/shots) or the sandbox 'daylight' setting for off-world sites keeps the Sun ~35° up at the site
+  // (from the site's east-south side), so a launch never starts in the dark. The real ephemeris Sun is used otherwise.
+  if (SUN_DAY === 'all' || (SUN_DAY === 'offworld' && F && F.body && F.body !== 'earth')) { if (!updateSun.up || (F && F.alt < 200)) updateSun.up = [U.x, U.y, U.z];
+    const u = updateSun.up, ax = Math.abs(u[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0], e = V.norm(V.cross(ax, u)), s35 = Math.sin(0.61), c35 = Math.cos(0.61); sd = V.norm([u[0] * s35 + e[0] * c35 + sd[0] * 0.15, u[1] * s35 + e[1] * c35 + sd[1] * 0.15, u[2] * s35 + e[2] * c35 + sd[2] * 0.15]); }
+  sunDirV.set(sd[0], sd[1], sd[2]); // flight-ground-2: each world's flight frame is its own (flight.js transfer), so light it with its own Sun direction (was always Earth's)
   sunL.position.copy(sunDirV); sunPos.value.copy(sunDirV).multiplyScalar(1e11);
   // eclipse: does the ray from the craft toward the Sun hit the Earth? (soft edge ~ the atmosphere's thickness)
   const cx = -O[0], cy = -O[1], cz = -O[2], tca = cx * sd[0] + cy * sd[1] + cz * sd[2], d2 = cx * cx + cy * cy + cz * cz - tca * tca;
   const shadow = F && F.body && F.body !== 'earth' ? 0 : tca > 0 ? Math.min(1, Math.max(0, (R + 30000 - Math.sqrt(Math.max(0, d2))) / 60000)) : 0, sunK = 1 - shadow;
-  const el = U.x * sd[0] + U.y * sd[1] + U.z * sd[2], day = Math.min(1, Math.max(0, (el + 0.08) / 0.25)), dusk = Math.max(0, 1 - Math.abs(el - 0.02) / 0.18) * (1 - k);
+  const el = U.x * sd[0] + U.y * sd[1] + U.z * sd[2], tw = F && F.body && BODY_SKY[F.body] ? 0.22 : 0.08 /* dusty air: long twilight skylight */, day = Math.min(1, Math.max(0, (el + tw) / (0.17 + tw))), dusk = Math.max(0, 1 - Math.abs(el - 0.02) / 0.18) * (1 - k);
   siteNight(Math.asin(Math.max(-1, Math.min(1, el))) * 180 / Math.PI); // f5.4j: the craft sits at the site, so its local sun is the site's
   const bs = F && F.body && F.body !== 'earth' ? BODY_SKY[F.body] : null, hs0 = bs && state !== 'flight'; // f5.4e: the sky follows the world; Home shows it in daylight
   skyC.copy(cNight).lerp(bs ? bs[0] : cSky, hs0 ? 1 : day).lerp(bs ? bs[1] : cHor, hs0 ? 0 : dusk * 0.55).multiplyScalar(1 - k);
@@ -2022,7 +2037,9 @@ function updateSun(O, U, h, k, isMap) {
   // aerial perspective near the ground: exponential haze in the sky colour, thinning with altitude
   scene.fog.color.copy(skyC).lerp(cHaze, 0.35 * day); scene.fog.density = isMap ? 0 : 2.2e-5 * Math.exp(-h / 4500) * (h < 40000 ? 1 : 0); // f4.1: high up the camera looks down through thin air (no grey slab at 22 km)
   sunL.intensity = 3.0 * sunK; sunL.color.setRGB(1, 0.85 + 0.15 * (1 - dusk), 0.7 + 0.3 * (1 - dusk));
-  { const fl = fillLight(day, k, sunK, TOUCH); hemi.intensity = fl.hemi; scene.environmentIntensity = fl.env; } // fx-1: fill floor (no pitch-black booster on phones)
+  const nightFill = F && F.body === 'moon' ? 0.9 : F && F.body === 'mars' ? 0.7 : 0.25; /* flight-ground-2: earthshine (Moon) / dusty skylight (Mars) keep a night site readable */
+  hemi.intensity = (nightFill + (1 - nightFill) * day) * (1 - k * 0.75); hemi.groundColor.set(F && F.body === 'mars' ? 0x5a3424 : F && F.body === 'moon' ? 0x3a3a3a : 0x334433); hemi.color.set(F && F.body === 'mars' ? 0xd8b090 : 0xcfe3ff); scene.environmentIntensity = (0.35 + 0.65 * day) * (1 - 0.6 * k) * (0.3 + 0.7 * sunK);
+  { const fl = fillLight(day, k, sunK, TOUCH); hemi.intensity = Math.max(hemi.intensity, fl.hemi); scene.environmentIntensity = Math.max(scene.environmentIntensity, fl.env); } // fx-1 fill floor kept on top of flight-ground-2's per-world fill
   sunSprite.visible = !isMap && sunK > 0.02; sunSprite.position.copy(camera.position).addScaledVector(sunDirV, 5e7); sunSprite.scale.setScalar(5e7 * (0.12 + 0.1 * k)); sunSprite.material.opacity = sunK;
   const u = atmoMat.userData; atmo.position.set(cx, cy, cz); u.center.value.set(cx, cy, cz); u.sunDir.value.copy(sunDirV); u.Rp.value = R; u.Ra.value = ATMO_R;
   u.gain.value = isMap || (F && F.body && F.body !== 'earth') ? 0 : Math.min(1, Math.max(0, (h - 15000) / 45000)); atmo.visible = u.gain.value > 0.01;
@@ -2530,3 +2547,5 @@ window.__game = { flight: () => F, mem: () => { const m = renderer.info.memory |
     const va = V.sub(v.v, siteVel(v)), sp = V.len(va), vh = sp > 1 ? V.scale(va, 1 / sp) : P.noseOf(v), nz = V.sub(v.r, V.scale(P.noseOf(v), P.massProps(v).ycom)); let ahead = 0, maxA = -1e9, n = 0; const dbg = [];
     for (const sys of [fire, smoke]) for (const q of sys.d) { if (q.life <= 0 || Math.hypot(q.x, q.y, q.z) - P.R_E < 300) continue; /* ignore the pad cloud */ const a = V.dot([q.x - nz[0], q.y - nz[1], q.z - nz[2]], vh); if (V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]) > 3000) continue; n++; if (a > maxA) maxA = a; if (a > 2) { ahead++; if (dbg.length < 6) dbg.push({ sys: sys === fire ? 'fire' : 'smoke', a: +a.toFixed(0), age: +(q.max - q.life).toFixed(2), c: q.c0 && q.c0.toString(16), d: q.drag, rva: +V.dot([q.vx - v.v[0], q.vy - v.v[1], q.vz - v.v[2]], vh).toFixed(0), an: +V.dot(P.noseOf(v), vh).toFixed(3), r: +V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]).toFixed(0) }); } }
     return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, relFrame: () => relFrame(), mapProbe: id => smap.probe(id), siteSun: () => siteArt.obj.map(L => ({ el: +(L.userData.sunEl || 0).toFixed(1), night: !!L.userData.night, lights: (() => { let n = 0; L.traverse(o => { if (o.isLight && o.visible) n++; }); return n; })() })), audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, setGroundCam: on => { GCAM.on = !!on; if (on && split.on) split.full = 'u'; camMode = 'chase'; }, get groundCam() { return GCAM.act; }, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, stickCmd: () => ({ ...mobile.input }), get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get camPitch() { return camPitch; }, camInfo: () => { const bR = (P.BODIES[F.body] || {}).R || R, O = shipPos ? null : null; return { pitch: camPitch, dist: camDist, up: camera.up.toArray().map(x => +x.toFixed(3)) }; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv, sitePicker, get sbSite() { return sbSite; } };
+window.__game.tileStats = () => { const w = tileGeo.attributes.wat.array, c = tileGeo.attributes.color.array, h = [0, 0, 0, 0, 0]; for (const x of w) h[Math.min(4, Math.max(0, Math.floor(x * 5)))]++; return { hist: h, vis: tile.visible, c0: [c[0], c[1], c[2]], center: tileC, px: !!earthPx, mat: tile.material.type }; };
+window.__game.camSet = (y, p, d) => { camYaw = y; camPitch = p; if (d) camDist = d; camUserT = performance.now() + 1e9; }; // flight-ground-3: shot tools aim the chase camera

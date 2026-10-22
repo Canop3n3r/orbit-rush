@@ -4,12 +4,26 @@
 // cloud shadows (same weather map as clouds.js), warmer/tighter night lights dimmed under cloud, Moon regolith,
 // Mars dust haze. UVs are computed from the surface direction so a high-res local ground cap can share the material.
 import * as THREE from 'three/webgpu';
-import { uniform, texture, float, vec2, vec3, positionWorld, cameraPosition, normalWorld, normalize, dot, length, mix, pow, saturate, smoothstep, max, abs, exp, vec4, cameraViewMatrix } from 'three/tsl';
+import { positionLocal, normalLocal, uniform, texture, float, vec2, vec3, positionWorld, cameraPosition, normalWorld, normalize, dot, length, mix, pow, saturate, smoothstep, max, abs, exp, vec4, cameraViewMatrix } from 'three/tsl';
 import { WORLD_TIERS, CLOUD_LAYER } from './tiers.js?v=w1';
-import { dirUV, detailNormal, fbm, PW, CP } from './common.js?v=w1';
-export function surfaceUniforms(o = {}) { return { center: uniform(new THREE.Vector3()), sunDir: uniform(new THREE.Vector3(1, 0, 0)), R: uniform(o.R ?? 6371), time: uniform(0), cloudUV: o.cloudUV || uniform(new THREE.Vector2()), cloudShadow: uniform(o.cloudShadow ?? 0.6), rot: uniform(new THREE.Matrix3()) }; }
+import { dirUV, detailNormal, fbm, PW, CP, WS } from './common.js?v=w1';
+export function surfaceUniforms(o = {}) { return { center: uniform(new THREE.Vector3()), sunDir: uniform(new THREE.Vector3(1, 0, 0)), R: uniform(o.R ?? 6371), time: uniform(0), cloudUV: o.cloudUV || uniform(new THREE.Vector2()), cloudShadow: uniform(o.cloudShadow ?? 0.6), rot: uniform(new THREE.Matrix3()), site: uniform(new THREE.Vector3(0, 0, 0)), flatKm: uniform(o.flatKm ?? 6) }; }
 // map direction: U.rot takes the world direction into the map's Y-up frame (identity in world.html; the game's bodies are Z-up)
 const mapDir = (U, d) => U.rot ? normalize(U.rot.mul(d)) : d;
+
+// flight-ground-2: terrain relief for Moon/Mars near chunks — one height function (km) drives true vertex displacement
+// (med/high, fading out by 250 km camera distance so far LOD levels stay matched) and the lit relief normal; flattened
+// within U.flatKm of the launch site (U.site = unit world direction, zero = no site) so pads sit on level ground.
+const RELIEF = { moon: [[0.11, 0.55, 3], [0.55, 0.10, 2]], mars: [[0.07, 0.45, 3], [0.4, 0.08, 2]] };
+function reliefH(kind, pkm, oct) { let h = float(0); for (const [f, a, o] of RELIEF[kind]) h = h.add(fbm(pkm.mul(f), Math.min(o, oct)).mul(a)); return h; }
+function reliefMask(U, d) { const sd = length(U.site), dk = length(d.sub(U.site.div(max(sd, 1e-6)))).mul(U.R); return mix(float(1), smoothstep(U.flatKm, U.flatKm.mul(2.5), dk), smoothstep(0.0, 0.5, sd)); }
+function applyRelief(m, kind, U, T, nBase) {
+  if (T.detail < 2) return nBase; // low tier (phones on low): detail normals only
+  const pkm = PW.sub(U.center), d = normalize(pkm), mask = reliefMask(U, d), far = smoothstep(250.0, 80.0, length(CP.sub(PW)));
+  m.positionNode = positionLocal.add(normalLocal.mul(reliefH(kind, pkm, T.detail).mul(mask).mul(far).div(WS)));
+  let n = nBase; for (const [f, a, o] of RELIEF[kind]) n = detailNormal(n, pkm, f, mask.mul(a * f * 1.6), Math.min(o, T.detail));
+  return n;
+}
 const wrapU = v => vec2(v.x.fract(), v.y);
 const toView = n => normalize(cameraViewMatrix.mul(vec4(n, 0.0)).xyz); // normalNode is view-space
 const camAlt = U => length(CP.sub(U.center)).sub(U.R);
@@ -55,7 +69,7 @@ export function moonSurfaceMaterial(t, tier = 'high', U = surfaceUniforms({ R: 1
   const warp = vec3(fbm(pkm.mul(0.35), 2), fbm(pkm.mul(0.35).add(17.0), 2), 0).mul(2.5); // domain warp breaks the repeating look
   const macro = fbm(pkm.mul(0.04), 2).mul(0.5).add(0.5), grain = fbm(pkm.add(warp.mul(0.03)).mul(40.0), T.detail).mul(0.5).add(0.5), ejecta = fbm(pkm.mul(0.6).add(warp), 2).mul(0.5).add(0.5);
   m.colorNode = base.mul(mix(float(1), grain.mul(0.16).add(0.92), near)).mul(ejecta.mul(0.1).add(0.95)).mul(macro.mul(0.22).add(0.89)).mul(vec3(1.0, 0.985, 0.96));
-  m.normalNode = toView(detailNormal(normalWorld, pkm, 5.0, near.mul(0.3).add(0.01), T.detail));
+  m.normalNode = toView(detailNormal(applyRelief(m, 'moon', U, T, normalWorld), pkm, 5.0, near.mul(0.3).add(0.01), T.detail));
   m.roughnessNode = float(0.97); m.metalnessNode = float(0);
   m.userData.U = U; return m;
 }
@@ -66,7 +80,7 @@ export function marsSurfaceMaterial(t, tier = 'high', U = surfaceUniforms({ R: 3
   const warp = vec3(fbm(pkm.mul(0.3), 2), fbm(pkm.mul(0.3).add(9.0), 2), 0).mul(3.0), macro = fbm(pkm.mul(0.05), 2).mul(0.5).add(0.5);
   const dunes = fbm(pkm.add(warp.mul(0.06)).mul(9.0), T.detail).mul(0.5).add(0.5);
   m.colorNode = base.mul(mix(float(1), dunes.mul(0.14).add(0.93), near)).mul(mix(vec3(0.92, 0.82, 0.74), vec3(1.08, 1.0, 0.92), macro));
-  m.normalNode = toView(detailNormal(normalWorld, pkm, 3.5, near.mul(0.25).add(0.01), T.detail));
+  m.normalNode = toView(detailNormal(applyRelief(m, 'mars', U, T, normalWorld), pkm, 3.5, near.mul(0.25).add(0.01), T.detail));
   m.roughnessNode = float(0.95); m.metalnessNode = float(0);
   // dust haze: butterscotch aerial perspective by view grazing angle and path length, blue-ish at the terminator
   const V = normalize(CP.sub(PW)), mu = saturate(dot(normalWorld, V)), dist = length(CP.sub(PW));
