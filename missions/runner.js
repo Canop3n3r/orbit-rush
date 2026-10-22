@@ -40,7 +40,7 @@ export function missionHooks(m, getF) {
 // Payload mass: Flight builds parts from the catalogue, so the game-scaled payload mass is applied to the live
 // vehicle (stack geometry / mass cache rebuilt). Call once, right after constructing the Flight.
 export function applyMission(m, F) {
-  rec(F);
+  rec(F); if ((m.deploy || []).some(d => d.kind === 'raise-ap')) F.v.noGlide = true; // f5.7d: keep the Δv-thrifty steep climb when a transfer burn follows
   const id = m.vehicle.payloadPart || 'sat', mt = m.vehicle.gameMassT; if (mt == null) return F;
   let n = 0; for (const s of F.v.stages) for (const p of s.parts) if (p.id === id) { p.m = mt; n++; }
   if (!n) throw new Error(`gameMassT set but the vehicle has no '${id}' payload part`);

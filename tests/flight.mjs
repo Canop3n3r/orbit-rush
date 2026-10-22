@@ -59,7 +59,7 @@ for (const [label, d] of [['low TWR booster (1.21), 3 stages', D('fairing', 'sat
 { const a = assessDesign(D('fairing', 'sat', 'probe', 'tank-l', 'lark', 'dec', 'tank-xl', 'tank-xl', 'thumper*4', 'fins'));
   ok(!a.orbit && /upper stage was too weak/.test(a.text), 'a too-weak upper stage gets the right verdict', a.text); }
 { // real-time loop: AUTO + press G during the coast; warp should go high, not stay "x4 (limited)"
-  const F = new Flight(DEF); F.stagePress(); F.setAuto(true);
+  const F = new Flight(DEF); F.v.noGlide = true; F.stagePress(); F.setAuto(true); // f5.7d: this checks warp on a long coast, so keep the classic lofted profile (the gentle no-lob climb barely coasts)
   let maxW = 1, pressedG = false, apAtG = 0, apMaxCoast = 0, burnWarp = 0, steps = 0, limitedCoast = 0, railsSeen = false, airWarp = 0;
   while (steps++ < 60 * 1200 && !(F.flags.orbit && F.v.guid === 'done')) {
     if (!pressedG && F.v.guid === 'coast' && F.canWarpToAp()) { pressedG = F.startAutoWarp(); apAtG = P.orbitOf(F.v).ap; }

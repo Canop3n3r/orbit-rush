@@ -1,5 +1,5 @@
 // f5.4 sandbox launch-from-anywhere picker (Home 📍 button): world → preset base or tap a spot on the map.
-import { SITES, GAS } from '../sites.js?v=f5.7c';
+import { SITES, GAS } from '../sites.js?v=f5.7d';
 const KEY = 'orbitRush.site.v1';
 export function loadSite() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && s.body ? s : null; } catch (e) { return null; } }
 export function saveSite(s) { try { s ? localStorage.setItem(KEY, JSON.stringify(s)) : localStorage.removeItem(KEY); } catch (e) { } }
