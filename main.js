@@ -1,60 +1,60 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.6e';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.6f';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.6e';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.6e';
-import * as C from './physics/patched.js?v=f5.6e';
+import * as P from './physics.js?v=f5.6f';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.6f';
+import * as C from './physics/patched.js?v=f5.6f';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.6e';
-import { createCareerUI } from './fun/career-ui.js?v=f5.6e';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.6e';
-import { createSolarMap } from './solarmap.js?v=f5.6e';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.6e';
-import { FX } from './fx.js?v=f5.6e';
-import { createAcademy } from './academy-ui.js?v=f5.6e';
-import { createMobile, isTouch } from './mobile.js?v=f5.6e';
-import { localize } from './wording.js?v=f5.6e';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.6e';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.6e';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.6f';
+import { createCareerUI } from './fun/career-ui.js?v=f5.6f';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.6f';
+import { createSolarMap } from './solarmap.js?v=f5.6f';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.6f';
+import { FX } from './fx.js?v=f5.6f';
+import { createAcademy } from './academy-ui.js?v=f5.6f';
+import { createMobile, isTouch } from './mobile.js?v=f5.6f';
+import { localize } from './wording.js?v=f5.6f';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.6f';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.6f';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.6e';
-import * as GX from './gfx/gfx.js?v=f5.6e';
-import { Director, MISSIONS } from './fun/director.js?v=f5.6e';
-import * as PR from './fun/progress.js?v=f5.6e';
-import * as WORLD from './fun/world.js?v=f5.6e';
-import { stageEngines, nozzles, nozzleR, LOOK as PLOOK } from './fun/exhaust.js?v=f5.6e';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.6e';
-import { createAudio } from './fun/audio.js?v=f5.6e';
-import { createCompact } from './fun/compact.js?v=f5.6e';
-import { attachNavStick } from './fun/navstick.js?v=f5.6e';
-import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH } from './fun/plainhud.js?v=f5.6e';
-import { createHome } from './fun/home.js?v=f5.6e';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6e';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.6e';
-import { createFunUI } from './fun/ui.js?v=f5.6e';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.6e';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.6e';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.6e';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.6e';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.6e';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.6e';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.6e';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow } from './fxmap.js?v=f5.6f';
+import * as GX from './gfx/gfx.js?v=f5.6f';
+import { Director, MISSIONS } from './fun/director.js?v=f5.6f';
+import * as PR from './fun/progress.js?v=f5.6f';
+import * as WORLD from './fun/world.js?v=f5.6f';
+import { stageEngines, nozzles, nozzleR, LOOK as PLOOK } from './fun/exhaust.js?v=f5.6f';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.6f';
+import { createAudio } from './fun/audio.js?v=f5.6f';
+import { createCompact } from './fun/compact.js?v=f5.6f';
+import { attachNavStick } from './fun/navstick.js?v=f5.6f';
+import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH } from './fun/plainhud.js?v=f5.6f';
+import { createHome } from './fun/home.js?v=f5.6f';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6f';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.6f';
+import { createFunUI } from './fun/ui.js?v=f5.6f';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.6f';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.6f';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.6f';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.6f';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.6f';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.6f';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.6f';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.6e';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.6e';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.6e';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.6e';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.6f';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.6f';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.6f';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.6f';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -298,7 +298,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.6e').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.6f').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -773,7 +773,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.6e', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.6f', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -831,7 +831,7 @@ const hooks = {
   shipMoved: s => shipVis && onSurface(shipVis, s.ef, 0),
   jettison: () => { heroFairing(false); heroFairing2(false); const f = SG[SG.length - 1].userData.fair; if (f) { f.visible = false; const p = V.sub(v.r, V.scale(P.noseOf(v), -10)); for (let k = 0; k < 12; k++) smoke.spawn(p, jit(v.v, 15), 1.5, 1, 3, 0xffffff, null, 0.1); } beep(990); },
   // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
-  boosterControl: manual => { for (const k in keys) keys[k] = false; if (manual) { camMode = 'booster'; camDist = 160; } else camMode = 'chase'; $('tProg').classList.toggle('on', F.autoOn); },
+  boosterControl: manual => { for (const k in keys) keys[k] = false; if (manual) { camMode = 'booster'; camDist = 160; camUserT = -1e9; } else camMode = 'chase'; $('tProg').classList.toggle('on', F.autoOn); },
   boosterLost: (b, moving) => { explode(b.r, moving ? b.v : siteVel(b), false); b.mesh.visible = false; b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
   boosterLanded: b => { b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
   fail: () => { explode(v.r, v.v, true, true); rocketG.visible = false; slowMo = 2.5; },
@@ -1031,6 +1031,7 @@ function goBuild() {
   if (typeof home !== 'undefined' && home && goBuild.toHome !== false) home.show(true);
   refreshBuild();
 }
+const clampCamPitch = p => Math.max(F && F.alt < 2000 ? -0.15 : -1.2, Math.min(1.2, p)); // f5.6f (QA cam)
 let showFrame = null, showFrameT = 0, showT = 0, camUserT = -1e9, camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
 $('earthRot').checked = earthRot;
 function showAz() { $('inclIn').value = launchIncl; $('azOut').textContent = `→ heading ${(launchAzimuth(launchIncl, 0, earthRot ? P.OMEGA_E * R : 0) * DEG).toFixed(1)}°`; }
@@ -1155,7 +1156,7 @@ function press(code) {
   if (code === 'Period') { smap.warpNext(); return; }
   if (code === 'Digit9') { if (F.exec && opSess) { toast('AUTO is flying the contract burns', '#9cc3ff'); return; } if (F.exec) { F.setExec(false); toast('Maneuver execution off', '#9cc3ff'); } else F.setExec(true); return; }
   if (code === 'KeyY') { F.toggleBooster(); return; }
-  if (code === 'KeyB') { if (booster && booster.state === 'flying') camMode = camMode === 'booster' ? 'chase' : 'booster'; else toast('No booster in flight', '#ffb35c'); return; }
+  if (code === 'KeyB') { if (booster && booster.state === 'flying') { camMode = camMode === 'booster' ? 'chase' : 'booster'; if (camMode === 'booster') { camDist = 160; camUserT = -1e9; } } else toast('No booster in flight', '#ffb35c'); return; }
   if (F.flags.dead) return;
   if (flyingBooster()) { // controls go to the booster
     const b = booster;
@@ -1222,7 +1223,7 @@ addEventListener('pointerup', e => pts.delete(e.pointerId));
 addEventListener('pointercancel', e => pts.delete(e.pointerId));
 addEventListener('pointermove', e => {
   if (!pts.has(e.pointerId) || camMode === 'map') return; const [px, py] = pts.get(e.pointerId);
-  if (pts.size === 1) { camUserT = performance.now(); const k = SET.sens.cam; camYaw -= (e.clientX - px) * 0.006 * k; camPitch = Math.max(-1.4, Math.min(1.5, camPitch + (e.clientY - py) * 0.004 * k)); }
+  if (pts.size === 1) { camUserT = performance.now(); const k = SET.sens.cam; camYaw -= (e.clientX - px) * 0.006 * k; camPitch = clampCamPitch(camPitch + (e.clientY - py) * 0.004 * k); }
   else if (pts.size === 2) { let o; for (const [id, q] of pts) if (id !== e.pointerId) o = q; const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); const f = d0 / Math.max(d1, 1); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * f)); else camDist = zoomLim(camDist * f); }
   pts.set(e.pointerId, [e.clientX, e.clientY]);
 });
@@ -1232,7 +1233,7 @@ function readControls(rdt) {
     const b = booster;
     if (keys.ShiftLeft || keys.ShiftRight || keys.ArrowUp) b.ut = Math.min(1, b.ut + rdt * 1.2);
     if (keys.ControlLeft || keys.ControlRight || keys.ArrowDown) b.ut = Math.max(0, b.ut - rdt * 1.2);
-    b.input = { pitch: k1('KeyS', 'KeyW') - mobile.input.pitch, yaw: k1('KeyA', 'KeyD') + mobile.input.yaw };
+    b.input = { pitch: k1('KeyS', 'KeyW') - mobile.input.pitch, yaw: k1('KeyA', 'KeyD') + mobile.input.yaw }; // f5.6f: checked — with flight.js's −pitch about north this gives W = nose toward east, the same as the rocket (the sign flip is in the integrator, not the result)
     if (b.input.pitch || b.input.yaw) b.retro = false;
     return;
   }
@@ -1683,22 +1684,24 @@ renderer.setAnimationLoop(() => {
   hemi.position.copy(U);
   if (isMap) {
     const cu = new THREE.Vector3(U.x, U.y, 0); if (cu.lengthSq() < 1e-6) cu.set(0, 1, 0);
-    camera.position.set(-O[0], -O[1], -O[2] + R * mapZoom); camera.up.copy(cu.normalize()); camera.lookAt(-O[0], -O[1], -O[2]);
+    camera.position.set(-O[0], -O[1], -O[2] + R * mapZoom); camera.up.set(0, 1, 0); camera.lookAt(-O[0], -O[1], -O[2]); // f5.6f (QA cam): map up = fixed ecliptic north, no roll as you orbit
   } else {
     if (focus === v) tgtV.set(nose[0], nose[1], nose[2]).multiplyScalar(stackL() * camAim - tel.ycom);
     else tgtV.set(booster.dir[0], booster.dir[1], booster.dir[2]).multiplyScalar(15);
+    if (focus !== v && camDist > 400) camDist = 400; // f5.6f (QA cam): booster cam never frames from km away
     if (focus === v && state === 'flight' && camMode === 'chase') { // f4.1: chase distance follows the rocket's size (never a dot); eases back after a user zoom
       const Ls = stackL(), want = Math.max(30, Math.min(160, Ls * 2.6 + 20)), maxD = Math.max(80, Ls * 9 + 60);
-      if (camDist > maxD) camDist = maxD; if (performance.now() - camUserT > 8000) camDist += (want - camDist) * Math.min(1, rdt * 0.8);
+      if (camDist > maxD) camDist += (maxD - camDist) * Math.min(1, rdt * 1.5); // f5.6f: ease (no ~70 m jump at staging) if (performance.now() - camUserT > 8000) camDist += (want - camDist) * Math.min(1, rdt * 0.8);
     }
     relFrameCam(rdt, focus);
-    if (SET.camStyle === 'locked' && focus === v && state === 'flight') { // locked: the camera turns with the craft (its axes, nose up on screen)
+    if (false && SET.camStyle === 'locked' && focus === v && state === 'flight') { // f5.6f (QA cam): LOCKED retired (it rolled the horizon) // locked: the camera turns with the craft (its axes, nose up on screen)
       const ax = V.qrot(v.q, [1, 0, 0]), az = V.qrot(v.q, [0, 0, 1]);
       offV.set(ax[0], ax[1], ax[2]).multiplyScalar(Math.cos(camYaw) * Math.cos(camPitch)).addScaledVector(dv3.set(az[0], az[1], az[2]), Math.sin(camYaw) * Math.cos(camPitch)).addScaledVector(dv3.set(nose[0], nose[1], nose[2]), Math.sin(camPitch));
       camera.position.copy(tgtV).addScaledVector(offV, camDist); camera.up.set(nose[0], nose[1], nose[2]); camera.lookAt(tgtV);
     } else {
+    camPitch = clampCamPitch(camPitch); // f5.6f: −0.15…1.2 rad near the ground, ±1.2 above (up = local radial never meets the view axis)
     offV.copy(N).multiplyScalar(Math.cos(camYaw) * Math.cos(camPitch)).addScaledVector(E, Math.sin(camYaw) * Math.cos(camPitch)).addScaledVector(U, Math.sin(camPitch));
-    camera.position.copy(tgtV).addScaledVector(offV, camDist); camera.up.copy(U); camera.lookAt(tgtV); }
+    camera.position.copy(tgtV).addScaledVector(offV, camDist); { const bR = (P.BODIES[F && F.body] || {}).R || R, ca = dv3.set(camera.position.x + O[0], camera.position.y + O[1], camera.position.z + O[2]).length() - bR; if (ca < 5) camera.position.addScaledVector(U, 5 - ca); } camera.up.copy(U); camera.lookAt(tgtV); } // f5.6f: camera never under the ground (≥ 5 m)
   }
   groundCam(O, th, base, nose, rdt);
   if (rocketG) { const t0 = performance.now(); updateFX(rdt, pdt, base, nose, isMap); fxMs += (performance.now() - t0 - fxMs) * 0.05; }
@@ -1880,7 +1883,7 @@ function renderPane(b, O, R2, i) {
   const cam = S.cam; let br = b.r, bd = b.dir;
   if (split.replay && i === 0) { const rp = split.replay; rp.k += 0.5; const f = split.rec[Math.min(split.rec.length - 1, rp.i + Math.floor(rp.k))]; if (f) { br = f.r; bd = f.dir; setRel(b.mesh, br, O); dirQ(b.mesh, bd); b.mesh.userData.plume.visible = f.thr > 0.01; } }
   const up = V.norm(br); let e = P.eastOf(br), n = V.cross(up, e);
-  { const vh = V.sub(b.v, V.scale(up, V.dot(b.v, up))), hs = V.len(vh); if (hs > 20) { const f = V.scale(vh, 1 / hs); S.f = S.f ? V.norm(V.add(S.f, V.scale(V.sub(f, S.f), 0.03))) : f; } if (S.f) { n = S.f; e = V.cross(n, up); } } // f5.3: frame relative to the booster's heading (eased), no slow auto spin
+  { const vh = V.sub(b.v, V.scale(up, V.dot(b.v, up))), hs = V.len(vh); if (S.b !== b) { S.b = b; S.f = null; } if (hs > 20 && !S.f) S.f = V.scale(vh, 1 / hs); /* f5.6f (QA cam): heading captured once at separation; no swing at boostback */ if (S.f) { n = S.f; e = V.cross(n, up); } } // f5.3: frame relative to the booster's heading (eased), no slow auto spin
   const landed = b.state !== 'flying', pz = landed ? Math.max(0.18, split.pitch) : split.pitch; // f4.1: never under the ground
   if (landed) bd = up; // the landed booster stands up: frame its middle, camera upright
   const lift = landed ? 20 : 0, tx = br[0] - O[0] + up[0] * lift, ty = br[1] - O[1] + up[1] * lift, tz = br[2] - O[2] + up[2] * lift, d = split.dist / 90 * boosterFrameDist(b, R2), cp = Math.cos(pz), yaw = split.yaw + (i ? 0.35 : 0);
@@ -2433,4 +2436,4 @@ window.__game = { flight: () => F, mem: () => { const m = renderer.info.memory |
     return { id: b.id || 'A', replay: !!(i === 0 && split.replay), state: b.state, phase: b.phase, meshVsDir: +(ny.x * b.dir[0] + ny.y * b.dir[1] + ny.z * b.dir[2]).toFixed(3), dirUp: +V.dot(b.dir, up).toFixed(3), noseScreenUp: +(p1.y - p0.y).toFixed(4), onScreen: Math.abs(p0.x) < 1 && Math.abs(p0.y) < 1 && p0.z < 1, camUpRadial: +(cu.x * up[0] + cu.y * up[1] + cu.z * up[2]).toFixed(3), roll: +(crt.x * up[0] + crt.y * up[1] + crt.z * up[2]).toFixed(3), R2: S.dbg.R2 }; }), dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds, lod: earthLOD.group }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
     const va = V.sub(v.v, siteVel(v)), sp = V.len(va), vh = sp > 1 ? V.scale(va, 1 / sp) : P.noseOf(v), nz = V.sub(v.r, V.scale(P.noseOf(v), P.massProps(v).ycom)); let ahead = 0, maxA = -1e9, n = 0; const dbg = [];
     for (const sys of [fire, smoke]) for (const q of sys.d) { if (q.life <= 0 || Math.hypot(q.x, q.y, q.z) - P.R_E < 300) continue; /* ignore the pad cloud */ const a = V.dot([q.x - nz[0], q.y - nz[1], q.z - nz[2]], vh); if (V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]) > 3000) continue; n++; if (a > maxA) maxA = a; if (a > 2) { ahead++; if (dbg.length < 6) dbg.push({ sys: sys === fire ? 'fire' : 'smoke', a: +a.toFixed(0), age: +(q.max - q.life).toFixed(2), c: q.c0 && q.c0.toString(16), d: q.drag, rva: +V.dot([q.vx - v.v[0], q.vy - v.v[1], q.vz - v.v[2]], vh).toFixed(0), an: +V.dot(P.noseOf(v), vh).toFixed(3), r: +V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]).toFixed(0) }); } }
-    return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, relFrame: () => relFrame(), mapProbe: id => smap.probe(id), siteSun: () => siteArt.obj.map(L => ({ el: +(L.userData.sunEl || 0).toFixed(1), night: !!L.userData.night, lights: (() => { let n = 0; L.traverse(o => { if (o.isLight && o.visible) n++; }); return n; })() })), audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, setGroundCam: on => { GCAM.on = !!on; if (on && split.on) split.full = 'u'; camMode = 'chase'; }, get groundCam() { return GCAM.act; }, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, stickCmd: () => ({ ...mobile.input }), get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv, sitePicker, get sbSite() { return sbSite; } };
+    return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, relFrame: () => relFrame(), mapProbe: id => smap.probe(id), siteSun: () => siteArt.obj.map(L => ({ el: +(L.userData.sunEl || 0).toFixed(1), night: !!L.userData.night, lights: (() => { let n = 0; L.traverse(o => { if (o.isLight && o.visible) n++; }); return n; })() })), audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, setGroundCam: on => { GCAM.on = !!on; if (on && split.on) split.full = 'u'; camMode = 'chase'; }, get groundCam() { return GCAM.act; }, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, stickCmd: () => ({ ...mobile.input }), get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get camPitch() { return camPitch; }, camInfo: () => { const bR = (P.BODIES[F.body] || {}).R || R, O = shipPos ? null : null; return { pitch: camPitch, dist: camDist, up: camera.up.toArray().map(x => +x.toFixed(3)) }; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv, sitePicker, get sbSite() { return sbSite; } };
