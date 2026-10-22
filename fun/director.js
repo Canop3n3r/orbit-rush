@@ -20,7 +20,7 @@ export const MAX_CORR_WAIT = 400 * 86400; // s: never wait longer than this for 
 // fx-1 (QA B5): with missions hidden, plain AUTO on a test hopper flies the hop profile (up ~3 km, coast, hoverslam
 // onto the pad) instead of the orbital gravity turn that crashed it inverted. F.extAuto keeps the AUTO pill on while
 // the Flight's own ascent guidance stands aside.
-export const isHopper = d => !!d && (d.name === 'Grasshopper' || d.hop === true);
+export const isHopper = d => !!d && ((d.name === 'Grasshopper' || d.name === 'Sandpiper') || d.hop === true);
 export function hopAuto(F, opts = {}) { const D = new Director(F, 'hop', opts); D.alt0 = F.alt - F.v.tel.ycom; F.extAuto = true; D.set('hop', 'Hop! Straight up to ' + (D.m.hop / 1000).toFixed(0) + ' km'); return D; }
 const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'lift', 'capture', 'brake', 'descent', 'home', 'done'];
 const WARP_BURN = () => 4;

@@ -8,7 +8,7 @@ for (const id of ['orbit', 'moon', 'mars', 'venus']) { const q = qualifying(id, 
   ok(pip.sel === q[0].key && /Pip can’t reach orbit; using /.test(pip.note) && pip.list.some(r => r.mine), `${id}: Pip → ${q[0].name} preselected, note "${pip.note}", Pip still listed`);
   const own = cardChoice(q, { name: q[0].name, ok: true });
   ok(own.sel === 'mine' && !own.note, `${id}: a qualifying rocket stays selected`); }
-const hop = cardChoice(qualifying('hop', SHOWROOM, []), { name: 'Grasshopper', ok: true }, false); ok(hop.sel === 'mine', 'hop: own Grasshopper kept');
+const hop = cardChoice(qualifying('hop', SHOWROOM, []), { name: 'Sandpiper', ok: true }, false); ok(hop.sel === 'mine', 'hop: own Sandpiper (ex-Grasshopper) kept');
 const sets = { spacey: ['a', 'b', 'c'], arion: ['d', 'e'] }, names = { a: 'Heron', b: 'Heron Heavy', c: 'Other', d: 'D', e: 'E' };
 const html = pickerHTML({ originals: [{ i: 0, name: 'Heron', role: 'x' }, { i: 1, name: 'Heron Heavy', role: 'y' }], sets, name: id => names[id], locked: id => id === 'e' || id === 'c' });
 ok(!/data-m="a"|data-m="b"/.test(html), 'picker: rockets already in Originals are not repeated');

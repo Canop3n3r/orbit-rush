@@ -20,8 +20,8 @@ export const SHOWROOM = [
   { id: 'ares', name: 'Red Arrow', role: 'Mars lander stack (also Venus)', check: 'mission:mars', difficulty: 0.8, mission: 'mars', alt: 'venus', tpl: 'Mars explorer' },
   { id: 'titan', name: 'Colossus', role: 'Super-heavy · 5-engine cluster', check: 'orbit', difficulty: 0.6, mission: null,
     design: { name: 'Colossus', parts: [P('fairing'), P('sat'), P('sat'), P('probe'), P('tank-w'), P('mule', 5), P('dec'), P('tank-w'), P('tank-w'), P('tank-w'), P('bison', 5), P('fins')] } },
-  { id: 'hopper', name: 'Grasshopper', role: 'Test hopper · hop and land on the pad', check: 'mission:hop', difficulty: 0.2, mission: 'hop',
-    design: { name: 'Grasshopper', parts: [P('chute'), P('crew'), P('tank-n'), P('mule'), P('fins')] } },
+  { id: 'hopper', name: 'Sandpiper', house: 'spacey', role: 'Test hopper · hop and land on the pad', check: 'mission:hop', difficulty: 0.2, mission: 'hop',
+    design: { name: 'Sandpiper', hop: true, parts: [P('chute'), P('crew'), P('tank-n'), P('mule'), P('fins')] } },
 ];
 for (const r of SHOWROOM) if (r.tpl) { const t = T(r.tpl); r.design = { ...cloneDesign(t), name: r.name }; r.tplName = r.tpl; }
 // f4: hero models (gfx/vehicles, Rocket Art Bot) for the catalog-inspired rockets; physics still flies the part stack
@@ -30,6 +30,10 @@ Object.assign(MODEL_OF, { selene: 'selene', ares: 'ares' }); // f5.1h (QA f5.1e)
 for (const r of SHOWROOM) if (MODEL_OF[r.id]) { r.model = MODEL_OF[r.id]; r.design.model = r.model; }
 for (const r of SHOWROOM) if (r.check === 'space' || r.check === 'mission:hop') r.design.sub = true; // f5.1h: suborbital by role
 { const h = SHOWROOM.find(r => /colossus|ss-v3/.test(r.model || '')); if (h) setHeavyBase(h.id); } // f5.1h: the super-heavy stack for big house rockets
+// fleet-1 (Aaron 10-22): the Originals group is retired. Pip, Selene and Red Arrow stay only as internal physics stacks
+// (house rockets and tests fly on them) and never show on Home or in the picker; the hopper joins the Spacey house as Sandpiper.
+export const RETIRED = new Set(['pip', 'selene', 'ares']);
+export const DEFAULT_ID = 'swift'; // Heron-9: the default rocket on a fresh load or when a save points at a retired one
 export const RTLS = new Set(['swift', 'atlas']); // f4: these fly back to the landing zone (boostback + RTLS) instead of a droneship
 for (const r of SHOWROOM) if (RTLS.has(r.id)) r.design.recovery = 'rtls';
 const clamp = x => Math.max(0.06, Math.min(1, x));

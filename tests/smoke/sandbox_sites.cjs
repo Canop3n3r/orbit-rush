@@ -10,7 +10,7 @@ require('fs').mkdirSync(OUT, { recursive: true });
   await pg.addInitScript(() => { try { localStorage.setItem('or_seen_welcome', '1'); } catch (e) {} });
   await pg.goto(URL + '?noacademy', { waitUntil: 'load' }); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 240000 }); await pg.waitForTimeout(3000);
   await pg.click('#hSite'); await pg.click(`#sitePick .spBodies button[data-b="${body}"]`); await pg.waitForTimeout(300); await pg.screenshot({ path: `${OUT}/${body}_picker.png` });
-  await pg.click(`#sitePick .spSites button[data-i="${idx}"]`); await pg.click('#sitePick .spX'); if (body === 'earth') await pg.click('#hNext'); /* an orbital rocket (Pip is suborbital) */ await pg.waitForTimeout(5000);
+  await pg.click(`#sitePick .spSites button[data-i="${idx}"]`); await pg.click('#sitePick .spX'); /* an orbital rocket (Pip is suborbital) */ await pg.waitForTimeout(5000);
   await pg.screenshot({ path: `${OUT}/${body}_home.png` }); ok(await pg.evaluate(b => window.__game.F.body === b, body), `${body}: Home rocket sits on ${body}`);
   await pg.click('#hFly'); await pg.waitForTimeout(9000); await pg.screenshot({ path: `${OUT}/${body}_liftoff.png` });
   const st = await pg.evaluate(() => ({ alt: window.__game.F.alt, body: window.__game.F.body }));

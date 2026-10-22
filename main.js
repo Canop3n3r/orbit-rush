@@ -39,7 +39,7 @@ import { createCompact } from './fun/compact.js?v=f5.6n';
 import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.6n';
 import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.6n';
 import { createHome } from './fun/home.js?v=f5.6n';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6n';
+import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6n';
 import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.6n';
 import { createFunUI } from './fun/ui.js?v=f5.6n';
 import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.6n';
@@ -2419,7 +2419,7 @@ function playRung(c) {
   openRocketCard('🎯 ' + rungLabel(c), ch, (d, auto) => { setDesign(d); launch(); try { if (auto) { if (!F.ignited) F.stagePress(); F.setAuto(true, true); } else F.setAuto(false, true); } catch (e) { } fun.call('🎯', rungLabel(c) + ' — ' + autoNote(auto, d.name || 'rocket'), '#ffe9b0', true); });
 }
 addEventListener('career-change', () => { if (home) home.refresh(); });
-var home = createHome({ list: SHOW, locked: i => !!lockWhy('vehicles', SHOW[i].id), onCareer: () => careerUI.show(true),
+var home = createHome({ list: SHOW, hidden: i => RETIRED.has(SHOW[i].id), locked: i => !!lockWhy('vehicles', SHOW[i].id), onCareer: () => careerUI.show(true),
   onSelect: i => { pickModel = null; pickStack = null; try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(showDesign(i)); },
   onFly: i => { if (lockedFly(i)) return; setDesign(pickDesign(i)); home.show(false); launch(); try { F.setAuto(false, true); } catch (e) { } }, // f5.5b (Aaron): load onto the pad with control; pick AUTO if wanted, STAGE to go. Was QA f5b.3: home FLY = 1 tap to liftoff on AUTO
   onMission: i => { if (lockedFly(i)) return; const w = lockWhy('missions', SHOW[i].mission); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); return; } home.show(false); startMission(SHOW[i].mission); },
@@ -2457,7 +2457,7 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
   const pk = document.createElement('div'); pk.id = 'picker'; pk.className = 'hidden'; document.body.appendChild(pk);
   const nav = () => { const b = $('hnBuild'); if (b) b.classList.remove('hidden'); }; // f5.4l (QA f5.4i #5): Build is 1 tap from Home (was ▦ › Sandbox › Build)
   const render = () => { pk.innerHTML = pickerHTML({ sandbox: sbOn(), sets: HOUSE_SETS, name: houseName, role: id => (CLASS_OF[baseOf(id)] || 'Super-heavy') + (specFor(id) ? ' · Payload ' + fmtPay(payloadT(id)) : ' · ' + Math.round((ART[id] && ART[id].height) || 50) + ' m'), locked: id => !!lockWhy('vehicles', SHOW[baseIdx(id)].id),
-    originals: SHOW.map((r, i) => ({ i, name: r.name, role: r.role, locked: !!lockWhy('vehicles', r.id) })) }); };
+    pinned: SHOW.reduce((o, r, i) => { if (r.house) (o[r.house] = o[r.house] || []).push({ i, name: r.name, role: r.role, locked: !!lockWhy('vehicles', r.id) }); return o; }, {}) }); }; // fleet-1: no Originals section
   const close = () => pk.classList.add('hidden');
   const keysOf = id => { try { const st = (ART[id] && STAGE_KEYS[id]) || null; return st || []; } catch (e) { return []; } };
   function baseOf(id) { return pickBase(keysOf(id), (ART[id] && ART[id].height) || 50); }
@@ -2485,7 +2485,7 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
     mb.onclick = e => { e.stopPropagation(); m.classList.toggle('hidden'); };
     addEventListener('pointerdown', e => { if (!m.classList.contains('hidden') && !e.target.closest('#hMenu,#hMenuB')) m.classList.add('hidden'); }); } }
 setTimeout(prewarmHeavy, 1500);
-if (!params.has('hangar')) { let i0 = 0; try { i0 = +localStorage.getItem(HOME_KEY) || 0; } catch (e) { } home.set(Math.min(SHOW.length - 1, Math.max(0, i0))); siteDefault(); home.show(true); }
+if (!params.has('hangar')) { const d0 = Math.max(0, SHOW.findIndex(x => x.id === DEFAULT_ID)); let i0 = d0; try { const v = localStorage.getItem(HOME_KEY); if (v !== null && v !== '') i0 = +v; } catch (e) { } if (!(i0 >= 0 && i0 < SHOW.length) || RETIRED.has(SHOW[i0].id)) i0 = d0; home.set(i0); /* fleet-1: retired/unknown saves fall back to Heron-9 */ siteDefault(); home.show(true); }
 $('standBtn').onclick = () => testStand(); $('tunnelBtn').onclick = () => fun.openTunnel(); $('dropBtn').onclick = () => dropTest();
 addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e.preventDefault(); }, true);
 refreshBuild();
