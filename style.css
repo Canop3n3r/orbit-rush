@@ -1031,9 +1031,20 @@ body.inOrbit #dAbort,body.inOrbit.autoOn #dThr{display:none!important}
 /* f5.7e (QA f5.7c P1): RELEASE / End flight has ONE fixed spot in split and single view, every size: top-left, clear of the top bar (right), toasts (centre) and navball; taps land because it never moves */
 #relBtn,#relBtn.done,body.splitOn #relBtn{position:fixed!important;top:calc(12px + var(--sat,0px))!important;left:calc(12px + env(safe-area-inset-left,0px))!important;right:auto!important;bottom:auto!important;transform:none!important;translate:none!important;z-index:40!important}
 /* f5.7e (QA f5.7c P2): phone portrait split: the band under the booster strip is solid HUD, so AUTO/STAGE sit on the HUD, not in the booster's picture */
-@media (orientation:portrait){body.touch #split:not(.fullB):not(.fullU) #spCardB{background:linear-gradient(#0b142400,#0b1424e6 22%,#0b1424f5 60%)!important}}
+@media (orientation:portrait){body.touch #split:not(.fullB):not(.fullU) #spCardU{background:linear-gradient(#0b142400,#0b1424e6 22%,#0b1424f5 60%)!important}}
 /* f5.7e (QA f5.7c P2): pause fits short landscape phones (it clipped Settings @844); GROUND sits clear of the desktop STAGE row */
 #pause .mbox{max-height:calc(100vh - 24px);overflow:auto}
 @media (max-height:500px){#pause .mbox{padding:12px 16px!important}#pause h2{margin:0 0 6px!important;font-size:18px!important}#pause .col{display:grid!important;grid-template-columns:1fr 1fr;gap:6px}#pause .col .big{grid-column:1/-1}#pause button{min-height:40px!important;padding:6px 10px!important}}
 body:not(.touch) #gcamBtn:not([data-sp-pin]){bottom:auto!important;top:calc(72px + var(--sat,0px))!important;right:16px!important}
 body.touch #relBtn{padding:8px 12px!important;font-size:13px!important;min-height:40px!important} /* f5.7e: smaller fixed RELEASE on phones */
+/* f5.7i (QA f5.7g P1): phone split = upper stage full screen + booster picture-in-picture (top-left); the AUTO/STAGE/⛔/THR cluster stays with the upper stage */
+body.touch #split:not(.fullB) #spPane{border:2px solid #9cc3ffaa!important;border-radius:12px;overflow:hidden;box-shadow:0 4px 18px #000a}
+body.touch.splitOn:not(.mapOn) #mright{translate:none!important}
+body.touch #split:not(.fullB) #spCardB{padding:6px 6px 4px!important;gap:6px!important}
+body.touch #split:not(.fullB) #spCardB .spBall{width:44px!important;height:44px!important}
+body.touch #split:not(.fullB) #spCardB .spL,body.touch #split:not(.fullB) #spCardB .spR{font-size:10px!important}
+body.touch.splitOn #mMenu{max-height:min(46dvh,calc(100dvh - 72px))!important} /* f5.7i (QA f5.7g P2): ☰ in split leaves most of the view */
+body.touch #split:not(.fullB) #spCardB .pill{display:none}
+/* f5.7i (QA f5.7g P1 budgets): phone Home = swipe + dots (no ‹ › arrows; .click() still works for tools); phone quick settings drop the advanced map-patch select */
+body.touch #home .hArr{display:none!important}
+body.touch #settings .adv{display:none!important}

@@ -1587,7 +1587,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
     const cs = v.stages[v.cur], fu = cs && cs.fuelMax > 0 ? Math.round(cs.fuel / cs.fuelMax * 100) + '%' : '—', dense = tel.q > 300;
     const hot = !dense && tel.heat > 2e4, hasChute = v.stages.slice(v.cur).some(s2 => s2.parts.some(p2 => p2.kind === 'chute'));
     const cv = flyingBooster() ? booster : v;
-    mobile.render({ alt: fmtD(P.altOf(v)), spd: fmtS(V.len(v.v)), ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
+    mobile.render({ hasChute: hasChutes(), canHome: !!(F && F.canDeorbit && F.canDeorbit()), alt: fmtD(P.altOf(v)), spd: fmtS(V.len(v.v)), ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
       mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : `${V.dot(v.v, V.norm(v.r)).toFixed(0)} m/s`,
       mqC: tel.q > 30000 || tel.heat > 3e5 ? 'warn' : '', fuel: fu, score: F.score().toLocaleString(), thr: mobile.thrDragging() ? (cv.ut ?? cv.throttle ?? 0) : (cv.throttle || cv.ut || 0),
       auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME', booster: !!(F.booster && F.booster.state === 'flying') || !!(booster2 && booster2.state === 'flying'),
@@ -1831,7 +1831,8 @@ renderer.setAnimationLoop(() => {
     if (mapOn) document.querySelectorAll('.modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
     smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
   updateSplit(rdt);
-  if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, booster2 ? innerHeight / 2 - ctlTop() / 6 : innerHeight * 0.25, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
+  if (state === 'flight' && split.on && !split.full && TOUCH && !booster2) { if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, -innerHeight * 0.06, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.1, 0, innerWidth, innerHeight); } // f5.7i: the upper stage sits centred below/right of the booster PiP
+  else if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, booster2 ? innerHeight / 2 - ctlTop() / 6 : innerHeight * 0.25, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
   if (mapOn) { smap.update(rdt); mapPost.render(); }
   else { post.render(); renderSplit(O); }
   if (snapReq) { const f = snapReq; snapReq = null; savePhoto(f); }
@@ -1868,18 +1869,21 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
   $('spFull').textContent = 'BOOSTER ⤢'; $('spFullU').textContent = 'UPPER ⤢'; // f5.6x: every size // f5.6u (QA P1): phones get one small label per pane; tapping it focuses that pane (⇄ / ✕ are hidden: the pane's ball takes control)
 }
 const splitPortrait = () => innerHeight > innerWidth;
+const hasChutes = () => { try { return !!(F && F.v.stages.some(s => s.parts.some(p => /chute/i.test(p.kind || '')))); } catch (e) { return true; } }; // f5.7i
 const _html = {}; function setHTML(id, h) { if (_html[id] !== h) { _html[id] = h; const e = $(id); if (e) e.innerHTML = h; } }
 function placeTopStack(on) { // f4.1b: in split, toasts/hints (#topStack, compact #hintS) live in the upper pane, below its card and clear of the pane buttons
-  const por = splitPortrait(), land = on && camMode !== 'map', W = innerWidth, card = $('spCardU') || $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, pTop = innerHeight * (booster2 ? 1 / 3 : 0.5), top = cb ? (por ? (TOUCH ? 96 : 70) : 112) : 0; /* f5.6h: the cards moved to bottom strips */ // f4.2 portrait: under the upper card if it fits above the booster pane, else above the card
+  const por = splitPortrait(), land = on && camMode !== 'map', W = innerWidth, card = $('spCardU') || $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, pTop = innerHeight * (booster2 ? 1 / 3 : 0.5), top = cb ? (TOUCH ? (() => { const pr = pipRect(); return por ? pr.y + pr.h + 10 : 112; })() : (por ? 70 : 112)) : 0; /* f5.6h: the cards moved to bottom strips */ // f4.2 portrait: under the upper card if it fits above the booster pane, else above the card
   for (const id of ['topStack', 'hintS']) { const ts = $(id); if (!ts) continue;
     if (!land) { if (ts.dataset.sp) { ts.style.removeProperty('left'); ts.style.removeProperty('top'); ts.style.removeProperty('max-width'); delete ts.dataset.sp; } continue; }
-    ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * (por ? 0.5 : 0.25)) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(por ? W - 24 : W * 0.5 - 32) + 'px', 'important'); } }
+    ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * (por ? 0.5 : TOUCH ? 0.62 : 0.25)) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(por ? W - 24 : W * 0.5 - 32) + 'px', 'important'); } }
 // f5: portrait touch: the panes end above the stick / throttle / STAGE cluster so the lowest booster pane is never under them
 let ctlTopC = { t: 0, v: 0 };
 function ctlTop() { const H = innerHeight; if (!TOUCH || !splitPortrait()) return H; const now = performance.now(); if (now - ctlTopC.t < 500) return ctlTopC.v;
   let top = H; for (const id of ['mleft', 'mright']) { const e = document.getElementById(id); if (!e || getComputedStyle(e).display === 'none') continue; const r = e.getBoundingClientRect(); if (r.height > 0) top = Math.min(top, r.top); }
   ctlTopC = { t: now, v: Math.max(H * 0.6, top - 6) }; return ctlTopC.v; }
-function paneRect(i = 0, nb = 1) { const W = innerWidth, H = innerHeight, Hc = ctlTop(); // f4.2: a heavy's two boosters: stacked on the right (landscape) or rows 2-3 (portrait)
+// f5.7i (QA f5.7g P1, Aaron): phones fly the upper stage full screen with its HUD cluster; the booster is a picture-in-picture top-left
+const pipRect = () => { const W = innerWidth, H = innerHeight, sat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0; return splitPortrait() ? { x: 10, y: 64 + sat, w: Math.round(W * 0.62), h: Math.round(H * 0.3) } : { x: 10, y: 60 + sat, w: Math.round(W * 0.34), h: Math.round(H * 0.44) }; };
+function paneRect(i = 0, nb = 1) { if (TOUCH && nb === 1) return pipRect(); const W = innerWidth, H = innerHeight, Hc = ctlTop(); // f4.2: a heavy's two boosters: stacked on the right (landscape) or rows 2-3 (portrait)
   if (nb > 1) return splitPortrait() ? { x: 0, y: Hc / 3 * (i + 1), w: W, h: Hc / 3 } : { x: W * 0.5, y: H * 0.5 * i, w: W * 0.5, h: H * 0.5 };
   return splitPortrait() ? { x: 0, y: H * 0.5, w: W, h: H - H * 0.5, sh: Hc - H * 0.5 } : { x: W * 0.5, y: 0, w: W * 0.5, h: H }; } // f5.6h (QA P2): no dead strip under the panes; sh = where its bottom strip ends (above the thumb controls)
 function updateSplit(rdt) {
@@ -1906,7 +1910,7 @@ function updateSplit(rdt) {
     const card = (b, label, hud, ball, rp) => { const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
       const bf = b.stages[0], bs = V.len(bva), bPh = rp ? '⟲ REPLAY' : b.state === 'landed' ? '✔ LANDED' : b.state !== 'flying' ? '✘ LOST' : b.manual ? '🎮 YOU' : 'AUTO · ' + apPill(b.phase);
       spStrip(hud, label.replace(' · ', ' '), bPh.replace('AUTO · ', ''), /BURN|LANDING/.test(bPh), bs, bh, b, 0, false, b.state === 'landed');
-      { const cv = $(ball); if (cv) { const ld = b.state !== 'flying'; cv.style.visibility = ld ? 'hidden' : ''; if (!ld) miniBall(cv, b.dir, b.r, bva, b.holdDir && b.manual ? b.holdDir : null); } } }; // f5.7e (QA f5.7c P2): a landed booster has no attitude to show (the '- -' ball on a blocky backdrop)
+      { const cv = $(ball); if (cv) { const ld = b.state !== 'flying'; if (ld) cv.style.visibility = 'hidden'; else miniBall(cv, b.dir, b.r, bva, b.holdDir && b.manual ? b.holdDir : null); } } }; // f5.7e (QA f5.7c P2): a landed booster has no attitude to show (the '- -' ball on a blocky backdrop)
     const bLab = (i, lz) => { const k = 'AB'[i]; return TOUCH ? 'BOOSTER ' + k : 'BOOSTER ' + k + ' · ' + (lz || 'LZ-' + (i + 1)); }; // f5.6u (QA P1): phones drop the pad name (it clipped)
     card(b, booster2 ? bLab(0, b.lzName) : 'BOOSTER',
       'spHud', 'spBallB', !!split.replay);
@@ -1922,6 +1926,7 @@ function updateSplit(rdt) {
 // f5.3 (Aaron): identical layout in every half: the card (navball + telemetry) sits at the pane's top-left under one
 // button row, the pane buttons at its top-right. Positions are set here (viewport px) so every pane uses one rule.
 function upperRect(nb) { const W = innerWidth, H = innerHeight; if (split.full === 'u') return { x: 0, y: 0, w: W, h: H };
+  if (TOUCH && nb === 1) return splitPortrait() ? { x: 0, y: 0, w: W, h: H, sh: ctlTop() } : { x: 0, y: 0, w: W - 150, h: H }; // f5.7i: the upper stage owns the screen; its strip ends above (portrait) / left of (landscape) the AUTO/STAGE cluster
   return splitPortrait() ? { x: 0, y: 0, w: W, h: nb > 1 ? ctlTop() / 3 : H * 0.5 } : { x: 0, y: 0, w: W * 0.5, h: H }; }
 const SP_INSET = 58;
 function placeIn(el, r, corner) { if (!el) return; const s = el.style, sat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0;
@@ -1951,7 +1956,7 @@ function spStrip(id, label, ph, hot, mps, alt, c, cur, upper, landed) { let o = 
 const apPill = ph => { const p = (ph || '').toLowerCase(); return /boost/.test(p) ? 'BOOSTBACK' : /entry/.test(p) ? 'ENTRY BURN' : /landing|controlled/.test(p) ? 'LANDING BURN' : /glide|fin/.test(p) ? 'GRID-FIN GLIDE' : /touch/.test(p) ? 'TOUCHDOWN' : /coast/.test(p) ? 'COAST' : (ph || 'AUTO').toUpperCase(); };
 // f4 mini navball: sky/ground split by the nose pitch, roll-free; prograde marker from the velocity
 function miniBall(cv, dir, r, vel, ghost = null) {
-  if (!cv) return; const c = cv.getContext('2d'), W = cv.width, H = cv.height, R0 = W / 2 - 2, up = V.norm(r), e = P.eastOf(r), n = V.cross(up, e);
+  if (!cv) return; { const ok = !!(dir && r && vel && dir.every(Number.isFinite) && V.len(vel) > 5); cv.style.visibility = ok ? '' : 'hidden'; if (!ok) return; } /* f5.7i (QA f5.7g P2): no blank '- -' ball without attitude/velocity data */ const c = cv.getContext('2d'), W = cv.width, H = cv.height, R0 = W / 2 - 2, up = V.norm(r), e = P.eastOf(r), n = V.cross(up, e);
   const pit = Math.asin(Math.max(-1, Math.min(1, V.dot(dir, up)))), hy = Math.max(-1, Math.min(1, pit / (Math.PI / 2))) * R0; // f4.1: nose up = horizon drops = more sky (local horizon from r)
   c.clearRect(0, 0, W, H); c.save(); c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.clip();
   c.fillStyle = '#3d7bd6'; c.fillRect(0, 0, W, H); c.fillStyle = '#8a5a2b'; c.fillRect(0, H / 2 + hy, W, H);
@@ -2122,7 +2127,7 @@ fun = createFunUI({
   tunnelGeom: mach => { const ab = aeroBalance(design, mach); if (!ab) return null; const vv = buildVehicle(design), g = P.stackGeom(vv); const COL = { engine: '#ff9a3c', tank: '#e8e8e8', pod: '#9cc3ff', payload: '#e0b84a', fins: '#555', decoupler: '#333', fairing: '#f4f4f4', shield: '#7a4a2a', chute: '#ff7a3c', rcs: '#8a9099' };
     return { parts: g.list.map(e => ({ y: e.y, h: e.h, d: e.kind === 'fins' ? (e.d || 2) * 1.8 : e.d, col: COL[e.kind] || '#ccc' })), L: g.L, ycom: ab.ycom, ycp: ab.ycp, stable: ab.stable, margin: ab.margin }; },
 });
-const cx = createCompact({ touch: TOUCH, press: k => press(k), menuState: () => ({ booster: !!(F && F.booster && F.booster.state === 'flying'), ret: !!(F && F.ret) }), onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on), onEngTap: () => { mobile.sheet = !document.body.classList.contains('sheet'); document.body.classList.toggle('sheet', mobile.sheet); } });
+const cx = createCompact({ touch: TOUCH, press: k => press(k), menuState: () => ({ booster: !!(F && F.booster && F.booster.state === 'flying'), ret: !!(F && F.ret), chute: hasChutes(), canHome: !!(F && F.canDeorbit && F.canDeorbit()) }), onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on), onEngTap: () => { mobile.sheet = !document.body.classList.contains('sheet'); document.body.classList.toggle('sheet', mobile.sheet); } });
 { const dm = document.getElementById('dMap'); if (dm) dm.onclick = e => { e.currentTarget.blur(); press('KeyM'); }; }
 { // top-centre stack: callout, hint, toasts never overlap each other
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
