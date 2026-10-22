@@ -2,17 +2,17 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=f5.7g';
-import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.7g';
-import { elements, timeToAp } from './kepler.js?v=f5.7g';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.7g';
-import { massOf } from './vehicle.js?v=f5.7g';
-import { thermalOf } from './thermal.js?v=f5.7g';
-import { atmosphere } from './atmosphere.js?v=f5.7g';
-import { cd0 } from './aero.js?v=f5.7g';
-import { hoverslamSolve } from './hoverslam.js?v=f5.7g';
-import { sampleAscent } from '../timelines/ascent.js?v=f5.7g';
-import { BODIES, atmTop } from './solar.js?v=f5.7g';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f5.7h';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.7h';
+import { elements, timeToAp } from './kepler.js?v=f5.7h';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.7h';
+import { massOf } from './vehicle.js?v=f5.7h';
+import { thermalOf } from './thermal.js?v=f5.7h';
+import { atmosphere } from './atmosphere.js?v=f5.7h';
+import { cd0 } from './aero.js?v=f5.7h';
+import { hoverslamSolve } from './hoverslam.js?v=f5.7h';
+import { sampleAscent } from '../timelines/ascent.js?v=f5.7h';
+import { BODIES, atmTop } from './solar.js?v=f5.7h';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -85,7 +85,7 @@ function offGuide(v) {
   return { dir: dirOfPitch(pitch, f), throttle: thr, phase: ph, pitch };
 }
 export const HOT_K = 0.8; // fx-ng: share of a part's skin limit that makes the ascent climb out of the air
-export const GLIDE = { on: true, k: 0.15, c: 0.5, margin: 1.6 }; // f5.7d: weak-upper climb profile (see ascent)
+export const GLIDE = { on: true, k: 0.15, c: 0.5, margin: 1.45, hMax: 150000 }; // f5.7d: weak-upper climb profile (see ascent)
 export const LOFT = { twr: 1.3, a: 120, b: 0.018, h1: 90000, taper: 25000 }; // fx-ng: low-TWR first-stage climb-rate floor (m/s = a + b·h)
 export function autoGuide(v) {
   if (v.body && v.body !== 'earth') return offGuide(v);
@@ -148,7 +148,7 @@ export function autoGuide(v) {
         if (weak && qPa < 1000 && o.ap >= TARGET_AP - 1000) pitch = holdPitch(v, f, sag, 0.06); // lofted hand-back: may pitch below the horizon to stop the climb (f4)
         if (weak && qPa < 1000 && h > 40000 && GLIDE.on && !v.noGlide && v.cur === v.stages.length - 1) { // f5.7d (QA f5.6x AUTO lob 184 → 108 km): a weak upper stage aims to top out at the target apoapsis about when it reaches orbital speed (gravity minus centrifugal fades to 0 over the burn), instead of topping out early and falling back ~80 km with the engine lit
           const dvLeft = Math.max(0, Math.sqrt(muOf(v) / r) - vh), ve = s.eng.ispVac * 9.80665, mK = m, dvS = s.fuel > 0 ? ve * Math.log(mK / Math.max(1, mK - s.fuel * 1000)) : 0, tbL = Math.max(10, burnTimeFor(v, dvLeft)), vrDes = Math.min(vrCap * GLIDE.c, (TARGET_AP - h) / tbL + GLIDE.k * gEff * tbL);
-          if (dvS > dvLeft * GLIDE.margin) pitch = holdPitch(v, f, vrDes, 0.06); } // only with Δv to spare: the gentler climb costs some gravity loss (Deltoid-3 / GTO stages run tight)
+          if (dvS > dvLeft * GLIDE.margin && (v._glide || h < GLIDE.hMax)) { v._glide = true; pitch = holdPitch(v, f, vrDes, 0.06); } } // f5.7h: margin 1.45 so re-AUTO after a navball detour (QA: 169 → 154 km) still glides; it must start below hMax (a third stage lit at 175 km keeps the classic profile) // only with Δv to spare: the gentler climb costs some gravity loss (Deltoid-3 / GTO stages run tight)
       }
     }
     // heavy pitch program: side boosters (radial stage) lift the whole stack at TWR ~1.1-1.4, so a plain gravity turn droops
