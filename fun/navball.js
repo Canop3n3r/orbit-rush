@@ -43,7 +43,7 @@ export function createNavball(canvas) {
         d[o] = cr * sh; d[o + 1] = cg * sh; d[o + 2] = cb * sh; d[o + 3] = 255; } }
     g.putImageData(img, 0, 0);
     // f5 labels: heading numbers every 30° on the horizon (N/E/S/W at the cardinals), pitch numbers on the ladder
-    const fs = Math.max(8, W / 15); g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    const fs = Math.max(9, W / 13); g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
     const lab = (t, x, y, f, col = '#0b1424', halo = '#ffffffb0') => { g.font = `800 ${f}px system-ui`; g.lineWidth = Math.max(2, f / 4); g.strokeStyle = halo; g.strokeText(t, x, y); g.fillStyle = col; g.fillText(t, x, y); };
     for (let a = 0; a < 360; a += 30) { const rad = a * Math.PI / 180, dir = [0, 1, 2].map(k => H.north[k] * Math.cos(rad) + H.east[k] * Math.sin(rad));
       const p = navballProject(F, dir); if (p.z > 0.2) lab(a % 90 ? String(a / 10).padStart(2, '0') : 'NESW'[a / 90], R + p.x * R, R - p.y * R - W / 16, a % 90 ? fs * 0.8 : fs); }
@@ -58,7 +58,9 @@ export function createNavball(canvas) {
     { const t = (Math.max(-75, Math.min(75, att.roll)) - 90) * Math.PI / 180, rr = R - W / 12, s2 = W / 22; g.save(); g.translate(R + Math.cos(t) * rr, R + Math.sin(t) * rr); g.rotate(t + Math.PI / 2);
       g.beginPath(); g.moveTo(0, -s2); g.lineTo(s2 * 0.8, s2 * 0.6); g.lineTo(-s2 * 0.8, s2 * 0.6); g.closePath(); g.fillStyle = '#ffcf4a'; g.fill(); g.restore(); }
     lastAtt = att;
-    for (const [k, dir] of Object.entries(st.markers || {})) { if (!dir) continue; const p = navballProject(F, dir); if (!p.front) continue; mark(k, R + p.x * R, R - p.y * R, Math.max(5, W / 13)); }
+    for (const [k, dir] of Object.entries(st.markers || {})) { if (!dir) continue; const p = navballProject(F, dir); if (!p.front) continue; const big = k === 'pro' || k === 'retro', mx = R + p.x * R, my = R - p.y * R; // f5.5d: bold, labelled prograde / retrograde
+      if (big) { g.save(); g.globalAlpha = 0.85; mark(k, mx, my, Math.max(9, W / 8.5), '#0b1424', 2.2); g.restore(); } mark(k, mx, my, big ? Math.max(9, W / 8.5) : Math.max(5, W / 13));
+      if (big) lab(k === 'pro' ? 'PRO' : 'RETRO', mx, my + Math.max(9, W / 8.5) + fs * 0.55, fs * 0.7, MARKERS[k], '#0b1424e0'); }
     // fixed ship reticle (original: a winged chevron)
     g.strokeStyle = '#ffcf4a'; g.lineWidth = Math.max(2, W / 50); g.lineCap = 'round'; g.beginPath();
     const s = W / 9; g.moveTo(R - s * 1.6, R); g.lineTo(R - s * 0.6, R); g.lineTo(R, R + s * 0.5); g.lineTo(R + s * 0.6, R); g.lineTo(R + s * 1.6, R); g.stroke();
@@ -66,8 +68,8 @@ export function createNavball(canvas) {
     g.beginPath(); g.arc(R, R, R, 0, 7); g.strokeStyle = '#ffffff40'; g.lineWidth = 1.5; g.stroke();
     return att;
   }
-  function mark(k, x, y, s) { // original iconography
-    g.save(); g.translate(x, y); g.strokeStyle = MARKERS[k]; g.fillStyle = MARKERS[k]; g.lineWidth = Math.max(1.6, s / 4); g.beginPath();
+  function mark(k, x, y, s, col, lw = 1) { // original iconography
+    g.save(); g.translate(x, y); g.strokeStyle = col || MARKERS[k]; g.fillStyle = col || MARKERS[k]; g.lineWidth = Math.max(1.6, s / 4) * lw; g.beginPath();
     switch (k) {
       case 'pro': g.moveTo(0, -s); g.lineTo(s, 0); g.lineTo(0, s); g.lineTo(-s, 0); g.closePath(); g.stroke(); g.beginPath(); g.arc(0, 0, s / 4, 0, 7); g.fill(); break;   // ◇ with a dot
       case 'retro': g.moveTo(0, -s); g.lineTo(s, 0); g.lineTo(0, s); g.lineTo(-s, 0); g.closePath(); g.moveTo(-s / 2, -s / 2); g.lineTo(s / 2, s / 2); g.moveTo(s / 2, -s / 2); g.lineTo(-s / 2, s / 2); g.stroke(); break; // ◇ with ×

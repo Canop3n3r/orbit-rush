@@ -1,0 +1,10 @@
+import { dragToStick, twistToRoll } from '../fun/navstick.js';
+let p = 0, f = 0; const t = (c, m) => { if (c) { p++; console.log('  ✔ ' + m); } else { f++; console.log('  ✘ ' + m); } };
+t(dragToStick(0, -60, 60).pitch === 1, 'drag up = full pitch-over (W)');
+t(dragToStick(0, 60, 60).pitch === -1, 'drag down = nose up (S)');
+t(dragToStick(60, 0, 60).yaw === -1 && dragToStick(-60, 0, 60).yaw === 1, 'drag right = yaw right (D), left = A');
+t(dragToStick(3, 3, 60).pitch === 0 && dragToStick(3, 3, 60).yaw === 0, 'dead zone');
+t(dragToStick(0, -600, 60).pitch === 1, 'clamped past the rim');
+t(twistToRoll(0, 40 * Math.PI / 180) === 1 && twistToRoll(0, -1) === -1, 'twist clockwise = roll right, counter = left');
+t(twistToRoll(3.1, -3.1) > 0, 'twist wraps across ±π');
+console.log(`navstick: ${p} passed, ${f} failed`); process.exit(f ? 1 : 0);

@@ -929,3 +929,13 @@ body:not(.eng) #strip #sL,body:not(.eng) #strip2{display:none!important}
 @media (max-height:500px){#plain{min-width:150px;padding:7px 10px;bottom:calc(8px + env(safe-area-inset-bottom,0px));left:calc(8px + env(safe-area-inset-left,0px))}#spd .spV{font-size:38px}#plAlt{margin:1px 0 3px;font-size:13px}#apPe div{font-size:13px}#dvStages{margin-top:3px;padding-top:3px}#dvStages .dvS{font-size:12px}}
 body.touch #mleft{left:calc(178px + var(--sal))}
 body:not(.eng) #strip{justify-content:flex-end}
+/* f5.5d (Aaron): the navball is the joystick (drag = pitch/yaw, two-finger twist = roll); bigger ball, INC readout; it stays up under AUTO */
+#nav #navBall{pointer-events:auto;cursor:grab;touch-action:none}#nav #navBall.grab{cursor:grabbing;box-shadow:0 0 0 3px #0b1424,0 0 0 5px #ffcf4a,var(--shadow)}
+#nbKnob{position:absolute;left:50%;bottom:calc(var(--nb) / 2 + var(--nb) * .02);width:22px;height:22px;margin:0 0 -11px -11px;border-radius:50%;border:3px solid #ffcf4a;background:#ffcf4a40;pointer-events:none;opacity:0;transition:opacity .15s}#nbKnob.on{opacity:1}
+body.cx #nav{--nb:190px}
+body.cx.touch #nav{--nb:128px}
+@media (orientation:landscape) and (max-height:500px){body.cx.touch #nav{--nb:124px;bottom:calc(126px + var(--sab))}}
+body.autoOn #nav{display:flex!important}
+body.touch #mleft,#mStick,#mRoll{display:none!important}
+body.touch #mleft{left:calc(12px + var(--sal))}
+#navRd #nbInc b{color:#d58cff}

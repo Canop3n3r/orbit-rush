@@ -2,12 +2,12 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import { MISSIONS } from './director.js?v=f5.5c';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.5c';
-import { ATLAS, poisOf } from './lore.js?v=f5.5c';
+import { MISSIONS } from './director.js?v=f5.5d';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.5d';
+import { ATLAS, poisOf } from './lore.js?v=f5.5d';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f5.5c';
+import { createNavball } from './navball.js?v=f5.5d';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();
@@ -26,11 +26,11 @@ export function createFunUI(ctx) {
   const navEl = el('div', { id: 'nav', className: 'hidden' }, `
     <button id="navMode" class="glass" title="Speed reference: surface / orbit / target">SURFACE <b id="navSpd">0 m/s</b></button>
     <div id="navCue" class="hidden"></div>
-    <div id="navRd" aria-label="Attitude readout"><span>HDG <b id="nrH">000</b>°</span><span>PIT <b id="nrP">+00</b>°</span><span>ROLL <b id="nrR">+00</b>°</span></div>
+    <div id="navRd" aria-label="Attitude readout"><span>HDG <b id="nrH">000</b>°</span><span>PIT <b id="nrP">+00</b>°</span><span>ROLL <b id="nrR">+00</b>°</span><span id="nbInc" title="Orbit inclination (0° = equator, 90° = polar)">INC <b id="nrI">0.0</b>°</span></div>
     <div class="navWrap"><svg class="navArcs" viewBox="0 0 200 200" aria-hidden="true">
       <path class="trk" d="M 38 160 A 85 85 0 0 1 38 40"/><path id="navThr" class="thr" d="M 38 160 A 85 85 0 0 1 38 40"/>
       <path class="trk" d="M 162 40 A 85 85 0 0 1 162 160"/><path id="navFuel" class="fuel" d="M 162 160 A 85 85 0 0 0 162 40"/></svg>
-      <canvas id="navBall" width="128" height="128" aria-label="Navball attitude indicator"></canvas>
+      <canvas id="navBall" width="128" height="128" aria-label="Navball: drag to steer, twist with two fingers to roll"></canvas><i id="nbKnob" aria-hidden="true"></i>
       <span id="navThrT" class="navLab l">0%</span><span id="navFuelT" class="navLab r">S1</span>
       <button id="navSasT" title="SAS modes" aria-label="SAS modes" aria-expanded="false">⊙</button>
       <div id="navSas">${SAS_RING.map(([m, ic, t, sh], i) => `<button data-sas="${m}" title="${t}" aria-label="SAS ${t}" style="--i:${i}">${ic}<small>${sh}</small></button>`).join('')}</div></div>`);
@@ -63,7 +63,7 @@ export function createFunUI(ctx) {
     { const cv = $('navBall'), want = Math.min(256, Math.max(96, Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1)))); if (cv.clientWidth && Math.abs(cv.width - want) > 4) { cv.width = cv.height = want; } } // f5: crisp ticks/labels at the shown size
     const att = navball.draw({ nose: st.nose, top: st.top, r: st.r, markers: m });
     if (att) { const sg = x => (x >= 0 || Math.round(-x) === 0 ? '+' : '−') + String(Math.round(Math.abs(x))).padStart(2, '0'), hT = String(Math.round(att.heading) % 360).padStart(3, '0');
-      if ($('nrH').textContent !== hT) $('nrH').textContent = hT; $('nrP').textContent = sg(att.pitch); $('nrR').textContent = sg(att.roll); navOut.att = att; }
+      if ($('nrH').textContent !== hT) $('nrH').textContent = hT; $('nrP').textContent = sg(att.pitch); $('nrR').textContent = sg(att.roll); navOut.att = att; } if (isFinite(st.inc)) { const it = st.inc.toFixed(1); if ($('nrI').textContent !== it) $('nrI').textContent = it; } // f5.5d
     $('navThr').style.strokeDashoffset = THR_LEN * (1 - st.throttle); $('navThrT').textContent = Math.round(st.throttle * 100) + '%';
     $('navFuel').style.strokeDashoffset = THR_LEN * (1 - st.fuel); $('navFuelT').textContent = 'S' + st.stage; $('navFuel').classList.toggle('low', st.fuel < 0.15);
     navEl.querySelectorAll('#navSas button').forEach(b => { const k = b.dataset.sas; b.classList.toggle('on', st.sas === k || (k === 'radial' && st.sas === 'antiradial') || (k === 'normal' && st.sas === 'antinormal'));
