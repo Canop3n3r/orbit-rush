@@ -1,7 +1,7 @@
 // Two-body orbital mechanics in 3D: orbital elements from a state vector, apoapsis/periapsis, time to
 // apoapsis, and exact universal-variable Kepler propagation (used "on rails" for high time warp).
-import { MU_E, R_E } from './constants.js?v=f5.6h';
-import { dot, cross, len, scale, sub } from './vec.js?v=f5.6h';
+import { MU_E, R_E } from './constants.js?v=f5.6i';
+import { dot, cross, len, scale, sub } from './vec.js?v=f5.6i';
 // Elements of the orbit of state (r, v) around a body with parameter mu (default Earth).
 export function elements(r, v, mu = MU_E, Rb = R_E) {
   const rm = len(r), v2 = dot(v, v), E = v2 / 2 - mu / rm, h = cross(r, v), hm = len(h), rv = dot(r, v);
