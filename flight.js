@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.6l';
-import * as C from './physics/patched.js?v=f5.6l';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6l';
-import { designReusable } from './vehicles/reusable.js?v=f5.6l';
+import * as P from './physics.js?v=f5.6m';
+import * as C from './physics/patched.js?v=f5.6m';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6m';
+import { designReusable } from './vehicles/reusable.js?v=f5.6m';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -493,7 +493,7 @@ export class Flight {
     if (on) { this.v.guid = null; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; }
     if (!quiet) this.toast(on ? 'AUTO on: gravity turn, Max-Q throttling, coast, circularize' : 'Manual flight (SAS ' + P.SAS_LABEL[this.v.sas] + ')', '#9cc3ff');
   }
-  setSAS(mode) { const v = this.v; v.sas = mode; v.sasHold = null; if (this.autoOn && mode !== 'stab') this.setAuto(false, true); if (this.ret && this.ret.auto) this.setAuto(false); this.toast('SAS: ' + P.SAS_LABEL[mode], '#9cc3ff'); }
+  setSAS(mode) { const v = this.v; v.sas = mode; v.sasHold = null; v.holdAtt = null; if (this.autoOn && mode !== 'stab') this.setAuto(false, true); if (this.ret && this.ret.auto) this.setAuto(false); this.toast('SAS: ' + P.SAS_LABEL[mode], '#9cc3ff'); }
   toggleRCS() { const v = this.v; v.rcsOn = !v.rcsOn; const has = v.stages.slice(v.cur).some(s => s.parts.some(p => p.kind === 'rcs')); this.toast(v.rcsOn ? (has ? `RCS on (${(v.rcsFuel * 1000).toFixed(0)} kg monoprop)` : 'RCS on — but this rocket has no RCS ring') : 'RCS off', '#9cc3ff'); }
   takeOverUpper() { const v = this.v; if (v.auto) { v.auto = false; this.autoOn = false; v.steerDir = null; v.ut = v.throttle; this.toast('You have the upper stage', '#9cc3ff'); } }
   flyingBooster() { const b = this.booster; return !!(b && b.state === 'flying' && b.manual); }
@@ -851,6 +851,7 @@ export class Flight {
       const va = P.airVel(b, b.r, b.v);
       if (b.retro && V.len(va) > 3) { const tgt = V.norm(V.scale(va, -1)), ax = V.cross(b.dir, tgt), s = V.len(ax), ang = Math.atan2(s, V.dot(b.dir, tgt)), rate = 1.2 * dt; if (s > 1e-9) b.dir = V.norm(V.qrot(V.qAxisAngle(ax, Math.min(ang, rate)), b.dir)); }
       const inp = b.input || {}, up = V.norm(b.r), east = P.eastOf(b.r), north = V.cross(up, east);
+      if (inp.pitch || inp.yaw) b.holdDir = null; else if (b.holdDir) { const ax = V.cross(b.dir, b.holdDir), s = V.len(ax), ang = Math.atan2(s, V.dot(b.dir, b.holdDir)); if (s > 1e-9) b.dir = V.norm(V.qrot(V.qAxisAngle(ax, Math.min(ang, 0.7 * dt)), b.dir)); } // f5.6h: trackball navball target, flown at the stick's 0.7 rad/s
       if (inp.pitch) b.dir = V.norm(V.qrot(V.qAxisAngle(north, -inp.pitch * 0.7 * dt), b.dir));
       if (inp.yaw) b.dir = V.norm(V.qrot(V.qAxisAngle(up, -inp.yaw * 0.7 * dt), b.dir));
       b.throttle = b.stages[0].fuel > 0 ? b.ut : 0; b.n = b.nSel ? Math.min(b.nSel, b.nMax) : bh0 > 12000 ? Math.min(3, b.nMax) : 1;

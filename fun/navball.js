@@ -61,6 +61,10 @@ export function createNavball(canvas) {
     for (const [k, dir] of Object.entries(st.markers || {})) { if (!dir) continue; const p = navballProject(F, dir); if (!p.front) continue; const big = k === 'pro' || k === 'retro', mx = R + p.x * R, my = R - p.y * R; // f5.5d: bold, labelled prograde / retrograde
       if (big) { g.save(); g.globalAlpha = 0.85; mark(k, mx, my, Math.max(9, W / 8.5), '#0b1424', 2.2); g.restore(); } mark(k, mx, my, big ? Math.max(9, W / 8.5) : Math.max(5, W / 13));
       if (big) lab(k === 'pro' ? 'PRO' : 'RETRO', mx, my + Math.max(9, W / 8.5) + fs * 0.55, fs * 0.7, MARKERS[k], '#0b1424e0'); }
+    if (st.ghost && st.ghost.n) { const p = navballProject(F, st.ghost.n), off = Math.acos(Math.max(-1, Math.min(1, p.z))); // f5.6h: ghost of the trackball target until the ship catches up
+      if (off > 0.017 || (st.ghost.t && Math.abs(Math.atan2(dot(cross(F.t, st.ghost.t), F.n), dot(F.t, st.ghost.t))) > 0.03)) { const k = p.front ? 1 : 1 / Math.max(1e-6, Math.hypot(p.x, p.y)), gx = R + p.x * k * R * (p.front ? 1 : 0.92), gy = R - p.y * k * R * (p.front ? 1 : 0.92);
+        const gt = st.ghost.t ? Math.atan2(dot(st.ghost.t, F.r), dot(st.ghost.t, F.t)) : 0, s = W / 9; g.save(); g.translate(gx, gy); g.rotate(gt); g.setLineDash([W / 40, W / 50]); g.strokeStyle = '#ffffffd0'; g.lineWidth = Math.max(2, W / 60); g.lineCap = 'round'; g.beginPath();
+        g.moveTo(-s * 1.6, 0); g.lineTo(-s * 0.6, 0); g.lineTo(0, s * 0.5); g.lineTo(s * 0.6, 0); g.lineTo(s * 1.6, 0); g.stroke(); g.setLineDash([]); g.beginPath(); g.arc(0, 0, W / 30, 0, 7); g.stroke(); g.restore(); } }
     // fixed ship reticle (original: a winged chevron)
     g.strokeStyle = '#ffcf4a'; g.lineWidth = Math.max(2, W / 50); g.lineCap = 'round'; g.beginPath();
     const s = W / 9; g.moveTo(R - s * 1.6, R); g.lineTo(R - s * 0.6, R); g.lineTo(R, R + s * 0.5); g.lineTo(R + s * 0.6, R); g.lineTo(R + s * 1.6, R); g.stroke();

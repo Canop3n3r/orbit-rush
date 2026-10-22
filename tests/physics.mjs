@@ -120,6 +120,11 @@ console.log('5. 6-DOF rigid body and controls');
   const err = Math.acos(Math.min(1, V.dot(P.noseOf(s), V.norm(s.v)))) / DEG;
   ok(err < 1, 'SAS prograde turns a craft 90° onto prograde with its reaction wheels', `${err.toFixed(2)}° off after 60 s`);
   for (const mode of ['retrograde', 'radial', 'normal']) { s.sas = mode; for (let t = 0; t < 60; t += PHYS_DT) { P.updateControl(s); P.stepVehicle(s, PHYS_DT); } const e = Math.acos(Math.min(1, V.dot(P.noseOf(s), P.sasDir(s, mode)))) / DEG; ok(e < 2, `SAS ${mode}`, `${e.toFixed(2)}°`); }
+  { // f5.6h: trackball navball target attitude: SAS 'stab' holds holdAtt = { n: nose, t: top } including roll
+    const h = coaster(PROBE, [a, 0, 0], [0, vc, 0], [1, 0, 0, 0]); h.sas = 'stab'; const n = V.norm([1, 0.3, 0.2]), t0 = V.norm(V.cross([0, 0, 1], n)), t = V.norm(V.sub(t0, V.scale(n, V.dot(t0, n))));
+    h.holdAtt = { n, t }; for (let k = 0; k < 90; k += PHYS_DT) { P.updateControl(h); P.stepVehicle(h, PHYS_DT); }
+    const en = Math.acos(Math.min(1, V.dot(P.noseOf(h), n))) / DEG, et = Math.acos(Math.min(1, V.dot(V.qrot(h.q, [0, 0, -1]), t))) / DEG;
+    ok(en < 2 && et < 3, 'SAS holds the navball target attitude (nose and roll)', `nose ${en.toFixed(2)}°, top ${et.toFixed(2)}° off after 90 s`); }
   // RCS translation pushes along the body axis
   const rc = coaster({ name: 'r', parts: [{ id: 'crew' }, { id: 'rcs' }, { id: 'tank-s' }, { id: 'spark', n: 1 }] }, [a, 0, 0], [0, vc, 0], [1, 0, 0, 0]); rc.rcsOn = true; rc.trans = [0, 0, 1];
   const v0 = [...rc.v], m0 = rc.rcsFuel; for (let i = 0; i < 50; i++) { rc.cmdTorque = [0, 0, 0]; P.stepVehicle(rc, PHYS_DT); }

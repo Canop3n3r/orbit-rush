@@ -1,5 +1,6 @@
 // Compact flight HUD (f1u): thin edge strips, one short self-hiding text line, everything secondary in one drawer.
 // It re-parents existing controls (warp arrows, MAP, ☰, TAKE OVER, Pilot buttons, desktop #ctl) so their handlers keep working.
+import { menuHTML, menuUpdate, toggleFull } from './flightmenu.js?v=f5.6m';
 const $ = id => document.getElementById(id);
 // f2: hints are whole phrases, never cut mid-word with "…". Keep the first clause; if it still runs past
 // two lines (~76 chars) drop trailing comma-clauses, then trailing words at a word boundary.
@@ -13,7 +14,7 @@ export function shortHint(s) {
   while (t.length > HINT_MAX && t.includes(' ')) t = t.slice(0, t.lastIndexOf(' '));
   return t.replace(/[,:;\s]+$/, '');
 }
-export function createCompact({ touch, onSpeedTap, onMarkers, onEngTap }) {
+export function createCompact({ touch, onSpeedTap, onMarkers, onEngTap, press, menuState }) {
   document.body.classList.add('cx');
   const strip = document.createElement('div'); strip.id = 'strip';
   strip.innerHTML = `<div id="sL"><div class="c"><b>ALT km</b><i id="sAlt">—</i></div><button class="c" id="sSpdB" title="Speed reference: surface / orbit / target" aria-label="Speed reference"><b id="sSpdL">SRF m/s</b><i id="sSpd">—</i></button><div class="c ev"><b id="sEvL">AP · PE km</b><i id="sEv">—</i></div></div><div id="sR"></div>`;
@@ -37,14 +38,16 @@ export function createCompact({ touch, onSpeedTap, onMarkers, onEngTap }) {
   const mk = document.createElement('button'); mk.id = 'pMark'; mk.textContent = '◎'; mk.title = 'Flight markers on the rocket (tag, arrows, stage rings)'; mk.setAttribute('aria-label', 'Flight markers'); mk.setAttribute('aria-pressed', 'false');
   mk.onclick = e => { e.currentTarget.blur(); const on = mk.getAttribute('aria-pressed') !== 'true'; onMarkers && onMarkers(on); }; group.appendChild(mk);
   let drawer;
-  if (touch) { R.appendChild($('mMap')); R.appendChild($('mMenuBtn')); drawer = $('mMenu'); const more = drawer.querySelector('.mMore'); if (more) more.insertBefore(group, more.children[1] || null); else drawer.insertBefore(group, drawer.children[1] || null); } // f5.1h: the Pilot group lives under More
+  if (touch) { R.appendChild($('mMap')); R.appendChild($('mMenuBtn')); drawer = $('mMenu'); const stash = document.createElement('div'); stash.hidden = true; stash.id = 'dStash'; document.body.appendChild(stash); stash.appendChild(group); } // f5.6h (QA P1): no icon-only Pilot row in the one menu // f5.1h: the Pilot group lives under More
   else {
     const mb = document.createElement('button'); mb.id = 'dMap'; mb.textContent = 'MAP'; mb.title = 'Map (M)'; R.appendChild(mb);
     const db = document.createElement('button'); db.id = 'dMenuBtn'; db.textContent = '☰'; db.setAttribute('aria-label', 'More'); R.appendChild(db);
     drawer = document.createElement('div'); drawer.id = 'dMenu'; drawer.className = 'hidden'; document.body.appendChild(drawer);
-    drawer.appendChild(group); const fl = document.createElement('div'); fl.className = 'mg'; fl.innerHTML = '<h5>Flight</h5>'; drawer.appendChild(fl); if ($('ctl')) fl.appendChild($('ctl'));
-    const sc = $('score'); if (sc) { const g2 = document.createElement('div'); g2.className = 'mg'; g2.innerHTML = '<h5>Score</h5>'; g2.appendChild(sc); drawer.appendChild(g2); }
-    db.onclick = e => { e.currentTarget.blur(); drawer.classList.toggle('hidden'); };
+    // f5.6h (QA P1): the desktop ☰ is the SAME menu as the phone's (fun/flightmenu.js); the old Pilot / Flight / Score groups stay off-screen so their handlers keep working
+    const stash = document.createElement('div'); stash.hidden = true; stash.id = 'dStash'; document.body.appendChild(stash); stash.appendChild(group); if ($('ctl')) stash.appendChild($('ctl')); { const sc = $('score'); if (sc) stash.appendChild(sc); }
+    drawer.innerHTML = `<div class="mh"><b>Menu</b><button id="dClose" aria-label="Close">✕</button></div><div class="mg mTop">${menuHTML()}</div>`;
+    drawer.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; b.blur(); if (b.id === 'dClose') { drawer.classList.add('hidden'); return; } if (b.dataset.full) toggleFull(); else if (b.dataset.p && press) press(b.dataset.p); drawer.classList.add('hidden'); });
+    db.onclick = e => { e.currentTarget.blur(); if (drawer.classList.contains('hidden')) menuUpdate(drawer, menuState ? menuState() : {}); drawer.classList.toggle('hidden'); };
     document.addEventListener('pointerdown', e => { if (!drawer.classList.contains('hidden') && !e.target.closest('#dMenu,#dMenuBtn')) drawer.classList.add('hidden'); }, true);
   }
   // one text line: callout > newest toast > hint; the hint shows for 5 s after it changes, then hides

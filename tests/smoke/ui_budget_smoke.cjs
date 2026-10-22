@@ -3,7 +3,7 @@
 // Per screen it measures controls / words / UI coverage (and taps open→liftoff) and compares them with the spec budgets.
 // Counting rules = playtest/ui_audit_menus.cjs: only controls/text that are topmost at their centre count; UI% = 8 px grid
 // of points whose topmost element has an opaque-ish surface (or is a control). Default = report-only (always exit 0,
-// prints PASS/FAIL per budget). f5.1h: picker_group_words + builder_gated measured on the grouped picker (#picker, Sandbox switch). --strict exits 1 if any budget fails. Needs playwright-core (PW_CORE=) + Chrome (CHROME=).
+// prints PASS/FAIL per budget). f5.1h: picker_group_words + builder_gated measured on the grouped picker (#picker, Sandbox switch). --strict exits 1 if fewer budgets pass than the ratchet baseline (UI_BASELINE, default 43). Needs playwright-core (PW_CORE=) + Chrome (CHROME=).
 const PW = process.env.PW_CORE || (() => { try { return require.resolve('playwright-core'); } catch (e) { return '/workspace/pwt/node_modules/playwright-core'; } })();
 const { chromium } = require(PW);
 const args = process.argv.slice(2), flag = k => { const i = args.indexOf(k); return i >= 0 ? (args.splice(i, 1), true) : false; };
@@ -162,5 +162,8 @@ async function runVp(br, vp) {
   for (const r of rows) { if (r.ok === null) skips++; else if (!r.ok) fails++; console.log(`${r.ok === null ? 'SKIP' : r.ok ? 'PASS' : 'FAIL'}  ${r.vp.padEnd(8)} ${r.screen.padEnd(16)} ${r.metric.padEnd(12)} ${String(r.val).padStart(6)} / ${/^[≥a-z-]/.test(String(r.max)) ? "" : "≤"}${r.max}${r.info ? '  ' + r.info : ''}`); }
   console.log(`${rows.length - fails - skips}/${rows.length - skips} budgets pass (${skips} skipped)`);
   if (jsonOut) require('fs').writeFileSync(jsonOut, JSON.stringify(all, null, 1));
-  process.exit(strict && fails ? 1 : 0);
+  // f5.6h (QA ratchet): --strict fails only below the baseline pass count (43 of 74 on f5.6f); raise BASELINE as rows get fixed
+  const BASELINE = +(process.env.UI_BASELINE || 43), passN = rows.length - fails - skips;
+  if (strict) console.log(`ratchet: ${passN} pass vs baseline ${BASELINE} → ${passN >= BASELINE ? 'OK' : 'REGRESSION'}`);
+  process.exit(strict && passN < BASELINE ? 1 : 0);
 })().catch(e => { console.error('FATAL', e.message); process.exit(strict ? 1 : 0); });

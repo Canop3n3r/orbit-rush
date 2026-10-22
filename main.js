@@ -1,62 +1,62 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.6l';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.6m';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.6l';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.6l';
-import * as C from './physics/patched.js?v=f5.6l';
+import * as P from './physics.js?v=f5.6m';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.6m';
+import * as C from './physics/patched.js?v=f5.6m';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.6l';
-import { createCareerUI } from './fun/career-ui.js?v=f5.6l';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.6l';
-import { createSolarMap } from './solarmap.js?v=f5.6l';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.6l';
-import { FX } from './fx.js?v=f5.6l';
-import { createAcademy } from './academy-ui.js?v=f5.6l';
-import { createMobile, isTouch } from './mobile.js?v=f5.6l';
-import { localize } from './wording.js?v=f5.6l';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.6l';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.6l';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.6m';
+import { createCareerUI } from './fun/career-ui.js?v=f5.6m';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.6m';
+import { createSolarMap } from './solarmap.js?v=f5.6m';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.6m';
+import { FX } from './fx.js?v=f5.6m';
+import { createAcademy } from './academy-ui.js?v=f5.6m';
+import { createMobile, isTouch } from './mobile.js?v=f5.6m';
+import { localize } from './wording.js?v=f5.6m';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.6m';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.6m';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.6l';
-import { halfPose, buildHalves } from './fun/fairing.js?v=f5.6l';
-import { guardToasts } from './fun/toastzone.js?v=f5.6l';
-import * as GX from './gfx/gfx.js?v=f5.6l';
-import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.6l';
-import * as PR from './fun/progress.js?v=f5.6l';
-import * as WORLD from './fun/world.js?v=f5.6l';
-import { stageEngines, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.6l';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.6l';
-import { createAudio } from './fun/audio.js?v=f5.6l';
-import { createCompact } from './fun/compact.js?v=f5.6l';
-import { attachNavStick } from './fun/navstick.js?v=f5.6l';
-import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.6l';
-import { createHome } from './fun/home.js?v=f5.6l';
-import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6l';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.6l';
-import { createFunUI } from './fun/ui.js?v=f5.6l';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.6l';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.6l';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.6l';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.6l';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.6l';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.6l';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.6l';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.6m';
+import { halfPose, buildHalves } from './fun/fairing.js?v=f5.6m';
+import { guardToasts } from './fun/toastzone.js?v=f5.6m';
+import * as GX from './gfx/gfx.js?v=f5.6m';
+import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.6m';
+import * as PR from './fun/progress.js?v=f5.6m';
+import * as WORLD from './fun/world.js?v=f5.6m';
+import { stageEngines, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.6m';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.6m';
+import { createAudio } from './fun/audio.js?v=f5.6m';
+import { createCompact } from './fun/compact.js?v=f5.6m';
+import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.6m';
+import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.6m';
+import { createHome } from './fun/home.js?v=f5.6m';
+import { SHOWROOM, MODEL_OF, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6m';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.6m';
+import { createFunUI } from './fun/ui.js?v=f5.6m';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.6m';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.6m';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.6m';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.6m';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.6m';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.6m';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.6m';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.6l';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.6l';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.6l';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.6l';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.6m';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.6m';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.6m';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.6m';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -300,7 +300,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.6l').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.6m').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -788,7 +788,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.6l', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.6m', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -1289,6 +1289,7 @@ function readControls(rdt) {
   if (keys.ShiftLeft || keys.ShiftRight || keys.ArrowUp) v.ut = Math.min(1, v.ut + rdt * 0.8);
   if (keys.ControlLeft || keys.ControlRight || keys.ArrowDown) v.ut = Math.max(0, v.ut - rdt * 0.8);
   v.input = v.clamped ? { pitch: 0, yaw: 0, roll: 0 } : inp; v.trans = tr;
+  if (v.holdAtt && v.tel && !v.clamped) { const lim = limitToPrograde(v.holdAtt.n, P.progradeOf(v), aoaLimit(v.tel.q || 0, QALPHA_MAX)); if (lim.limited) { v.holdAtt = { n: lim.n, t: v.holdAtt.t }; v.sasHold = lim.n; } } // f5.6h: the held target follows prograde while Q is high
 }
 
 // ---------- scenario starts (?scenario=moon|mars|solar, the smoke test and the SOI lesson) ----------
@@ -1562,7 +1563,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
     mobile.render({ alt: fmtD(P.altOf(v)), spd: fmtS(V.len(v.v)), ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
       mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : `${V.dot(v.v, V.norm(v.r)).toFixed(0)} m/s`,
       mqC: tel.q > 30000 || tel.heat > 3e5 ? 'warn' : '', fuel: fu, score: F.score().toLocaleString(), thr: mobile.thrDragging() ? (cv.ut ?? cv.throttle ?? 0) : (cv.throttle || cv.ut || 0),
-      auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME',
+      auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME', booster: !!(F.booster && F.booster.state === 'flying') || !!(booster2 && booster2.state === 'flying'),
       rcs: v.rcsOn, fx: fx.q.toUpperCase(), warp: `${isGPU ? 'WebGPU' : 'WebGL2'} · warp ×${F.effWarp()}`, sas: v.sas, stageReady: false });
     if (F.flags.dead && !mobile.buzzed) { mobile.buzzed = true; mobile.vibrate([120, 60, 220]); }
   }
@@ -1816,9 +1817,9 @@ renderer.setAnimationLoop(() => {
 const cam2 = new THREE.PerspectiveCamera(55, 1, 0.5, 2e9), SPLIT_KEY = 'orbitrush.split';
 const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: localStorage.getItem(SPLIT_KEY) !== '0', yaw: 1.35, pitch: 0.25, dist: 90, userT: -1e9, frame: 0 };
 { const d = document.createElement('div'); d.id = 'split'; d.className = 'hidden';
-  d.innerHTML = '<div id="spPane"><div class="spCard" id="spCardB"><canvas class="spBall" id="spBallB" width="64" height="64"></canvas><div id="spHud"></div></div><div class="spBtns"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div class="spBtns" id="spBtnsU"><button id="spFullU" title="Focus the upper stage">⤢</button></div><div class="spCard" id="spCardU"><canvas class="spBall" id="spBallU" width="64" height="64"></canvas><div id="spHud1"></div></div></div>';
+  d.innerHTML = '<div id="spPane"><div class="spCard spStrip" id="spCardB"><div class="spL" id="spHud"></div><canvas class="spBall" id="spBallB" width="96" height="96"></canvas><div class="spR" id="spHudR"></div></div><div class="spBtns"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div class="spBtns" id="spBtnsU"><button id="spCtlU" title="Switch control">⇄ CONTROL</button><button id="spFullU" title="Focus the upper stage">⤢</button><button id="spCloseU" title="Close the split view">✕</button></div><div class="spCard spStrip" id="spCardU"><div class="spL" id="spHud1"></div><canvas class="spBall" id="spBallU" width="96" height="96"></canvas><div class="spR" id="spHud1R"></div></div></div>';
   document.body.appendChild(d);
-  { const p2 = document.createElement('div'); p2.id = 'spPane2'; p2.className = 'hidden'; p2.innerHTML = '<div class="spCard" id="spCardB2"><canvas class="spBall" id="spBallB2" width="64" height="64"></canvas><div id="spHud2"></div></div>'; d.appendChild(p2); } // f4.2: booster B pane
+  { const p2 = document.createElement('div'); p2.id = 'spPane2'; p2.className = 'hidden'; p2.innerHTML = '<div class="spCard spStrip" id="spCardB2"><div class="spL" id="spHud2"></div><canvas class="spBall" id="spBallB2" width="96" height="96"></canvas><div class="spR" id="spHud2R"></div></div>'; d.appendChild(p2); } // f4.2: booster B pane
   $('spFull').onclick = e => { e.stopPropagation(); split.full = split.full === 'b' ? null : 'b'; camMode = split.full === 'b' ? 'booster' : 'chase'; if (split.full === 'b') camDist = 90; }; // f5.3: frame the whole booster
   // f4: the booster pane has its own camera: drag orbits, pinch / wheel zooms, a tap (no drag) toggles full screen
   const pp = $('spPane'), pts = new Map(); let moved = 0, pinch0 = 0, d0 = 90;
@@ -1835,11 +1836,12 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
   $('spFullU').onclick = e => { e.stopPropagation(); split.full = split.full === 'u' ? null : 'u'; camMode = 'chase'; }; // f5.3: focus the upper stage (keeps its own card)
   $('spCtl').onclick = e => { e.stopPropagation(); if (booster && booster.state === 'flying' && F.ship && booster.stages[0].fuel > 0) F.toggleBooster(); else toast('The booster is on autopilot', '#9cc3ff'); };
   $('spClose').onclick = e => { e.stopPropagation(); split.closed = true; };
+  $('spCloseU').onclick = $('spClose').onclick; $('spCtlU').onclick = $('spCtl').onclick; // f5.6h (QA P2): both halves carry the same buttons
 }
 const splitPortrait = () => innerHeight > innerWidth;
 const _html = {}; function setHTML(id, h) { if (_html[id] !== h) { _html[id] = h; const e = $(id); if (e) e.innerHTML = h; } }
 function placeTopStack(on) { // f4.1b: in split, toasts/hints (#topStack, compact #hintS) live in the upper pane, below its card and clear of the pane buttons
-  const por = splitPortrait(), land = on && camMode !== 'map', W = innerWidth, card = $('spCardU') || $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, pTop = innerHeight * (booster2 ? 1 / 3 : 0.5), top = cb ? (por ? (cb.bottom + 58 < pTop ? cb.bottom + 8 : Math.max(70, cb.top - 54)) : Math.max(cb.bottom + 10, 112)) : 0; // f4.2 portrait: under the upper card if it fits above the booster pane, else above the card
+  const por = splitPortrait(), land = on && camMode !== 'map', W = innerWidth, card = $('spCardU') || $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, pTop = innerHeight * (booster2 ? 1 / 3 : 0.5), top = cb ? (por ? 70 : 112) : 0; /* f5.6h: the cards moved to bottom strips */ // f4.2 portrait: under the upper card if it fits above the booster pane, else above the card
   for (const id of ['topStack', 'hintS']) { const ts = $(id); if (!ts) continue;
     if (!land) { if (ts.dataset.sp) { ts.style.removeProperty('left'); ts.style.removeProperty('top'); ts.style.removeProperty('max-width'); delete ts.dataset.sp; } continue; }
     ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * (por ? 0.5 : 0.25)) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(por ? W - 24 : W * 0.5 - 32) + 'px', 'important'); } }
@@ -1850,7 +1852,7 @@ function ctlTop() { const H = innerHeight; if (!TOUCH || !splitPortrait()) retur
   ctlTopC = { t: now, v: Math.max(H * 0.6, top - 6) }; return ctlTopC.v; }
 function paneRect(i = 0, nb = 1) { const W = innerWidth, H = innerHeight, Hc = ctlTop(); // f4.2: a heavy's two boosters: stacked on the right (landscape) or rows 2-3 (portrait)
   if (nb > 1) return splitPortrait() ? { x: 0, y: Hc / 3 * (i + 1), w: W, h: Hc / 3 } : { x: W * 0.5, y: H * 0.5 * i, w: W * 0.5, h: H * 0.5 };
-  return splitPortrait() ? { x: 0, y: H * 0.5, w: W, h: Hc - H * 0.5 } : { x: W * 0.5, y: 0, w: W * 0.5, h: H }; }
+  return splitPortrait() ? { x: 0, y: H * 0.5, w: W, h: H - H * 0.5, sh: Hc - H * 0.5 } : { x: W * 0.5, y: 0, w: W * 0.5, h: H }; } // f5.6h (QA P2): no dead strip under the panes; sh = where its bottom strip ends (above the thumb controls)
 function updateSplit(rdt) {
   const b = booster, flyA = b && b.state === 'flying' && b.mesh && b.mesh.visible !== false, flying = flyA || !!(booster2 && booster2.state === 'flying');
   if (flyA) { split.rec.push({ r: b.r.slice(), dir: b.dir.slice(), thr: b.thrust, n: b.n }); if (split.rec.length > 900) split.rec.shift(); split.done = 0; }
@@ -1860,6 +1862,7 @@ function updateSplit(rdt) {
     split.done += rdt;
   }
   document.body.classList.toggle('splitOn', !!want); placeTopStack(!!(want && split.full !== 'b')); { const nw = performance.now(); if (!(nw - (guardToasts.t || 0) < 150)) { guardToasts.t = nw; try { guardToasts(); } catch (e) { } } } // fx-1: the one toast line never covers a telemetry card // f5.3: focused halves keep the split HUD (own card, no shared strip)
+  if (want !== split.on && !want) for (const id of ['relBtn', 'gcamBtn']) { const el = $(id); if (el && el.dataset.spPin) { for (const k of ['top', 'bottom', 'left', 'right']) el.style.removeProperty(k); delete el.dataset.spPin; } } // f5.6h: unpin when the split closes
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want && camMode !== 'map') { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
   if (!split.on) return;
   const nb = 1, R2 = paneRect(0, nb), fb = split.full === 'b'; // f5.6e (QA): two panes max on every screen (Heavy's 2nd booster has no pane)
@@ -1870,13 +1873,13 @@ function updateSplit(rdt) {
   split.frame++; if (b) { // f4.1b: every frame (was every 6th — at low fps the cards lagged by seconds)
     const card = (b, label, hud, ball, rp) => { const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
       const bf = b.stages[0], bs = V.len(bva), bPh = rp ? '⟲ REPLAY' : b.state === 'landed' ? '✔ LANDED' : b.state !== 'flying' ? '✘ LOST' : b.manual ? '🎮 YOU' : 'AUTO · ' + apPill(b.phase);
-      setHTML(hud, `<div class="spT"><b>${label}</b><span class="pill ${/BURN|LANDING/.test(bPh) ? 'hot' : ''}">${bPh}</span></div><div class="spG"><span>SPD</span><b>${fmtMph(bs)}</b><span>ALT</span><b>${fmtHeight(bh)}</b><span>V/S</span><b>${fmtFps(vs)}</b><span>Δv</span><b>${craftDvOf(b, 0)}</b></div>`);
-      miniBall($(ball), b.dir, b.r, bva); };
+      spStrip(hud, label.replace(' · ', ' '), bPh.replace('AUTO · ', ''), /BURN|LANDING/.test(bPh), bs, bh, b, 0, false);
+      miniBall($(ball), b.dir, b.r, bva, b.holdDir && b.manual ? b.holdDir : null); };
     card(b, booster2 ? 'BOOSTER A · ' + (b.lzName || 'LZ-1') : 'BOOSTER', 'spHud', 'spBallB', !!split.replay); if (booster2) card(booster2, 'BOOSTER B · ' + (booster2.lzName || 'LZ-2'), 'spHud2', 'spBallB2', false);
     const uu = V.norm(v.r), uva = P.airVel(v, v.r, v.v), uvs = V.dot(v.v, uu), us = v.stages[v.cur], ufp = us && us.fuelMax ? Math.round(100 * us.fuel / us.fuelMax) : 0;
     const uPh = v.auto || F.autoOn ? 'AUTO · ' + ({ ascent: 'ASCENT', coast: 'COAST TO AP', circ: 'ORBIT INSERTION', done: 'IN ORBIT' }[v.guid] || 'ON') : F.flyingBooster() ? 'COASTING · NO PILOT' : '🎮 YOU'; // f5.6c: who is in control
-    setHTML('spHud1', `<div class="spT"><b>UPPER STAGE</b><span class="pill ${v.thrust > 0 ? 'hot' : ''}">${uPh}</span></div><div class="spG"><span>SPD</span><b>${fmtMph(P.altOf(v) > 80000 ? V.len(v.v) : V.len(uva))}</b><span>ALT</span><b>${fmtHeight(P.altOf(v))}</b><span>V/S</span><b>${fmtFps(uvs)}</b><span>Δv</span><b>${craftDvOf(v, v.cur)}</b></div>`);
-    miniBall($('spBallU'), P.noseOf(v), v.r, P.altOf(v) > 80000 ? v.v : uva);
+    spStrip('spHud1', 'UPPER', uPh.replace('AUTO · ', ''), v.thrust > 0, P.altOf(v) > 80000 ? V.len(v.v) : V.len(uva), P.altOf(v), v, v.cur, true);
+    miniBall($('spBallU'), P.noseOf(v), v.r, P.altOf(v) > 80000 ? v.v : uva, v.holdAtt && v.sas === 'stab' && !v.steerDir ? v.holdAtt.n : null);
   }
 }
 // f5.3 (Aaron): identical layout in every half: the card (navball + telemetry) sits at the pane's top-left under one
@@ -1886,23 +1889,30 @@ function upperRect(nb) { const W = innerWidth, H = innerHeight; if (split.full =
 const SP_INSET = 58;
 function placeIn(el, r, corner) { if (!el) return; const s = el.style, sat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0;
   s.setProperty('position', 'fixed', 'important'); s.setProperty('bottom', 'auto', 'important');
+  if (corner === 'strip') { s.setProperty('left', r.x + 'px', 'important'); s.setProperty('right', 'auto', 'important'); s.setProperty('width', r.w + 'px', 'important'); s.setProperty('top', 'auto', 'important'); s.setProperty('bottom', Math.round(innerHeight - r.y - (r.sh || r.h)) + 'px', 'important'); return; } // f5.6h: bottom strip spans its pane
   if (corner === 'card') { s.setProperty('left', (r.x + 10) + 'px', 'important'); s.setProperty('right', 'auto', 'important'); s.setProperty('top', (r.y + SP_INSET + (r.y < 1 && r.w < innerWidth - 2 ? 56 : 0) + (r.y < 1 ? sat : 0)) + 'px', 'important'); } // f5.6c: same spot in every half, under the top bar + pane buttons
-  else { const under = r.y < 1 && r.w < innerWidth - 2 ? 56 : 0; /* f5.6c: right-edge pane buttons sit under the top bar, never behind it */ s.setProperty('left', 'auto', 'important'); s.setProperty('right', (innerWidth - r.x - r.w + 10) + 'px', 'important'); s.setProperty('top', (r.y + 10 + under + (r.y < 1 ? sat : 0)) + 'px', 'important'); } }
+  else { const under = r.y < 1 ? 56 : 0; /* f5.6h: full-width panes too (portrait ⤢ sat under ☰) */ /* f5.6c: right-edge pane buttons sit under the top bar, never behind it */ s.setProperty('left', 'auto', 'important'); s.setProperty('right', (innerWidth - r.x - r.w + 10) + 'px', 'important'); s.setProperty('top', (r.y + 10 + under + (r.y < 1 ? sat : 0)) + 'px', 'important'); } }
 function layoutSplitCards(nb, fb) {
   const full = { x: 0, y: 0, w: innerWidth, h: innerHeight }, rb = fb ? full : paneRect(0, nb);
-  placeIn($('spCardU'), upperRect(nb), 'card'); placeIn($('spBtnsU'), upperRect(nb), 'btns');
-  placeIn($('spCardB'), rb, 'card'); const pb = document.querySelector('#spPane .spBtns'); placeIn(pb, rb, 'btns');
+  placeIn($('spCardU'), upperRect(nb), 'strip'); placeIn($('spBtnsU'), upperRect(nb), 'btns');
+  placeIn($('spCardB'), rb, 'strip'); const pb = document.querySelector('#spPane .spBtns'); placeIn(pb, rb, 'btns');
   if (fb && splitPortrait() && pb) { const cb = $('spCardB').getBoundingClientRect(); pb.style.setProperty('right', 'auto', 'important'); pb.style.setProperty('left', '10px', 'important'); pb.style.setProperty('top', Math.round(cb.bottom + 8) + 'px', 'important'); } // f5.3: focused on a phone, the pane buttons sit under the card, clear of the top bar's ☰
   // f5.3: in portrait split, RELEASE (worker A) and GROUND sit at the bottom of the upper half, clear of the booster pane and its card
-  const ur = upperRect(nb), pinBottom = (el, side) => { if (!el) return; const st = el.style; if (!(splitPortrait() && !fb && split.full !== 'u')) { if (el.dataset.spPin) { for (const k of ['top', 'bottom', 'left', 'right']) st.removeProperty(k); delete el.dataset.spPin; } return; }
-    el.dataset.spPin = '1'; st.setProperty('top', Math.round(ur.y + ur.h - el.offsetHeight - 10) + 'px', 'important'); st.setProperty('bottom', 'auto', 'important');
-    st.setProperty(side, '10px', 'important'); st.setProperty(side === 'left' ? 'right' : 'left', 'auto', 'important'); };
+  const ur = upperRect(nb), pinBottom = (el, side) => { if (!el) return; const st = el.style; if (!(!fb && split.full !== 'u')) { /* f5.6h (QA P2): landscape too: RELEASE / GROUND belong to the upper pane */ if (el.dataset.spPin) { for (const k of ['top', 'bottom', 'left', 'right']) st.removeProperty(k); delete el.dataset.spPin; } return; }
+    el.dataset.spPin = '1'; st.setProperty('top', Math.round(ur.y + ur.h - el.offsetHeight - 10 - (($('spCardU') || {}).offsetHeight || 0)) + 'px', 'important'); /* f5.6h: above the upper strip */ st.setProperty('bottom', 'auto', 'important');
+    st.setProperty(side, (side === 'left' ? ur.x + 10 : innerWidth - ur.x - ur.w + 10) + 'px', 'important'); st.setProperty(side === 'left' ? 'right' : 'left', 'auto', 'important'); };
   pinBottom($('relBtn'), 'left'); pinBottom($('gcamBtn'), 'right');
-  if (nb > 1) placeIn($('spCardB2'), paneRect(1, nb), 'card');
+  if (nb > 1) placeIn($('spCardB2'), paneRect(1, nb), 'strip');
 }
+// f5.6h (Aaron): each split half gets the same bottom strip: a simple navball centered, mph + altitude on its left,
+// Ap / Pe with their T-times and Δv (ft/s) on its right. Nothing sits in the middle of a pane, so the craft stays clear.
+function spStrip(id, label, ph, hot, mps, alt, c, cur, upper) { let o = null, tAp = NaN, tPe = NaN; try { o = P.orbitOf(c); tAp = P.timeToApV(c); tPe = C.timeToPe(c.r, c.v, P.muOf(c)); } catch (e) { }
+  const pad = upper && (v.clamped || !F.ignited), ap = o ? apsisLine('ap', o, tAp, SIM_SPEED, pad) : { lab: 'Ap', h: '—', t: '' }, pe = o ? apsisLine('pe', o, tPe, SIM_SPEED, pad) : { lab: 'Pe', h: '—', t: '' };
+  setHTML(id, `<div class="spT"><b>${label}</b><span class="pill ${hot ? 'hot' : ''}">${ph}</span></div><div><b>${fmtMph(mps)}</b></div><div><span>ALT</span> <b>${fmtHeight(alt)}</b></div>`);
+  setHTML(id + 'R', `<div><span>Ap</span> <b>${ap.h}</b> <i>${ap.t}</i></div><div><span>Pe</span> <b>${pe.h}</b> <i>${pe.t}</i></div><div><span>Δv</span> <b>${craftDvOf(c, cur)}</b></div>`); }
 const apPill = ph => { const p = (ph || '').toLowerCase(); return /boost/.test(p) ? 'BOOSTBACK' : /entry/.test(p) ? 'ENTRY BURN' : /landing|controlled/.test(p) ? 'LANDING BURN' : /glide|fin/.test(p) ? 'GRID-FIN GLIDE' : /touch/.test(p) ? 'TOUCHDOWN' : /coast/.test(p) ? 'COAST' : (ph || 'AUTO').toUpperCase(); };
 // f4 mini navball: sky/ground split by the nose pitch, roll-free; prograde marker from the velocity
-function miniBall(cv, dir, r, vel) {
+function miniBall(cv, dir, r, vel, ghost = null) {
   if (!cv) return; const c = cv.getContext('2d'), W = cv.width, H = cv.height, R0 = W / 2 - 2, up = V.norm(r), e = P.eastOf(r), n = V.cross(up, e);
   const pit = Math.asin(Math.max(-1, Math.min(1, V.dot(dir, up)))), hy = Math.max(-1, Math.min(1, pit / (Math.PI / 2))) * R0; // f4.1: nose up = horizon drops = more sky (local horizon from r)
   c.clearRect(0, 0, W, H); c.save(); c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.clip();
@@ -1911,6 +1921,8 @@ function miniBall(cv, dir, r, vel) {
   const sp = V.len(vel); if (sp > 5) { const vd = V.scale(vel, 1 / sp), vp = Math.asin(Math.max(-1, Math.min(1, V.dot(vd, up)))), hd = Math.atan2(V.dot(vd, e), V.dot(vd, n)), nd = Math.atan2(V.dot(dir, e), V.dot(dir, n));
     const px = W / 2 + Math.max(-1, Math.min(1, (hd - nd) / 1.2)) * R0 * 0.8, py = H / 2 + (pit - vp) / (Math.PI / 2) * R0;
     c.strokeStyle = '#ffe14d'; c.lineWidth = 2; c.beginPath(); c.arc(px, py, 5, 0, 7); c.stroke(); }
+  if (ghost && Math.acos(Math.max(-1, Math.min(1, V.dot(ghost, dir)))) > 0.017) { const gp = Math.asin(Math.max(-1, Math.min(1, V.dot(ghost, up)))), gh = Math.atan2(V.dot(ghost, e), V.dot(ghost, n)), nd = Math.atan2(V.dot(dir, e), V.dot(dir, n)); let dh = gh - nd; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; // f5.6h: ghost of the trackball target
+    const gx = W / 2 + Math.max(-1, Math.min(1, dh / 1.2)) * R0 * 0.8, gy = H / 2 - Math.max(-1, Math.min(1, (gp - pit) / (Math.PI / 2))) * R0; c.setLineDash([4, 3]); c.strokeStyle = '#ffffffe0'; c.lineWidth = 2; c.beginPath(); c.moveTo(gx - 12, gy); c.lineTo(gx - 4, gy); c.moveTo(gx + 4, gy); c.lineTo(gx + 12, gy); c.stroke(); c.beginPath(); c.arc(gx, gy, 4, 0, 7); c.stroke(); c.setLineDash([]); }
   c.restore(); c.strokeStyle = '#ffd23a'; c.lineWidth = 2; c.beginPath(); c.moveTo(W / 2 - 12, H / 2); c.lineTo(W / 2 - 4, H / 2); c.moveTo(W / 2 + 4, H / 2); c.lineTo(W / 2 + 12, H / 2); c.stroke();
   c.strokeStyle = '#9cc3ff88'; c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.stroke();
 }
@@ -2064,7 +2076,7 @@ fun = createFunUI({
   tunnelGeom: mach => { const ab = aeroBalance(design, mach); if (!ab) return null; const vv = buildVehicle(design), g = P.stackGeom(vv); const COL = { engine: '#ff9a3c', tank: '#e8e8e8', pod: '#9cc3ff', payload: '#e0b84a', fins: '#555', decoupler: '#333', fairing: '#f4f4f4', shield: '#7a4a2a', chute: '#ff7a3c', rcs: '#8a9099' };
     return { parts: g.list.map(e => ({ y: e.y, h: e.h, d: e.kind === 'fins' ? (e.d || 2) * 1.8 : e.d, col: COL[e.kind] || '#ccc' })), L: g.L, ycom: ab.ycom, ycp: ab.ycp, stable: ab.stable, margin: ab.margin }; },
 });
-const cx = createCompact({ touch: TOUCH, onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on), onEngTap: () => { mobile.sheet = !document.body.classList.contains('sheet'); document.body.classList.toggle('sheet', mobile.sheet); } });
+const cx = createCompact({ touch: TOUCH, press: k => press(k), menuState: () => ({ booster: !!(F && F.booster && F.booster.state === 'flying'), ret: !!(F && F.ret) }), onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on), onEngTap: () => { mobile.sheet = !document.body.classList.contains('sheet'); document.body.classList.toggle('sheet', mobile.sheet); } });
 { const dm = document.getElementById('dMap'); if (dm) dm.onclick = e => { e.currentTarget.blur(); press('KeyM'); }; }
 { // top-centre stack: callout, hint, toasts never overlap each other
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
@@ -2285,10 +2297,21 @@ function stripTick() {
   cx.update({ pe, fuel, stg, alt: fmtKm(P.altOf(v)), spd: sp < 1e5 ? Math.round(sp).toLocaleString() : (sp / 1000).toFixed(0) + 'k', spdL: lab, evL, ev, hint: $('hint').style.display === 'none' ? '' : $('hint').textContent });
   cx.updateEng(engCells());
 }
-attachNavStick($('navBall'), mobile.input, { knob: $('nbKnob') }); { const wantB = on => { try { if (!F || !booster || booster.state !== 'flying') return; if (!!booster.manual !== on && (on ? booster.stages[0].fuel > 0 : true)) F.toggleBooster(); } catch (e) { } }; // f5.6g: each pane's ball steers THAT pane's craft
-  if ($('spBallU')) attachNavStick($('spBallU'), mobile.input, { onGrab: () => wantB(false) });
-  for (const id of ['spBallB', 'spBallB2']) if ($(id)) attachNavStick($(id), mobile.input, { onGrab: () => wantB(true) }); } // f5.6c: each split half's ball steers that half's craft // f5.5d (Aaron): the navball is the joystick
-const fmtMph = m => Math.round(m * MPH).toLocaleString('en-US') + ' mph', fmtFps = m => (m >= 0 ? '+' : '−') + Math.round(Math.abs(m) / 0.3048).toLocaleString('en-US') + ' ft/s', fmtDv = m => Math.round(m).toLocaleString('en-US') + ' m/s'; // f5.6c: split cards in the same imperial units as the main card (Δv stays m/s, like the main card)
+{ const wantB = on => { try { if (!F || !booster || booster.state !== 'flying') return; if (!!booster.manual !== on && (on ? booster.stages[0].fuel > 0 : true)) F.toggleBooster(); } catch (e) { } }; // f5.6g: each pane's ball steers THAT pane's craft
+  // f5.6h (Aaron): trackball navball. The ball turns under the finger; the attitude it puts at center is a target that SAS holds
+  const upCur = () => F && v ? { n: P.noseOf(v), t: V.qrot(v.q, [0, 0, -1]) } : null;
+  const upHold = G => { if (!F || !v || v.clamped || F.flags.dead || (P.altOf(v) < 60 && V.len(P.airVel(v)) < 5)) return; // sitting on the pad: nothing to steer if (director && director.active) director.takeOver(); if (v.auto) F.takeOverUpper(); if (F.ret && F.ret.auto) F.setAuto(false);
+    if (F.autoOn) { F.setAuto(false, true); $('tProg').classList.remove('on'); } const q = (v.tel && v.tel.q) || 0, lim = limitToPrograde(G.n, P.progradeOf(v), aoaLimit(q, QALPHA_MAX)); // f5.6h (QA P1): stay near prograde at high Q
+    if (lim.limited) { G = frameOf(lim.n, G.t); if (performance.now() - (upHold.w || 0) > 2500) { upHold.w = performance.now(); toast(`⚠ High Q (${(q / 1000).toFixed(0)} kPa): steering held within ${Math.round(aoaLimit(q, QALPHA_MAX) * 57.3)}° of prograde`, '#ffcf4a'); } }
+    if (v.sas !== 'stab') F.setSAS('stab'); v.sasHold = G.n.slice(); v.holdAtt = { n: G.n.slice(), t: G.t.slice() }; };
+  const bFrame = (b, d) => { if (!b || !d) return null; const up = V.norm(b.r), k = V.dot(up, d); let t = V.sub(up, V.scale(d, k)); if (V.len(t) < 1e-3) t = P.eastOf(b.r); return { n: d, t: V.norm(t) }; }; // roll-free, like the mini ball
+  const ballFor = (el, getB) => el && attachNavStick(el, { roll: false, mirrorX: true, onGrab: () => { const b = getB(); if (b && !b.manual) b.holdDir = null; wantB(true); }, cur: () => { const b = getB(); return b ? bFrame(b, b.dir) : null; }, target: () => { const b = getB(); return b && b.holdDir ? bFrame(b, b.holdDir) : null; },
+    onTarget: G => { const b = getB(); if (b && b.state === 'flying' && b.manual) { b.holdDir = G.n.slice(); b.retro = false; } } });
+  attachNavStick($('navBall'), { cur: upCur, target: () => v && v.holdAtt, onTarget: upHold, onGrab: () => { wantB(false); if (!localStorage.getItem('or_tbHint')) { try { localStorage.setItem('or_tbHint', '1'); } catch (e) { } toast('Turn the ball: drag the horizon down = nose up · twist = roll', '#9cc3ff'); } } });
+  if ($('spBallU')) attachNavStick($('spBallU'), { roll: false, mirrorX: true, onGrab: () => wantB(false), cur: () => v ? bFrame(v, P.noseOf(v)) : null, target: () => v && v.holdAtt ? bFrame(v, v.holdAtt.n) : null, // the mini ball is roll-free: keep the current roll
+    onTarget: G => { const t = V.qrot(v.q, [0, 0, -1]), k = V.dot(t, G.n), tt = V.sub(t, V.scale(G.n, k)); upHold({ n: G.n, t: V.len(tt) > 1e-3 ? V.norm(tt) : (v.holdAtt ? v.holdAtt.t : t) }); } });
+  ballFor($('spBallB'), () => booster); ballFor($('spBallB2'), () => booster2); }
+const fmtMph = m => Math.round(m * MPH).toLocaleString('en-US') + ' mph', fmtFps = m => (m >= 0 ? '+' : '−') + Math.round(Math.abs(m) / 0.3048).toLocaleString('en-US') + ' ft/s', fmtDv = m => Math.round(m / 0.3048).toLocaleString('en-US') + ' ft/s'; // f5.6h (Aaron): Δv in ft/s on the split strips // f5.6c: split cards in the same imperial units as the main card (Δv stays m/s, like the main card)
 const craftDvOf = (c, cur) => { try { const d = stageDvs(c.stages, cur, P.massOf(c)).reduce((a, x) => a + x.dv, 0); return isFinite(d) ? fmtDv(d) : '—'; } catch (e) { return '—'; } };
 const plain = createPlainHud();
 const dCtl = (() => { if (TOUCH) return null; const d = document.createElement('div'); d.id = 'dCtl'; d.className = 'hidden'; // f5.6d (QA P0 #2): desktop on-screen controls with key caps
@@ -2296,7 +2319,7 @@ const dCtl = (() => { if (TOUCH) return null; const d = document.createElement('
   document.body.appendChild(d); const tap = (id, k) => { $(id).onclick = e => { e.currentTarget.blur(); press(k); }; }; tap('dAbort', 'Backspace'); tap('dAuto', 'KeyF'); tap('dStage', 'Space');
   $('dThr').onpointerdown = e => { const r = e.currentTarget.getBoundingClientRect(), set = y => setThrottleTouch(Math.max(0, Math.min(1, 1 - (y - r.top) / r.height))); set(e.clientY); const mv = ev => set(ev.clientY), up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); };
   return d; })();
-function dCtlTick() { if (!dCtl) return; const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); dCtl.classList.toggle('hidden', !on); if (!on) return;
+function dCtlTick() { if (!dCtl) return; const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); dCtl.classList.toggle('hidden', !on); if (!on) { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); return; } // f5.6h (QA): the ☰ never stays open over the end card
   const t = Math.round(100 * (v.throttle || 0)); $('dThr').querySelector('i').style.height = t + '%'; $('dThr').querySelector('u').textContent = t + '%'; $('dAuto').classList.toggle('on', !!F.autoOn); } // f5.5c (Aaron): plain telemetry: mph, Ap/Pe with T−/+, Δv per stage
 function plainTick() {
   const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden');
@@ -2304,6 +2327,8 @@ function plainTick() {
   const h = P.altOf(v), onPad = v.clamped || !F.ignited, o = P.orbitOf(v);
   let tAp = NaN, tPe = NaN; if (!onPad) { try { tAp = P.timeToApV(v); tPe = C.timeToPe(v.r, v.v, P.muOf(v)); } catch (e) { } }
   const mps = P.altOf(v) < 40000 ? V.len(P.airVel(v, v.r, v.v)) : V.len(v.v); // f5.6e (QA F2): own live source; the navball readout pauses in portrait split
+  { const nv = $('nav'), mr = $('mright'), por = TOUCH && innerHeight > innerWidth && !split.on; if (nv) { if (por && mr && mr.offsetHeight) { const r = mr.getBoundingClientRect(), w = nv.offsetWidth || 130; nv.style.setProperty('left', Math.round(innerWidth - 8 - w / 2) + 'px', 'important'); nv.style.setProperty('bottom', Math.round(innerHeight - r.top + 6) + 'px', 'important'); nv.dataset.pp = '1'; }
+    else if (nv.dataset.pp) { nv.style.removeProperty('left'); nv.style.removeProperty('bottom'); delete nv.dataset.pp; } } } // f5.6h (QA F3/P1): phone portrait navball sits above the thumb cluster, never under the telemetry card
   let land = null; try { if (F.ignited && F._alt0 == null) F._alt0 = h - v.tel.ycom; if (!onPad && !F.flags.landed && F._alt0 != null) { const up = V.norm(v.r), vs = V.dot(P.airVel(v), up), r = V.len(v.r), g = P.muOf(v) / (r * r), aMax = v.stages[v.cur] && v.stages[v.cur].fuel > 0 ? P.maxThrust(v, P.atmosphere(Math.max(0, h)).p) / (P.massOf(v) * 1000) : 0; land = landAid(h - v.tel.ycom - (F.body === F.homeBody || !F.homeBody ? F._alt0 : 0), vs, aMax, g); } } catch (e) { } // fx-2: manual landing aid
   plain.update({ on, mps, alt: h, ap: apsisLine('ap', o, tAp, SIM_SPEED, onPad), pe: apsisLine('pe', o, tPe, SIM_SPEED, onPad), dv: stageDvs(v.stages, v.cur, P.massOf(v)), land });
 }
@@ -2324,7 +2349,7 @@ function navTick() {
   let cue = '', cueWarn = false; const lc = F.landCue, b = F.booster;
   if (F.flyingBooster() && b && isFinite(b.burnIn)) { cue = b.burnIn > 0.5 ? `🔥 Landing burn in T−${b.burnIn.toFixed(1)} s` : b.landing ? 'LANDING BURN' : ''; cueWarn = !!b.lowTWR; }
   else if (lc && !F.flags.landed && P.altOf(v) < 150000 && V.dot(vs, up) < 0) { cue = lc.noLand ? '⚠ TWR too low to land' : lc.burnIn > 0.5 && lc.burnIn < 600 ? `🔥 Burn in T−${lc.burnIn.toFixed(1)} s${lc.lowTWR ? ' · low TWR' : ''}` : lc.burnIn <= 0.5 ? 'HOVERSLAM' : ''; cueWarn = lc.lowTWR || lc.noLand; }
-  fun.renderNav({ inc: (() => { if (!F.ignited || v.clamped) return NaN; const o = P.orbitOf(v); return isFinite(o.inc) ? o.inc * DEG : NaN; })(), alt: P.altOf(v), nose, top, r: v.r, vSurf: vs, vOrb: vo, vTgt, markers: m, throttle: v.throttle || 0, fuel, stage: v.cur + 1, sas: v.sas, cue, cueWarn, hasTarget: !!navTgt, hasNode: !!F.nodes.length });
+  fun.renderNav({ inc: (() => { if (!F.ignited || v.clamped) return NaN; const o = P.orbitOf(v); return isFinite(o.inc) ? o.inc * DEG : NaN; })(), alt: P.altOf(v), nose, top, r: v.r, vSurf: vs, vOrb: vo, vTgt, markers: m, throttle: v.throttle || 0, fuel, stage: v.cur + 1, sas: v.sas, cue, cueWarn, hasTarget: !!navTgt, hasNode: !!F.nodes.length, ghost: v.holdAtt && v.sas === 'stab' && !v.steerDir ? v.holdAtt : null });
 }
 let funT2 = 0, lastO2 = null;
 function replayStep(rdt) { // instant replay of the last seconds before the explosion, slowed down, orbiting camera
