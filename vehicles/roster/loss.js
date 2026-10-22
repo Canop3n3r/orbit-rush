@@ -114,6 +114,7 @@ export function best(v, E, orbit, v0, drag) {
 }
 export function modelPayload(v, E, mode, opt = {}) {
   if (mode.stagesUsed) v = { ...v, stages: v.stages.slice(0, mode.stagesUsed) }; // reference figure for the lower stages only
+  if (mode.reserve) v = { ...v, stages: v.stages.map((s, i) => { const r = mode.reserve[i] || 0; return r ? { ...s, dry: s.dry + r, prop: s.prop - r, burn: s.burn * (s.prop - r) / s.prop } : s; }) }; // recovery reserve: kept unburned, flown as dead mass to staging
   const uns = [...new Set(v.stages.flatMap(s => Object.keys(s.engines).filter(k => E[k].unsourced)))]; // no invented Isp: unmodelled
   if (uns.length) return { payload: NaN, unsourced: uns };
   const { hp, ha, inc } = mode.orbit, vt = vPerigee(hp, ha), v0 = VEQ * Math.cos(inc * Math.PI / 180);
