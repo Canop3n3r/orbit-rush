@@ -58,10 +58,11 @@ export const flowStreaks = (q, M, alt = 0) => smooth(300, 9000, q) * smooth(0.8,
 // ("jellyfish") that is huge and faint in vacuum. vac is 0 at sea level, 1 in vacuum (non-increasing in pa).
 export function plumeLook(pa, throttle = 1) {
   const sh = plumeShape(pa, throttle), vac = 1 - smooth(600, 40000, pa), t = clamp01(throttle);
-  const len = (10 + 14 * t) * (1 + 0.4 * vac);               // column length (× nozzle radius)
-  const coreW = 0.9 + 0.5 * vac, glowW = 1.6 + 0.9 * vac;    // inner core / outer glow widths
-  const bellW = 1 + (Math.min(3.5, sh.width) - 1) * 0.85 * smooth(0.05, 0.6, vac); // expanded bell rim
-  return { len, coreW, glowW, bellW, bell: smooth(0.05, 0.5, vac) * (0.2 + 0.4 * t), vac, diamonds: sh.diamonds, bright: 0.55 + 0.45 * t, smoke: clamp01(pa / 101325) };
+  const len = (10 + 14 * t) * (1 - 0.3 * vac); // fx-5 (QA f5.6w): in thin air the jet gets shorter and fuller, not a thin needle               // column length (× nozzle radius)
+  const coreW = 0.9 + 0.8 * vac, glowW = 1.6 + 0.4 * vac; // fx-5 (QA f5.6w): narrower vacuum glow (the maroon fan)    // inner core / outer glow widths
+  const bellW = 1 + (Math.min(2.4, sh.width) - 1) * 0.85 * smooth(0.05, 0.6, vac); // expanded bell rim
+  return { len, coreW, glowW, bellW, bell: smooth(0.05, 0.5, vac) * (0.08 + 0.17 * t), // fx-5: a faint bell, not a translucent fan/cone wider than the stage
+    vac, diamonds: sh.diamonds, bright: 0.55 + 0.45 * t, smoke: clamp01(pa / 101325) };
 }
 // Effects quality presets (fx.js): particle counts and which layers draw.
 export const QUALITY = {
@@ -102,5 +103,5 @@ export function fillLight(day, k, sunK, phone = false) {
 }
 
 // fx-4: plume shells fade by |n·v|^k at their silhouettes (fun/plumemat.js runs this on the GPU)
-export const SOFT_K = { glow: 2.2, plume: 1.4, bell: 2.6 };
+export const SOFT_K = { glow: 2.2, plume: 1.4, bell: 2.6, core: 0.8 };
 export const edgeFade = (nDotV, k) => Math.pow(Math.min(1, Math.abs(nDotV)), k);
