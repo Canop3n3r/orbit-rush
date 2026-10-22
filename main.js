@@ -1,62 +1,62 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.6p';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.6q';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.6p';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.6p';
-import * as C from './physics/patched.js?v=f5.6p';
+import * as P from './physics.js?v=f5.6q';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.6q';
+import * as C from './physics/patched.js?v=f5.6q';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.6p';
-import { createCareerUI } from './fun/career-ui.js?v=f5.6p';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.6p';
-import { createSolarMap } from './solarmap.js?v=f5.6p';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.6p';
-import { FX } from './fx.js?v=f5.6p';
-import { createAcademy } from './academy-ui.js?v=f5.6p';
-import { createMobile, isTouch } from './mobile.js?v=f5.6p';
-import { localize } from './wording.js?v=f5.6p';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.6p';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.6p';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.6q';
+import { createCareerUI } from './fun/career-ui.js?v=f5.6q';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.6q';
+import { createSolarMap } from './solarmap.js?v=f5.6q';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.6q';
+import { FX } from './fx.js?v=f5.6q';
+import { createAcademy } from './academy-ui.js?v=f5.6q';
+import { createMobile, isTouch } from './mobile.js?v=f5.6q';
+import { localize } from './wording.js?v=f5.6q';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.6q';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.6q';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units);
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.6p';
-import { halfPose, buildHalves } from './fun/fairing.js?v=f5.6p';
-import { guardToasts } from './fun/toastzone.js?v=f5.6p';
-import * as GX from './gfx/gfx.js?v=f5.6p';
-import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.6p';
-import * as PR from './fun/progress.js?v=f5.6p';
-import * as WORLD from './fun/world.js?v=f5.6p';
-import { stageEngines, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.6p';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.6p';
-import { createAudio } from './fun/audio.js?v=f5.6p';
-import { createCompact } from './fun/compact.js?v=f5.6p';
-import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.6p';
-import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.6p';
-import { createHome } from './fun/home.js?v=f5.6p';
-import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6p';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.6p';
-import { createFunUI } from './fun/ui.js?v=f5.6p';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.6p';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.6p';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.6p';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.6p';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.6p';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.6p';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.6p';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.6q';
+import { halfPose, buildHalves } from './fun/fairing.js?v=f5.6q';
+import { guardToasts } from './fun/toastzone.js?v=f5.6q';
+import * as GX from './gfx/gfx.js?v=f5.6q';
+import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.6q';
+import * as PR from './fun/progress.js?v=f5.6q';
+import * as WORLD from './fun/world.js?v=f5.6q';
+import { stageEngines, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.6q';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.6q';
+import { createAudio } from './fun/audio.js?v=f5.6q';
+import { createCompact } from './fun/compact.js?v=f5.6q';
+import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.6q';
+import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.6q';
+import { createHome } from './fun/home.js?v=f5.6q';
+import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.6q';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.6q';
+import { createFunUI } from './fun/ui.js?v=f5.6q';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.6q';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.6q';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.6q';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.6q';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.6q';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.6q';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker } from './fun/picker.js?v=f5.6q';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.6p';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.6p';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.6p';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.6p';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.6q';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.6q';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.6q';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.6q';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -300,7 +300,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.6p').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.6q').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -788,7 +788,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.6p', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.6q', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -1332,14 +1332,26 @@ function explode(pos, vel, big, main) {
   for (let i = 0; i < nC; i++) { const c = chunks[chunkI++ % CHUNK_N], dv = [rnd(80), rnd(80), rnd(80)];
     c.r = pos.slice(); c.v = V.add(V.add(vel, dv), V.scale(up, 15 + Math.random() * 30)); c.life = 6 + Math.random() * 6; c.w = [rnd(12), rnd(12), rnd(12)]; c.m.visible = true; c.m.scale.setScalar(0.6 + Math.random() * 1.6); c.smk = Math.random() < 0.5; }
   if (big) for (let k = 1; k <= 3; k++) later(() => { const p2 = V.add(pos, [rnd(30), rnd(30), rnd(30)]); flashAt(p2, 30, [8, 5, 2], 0.3); for (let i = 0; i < 30; i++) fire.spawn(p2, jit(vel, 40), 0.4 + Math.random() * 0.6, 2, 8, 0xffd080, 0x401000, 1.5); funAudio.boom(false, dist + 800); }, 250 * k + Math.random() * 200);
+  { const hG = V.len(pos) - P.BODIES[F.body].R; if (hG < 300) { // fx-3: ground impact: dirt column, dust skirt, a lingering black smoke pillar
+    const w = F.body === 'earth' ? siteVel({ r: pos }) : [0, 0, 0], e = P.eastOf(pos), n = V.cross(up, e), K = TOUCH ? 0.6 : 1;
+    for (let i = 0; i < 40 * K; i++) { const a = Math.random() * 6.283, d = V.add(V.scale(e, Math.cos(a)), V.scale(n, Math.sin(a))); smoke.spawn(V.addS(pos, d, 4), V.add(w, V.add(V.scale(d, 25 + Math.random() * 35), V.scale(up, 2 + Math.random() * 6))), 5 + Math.random() * 4, 8, 22 + Math.random() * 14, 0x8a7458, 0x6b5a46, 0.4); }
+    for (let i = 0; i < 30 * K; i++) smoke.spawn(V.add(pos, [rnd(6), rnd(6), rnd(6)]), V.add(w, V.add(V.scale(up, 30 + Math.random() * 50), [rnd(10), rnd(10), rnd(10)])), 3 + Math.random() * 3, 6, 18, 0x6e5a42, null, 0.7);
+    for (let k = 0; k < 6; k++) later(() => { for (let i = 0; i < 6 * K; i++) smoke.spawn(V.add(pos, [rnd(5), rnd(5), rnd(5)]), V.add(w, V.add(V.scale(up, 12 + Math.random() * 10), [rnd(3), rnd(3), rnd(3)])), 8 + Math.random() * 6, 10, 40, 0x1c1c1c, 0x3a3a3a, 0.5); for (let i = 0; i < 6; i++) fire.spawn(pos, V.add(w, V.add(V.scale(up, 8 + Math.random() * 10), [rnd(6), rnd(6), rnd(6)])), 0.6 + Math.random() * 0.8, 3, 8, 0xffb060, 0x401000, 1.4); }, 600 * k + 400);
+    scorchAt(pos, big ? 34 : 20); } }
   shake(Math.min(2.5, (big ? 3 : 1.5) * 120 / Math.max(60, dist)), big ? 1.6 : 0.8);
   if (main) fun.call('💥', 'UNPLANNED DISASSEMBLY', '#ff8a5c', true);
 }
+const scorchTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 6, 64, 64, 63); gr.addColorStop(0, 'rgba(10,8,6,0.95)'); gr.addColorStop(0.6, 'rgba(25,20,15,0.6)'); gr.addColorStop(1, 'rgba(30,25,20,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+let scorch = null; // fx-3: one blackened crater mark at the last ground impact
+function scorchAt(pos, size) { if (!scorch) { scorch = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: scorchTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 })); scorch.frustumCulled = false; scene.add(scorch); }
+  const up = V.norm(pos); scorch.userData.r = V.scale(up, P.BODIES[F.body].R + 0.4); scorch.scale.setScalar(size * 2); scorch.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(up[0], up[1], up[2])); scorch.visible = true; }
 function updateChunks(dt, O) {
+  if (scorch && scorch.visible) { if (F.body === 'earth') scorch.userData.r = V.addS(scorch.userData.r, siteVel({ r: scorch.userData.r }), dt); const r = scorch.userData.r; scorch.position.set(r[0] - O[0], r[1] - O[1], r[2] - O[2]); }
   for (const c of chunks) { if (c.life <= 0) { if (c.m.visible) c.m.visible = false; continue; }
     c.life -= dt; const r = V.len(c.r), g = -P.BODIES[F.body].mu / (r * r), up = V.scale(c.r, 1 / r), h = r - P.BODIES[F.body].R;
     c.v = V.add(c.v, V.scale(up, g * dt)); if (h < 40000) c.v = V.add(c.v, V.scale(V.sub(c.v, F.body === 'earth' ? siteVel({ r: c.r }) : [0, 0, 0]), -0.25 * dt));
-    c.r = V.add(c.r, V.scale(c.v, dt)); if (h < 0) { c.life = 0; continue; }
+    c.r = V.add(c.r, V.scale(c.v, dt)); if (h < 0) { const R0 = P.BODIES[F.body].R, gv = F.body === 'earth' ? siteVel({ r: c.r }) : [0, 0, 0], rv = V.sub(c.v, gv), vr = V.dot(rv, up); c.r = V.scale(up, R0 + 0.3); c.v = V.add(gv, V.scale(V.sub(rv, V.scale(up, vr * 1.4)), 0.45)); c.w = V.scale(c.w, 0.5); // fx-3: debris bounces and tumbles to rest (was: vanished at the ground)
+      if (-vr > 6 && Math.random() < 0.6) smoke.spawn(c.r, V.scale(up, 3), 2, 2, 7, 0x8a7458, null, 0.5); if (V.len(V.sub(c.v, gv)) < 2) { c.v = gv; c.w = [0, 0, 0]; } }
     c.m.position.set(c.r[0] - O[0], c.r[1] - O[1], c.r[2] - O[2]); c.m.rotation.x += c.w[0] * dt; c.m.rotation.y += c.w[1] * dt; c.m.rotation.z += c.w[2] * dt;
     if (c.smk && Math.random() < 0.5) smoke.spawn(c.r, c.v, 1.5, 1, 5, 0x333333, null, 1); }
 }
@@ -1370,8 +1382,9 @@ function showEnd() {
   for (const l of lines) (/class="(bad|warn)"|^<b class=/.test(l) && head.length < 3 ? head : rest).push(l);
   let stars = director && director.result && !director.ok ? 0 : { gold: 3, silver: 2, bronze: 1 }[out && out.medal] || (ok || (director && director.ok) ? 1 : 0); // a missed mission earns no stars
   if (!stars && design.sub && flags.space && !director) stars = 1; // f5.1h (QA): Pip's job is to touch space
+  const noStars = isHopper(design); if (noStars) stars = 0; // fx-3: hops are free flight, no star rating
   if (!stars) extra.medal = ''; // f5.1h (QA): the ⋯ sheet never shows a medal the card's stars do not
-  $('endBody').innerHTML = `<div class="endStars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<i>${'☆'.repeat(3 - stars)}</i></div>` + head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
+  $('endBody').innerHTML = (noStars ? '' : `<div class="endStars" aria-label="${stars} of 3 stars">${'★'.repeat(stars)}<i>${'☆'.repeat(3 - stars)}</i></div>`) + head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` + (extra.unlocks ? `<div class="endUnl">${extra.unlocks}</div>` : '')
     + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}${extra.more ? '<br>' + extra.more : ''}</details>`;
   if (out && out.ladder) { $('endBody').insertAdjacentHTML('afterbegin', careerUI.resultsHTML(out.ladder)); }
   { const rid = director && director.id && LADDER.some(c => c.id === director.id) ? director.id : null; let nb = $('nextMisBtn'); if (!nb) { nb = document.createElement('button'); nb.id = 'nextMisBtn'; nb.className = 'big'; $('relaunchBtn').after(nb); nb.onclick = () => { const n = nb.dataset.home ? null : careerUI.next(nb.dataset.after || null); $('end').classList.add('hidden'); if (n && !rungLocked(n)) playRung(n); else $('againBtn').click(); }; }
@@ -1380,7 +1393,7 @@ function showEnd() {
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
   $('shareBtn').textContent = 'Share score';
   // f5 lean end card (playtest ui_ideal_path #14 budget): ONE line + ↻ Retry + ▶ Next + ⋯; everything else lives in the ⋯ sheet
-  { const L = out && out.ladder, starTxt = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+  { const L = out && out.ladder, starTxt = noStars ? '' : '★'.repeat(stars) + '☆'.repeat(3 - stars);
     const what = design.sub && flags.space && !director ? 'Touched space ✓' : flags.dead ? 'Crashed' : F.released && F.released.saved && !director ? 'Delivered · ' + F.released.saved.name : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${Math.round(apKm)} km` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
     const earn = false && L && (L.cash || L.sci) ? ` <span class="eLine">+$${L.cash}M${L.sci ? ' 🔬' + L.sci : ''}</span>` : '';
     $('endTitle').innerHTML = `<span class="eStars">${starTxt}</span> ${what}${earn}`;

@@ -51,7 +51,8 @@ export function plumeShape(pa, throttle = 1, pe = 70000) {
 }
 // Airflow streak particles: visible in dense, fast air. Non-decreasing in q.
 // f1: nothing visible in plain subsonic flight (the Mach 0.5 "specks"); streaks start with compressibility (~Mach 0.85).
-export const flowStreaks = (q, M) => smooth(300, 9000, q) * smooth(0.8, 1.0, M);
+// fx-3: and they fade out above ~28 km (the white streaks hung on to ~48 km in thin air)
+export const flowStreaks = (q, M, alt = 0) => smooth(300, 9000, q) * smooth(0.8, 1.0, M) * (1 - smooth(22000, 32000, alt));
 // f1 layered plume look vs ambient pressure pa (Pa) and throttle: lengths/widths in units of the nozzle radius.
 // Sea level: a tight, long, bright column with shock diamonds. As the air thins it opens into a wide bell
 // ("jellyfish") that is huge and faint in vacuum. vac is 0 at sea level, 1 in vacuum (non-increasing in pa).
@@ -74,7 +75,7 @@ export function fxState(tel) {
   if (!tel) return null;
   const M = tel.machShown === null || tel.machShown === undefined ? 0 : tel.mach, q = tel.q || 0;
   return {
-    flow: flowStreaks(q, M), vapor: vaporCone(M, q, tel.alt), shock: shockStrength(M, q), glow: compressionGlow(M, q),
+    flow: flowStreaks(q, M, tel.alt || 0), vapor: vaporCone(M, q, tel.alt), shock: shockStrength(M, q), glow: compressionGlow(M, q),
     machAngle: machAngle(M), plasma: plasmaIntensity(tel.heat || 0), plasmaColor: plasmaColor(tel.Tstag || 0),
     ablate: ablationRate(tel.ablating || 0, tel.heat || 0), plume: plumeShape(tel.p || 0, tel.thrust > 0 ? 1 : 0), M, q,
   };

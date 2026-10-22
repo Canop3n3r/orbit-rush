@@ -1007,3 +1007,6 @@ body.touch.autoOn:not(.splitOn):not(.mapOn) #nav{display:flex!important}body.tou
 /* f5.6o (QA): desktop has the THR bar in #dCtl, so the navball's arc readout goes; the renderer badge hides in flight (it sat under STAGE) */
 body:not(.touch) #nav #navThrT,body:not(.touch) #nav #navThr{display:none!important}
 body:has(#dCtl:not(.hidden)) #badge{display:none!important}
+
+/* fx-3: the landing aid replaces Ap/Pe + Δv rows so the speed card does not grow over the navball */
+body.plLandOn #apPe,body.plLandOn #dvStages{display:none}
