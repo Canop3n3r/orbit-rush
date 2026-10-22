@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.6i';
-import * as C from './physics/patched.js?v=f5.6i';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6i';
-import { designReusable } from './vehicles/reusable.js?v=f5.6i';
+import * as P from './physics.js?v=f5.6j';
+import * as C from './physics/patched.js?v=f5.6j';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6j';
+import { designReusable } from './vehicles/reusable.js?v=f5.6j';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -771,7 +771,7 @@ export class Flight {
       if (this.sepHold && !f.dead) { if (this.met < this.sepHold || (!this.autoOn && this.met < this.sepHold + 600 && v.tel && v.tel.q > 8000)) { /* ~3 s, longer while the air is still thick */ v.sepGrace = 1; const w = P.omegaOf(v), va = [v.v[0] + w * v.r[1], v.v[1] - w * v.r[0], v.v[2]]; /* air-relative flight path */ if (V.len(va) > 30) v.steerDir = V.norm(va); } else { this.sepHold = 0; v.sepGrace = 0; if (!this.autoOn) v.steerDir = null; } } // f5.3 (QA staging_manual): hold the bare upper stage on its flight path for ~3 s after a serial separation
       if (v.clamped) v.steerDir = null;
       // f5.4 (QA f5.4b B5): AUTO brings a suborbital rocket (Pip) home under its chute, as the return autopilot does for capsules
-      if (this.autoOn && !this.ret && this.ignited && v.chute.state !== 'failed' && v.chute.state !== 'main' && !this.flags.orbit && v.tel && V.dot(v.v, V.norm(v.r)) < -5 && this.hasChute()) {
+      if (this.autoOn && !this.extAuto && !this.ret && this.ignited && v.chute.state !== 'failed' && v.chute.state !== 'main' && !this.flags.orbit && v.tel && V.dot(v.v, V.norm(v.r)) < -5 && this.hasChute()) {
         const h0 = this.alt, k = v.chute.state === 'stowed' ? 'drogue' : v.chute.state === 'drogue' ? 'main' : null;
         if (k && h0 < (k === 'drogue' ? CHUTE_AUTO.drogueAlt : CHUTE_AUTO.mainAlt) && chuteLimits(this.chuteSpec(), v.tel, k).ok) this.deployChute();
       }
