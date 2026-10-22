@@ -2,7 +2,9 @@
 // Earth day/night/clouds/ocean glint + analytic atmospheric scattering, Sun + bloom, Milky Way, HDR tone mapping,
 // PBR environment, quality presets (low keeps phones and software GPUs working). No physics here.
 import * as THREE from 'three/webgpu';
-import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass, attribute } from 'three/tsl';
+import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass, attribute, normalView } from 'three/tsl';
+import { oceanLook, oceanDisplace, oceanTime } from './ocean.js?v=f5.5d';
+export { oceanTime };
 export { GFX, GFX_ORDER } from './presets.js?v=f5.5d';
 import { GFX } from './presets.js?v=f5.5d';
 import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5.5d';
@@ -131,19 +133,23 @@ export function bodyTexture(color, seed = 1) {
 }
 export const BODY_TEX = { mercury: 'mercury', venus: 'venus', moon: 'moon', mars: 'mars', jupiter: 'jupiter', saturn: 'saturn', uranus: 'uranus', neptune: 'neptune', sun: 'sun' };
 // ground-tile detail: break up the vertex colours with two octaves of shader noise (fades with distance)
-export function tileMaterial() {
+// flight-ground-2: tileMaterial(sunPos, tier) — speckle fix + ocean waves (gfx/ocean.js). The old mask threshold used the
+// km-scale noise terms (±0.3) on the 1k mask's 40 km coastal ramp, so every vertex with a mixed mask became a noise-
+// carved dark "scrub" blot in open water: the speckle seen at ~2 km. Now the coastline is the mask's 0.5 contour with a
+// small multi-km wobble, and land carved out of the sea is beach/scrub land colour, not a dark slab.
+export function tileMaterial(sunPos = uniform(new THREE.Vector3(1e11, 0, 0)), tier = 'med') {
   const m = new THREE.MeshStandardNodeMaterial({ vertexColors: true });
   const p = positionLocal, n1 = mx_noise_float(p.mul(0.004)), n2 = mx_noise_float(p.mul(0.05)), n3 = mx_noise_float(p.mul(0.6));
   const d = length(positionWorld), fade = smoothstep(4000.0, 300.0, d);
-  // f4.1b: regional + field-scale variation so the 150 km tile isn't a flat slab from 10–40 km (the day map is ~km/pixel)
   const r0 = mx_noise_float(p.mul(0.00006)), r1 = mx_noise_float(p.mul(0.00035)), r2 = mx_noise_float(p.mul(0.0016));
   const k = float(1).add(r0.mul(0.28)).add(r1.mul(0.22)).add(r2.mul(0.14)).add(n1.mul(0.16)).add(n2.mul(0.1)).add(n3.mul(0.12).mul(fade));
   const vc = vertexColor().rgb, tint = mix(vec3(0.82, 1.08, 0.72), vec3(1.12, 0.98, 0.78), saturate(r1.mul(0.9).add(0.5)));
-  // f5: coastline detail below the 1k mask's ~40 km texel: noise-perturbed threshold on the interpolated mask
-  const w0 = attribute('wat', 'float'), w = smoothstep(0.42, 0.58, w0.add(r2.mul(0.22)).add(n1.mul(0.08)));
-  const wl = waterLook(vc, w, float(1)); // ndl ~ day on the ground tile (it only exists around the craft)
-  const land = mix(mix(vc, vc.mul(tint), saturate(r0.mul(0.6).add(0.55))).mul(k), vec3(0.17, 0.16, 0.09).mul(k), smoothstep(0.3, 0.7, w0)); // land carved out of a sea vertex: shore scrub, not ocean navy
-  m.colorNode = mix(land, wl.color, w); m.roughnessNode = mix(float(0.95).sub(n2.mul(0.05)), wl.rough, w); m.metalnessNode = float(0); m.emissiveNode = wl.sheen;
+  const w0 = attribute('wat', 'float'), w = smoothstep(0.47, 0.53, w0.add(r1.mul(0.05)).add(r2.mul(0.015)));
+  const land = mix(vc, vc.mul(tint), saturate(r0.mul(0.6).add(0.55))).mul(k);
+  const sea = oceanLook({ vc, w0, w, sunPos, tier });
+  m.colorNode = mix(land, sea.color, w); m.roughnessNode = mix(float(0.95).sub(n2.mul(0.05)), sea.rough, w); m.metalnessNode = float(0);
+  m.normalNode = mix(normalView, sea.normalView, w); m.emissiveNode = sea.emissive.mul(w);
+  const disp = oceanDisplace(w0, tier); if (disp) m.positionNode = disp;
   return m;
 }
 // post: HDR → bloom → tone map (high preset only; otherwise renderer.render + tone mapping)
