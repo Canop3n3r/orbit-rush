@@ -362,7 +362,7 @@ function updateTile(ef) {
         const lr = 0.030 * scrub + beach * 0.07, lg = 0.043 * scrub + beach * 0.06, lb = 0.020 * scrub + beach * 0.045;
         if (wC < 0.5) { tileRGBA[0] += (lr - tileRGBA[0]) * blend; tileRGBA[1] += (lg - tileRGBA[1]) * blend; tileRGBA[2] += (lb - tileRGBA[2]) * blend; }
         tileRGBA[3] += (wC * 0.9 + (wC > 0.5 ? 0.1 : 0) - tileRGBA[3]) * blend; }
-      if (siteE) { const dS = Math.acos(Math.min(1, V.dot(dd, siteE))) * R, lk = Math.min(1, Math.max(0, (1800 - dS) / 600)); /* the pad complex stands on land: a ~1.2 km land/scrub apron, then the map's own coast */
+      if (siteE) { const dS = Math.acos(Math.min(1, V.dot(dd, siteE))) * R, lk = Math.min(1, Math.max(0, (800 - dS) / 300)); /* the pad complex stands on land: a ~0.5-0.8 km land/scrub apron, then the map's own coast */
         if (lk > 0) { const sc = 0.85 + 0.3 * fbm(dd[0] * 3000, dd[1] * 3000, dd[2] * 3000); tileRGBA[0] += (0.030 * sc - tileRGBA[0]) * lk; tileRGBA[1] += (0.043 * sc - tileRGBA[1]) * lk; tileRGBA[2] += (0.020 * sc - tileRGBA[2]) * lk; tileRGBA[3] *= 1 - lk; } } const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
       col[k * 4] = tileRGBA[0] * (w > 0.5 ? 1 : f); col[k * 4 + 1] = tileRGBA[1] * (w > 0.5 ? 1 : f); col[k * 4 + 2] = tileRGBA[2] * (w > 0.5 ? 1 : f); wat[k] = w; col[k * 4 + 3] = w; }
     else { planetColor(dd, rgb, true); col[k * 4] = (rgb[0] / 255) ** 2.2; col[k * 4 + 1] = (rgb[1] / 255) ** 2.2; col[k * 4 + 2] = (rgb[2] / 255) ** 2.2; col[k * 4 + 3] = 0; }
