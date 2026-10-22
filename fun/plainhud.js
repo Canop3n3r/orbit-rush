@@ -27,17 +27,28 @@ export function stageDvs(stages, cur, massNow) {
     out.push({ n: i + 1, dv, on: i === cur }); m -= (s.fuel || 0) + (s.dry || 0); }
   return out;
 }
+// fx-2 manual landing aid: below 3 km and falling, show vertical speed, time to impact and when to light the
+// suicide burn at full thrust (no drag counted, so it errs early). h: m above the ground, vs: m/s (+ up), aMax: m/s² thrust, g.
+export function landAid(h, vs, aMax, g) {
+  if (!(h < 3000) || !(vs < -2) || h < 0.5) return null;
+  const vd = -vs, tImp = (-vd + Math.sqrt(vd * vd + 2 * g * h)) / g, net = aMax - g;
+  if (!(net > 0.05)) return { vs: Math.round(vs * 2.236936), tImp, burnIn: null, state: 'low' };
+  const dStop = vd * vd / (2 * net), burnIn = (h - dStop) / vd;
+  return { vs: Math.round(vs * 2.236936), tImp, burnIn, state: burnIn <= 0.3 ? 'now' : burnIn < 4 ? 'soon' : 'wait' };
+}
 export function createPlainHud() {
   const el = document.createElement('div'); el.id = 'plain'; el.className = 'hidden';
   el.innerHTML = `<div id="spd"><b class="spV">0</b><small>MPH</small></div><div id="plAlt">ALT 0 ft</div>
     <div id="apPe"><div><b>Ap</b> <span id="plAp">—</span> <i id="plApT"></i></div><div><b>Pe</b> <span id="plPe">—</span> <i id="plPeT"></i></div></div>
-    <div id="dvStages"></div>`;
+    <div id="plLand" class="hidden"><b id="plVs"></b><span id="plImp"></span><em id="plBurn"></em></div><div id="dvStages"></div>`;
   document.body.appendChild(el);
   const $ = id => document.getElementById(id), last = {}, set = (id, t) => { if (last[id] !== t) { last[id] = t; $(id).textContent = t; } };
   function update(d) { // { on, mps, alt, ap:{h,t}, pe:{h,t}, dv:[{n,dv,on}] }
     el.classList.toggle('hidden', !d.on); if (!d.on) return;
     el.querySelector('.spV').textContent = c0(d.mps * MPH);
     set('plAlt', 'ALT ' + fmtHeight(d.alt)); set('plAp', d.ap.h); set('plApT', d.ap.t); set('plPe', d.pe.h); set('plPeT', d.pe.t);
+    const la = d.land || null; $('plLand').classList.toggle('hidden', !la); if (la) { set('plVs', 'V/S ' + la.vs + ' mph'); set('plImp', 'Impact ' + la.tImp.toFixed(1) + ' s');
+      set('plBurn', la.state === 'low' ? 'TWR too low' : la.state === 'now' ? '🔥 BURN NOW' : 'Burn in ' + la.burnIn.toFixed(1) + ' s'); $('plLand').className = 'on ' + la.state; }
     const key = d.dv.map(s => s.n + ':' + Math.round(s.dv) + (s.on ? '*' : '')).join(',');
     if (last.dv !== key) { last.dv = key; $('dvStages').innerHTML = '<b class="dvH">Δv left</b>' + d.dv.map(s => `<div class="dvS${s.on ? ' on' : ''}"><span>Stage ${s.n}</span><em>${c0(s.dv)} m/s</em></div>`).join(''); }
   }

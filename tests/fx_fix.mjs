@@ -4,6 +4,7 @@ import * as FX from '../fxmap.js?v=fx1';
 import { halfPose, HALF_LIFE } from '../fun/fairing.js?v=fx1';
 import { placeToast } from '../fun/toastzone.js?v=fx1';
 import { stageEngines } from '../fun/exhaust.js?v=fx1';
+import { landAid } from '../fun/plainhud.js?v=fx1';
 let pass = 0, fail = 0; const ok = (c, n) => { c ? pass++ : fail++; console.log(c ? '  ✔' : '  ✘', n); };
 // 1. sheath: nothing on a climbing ascent (the "maroon dome" ahead of the Heron-9 upper stage), full on reentry
 ok(FX.sheathAlpha(0.06, +1200) === 0, 'no sheath on ascent at weak plasma (48 km, 2 km/s climb)');
@@ -41,4 +42,8 @@ ok(halfPose(HALF_LIFE + 1, 1).gone === true && !halfPose(3, 1).gone, 'halves are
 // 10. parallel boosters (Heron Heavy): side boosters get 9 engines each, the core 9, the upper stage 1 (was 18 / 9)
 ok(stageEngines('heron-heavy', 0, []).n === 9, 'Heavy core: 9 engines'); ok(stageEngines('heron-heavy', 1, []).n === 1, 'Heavy upper stage: 1 engine');
 ok(stageEngines('heron-heavy', 0, [], true, 2).n === 9, 'Heavy side booster: 9 engines each'); ok(stageEngines('heron-9', 0, []).n === 9 && stageEngines('heron-9', 1, []).n === 1, 'Heron-9 unchanged');
+// 11. manual landing aid: only near the ground and falling; burn timing from full-thrust stopping distance
+ok(landAid(5000, -50, 20, 9.8) === null && landAid(500, 10, 20, 9.8) === null, 'landing aid hidden high up or climbing');
+{ const a = landAid(1000, -100, 20, 9.8), b = landAid(400, -100, 20, 9.8), c = landAid(1000, -50, 5, 9.8);
+  ok(a.state === 'wait' && Math.abs(a.burnIn - 5.1) < 0.1 && a.vs === -224, 'burn in ~5 s from 1 km at 100 m/s'); ok(b.state === 'now', 'BURN NOW when the stopping distance is reached'); ok(c.state === 'low' && c.tImp > 0, 'low TWR warning'); }
 console.log(`fx_fix: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

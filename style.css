@@ -977,3 +977,7 @@ body.touch.splitOn #gcamBtn{top:auto!important;bottom:calc(10px + var(--sab))!im
 /* fx-1: one toast area. In the compact HUD #hintS already shows callout > newest toast > hint, so the old stack hides */
 body.cx #topStack{display:none!important}
 #hintS{transition:translate .2s ease}
+/* fx-2 landing aid (in the plain card) */
+#plLand{display:flex;flex-wrap:wrap;gap:2px 10px;margin:6px 0 2px;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.06);font:700 14px/1.2 var(--ui)}
+#plLand.hidden{display:none}#plLand b{font-size:18px;color:#fff;width:100%}#plLand span{color:#cfe3ff}#plLand em{font-style:normal;color:#7dffa6}
+#plLand.soon em{color:#ffd23a}#plLand.now{background:rgba(255,80,40,.28)}#plLand.now em{color:#fff;animation:fade 0.5s infinite alternate}#plLand.low em{color:#ff8a6a}
