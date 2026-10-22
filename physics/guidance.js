@@ -2,16 +2,17 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=f5.6r';
-import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.6r';
-import { elements, timeToAp } from './kepler.js?v=f5.6r';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.6r';
-import { massOf } from './vehicle.js?v=f5.6r';
-import { atmosphere } from './atmosphere.js?v=f5.6r';
-import { cd0 } from './aero.js?v=f5.6r';
-import { hoverslamSolve } from './hoverslam.js?v=f5.6r';
-import { sampleAscent } from '../timelines/ascent.js?v=f5.6r';
-import { BODIES, atmTop } from './solar.js?v=f5.6r';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f5.6s';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.6s';
+import { elements, timeToAp } from './kepler.js?v=f5.6s';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.6s';
+import { massOf } from './vehicle.js?v=f5.6s';
+import { thermalOf } from './thermal.js?v=f5.6s';
+import { atmosphere } from './atmosphere.js?v=f5.6s';
+import { cd0 } from './aero.js?v=f5.6s';
+import { hoverslamSolve } from './hoverslam.js?v=f5.6s';
+import { sampleAscent } from '../timelines/ascent.js?v=f5.6s';
+import { BODIES, atmTop } from './solar.js?v=f5.6s';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -83,6 +84,8 @@ function offGuide(v) {
   pitch = clamp(pitch, 0, Math.PI * 0.75);
   return { dir: dirOfPitch(pitch, f), throttle: thr, phase: ph, pitch };
 }
+export const HOT_K = 0.8; // fx-ng: share of a part's skin limit that makes the ascent climb out of the air
+export const LOFT = { twr: 1.3, a: 120, b: 0.018, h1: 90000, taper: 25000 }; // fx-ng: low-TWR first-stage climb-rate floor (m/s = a + b·h)
 export function autoGuide(v) {
   if (v.body && v.body !== 'earth') return offGuide(v);
   const f = localFrame(v);
@@ -144,6 +147,13 @@ export function autoGuide(v) {
     // so the boosters separate steep and high, like the real three-core flights.
     // the lone core after side-booster sep keeps the floor (tapering out by 50 km) so it climbs out of the dense air before turning
     if (v.stages[0] && v.stages[0].radial && spAir >= 70 && h < 50000) pitch = Math.min(pitch, holdPitch(v, f, (120 + h * 0.012) * clamp((50000 - h) / 15000, 0, 1), 0.08));
+    // fx-ng: a low-TWR single-core first stage that keeps a landing reserve (New Glendale: TWR ~1.26, 67 t) stages early, so it lofts like the heavies: a climb-rate floor
+    // keeps it out of the dense air so it separates high (~78 km at ~2 km/s), not flat at 40 km with the fairing cooking
+    if (v._twr0 === undefined && v.cur === 0) { const s0 = v.stages[0]; v._twr0 = s0 && s0.eng ? s0.eng.tv * 1000 * s0.n / (m * g) : 9; }
+    if (!(v.stages[0] && v.stages[0].radial) && v.stages[0] && v.stages[0].reserve > 0 && v._twr0 < LOFT.twr && spAir >= 70 && h < LOFT.h1) pitch = Math.min(pitch, holdPitch(v, f, (LOFT.a + h * LOFT.b) * clamp((LOFT.h1 - h) / LOFT.taper, 0, 1), 0.08));
+    // fx-ng fairing/payload heating check: if any part still aboard passes HOT_K of its skin limit on the way up, climb out of the air
+    if (spAir >= 70 && h < 100000) { let hot = 0; for (let j = v.cur; j < v.stages.length; j++) for (const p of v.stages[j].parts) if (p.Ts > 0) hot = Math.max(hot, p.Ts / thermalOf(p).Tmax);
+      if (hot > HOT_K) pitch = Math.min(pitch, holdPitch(v, f, 300 + 4000 * (hot - HOT_K), 0.08)); }
     const tMax = s && s.eng ? s.eng.tv * 1000 * s.n : 0;
     thr = Math.max(qCap(qPa, v.qFloor ?? 0.4), tMax > 0 ? Math.min(1, 1.3 * g * m / tMax) : 1);
     if (tMax > 0) thr = Math.min(thr, G_LIMIT * 9.80665 * m / tMax); // g-limit: throttle back near burnout
@@ -174,15 +184,15 @@ export const ENTRY_QDOT_MAX = 1.0e5;  // W/m² peak stagnation heating (≈ the 
 export const sgHeat = (rho, V) => 1.74e-4 * Math.sqrt(Math.max(rho, 0)) * V * V * V;
 export function predictEntryPeaks(b, dtMax = 1) {
   const c = { ...b, r: [...b.r], v: [...b.v], stages: b.stages.map(s => ({ ...s })), throttle: 0 };
-  let q = 0, qdot = 0;
+  let q = 0, qdot = 0, v30 = 0;
   for (let i = 0; i < 1500; i++) {
     const h = len(c.r) - R_E; if (h < ENTRY_FLOOR) break;
     const va = airVel(c, c.r, c.v); c.dir = scale(va, -1 / Math.max(len(va), 1));
     if (stepPoint(c, h > 40000 ? dtMax : 0.25)) break;
     const hh = len(c.r) - R_E, rho = atmosphere(Math.max(hh, 0)).rho, V = len(airVel(c, c.r, c.v));
-    q = Math.max(q, 0.5 * rho * V * V / 1000); qdot = Math.max(qdot, sgHeat(rho, V));
+    q = Math.max(q, 0.5 * rho * V * V / 1000); qdot = Math.max(qdot, sgHeat(rho, V)); if (hh < 30000 && !v30) v30 = V;
   }
-  return { q, qdot };
+  return { q, qdot, v30 };
 }
 export function boosterAutopilot(b, dtHint = 0.02) {
   const up = norm(b.r), h = len(b.r) - R_E, va = airVel(b, b.r, b.v), sp = len(va), vr = dot(va, up);
@@ -229,9 +239,10 @@ export function boosterAutopilot(b, dtHint = 0.02) {
   const isp = s.eng.ispVac - (s.eng.ispVac - s.eng.ispSl) * pr, T1 = s.eng.tv * 1000 * isp / s.eng.ispVac;
   const qd = 0.5 * atm.rho * sp * sp, aDrag = qd * (b.cdA || 0) * cd0(sp / atm.a) / m * 0.5; // count half the current drag: it fades as the burn slows the booster
   const vDown = vr < 0 ? (b.tgtR && !b.manual ? -vr : sp) : 0, hp = h - deck; // retro thrust kills the whole air-relative velocity
+  const NL = Math.min(3, b.nMax || 1);
   const pick = n => hoverslamSolve({ h: hp, vDown, m, Tmax: T1 * n, thrMin: 0.4, g, aDrag, burning: !!b._hs, lit: b.ignAlt != null });
   let n = b._hs ? b.n : 1, sol = pick(n);
-  if (!b._hs && (sol.lowTWR || sol.dStop > 0.8 * hp) && b.nMax > 1) { const s3 = pick(Math.min(3, b.nMax)); if (s3.ignite || sol.lowTWR) { n = Math.min(3, b.nMax); sol = s3; } }
+  if (!b._hs && (sol.lowTWR || sol.dStop > 0.8 * hp) && b.nMax > 1) { const s3 = pick(NL); if (s3.ignite || sol.lowTWR) { n = NL; sol = s3; } }
   // late in a 3-engine burn drop to the centre engine once one engine can finish it at ≤ THR_AIM
   if (b._hs && (b.nMax || 1) > n && sol.aReq > sol.aMax * 0.95) { n = Math.min(b.nMax, n + 2); sol = pick(n); } // fx-2: a burn that runs out of margin lights more engines (heavy boosters landed hard at 14 m/s)
   if (b._hs && n > 1) { const s1 = hoverslamSolve({ h: hp, vDown, m, Tmax: T1, thrMin: 0.4, g, aDrag, burning: true, lit: true }); if (s1.aReq < s1.aMax * 0.85) { n = 1; sol = s1; } }
@@ -241,9 +252,9 @@ export function boosterAutopilot(b, dtHint = 0.02) {
   if (!sol.ignite) b._hIgn = null; // stale look-ahead: recompute when the solve next asks for ignition
   if (!b._hs && b.ignAlt == null && sol.ignite && !b.manual && (hp > 3000 || (b._hIgn != null && b.nMax >= 3))) { // below 3 km a held look-ahead still hands over to the 3-engine burn it assumed // only the high, thin-air ignitions; the last 3 km stay with the solve
     b._lT = (b._lT ?? 0) - dtHint;
-    if (b._lT <= 0 || b._hIgn == null) { b._lT = 0.5; b._hIgn = predictIgnAlt(b, Math.min(3, b.nMax || 1), T1, m, deck); }
+    if (b._lT <= 0 || b._hIgn == null) { b._lT = 0.5; b._hIgn = predictIgnAlt(b, NL, T1, m, deck); }
     if (b._hIgn != null && hp > Math.max(3000, b._hIgn + Math.max(vDown, 50) * 0.6)) sol = { ...sol, ignite: false, throttle: 0, tIgn: (hp - b._hIgn) / Math.max(vDown, 50) };
-    else if (b._hIgn != null && b.nMax > 1) { n = Math.min(3, b.nMax); sol = pick(n); } // the look-ahead assumed the 3-engine burn
+    else if (b._hIgn != null && b.nMax > 1) { n = NL; sol = pick(n); } // the look-ahead assumed the 3-engine burn
   }
   b.hs = sol; b.burnIn = sol.ignite ? 0 : sol.tIgn; b.lowTWR = sol.lowTWR; if (sol.legs) b.legs = true;
   if (sol.ignite && sol.throttle > 0 && (b.entryDone || h < 25000)) {
