@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.6o';
-import * as C from './physics/patched.js?v=f5.6o';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6o';
-import { designReusable } from './vehicles/reusable.js?v=f5.6o';
+import * as P from './physics.js?v=f5.6p';
+import * as C from './physics/patched.js?v=f5.6p';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.6p';
+import { designReusable } from './vehicles/reusable.js?v=f5.6p';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -959,7 +959,7 @@ export class Flight {
     if (v.clamped && v.holdDown) return 'TEST STAND — static fire, held down by the clamps';
     if (v.clamped) return 'Not enough thrust… lighten the rocket';
     if (tel.q > 30000 && engineOn) return this.autoOn ? 'HIGH Q — AUTO is throttling down' : 'HIGH Q — throttle down (Ctrl)';
-    if (!this.autoOn && h < 8000 && sp < 900) return 'Press F for AUTO (flies all the way to orbit), or pitch east yourself with W (SAS holds your heading)';
+    if (!this.autoOn && h < 8000 && sp < 900 && this.met < 10) return 'Press F for AUTO (flies all the way to orbit), or pitch east yourself with W (SAS holds your heading)';
     if (v.cur < this.last && cs.fuel <= 0) return this.autoOn ? '' : v.cur === 0 ? 'Booster empty — tap STAGE' : `Stage ${v.cur + 1} empty — tap STAGE`;
     if (v.cur === 0 && this.last > 0 && h > 20000 && !this.autoOn) return this.boosterCanLand() ? `Stage now — booster has ${s1.fuel.toFixed(1)} t, enough to land` : `⚠ Booster ${s1.fuel.toFixed(1)} t: no longer enough to land it — stage soon (SPACE twice)`;
     if (fuelLeft <= 0 && !f.orbit) return 'Out of fuel — suborbital';

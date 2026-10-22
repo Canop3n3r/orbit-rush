@@ -36,7 +36,8 @@ require('fs').mkdirSync(OUT, { recursive: true });
    if (nb) { const p0 = await pg.evaluate(() => window.__game.v.pitchCmd ?? null);
     await pg.mouse.move(nb.x, nb.y); await pg.mouse.down(); await pg.mouse.move(nb.x, nb.y - nb.w * 0.3, { steps: 4 });
     const j = await pg.evaluate(() => ({ grab: document.getElementById('navBall').classList.contains('grab'), stick: window.__game.stickCmd ? window.__game.stickCmd() : null, hold: !!window.__game.v.holdAtt })); await pg.mouse.up();
-    ok(j.grab && !(j.stick && Math.abs(j.stick.pitch) > 0.05) && !j.hold, `${tag}: f5.6h trackball navball grabs, sends no raw stick and sets no target while clamped ${JSON.stringify(j)}`);
+    const fl = await pg.evaluate(() => !!(window.__game.ignited && window.__game.F.alt > 30)); // the full run has already launched here (check 3), ONLY=4 is still on the pad
+    ok(j.grab && !(j.stick && Math.abs(j.stick.pitch) > 0.05) && j.hold === fl, `${tag}: f5.6h trackball navball grabs, no raw stick; target attitude set only in flight (flying ${fl}) ${JSON.stringify(j)}`);
     const inc = await pg.evaluate(() => { const e = document.getElementById('nbInc'); return e && e.offsetParent ? e.textContent : null; }); ok(inc && /INC/i.test(inc) && /°/.test(inc), `${tag}: navball shows inclination (${inc})`); } }
   await pg.screenshot({ path: `${OUT}/${tag}_pad.png` });
   if (ONLY.includes('2')) { await pg.evaluate(() => window.__game.press('Space')); await pg.waitForTimeout(4000); const a = await pg.evaluate(() => ({ ign: window.__game.ignited, alt: window.__game.F.alt })); ok(a.ign, `${tag}: STAGE ignites (${JSON.stringify(a)})`); await pg.screenshot({ path: `${OUT}/${tag}_ascent.png` }); }

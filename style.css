@@ -1004,3 +1004,6 @@ body.touch.autoOn:not(.splitOn):not(.mapOn) #nav{display:flex!important}body.tou
 #mMenu .mg.mTop,#dMenu .mg.mTop{grid-template-columns:repeat(3,1fr)!important;gap:6px}
 #mMenu .mTop button,#dMenu .mTop button{min-height:42px!important;padding:4px 6px!important;font:700 12px/1.15 var(--ui,system-ui)!important;text-align:center}
 @media (orientation:landscape){#mMenu .mg.mTop{grid-template-columns:repeat(5,1fr)!important}#mMenu{width:min(560px,calc(100vw - 150px))!important}}
+/* f5.6o (QA): desktop has the THR bar in #dCtl, so the navball's arc readout goes; the renderer badge hides in flight (it sat under STAGE) */
+body:not(.touch) #nav #navThrT,body:not(.touch) #nav #navThr{display:none!important}
+body:has(#dCtl:not(.hidden)) #badge{display:none!important}
