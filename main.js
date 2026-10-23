@@ -2508,6 +2508,8 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
   if (!TOUCH && cols) { const ab = document.createElement('button'); ab.id = 'bAdv'; ab.className = 'bAdvBtn'; const lab = () => { const on = document.body.classList.contains('buildAdv'); ab.textContent = on ? '✕ Simple view' : '⚙ Advanced'; ab.setAttribute('aria-pressed', on); };
     try { document.body.classList.toggle('buildAdv', localStorage.getItem('orbitrush.buildAdv') === '1'); } catch (e) { }
     ab.onclick = () => { const on = document.body.classList.toggle('buildAdv'); try { localStorage.setItem('orbitrush.buildAdv', on ? '1' : '0'); } catch (e) { } lab(); }; lab(); window.__bAdv = ab; } // f5.4l: stats, tests, paint behind one toggle
+  if (TOUCH && cols && !b.querySelector('.bTabs')) { const tb = document.createElement('div'); tb.className = 'bTabs'; tb.innerHTML = ['Rocket', 'Parts', 'Stages'].map((l, i) => `<button data-bt="${i}" class="${i ? '' : 'on'}">${l}</button>`).join(''); cols.parentNode.insertBefore(tb, cols); b.dataset.bt = '0';
+    tb.onclick = e => { const x = e.target.closest('[data-bt]'); if (!x) return; b.dataset.bt = x.dataset.bt; tb.querySelectorAll('button').forEach(q => q.classList.toggle('on', q === x)); }; } // f5.7l (QA f5.7i P1): phone Build shows one column at a time so it fits the screen
   if (TOUCH && cols) { const lb = $('launchBtn'), hb = $('homeBack'), row = document.createElement('div'); row.className = 'bTopRow'; b.insertBefore(row, b.firstChild); if (hb) row.appendChild(hb); if (lb) { lb.classList.remove('stickyLaunch'); row.appendChild(lb); } } // f5.7k (QA f5.7i P1): phone Fly sits beside Home at the top of the panel, never over the parts list
   if (!TOUCH && cols) { const lb = $('launchBtn'), row = document.createElement('div'); row.className = 'bTopRow'; const hb = $('homeBack'); b.insertBefore(row, b.querySelector('.bMore') || cols); if (hb) row.appendChild(hb); row.appendChild(b.querySelector('.bMore')); if (lb) row.appendChild(lb); if (window.__bAdv) row.appendChild(window.__bAdv); }
 }
@@ -2522,9 +2524,10 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
   function baseOf(id) { return pickBase(keysOf(id), (ART[id] && ART[id].height) || 50); }
   function baseIdx(id) { const b = baseOf(id); const k = SHOW.findIndex(x => x.id === (EXTRA_STACKS[b] ? 'atlas' : b)); return Math.max(0, k); }
   window.openPicker = () => { render(); pk.classList.remove('hidden'); pk.scrollTop = 0; };
-  pk.addEventListener('input', e => { if (e.target.id === 'pkQ') filterPicker(pk, e.target.value); });
+  pk.addEventListener('input', e => { if (e.target.id === 'pkQ') { pk.classList.toggle('pkSearch', !!e.target.value.trim()); filterPicker(pk, e.target.value); } });
   pk.addEventListener('click', e => { const t = e.target;
     if (t.closest('#pkClose')) return close();
+    { const tb = t.closest('.pkTab'); if (tb) { pk.querySelectorAll('.pkTab').forEach(b => b.classList.toggle('on', b === tb)); pk.querySelectorAll('.pkR').forEach(r => r.classList.toggle('off', r.dataset.rg !== tb.dataset.rg)); return; } }
     if (t.closest('#pkSandbox')) { try { localStorage.setItem(SBK, sbOn() ? '0' : '1'); } catch (er) { } dispatchEvent(new Event('career-change')); nav(); render(); return; }
     if (t.closest('#pkBuild')) { close(); goBuild.toHome = true; home.show(false); refreshBuild(); return; }
     const c = t.closest('.pkC'); if (!c) return;

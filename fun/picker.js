@@ -34,7 +34,7 @@ export const CLASS_OF = { pip: 'Sounding rocket', needle: 'Small launcher', swif
 export function pickerHTML({ originals = [], pinned = {}, sets, name, sandbox, role = () => '', locked = () => false }) {
   const card = (attr, nm, sub, lk) => `<button class="pkC${lk ? ' lk' : ''}" ${attr}><b>${lk ? '🔒 ' : ''}${esc(nm)}</b><small>${esc(sub)}</small></button>`;
   let h = `<div class="pkH"><b>Rockets</b><button id="pkSandbox" class="pkSw" role="switch" aria-checked="${sandbox ? 'true' : 'false'}"><i></i>Sandbox</button><button id="pkClose" aria-label="Close">✕</button></div>`;
-  h += `<input id="pkQ" type="search" placeholder="Search rockets or makers" aria-label="Search rockets" autocomplete="off">`;
+  h += `<input id="pkQ" type="search" placeholder="Search rockets or makers" aria-label="Search rockets" autocomplete="off">`; h += '<!--pkTabs-->'; const tabs = [];
   if (originals.length) h += `<section><h4>Originals</h4><div class="pkG">${originals.map(o => card(`data-i="${o.i}"`, o.name, o.role, o.locked)).join('')}</div></section>`;
   const dup = new Set(originals.map(o => o.name.toLowerCase())); // f5.2: a rocket already in Originals is not listed again under its house
   const lockedFold = (cards) => cards.length ? `<details class="pkLk"><summary>🔒 ${cards.length} more locked</summary><div class="pkG">${cards.join('')}</div></details>` : '';
@@ -43,7 +43,8 @@ export function pickerHTML({ originals = [], pinned = {}, sets, name, sandbox, r
     for (const k of keys) { const ids = (sets[k] || []).filter(id => !dup.has(String(name(id)).toLowerCase())), pin = pinned[k] || []; if (!ids.length && !pin.length) continue;
       const open = ids.filter(id => !locked(id)), shut = ids.filter(id => locked(id)); n += ids.length + pin.length;
       body += `<details class="pkCo" data-h="${esc(k)}"><summary>${esc(SHORT[k] || k)} <small>${open.length + pin.length}${shut.length ? ' · 🔒' + shut.length : ''}</small></summary>${pin.length ? `<div class="pkG">${pin.map(o => card(`data-i="${o.i}"`, o.name, o.role, o.locked)).join('')}</div>` : ''}${open.length ? `<div class="pkG">${open.map(id => card(`data-m="${esc(id)}"`, name(id), role(id), false)).join('')}</div>` : ''}${lockedFold(shut.map(id => card(`data-m="${esc(id)}"`, name(id), role(id), true)))}</details>`; }
-    if (body) h += `<section class="pkR"><h4>${rg}</h4>${body}</section>`; }
+    if (body) { tabs.push(rg); h += `<section class="pkR${tabs.length > 1 ? ' off' : ''}" data-rg="${esc(rg)}"><h4>${rg}</h4>${body}</section>`; } }
+  if (tabs.length > 1) h = h.replace('<!--pkTabs-->', `<div class="pkTabs">${tabs.map((r, i) => `<button class="pkTab${i ? '' : ' on'}" data-company="1" data-rg="${esc(r)}">${esc(r)}</button>`).join('')}</div>`); // f5.7l (QA f5.7i P1): one region at a time
   if (sandbox) h += `<section><h4>Sandbox</h4><div class="pkG"><button class="pkC" id="pkBuild"><b>🔧 Build your own</b><small>Part builder</small></button></div></section>`;
   return h;
 }

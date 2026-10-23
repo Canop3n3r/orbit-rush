@@ -1076,3 +1076,32 @@ body:not(.touch):not(.buildAdv) #palette button,body:not(.touch):not(.buildAdv) 
 body.touch #sitePick .spBodies{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent)}
 body.touch #sitePick .spBodies button{flex:0 0 auto}
 body.touch #sitePick .spInfo{font-size:12px}
+/* f5.7l: split ☰ sits in the free middle, clear of the booster inset and the navball readout */
+@media (orientation:landscape){body.touch.splitOn #mMenu{left:calc(42vw + 10px)!important;right:auto!important;width:min(300px,calc(58vw - 190px))!important;top:calc(60px + var(--sat))!important}body.touch.splitOn #mMenu .mg,body.touch.splitOn #mMenu .mg.mTop{grid-template-columns:repeat(2,1fr)!important}}
+@media (orientation:portrait){body.touch.splitOn #mMenu{left:calc(8px + var(--sal))!important;right:calc(8px + var(--sar))!important;width:auto!important;top:calc(74px + 30dvh + var(--sat))!important}}
+/* f5.7l: settings is a side sheet (desktop) / bottom sheet (phone), the game stays visible */
+#settings.modal{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;pointer-events:none}
+#settings .mbox{pointer-events:auto;position:fixed!important;margin:0!important;overflow:auto}
+body:not(.touch) #settings .mbox{top:0!important;right:0!important;bottom:0!important;left:auto!important;width:min(420px,40vw)!important;max-width:none!important;max-height:none!important;border-radius:14px 0 0 14px!important;transform:none!important}
+body:not(.touch) #settings .qKeys .keys{grid-template-columns:1fr!important}
+body.touch #settings .mbox{left:0!important;right:0!important;bottom:0!important;top:auto!important;width:auto!important;max-width:none!important;max-height:60dvh!important;border-radius:16px 16px 0 0!important;transform:none!important}
+@media (orientation:landscape){body.touch #settings .mbox{left:auto!important;top:0!important;width:min(380px,50vw)!important;max-height:none!important;border-radius:16px 0 0 16px!important}}
+/* f5.7l: rocket picker shows one region tab at a time (search shows all) */
+#picker .pkTabs{display:flex;gap:6px;overflow-x:auto;margin:4px 0 6px;scrollbar-width:none}
+#picker .pkTab{flex:0 0 auto;min-height:36px;padding:0 12px;border-radius:18px;background:#14203a;border:1px solid #2a3c62;color:#cfe0ff;font:700 13px system-ui}
+#picker .pkTab.on{background:#2d5fd0;border-color:#9cc3ff;color:#fff}
+#picker:not(.pkSearch) .pkR.off{display:none}
+#picker:not(.pkSearch) .pkR h4{display:none}
+/* f5.7l: phone Build = one column at a time (Rocket / Parts / Stages) */
+body.touch #build .bTabs{display:flex;gap:6px;margin:6px 0}
+body.touch #build .bTabs button{flex:1;min-height:40px;border-radius:12px;background:#14203a;border:1px solid #2a3c62;color:#cfe0ff;font:700 14px system-ui}
+body.touch #build .bTabs button.on{background:#2d5fd0;border-color:#9cc3ff;color:#fff}
+body.touch #build[data-bt="0"] .bcols > :not(:nth-child(2)),body.touch #build[data-bt="1"] .bcols > :not(:nth-child(1)),body.touch #build[data-bt="2"] .bcols > :not(:nth-child(3)){display:none!important}
+body.touch #build .bcols .colH{display:none}
+body:not(.touch):not(.buildAdv) #stack small{display:none}
+/* f5.7l: Fly moved into the panel, so the 84px gap for the old floating Fly goes; the sheet sits on the bottom edge and scrolls inside */
+body.touch:not(.home) #build.builder{bottom:0!important;padding-bottom:calc(10px + var(--sab,0px))!important;overscroll-behavior:contain}
+@media (orientation:portrait){body.touch:not(.home) #build.builder{height:60dvh!important;max-height:60dvh!important}}
+@media (orientation:landscape) and (max-height:500px){body.touch:not(.home) #build.builder{bottom:8px!important;max-height:calc(100dvh - 16px)!important;overflow-y:auto!important}}
+body:not(.touch) #settings #setBody{display:block!important}body:not(.touch) #settings #setBody > *{width:auto!important;display:block}
+@media (orientation:portrait){body.touch.splitOn #mMenu .mg,body.touch.splitOn #mMenu .mg.mTop{grid-template-columns:repeat(4,1fr)!important}body.touch.splitOn #mMenu button{font-size:12px!important;padding:4px 2px!important}body.touch.splitOn #mMenu .mh{margin-bottom:4px!important}body.touch.splitOn #mMenu .mh b{display:none}body.touch.splitOn #mMenu .mh{justify-content:flex-end!important}}
