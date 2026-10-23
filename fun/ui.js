@@ -2,13 +2,13 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import * as UN from './units.js?v=f5.8b';
-import { MISSIONS } from './director.js?v=f5.8b';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.8b';
-import { ATLAS, poisOf } from './lore.js?v=f5.8b';
+import * as UN from './units.js?v=f5.8c';
+import { MISSIONS } from './director.js?v=f5.8c';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.8c';
+import { ATLAS, poisOf } from './lore.js?v=f5.8c';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f5.8b';
+import { createNavball } from './navball.js?v=f5.8c';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();
