@@ -2,13 +2,13 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
-import * as UN from './units.js?v=f5.8e';
-import { MISSIONS } from './director.js?v=f5.8e';
-import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.8e';
-import { ATLAS, poisOf } from './lore.js?v=f5.8e';
+import * as UN from './units.js?v=f5.8f';
+import { MISSIONS } from './director.js?v=f5.8f';
+import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.8f';
+import { ATLAS, poisOf } from './lore.js?v=f5.8f';
 const $ = id => document.getElementById(id), esc = s => String(s).replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;');
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
-import { createNavball } from './navball.js?v=f5.8e';
+import { createNavball } from './navball.js?v=f5.8f';
 export function createFunUI(ctx) {
   const ENG_KEY = 'orbitrush.engineer';
   let engineer = (() => { try { return localStorage.getItem(ENG_KEY) === '1'; } catch (e) { return false; } })();
@@ -152,13 +152,13 @@ export function createFunUI(ctx) {
   }
   // ---------- photo mode ----------
   const FILTERS = { none: '', vivid: 'saturate(1.5) contrast(1.1)', warm: 'sepia(0.35) saturate(1.3)', noir: 'grayscale(1) contrast(1.25)', retro: 'sepia(0.6) hue-rotate(-15deg) contrast(1.1)', cold: 'hue-rotate(20deg) saturate(1.2) brightness(1.05)' };
-  const pbar = el('div', { id: 'photobar', className: 'hidden' }, `<b>📸 PHOTO MODE</b> <span class="sm">drag to orbit · scroll/pinch to zoom</span> ${Object.keys(FILTERS).map(f => `<button data-f="${f}">${f}</button>`).join('')}<button id="phSnap" class="big">⦿ SNAP</button><button id="phExit">✕</button>`);
+  const pbar = el('div', { id: 'photobar', className: 'hidden' }, `<button id="phFx" aria-label="Filter" title="Filter (tap to change)">🎨</button><button id="phSnap" class="big" aria-label="Snap a photo" title="Snap">⦿</button><button id="phExit" aria-label="Exit photo mode" title="Exit photo mode">✕</button>`); // f5.8f (QA P2): 3 icon buttons, no text, never over the rocket
   document.body.appendChild(pbar);
   const photo = { on: false, filter: 'none',
     toggle() { this.on = !this.on; { const mm = document.getElementById('mMenu'); if (mm) mm.classList.add('hidden'); } // f5.1h (QA): photo mode closes the ☰ menu
       document.body.classList.toggle('photo', this.on); pbar.classList.toggle('hidden', !this.on); ctx.setPhoto(this.on); if (!this.on) this.set('none'); },
     set(f) { this.filter = f; ctx.canvas.style.filter = FILTERS[f]; pbar.querySelectorAll('[data-f]').forEach(b => b.classList.toggle('on', b.dataset.f === f)); } };
-  pbar.querySelectorAll('[data-f]').forEach(b => b.onclick = () => photo.set(b.dataset.f));
+  $('phFx').onclick = () => { const ks = Object.keys(FILTERS), k = ks[(ks.indexOf(photo.filter) + 1) % ks.length]; photo.set(k); $('phFx').title = 'Filter: ' + k; };
   $('phExit').onclick = () => photo.toggle();
   $('phSnap').onclick = () => ctx.snap(FILTERS[photo.filter]);
   // ---------- "Will it fly?" ghost trajectory (hangar) ----------

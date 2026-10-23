@@ -1241,3 +1241,41 @@ body > .bmPanel #presets button{flex:none!important;padding:6px 12px!important;w
 body > .bmPanel .rec{font-size:10px}
 body > .bmPanel input[type=checkbox]{width:20px;height:20px;min-height:0!important}
 body > .bmPanel #inclIn{width:64px;min-height:36px;background:#16233a;color:#fff;border:1px solid #2c4166;border-radius:8px}
+/* f5.8f (QA P1): region tabs = one folding row per company (summary 44px, open row scrolls sideways) — ~2 screens on a phone */
+#hGal #picker details.pkRow{border-top:1px solid #1c2a44!important;padding:0!important}
+#hGal #picker details.pkRow > summary{display:flex!important;align-items:center;gap:8px;min-height:44px;padding:0 4px;list-style:none;cursor:pointer;font:700 14px var(--ui,system-ui);color:#dfe9ff}
+#hGal #picker details.pkRow > summary::-webkit-details-marker{display:none}
+#hGal #picker details.pkRow > summary small{color:#8ea3c6;font-size:12px;font-weight:600}
+#hGal #picker details.pkRow > summary::after{content:'▸';margin-left:auto;color:#8ea3c6;transition:transform .15s}
+#hGal #picker details.pkRow[open] > summary::after{transform:rotate(90deg)}
+#hGal #picker .pkStrip{display:grid!important;grid-auto-flow:column;grid-auto-columns:104px;grid-template-columns:none!important;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding-bottom:6px}
+#hGal #picker .pkStrip .pkC .pkT{height:120px!important}
+@media (orientation:landscape) and (max-height:500px){#hGal #picker .pkStrip .pkC .pkT{height:96px!important}}
+/* desktop: the panel fills — company rows wrap into grids, Featured cards bigger */
+@media (orientation:landscape) and (min-height:501px) and (min-width:1100px){
+  #hGal #picker .pkStrip{grid-auto-flow:row;grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important;overflow:visible}
+  #hGal #picker section[data-rg="Featured"] .pkG{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))!important}
+  #hGal #picker section[data-rg="Featured"] .pkC .pkT{height:clamp(200px,calc((100vh - 220px) / 2),340px)!important}}
+@media (min-width:1600px) and (orientation:landscape){#hGal{width:min(820px,46vw)!important}#home #hTop{right:calc(min(820px,46vw) + 12px)!important}}
+/* f5.8f (QA P1): Build chrome — phone sheet 44% (was 56), ⋯ popover ≤45%, the game's own toggle instead of a native checkbox */
+@media (orientation:portrait){body.touch:not(.home) #build.builder{height:52dvh!important;max-height:52dvh!important}
+  #build .bTopRow{gap:6px!important}#build .bTopRow > *{min-height:44px!important}
+  #build .bTabs button{min-height:38px!important;padding:4px!important}
+  #build .bsH,#build .stHead{padding-top:4px!important;padding-bottom:4px!important}
+  #build #stack .prow{min-height:38px!important;padding-top:4px!important;padding-bottom:4px!important}}
+body > .bmPanel.on{max-height:45dvh!important;gap:6px!important;padding:8px 10px!important}
+body > .bmPanel .bmG h5{margin:0 0 4px!important;font-size:11px!important}
+body > .bmPanel .bmR button,body > .bmPanel .bmR select,body > .bmPanel #presets button{min-height:36px!important;padding:4px 10px!important;font-size:12px!important}
+body > .bmPanel input[type=checkbox]{-webkit-appearance:none;appearance:none;position:relative;width:44px!important;height:26px!important;border-radius:13px;background:#3a4560;border:0;margin:0;cursor:pointer;transition:background .15s;flex:none}
+body > .bmPanel input[type=checkbox]::after{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+body > .bmPanel input[type=checkbox]:checked{background:#2fb36b}body > .bmPanel input[type=checkbox]:checked::after{left:21px}
+/* f5.8f (QA P2): photo mode = a small icon pill in the corner, off the rocket */
+#photobar{left:auto!important;right:calc(12px + env(safe-area-inset-right,0px))!important;transform:none!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;padding:4px!important;gap:4px!important;border-radius:28px!important;background:#0b1424b3!important;flex-direction:column}
+#photobar button{width:48px;height:48px;min-height:0!important;padding:0!important;border-radius:50%!important;font-size:20px!important;background:transparent;border:0;color:#fff}
+#photobar #phSnap{background:#ffffff22}
+@media (orientation:landscape){#photobar{flex-direction:column}}
+/* f5.8f (QA P2): AUTO HUD ≤5 controls on phones — AUTO, STAGE, ▶▶, MAP, ☰ (camera, navball mode, ◀◀ and ⛔ wait in ☰ / return when AUTO is off) */
+body.touch.autoOn #gcamBtn,body.touch.autoOn #navSasT,body.touch.autoOn #wDn,body.touch.autoOn #mAbort{display:none!important}
+body.photo #nav,body.photo #navSasT,body.photo #navBall{display:none!important}
+body.photo #relBtn,body.photo #dCtl,body.photo #plain,body.photo #warpBar,body.photo #topStack,body.photo #spPane,body.photo .spCard{display:none!important}
+#hGal #picker details.pkRow > summary::marker{content:""}#hGal #picker details.pkRow > summary::before{content:none!important;display:none!important}
