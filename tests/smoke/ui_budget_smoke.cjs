@@ -92,16 +92,16 @@ async function runVp(br, vp) {
   let taps = 0, path = [];
   try {
     for (; taps < 6;) {
-      const up = await ev(() => { const F = window.__game.F; return !!(F && (F.flags.liftoff || (F.alt || 0) > 20)); }); if (up) break;
+      const up = await ev(() => { const F = window.__game.F; return !!(F && F.ignited && F.flags.liftoff /* QA f5.8d: real sizes put the pad CoM above 20 m (Heron-9 alt ~26 m), so 'alt > 20' read as liftoff at 0 taps */); }); if (up) break;
       const sel = await ev(() => { const vis = e => e && e.offsetParent && (() => { const r = e.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return h && (h === e || e.contains(h)); })();
         const ids = ['frSb', 'hLaunch', 'hFly', 'launchBtn']; for (const i of ids) if (vis(document.getElementById(i))) return '#' + i;
         const st = [...document.querySelectorAll('button')].find(b => /^\s*(STAGE|LAUNCH|IGNITE)/i.test(b.textContent) && vis(b)); if (st) { st.setAttribute('data-uib', st.textContent.trim().split(/\s+/)[0]); return '[data-uib]'; } return null; });
       if (!sel) break; const b = await pg.$(sel); const bx = await b.boundingBox(); phone ? await pg.touchscreen.tap(bx.x + bx.width / 2, bx.y + bx.height / 2) : await pg.mouse.click(bx.x + bx.width / 2, bx.y + bx.height / 2);
       taps++; path.push(sel === '[data-uib]' ? await ev(() => document.querySelector('[data-uib]').getAttribute('data-uib')) : sel); await ev(() => { const e = document.querySelector('[data-uib]'); e && e.removeAttribute('data-uib'); });
-      await pg.waitForFunction(() => { const F = window.__game.F; return F && (F.flags.liftoff || (F.alt || 0) > 20); }, null, { timeout: 4000 }).catch(() => {});
+      await pg.waitForFunction(() => { const F = window.__game.F; return F && F.ignited && F.flags.liftoff /* QA f5.8d: real sizes put the pad CoM above 20 m (Heron-9 alt ~26 m), so 'alt > 20' read as liftoff at 0 taps */; }, null, { timeout: 4000 }).catch(() => {});
     }
   } catch (e) { path.push('ERR ' + e.message.split('\n')[0]); }
-  const lifted = await ev(() => { const F = window.__game.F; return !!(F && (F.flags.liftoff || (F.alt || 0) > 20)); }).catch(() => false);
+  const lifted = await ev(() => { const F = window.__game.F; return !!(F && F.ignited && F.flags.liftoff /* QA f5.8d: real sizes put the pad CoM above 20 m (Heron-9 alt ~26 m), so 'alt > 20' read as liftoff at 0 taps */); }).catch(() => false);
 
   // screens (same flow as playtest/ui_audit_menus.cjs + ui_audit.cjs), fresh storage
   await ctx.clearCookies(); await ev(() => localStorage.clear()); await load();
