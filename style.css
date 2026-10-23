@@ -1073,8 +1073,6 @@ body:not(.touch) #build .colH small{display:none}
 body:not(.touch):not(.buildAdv) #palette small,body:not(.touch) #build .dropEnd{display:none}
 body:not(.touch):not(.buildAdv) #palette button,body:not(.touch):not(.buildAdv) #palette > *{min-height:0}
 #sitePick .spSub,#sitePick .spHint{display:none!important}
-body.touch #sitePick .spBodies{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent)}
-body.touch #sitePick .spBodies button{flex:0 0 auto}
 body.touch #sitePick .spInfo{font-size:12px}
 /* f5.7l: split ☰ sits in the free middle, clear of the booster inset and the navball readout */
 @media (orientation:landscape){body.touch.splitOn #mMenu{left:calc(42vw + 10px)!important;right:auto!important;width:min(300px,calc(58vw - 190px))!important;top:calc(60px + var(--sat))!important}body.touch.splitOn #mMenu .mg,body.touch.splitOn #mMenu .mg.mTop{grid-template-columns:repeat(2,1fr)!important}}
@@ -1114,3 +1112,25 @@ body.touch #stack .prow:not(.sel) button,body.touch #stack .prow:not(.sel) .cnt{
 body:not(.touch):not(.buildAdv) #stack .prow:not(.sel):not(:hover) button,body:not(.touch):not(.buildAdv) #stack .prow:not(.sel):not(:hover) .cnt{display:none}
 /* f5.7n: settings sheet: the home screen behind steps back (dimmed, not clickable) */
 body:has(#settings:not(.hidden)) #home{visibility:hidden!important}
+#sitePick .spBodies,#sitePick .spSites{align-items:flex-start!important;align-content:flex-start!important}#sitePick .spBodies button,#sitePick .spSites button{height:auto!important;min-height:36px;flex:0 0 auto} /* f5.7q (QA f5.7n): chips wrap to rows at normal height */
+/* f5.7q (QA f5.7n P2): picker cards compact, makers open under the region tab */
+#picker .pkCo[open] > summary{padding:4px 0!important;min-height:0!important}
+#picker .pkC{min-height:44px!important;padding:6px 10px!important}
+#picker .pkC small{font-size:11px}
+/* phone Build: less chrome so ≥5 rows show at 390 and ≥3 at 844 */
+body.touch #build .bTopRow .bMore{flex:0 0 44px!important}body.touch #build .bTopRow .bMore summary{min-height:44px;display:flex;align-items:center;justify-content:center}
+body.touch #build .bTopRow #homeBack,body.touch #build .bTopRow #launchBtn{min-height:44px!important}
+body.touch #build .bTabs{margin:4px 0!important}body.touch #build .bTabs button{min-height:36px!important}
+body.touch #stack .prow{min-height:40px!important;padding:4px 8px!important}body.touch #stack .prow small{display:inline;margin-left:6px}
+body.touch #stack .prow b{display:inline}
+body.touch #stack .sHd,body.touch #stack .stageH{padding:2px 6px!important;min-height:0!important}
+@media (orientation:portrait){body.touch:not(.home) #build.builder{height:56dvh!important;max-height:56dvh!important}}
+/* desktop Build: the per-stage summary duplicates the stage headers */
+body:not(.touch):not(.buildAdv) #build .bsR,body:not(.touch) #build .bcols .colH{display:none}
+/* phone split: minimal booster inset (speed + altitude only) */
+body.touch #split.pipM #spCardB .spBall,body.touch #split.pipM #spCardB .spR{display:none!important}
+body.touch #split.pipM #spCardB{justify-content:flex-start!important}
+@media (orientation:landscape){body.touch.splitOn #mMenu{left:calc(10px + var(--sal))!important;right:auto!important;top:calc(60px + var(--sat))!important;width:min(330px,40vw)!important}}
+body.touch #navRd,body.touch #navRd *{font-size:12px!important}
+@media (orientation:landscape) and (max-height:500px){#sitePick .spBox{align-content:start!important;grid-auto-rows:min-content!important;overflow-y:auto!important}#sitePick .spMap{grid-row:2 / span 4!important;align-self:start}#sitePick .spAct{grid-row:6!important}#sitePick .spSites button,#sitePick .spBodies button{min-height:30px!important;padding:4px 8px!important;font-size:12px!important}#sitePick .spBodies,#sitePick .spSites{margin:4px 0!important}}
+body.touch #stack .prow:not(.sel) small{display:none!important}
