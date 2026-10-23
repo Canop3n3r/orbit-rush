@@ -2519,12 +2519,20 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
   if (TOUCH && cols) { const lb = $('launchBtn'), hb = $('homeBack'), row = document.createElement('div'); row.className = 'bTopRow'; b.insertBefore(row, b.firstChild); if (hb) row.appendChild(hb); if (lb) { lb.classList.remove('stickyLaunch'); row.appendChild(lb); } const bm = b.querySelector('.bMore'); if (bm) row.appendChild(bm); } /* f5.7q: ⋯ joins the top row (less chrome) */ // f5.7k (QA f5.7i P1): phone Fly sits beside Home at the top of the panel, never over the parts list
   if (!TOUCH && cols) { const lb = $('launchBtn'), row = document.createElement('div'); row.className = 'bTopRow'; const hb = $('homeBack'); b.insertBefore(row, b.querySelector('.bMore') || cols); if (hb) row.appendChild(hb); row.appendChild(b.querySelector('.bMore')); if (lb) row.appendChild(lb); const bm = b.querySelector('.bMore'); if (window.__bAdv && bm) bm.insertBefore(window.__bAdv, bm.querySelector('summary').nextSibling); } /* f5.8b (QA): one control, not ⋯ + ⚙ Advanced: Advanced lives inside ⋯ */
 }
+{ // f5.8d (QA f5.8c P1): ⋯ opens a few labelled groups instead of a dump: Start from · My designs · Launch · More
+  const bm = document.querySelector('#build .bMore'); if (bm && !bm.querySelector('.bmPanel')) { const pn = document.createElement('div'); pn.className = 'bmPanel';
+    const grp = (t, els) => { els = els.filter(Boolean); if (!els.length) return; const g = document.createElement('section'); g.className = 'bmG'; g.innerHTML = `<h5>${t}</h5>`; const row = document.createElement('div'); row.className = 'bmR'; els.forEach(e => row.appendChild(e)); g.appendChild(row); pn.appendChild(g); };
+    const lab = id => { const e = $(id); return e && e.closest('label.chk'); };
+    grp('Start from', [$('presets')]); grp('My designs', [bm.querySelector('.saved')]); grp('Launch', [lab('earthRot'), lab('inclIn')]);
+    grp('More', [window.__bAdv, lab('fxSel'), lab('gfxSel'), $('creditsBtn')]);
+    [...bm.children].forEach(c => { if (c.tagName !== 'SUMMARY' && c !== pn) { c.classList.add('bmOld'); } }); bm.appendChild(pn);
+    bm.addEventListener('toggle', () => { pn.classList.toggle('on', bm.open); if (bm.open) document.body.appendChild(pn); else bm.appendChild(pn); }); document.addEventListener('pointerdown', e => { if (bm.open && !e.target.closest('.bmPanel,.bMore')) bm.open = false; }, true); } } // the panel lives on <body> while open so it sits above the Build columns
 { // f5.1h: grouped rocket picker: Originals first, then one section per launch house; the builder lives behind Sandbox
   const SBK = 'orbitrush.sandbox', sbOn = () => { try { return localStorage.getItem(SBK) === '1'; } catch (e) { return false; } };
   const pk = document.createElement('div'); pk.id = 'picker'; pk.className = 'gal'; ($('hGal') || document.body).appendChild(pk); // f5.8 (Aaron): the picker IS the home gallery
   const nav = () => { const b = $('hnBuild'); if (b) b.classList.remove('hidden'); }; // f5.4l (QA f5.4i #5): Build is 1 tap from Home (was ▦ › Sandbox › Build)
   const render = () => { pk.innerHTML = pickerHTML({ sandbox: sbOn(), sets: HOUSE_SETS, name: houseName, role: id => (CLASS_OF[baseOf(id)] || 'Super-heavy') + (specFor(id) ? ' · Payload ' + fmtPay(payloadT(id)) : ' · ' + Math.round((ART[id] && ART[id].height) || 50) + ' m'), locked: id => !!lockWhy('vehicles', SHOW[baseIdx(id)].id),
-    originals: SHOW.map((r, i) => ({ i, name: r.name, maker: r.house ? (SHORT_HOUSE[r.house] || r.house) : 'Original', locked: !!lockWhy('vehicles', r.id), thumb: r.model || r.id })).filter(o => !RETIRED.has(SHOW[o.i].id)), pinned: {} }); markSel(); }; // f5.8: Featured = the curated home rockets
+    originals: SHOW.map((r, i) => ({ i, name: r.name, maker: r.house ? (SHORT_HOUSE[r.house] || r.house) : 'Original', locked: !!lockWhy('vehicles', r.id), thumb: r.model || r.id })).filter(o => !RETIRED.has(SHOW[o.i].id)), pinned: {}, flat: true }); markSel(); }; // f5.8: Featured = the curated home rockets
   const close = () => { markSel(); }; // f5.8: the gallery stays; selecting just updates the hero
   function markSel() { pk.querySelectorAll('.pkC.on').forEach(c => c.classList.remove('on')); const c = pickModel ? pk.querySelector(`.pkC[data-m="${pickModel}"]`) : home && pk.querySelector(`.pkC[data-i="${home.index}"]`); if (c) c.classList.add('on'); }
   window.__galMark = markSel; pk.addEventListener('click', () => setTimeout(markSel, 0)); addEventListener('career-change', () => render());
@@ -2535,6 +2543,7 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
   pk.addEventListener('input', e => { if (e.target.id === 'pkQ') { pk.classList.toggle('pkSearch', !!e.target.value.trim()); filterPicker(pk, e.target.value); } });
   pk.addEventListener('click', e => { const t = e.target;
     if (t.closest('#pkClose')) return close();
+    if (t.closest('#pkClr')) { const q = $('pkQ'); q.value = ''; pk.classList.remove('pkSearch'); filterPicker(pk, ''); q.focus(); return; }
     { const tb = t.closest('.pkTab'); if (tb) { pk.querySelectorAll('.pkTab').forEach(b => b.classList.toggle('on', b === tb)); pk.querySelectorAll('.pkR').forEach(r => r.classList.toggle('off', r.dataset.rg !== tb.dataset.rg)); return; } }
     if (t.closest('#pkSandbox')) { try { localStorage.setItem(SBK, sbOn() ? '0' : '1'); } catch (er) { } dispatchEvent(new Event('career-change')); nav(); render(); return; }
     if (t.closest('#pkBuild')) { close(); goBuild.toHome = true; home.show(false); refreshBuild(); return; }

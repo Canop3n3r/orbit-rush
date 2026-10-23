@@ -18,7 +18,8 @@ export const REGIONS = [
 export function filterPicker(root, q) { q = String(q || '').trim().toLowerCase();
   for (const c of root.querySelectorAll('.pkC')) c.classList.toggle('pkHide', !!q && !c.textContent.toLowerCase().includes(q) && !(c.closest('.pkCo') && c.closest('.pkCo').querySelector('summary').textContent.toLowerCase().includes(q)));
   for (const d of root.querySelectorAll('details.pkCo,details.pkLk')) { const any = d.querySelector('.pkC:not(.pkHide)'); if (q) d.open = !!any; else d.open = false; d.classList.toggle('pkHide', !!q && !any); }
-  for (const sct of root.querySelectorAll('section')) sct.classList.toggle('pkHide', !!q && !sct.querySelector('.pkC:not(.pkHide)')); }
+  for (const sct of root.querySelectorAll('section')) sct.classList.toggle('pkHide', !!q && !sct.querySelector('.pkC:not(.pkHide)'));
+  root.classList.toggle('pkQon', !!q); const no = root.querySelector('.pkNone'); if (no) no.hidden = !q || !!root.querySelector('section:not(.pkHide) .pkC:not(.pkHide)'); const cl = root.querySelector('#pkClr'); if (cl) cl.hidden = !q; } // f5.8d (QA): a search looks in every tab, says when nothing matches, and has a clear ✕
 // which flyable showroom stack a house model rides on (physics flies the part stack; the art is the hero model)
 export const baseFor = h => (h < 30 ? 'needle' : h < 80 ? 'swift' : h < 115 ? 'atlas' : 'heavy'); // 'heavy' = the super-heavy Originals card (main.js resolves it)
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -31,15 +32,17 @@ export const SHORT = { spacey: 'Spacey', civspace: 'Civil', arion: 'Arion', albi
   rocketwell: 'RocketWell', skyland: 'Skyland', southstar: 'Southstar', unilift: 'Unilift' };
 // size class from the stack the rocket really flies on (one rule for every card, so a rocket never gets two sizes)
 export const CLASS_OF = { pip: 'Sounding rocket', needle: 'Small launcher', swift: 'Medium launcher', heron: 'Medium launcher', atlas: 'Heavy lifter', 'booster-2': 'Heavy lifter', heavy: 'Super-heavy' }; // any other base is the super-heavy Originals stack
-export function pickerHTML({ originals = [], pinned = {}, sets, name, sandbox, role = () => '', locked = () => false }) {
+export function pickerHTML({ originals = [], pinned = {}, sets, name, sandbox, role = () => '', locked = () => false, flat = false }) {
   const card = (attr, nm, sub, lk, th) => `<button class="pkC${lk ? ' lk' : ''}" ${attr}${th ? ` data-th="${esc(th)}"` : ''}>${th ? `<img class="pkT" loading="lazy" src="thumbs/${esc(th)}.webp" alt="" onerror="this.remove()">` : ''}<b>${lk ? '🔒 ' : ''}${esc(nm)}</b><small>${esc(sub)}</small></button>`; // f5.8: thumbnail baked from the game's model
-  const tabs = []; let h = `<div class="pkH"><input id="pkQ" type="search" placeholder="Search" aria-label="Search rockets" autocomplete="off"><button id="pkSandbox" class="pkSw" role="switch" aria-checked="${sandbox ? 'true' : 'false'}" title="Sandbox: every rocket unlocked"><i></i>Sandbox</button></div><!--pkTabs-->`;
+  const tabs = []; let h = `<div class="pkH"><span class="pkQw"><input id="pkQ" type="search" placeholder="Search" aria-label="Search rockets" autocomplete="off"><button id="pkClr" aria-label="Clear search" hidden>✕</button></span><button id="pkSandbox" class="pkSw" role="switch" aria-checked="${sandbox ? 'true' : 'false'}" title="Sandbox: every rocket unlocked"><i></i>Sandbox</button></div><!--pkTabs--><p class="pkNone" hidden>No matches</p>`;
   
   if (originals.length) { tabs.push('Featured'); h += `<section class="pkR" data-rg="Featured"><h4>Featured</h4><div class="pkG">${originals.map(o => card(`data-i="${o.i}"`, o.name, o.maker || 'Original', o.locked, o.thumb)).join('')}</div></section>`; }
   const dup = new Set(originals.map(o => o.name.toLowerCase())); // f5.2: a rocket already in Originals is not listed again under its house
   const lockedFold = (cards) => cards.length ? `<details class="pkLk"><summary>🔒 ${cards.length} more locked</summary><div class="pkG">${cards.join('')}</div></details>` : '';
   // f5.4j (QA declutter): 4 regions instead of 28 sections; each launch house folds (tap to open) and a search box filters every card
   for (const [rg, keys] of REGIONS) { let body = '', n = 0;
+    if (flat) { const cs = []; for (const k of keys) { const ids = (sets[k] || []).filter(id => !dup.has(String(name(id)).toLowerCase())); for (const o of pinned[k] || []) cs.push(card(`data-i="${o.i}"`, o.name, SHORT[k] || k, o.locked, o.thumb)); for (const id of ids) cs.push([locked(id), card(`data-m="${esc(id)}"`, name(id), SHORT[k] || k, locked(id), id)]); }
+      const flatC = cs.map(c => (Array.isArray(c) ? c : [false, c])).sort((a, b) => a[0] - b[0]).map(c => c[1]); if (flatC.length) { tabs.push(rg); h += `<section class="pkR${tabs.length > 1 ? ' off' : ''}" data-rg="${esc(rg)}"><h4>${rg}</h4><div class="pkG">${flatC.join('')}</div></section>`; } continue; } // f5.8d (QA): one gap-free grid per region on the gallery Home
     for (const k of keys) { const ids = (sets[k] || []).filter(id => !dup.has(String(name(id)).toLowerCase())), pin = pinned[k] || []; if (!ids.length && !pin.length) continue;
       const open = ids.filter(id => !locked(id)), shut = ids.filter(id => locked(id)); n += ids.length + pin.length;
       body += `<details class="pkCo" open data-h="${esc(k)}"><summary>${esc(SHORT[k] || k)} <small>${open.length + pin.length}${shut.length ? ' · 🔒' + shut.length : ''}</small></summary>${pin.length ? `<div class="pkG">${pin.map(o => card(`data-i="${o.i}"`, o.name, SHORT[k] || k, o.locked, o.thumb)).join('')}</div>` : ''}${open.length ? `<div class="pkG">${open.map(id => card(`data-m="${esc(id)}"`, name(id), SHORT[k] || k, false, id)).join('')}</div>` : ''}${lockedFold(shut.map(id => card(`data-m="${esc(id)}"`, name(id), SHORT[k] || k, true, id)))}</details>`; }
