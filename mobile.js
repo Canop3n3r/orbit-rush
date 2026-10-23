@@ -3,7 +3,7 @@
 // a vertical throttle slider, a big STAGE button (the double-press guard lives in flight.js), and an
 // overflow menu (☰) for SAS modes, RCS, warp, map, chutes, deorbit, booster, effects, Learn, fullscreen.
 // Haptics (navigator.vibrate), Wake Lock while flying, safe areas are in style.css (env(safe-area-inset-*)).
-import { menuHTML, menuUpdate } from './fun/flightmenu.js?v=f5.7n';
+import { menuHTML, menuUpdate } from './fun/flightmenu.js?v=f5.7q';
 const qs = new URLSearchParams(location.search);
 export const isTouch = () => qs.has('touch') || (!qs.has('desktop') && matchMedia('(pointer: coarse)').matches);
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
