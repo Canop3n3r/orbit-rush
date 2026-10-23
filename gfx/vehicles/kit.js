@@ -1,8 +1,8 @@
 // Geometry kit: every part is added with a local transform and baked into ONE merged mesh per material
 // (a whole vehicle stage = a handful of draw calls). Materials are shared across all vehicles.
 import * as THREE from 'three/webgpu';
-import * as T from './textures.js?v=f5.8a';
-import { decalTexture } from './decals.js?v=f5.8a';
+import * as T from './textures.js?v=f5.8b';
+import { decalTexture } from './decals.js?v=f5.8b';
 // own merge (all inputs are non-indexed with position/normal/uv), so the module needs no bare 'three' import
 export function mergeGeometries(gs) { const out = new THREE.BufferGeometry(); for (const [a, n] of [['position', 3], ['normal', 3], ['uv', 2]]) { let len = 0; for (const g of gs) len += g.attributes[a].array.length; const arr = new Float32Array(len); let o = 0; for (const g of gs) { arr.set(g.attributes[a].array, o); o += g.attributes[a].array.length; } out.setAttribute(a, new THREE.BufferAttribute(arr, n)); } return out; }
 const MATS = new Map();

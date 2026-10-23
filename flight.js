@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.8a';
-import * as C from './physics/patched.js?v=f5.8a';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.8a';
-import { designReusable } from './vehicles/reusable.js?v=f5.8a';
+import * as P from './physics.js?v=f5.8b';
+import * as C from './physics/patched.js?v=f5.8b';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.8b';
+import { designReusable } from './vehicles/reusable.js?v=f5.8b';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -973,7 +973,7 @@ export class Flight {
     if (v.cur === 0 && this.last > 0 && h > 20000 && !this.autoOn) return this.boosterCanLand() ? `Stage now — booster has ${s1.fuel.toFixed(1)} t, enough to land` : `⚠ Booster ${s1.fuel.toFixed(1)} t: no longer enough to land it — stage soon (SPACE twice)`;
     if (fuelLeft <= 0 && !f.orbit) return 'Out of fuel — suborbital';
     if (f.orbit && !engineOn && this.rec.capsule && this.rec.chute && (!b || b.state !== 'flying')) return 'In orbit 🛰️ — press O to deorbit and bring the capsule home';
-    if (f.orbit) return engineOn ? 'In orbit! Cut throttle (X)' : b && b.state === 'flying' ? 'Orbit! Watch the booster: B · fly it: Y' : 'Orbit achieved 🛰️';
+    if (f.orbit) return engineOn ? 'In orbit! Cut throttle (X)' : b && b.state === 'flying' ? 'Orbit! Watch the booster: B · fly it: Y' : ''; // f5.8b (QA): the ORBIT banner is the one orbit toast; no second 'Orbit achieved' hint
     if (v.auto) return 'Upper stage on AUTO (flying to orbit) — press Z/X/F or steer to take over';
     if (this.autoOn) {
       const tAp = P.timeToApV(v);
