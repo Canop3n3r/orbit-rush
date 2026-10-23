@@ -1279,3 +1279,43 @@ body.touch.autoOn #gcamBtn,body.touch.autoOn #navSasT,body.touch.autoOn #wDn,bod
 body.photo #nav,body.photo #navSasT,body.photo #navBall{display:none!important}
 body.photo #relBtn,body.photo #dCtl,body.photo #plain,body.photo #warpBar,body.photo #topStack,body.photo #spPane,body.photo .spCard{display:none!important}
 #hGal #picker details.pkRow > summary::marker{content:""}#hGal #picker details.pkRow > summary::before{content:none!important;display:none!important}
+/* f5.8g (QA P1): collapsed phone Build — top row + one stat line (≤35% of the screen), tap ✎ to expand to the full editor */
+#bMini{display:none}
+body.touch #bMini{display:flex;align-items:center;gap:8px;margin:6px 0 0;min-height:44px;padding:0 4px 0 10px;border-radius:12px;background:#111b30;border:1px solid #22324f;cursor:pointer}
+body.touch #bMini #bStat{flex:1;font:700 14px var(--mono,monospace);color:#dfe9ff}body.touch #bMini #bStat.low{color:#ffb35c}
+body.touch #bMini #bExp{width:44px;height:40px;min-height:0!important;padding:0!important;background:none!important;border:0!important;font-size:18px;color:#9fc3ff}
+body.touch.bCol:not(.home) #build.builder{height:auto!important;max-height:35dvh!important;min-height:0!important}
+body.touch.bCol #build.builder > :not(.bTopRow):not(#bMini){display:none!important}
+body.touch.bCol #build .bTopRow #homeBack{font-size:0!important}body.touch.bCol #build .bTopRow #homeBack::before{content:'‹';font-size:24px}
+body > .bmPanel .bmSub > summary{list-style:none;display:inline-flex;align-items:center;min-height:36px;padding:4px 12px;border-radius:12px;border:1px solid #2c4166;color:#9fc3ff;font:600 12px var(--ui,system-ui);cursor:pointer}
+body > .bmPanel .bmSub > summary::-webkit-details-marker{display:none}
+body > .bmPanel .bmSub[open] > summary{margin-bottom:6px}
+body > .bmPanel .bmG .bmR > .bmSub{flex-basis:auto}
+body > .bmPanel .bmSub[open]{flex-basis:100%}
+@media (orientation:landscape) and (max-height:500px){body > .bmPanel.on{left:calc(8px + env(safe-area-inset-left,0px))!important;right:auto!important;top:8px!important;bottom:8px!important;width:min(420px,48vw)!important;max-height:none!important;height:auto}}
+/* f5.8g (QA P1): 📍 sheet — chips wrap, Earth/Moon/Mars + More worlds…, current pad once; landscape sits over the gallery (never over Fly / the name card) */
+#sitePick .spBodies{flex-wrap:wrap!important;overflow:visible!important}
+#sitePick:not(.worlds) .spBodies .spB2{display:none!important}
+#sitePick .spWorlds{background:none!important;border:1px solid #2c4166!important;color:#9fc3ff!important}
+#sitePick .spBodies button,#sitePick .spSites button{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (orientation:landscape){#sitePick{justify-content:flex-end!important;align-items:stretch!important}#sitePick .spBox{position:static!important;width:min(440px,46vw)!important;max-height:100dvh!important;border-radius:16px 0 0 16px!important}}
+@media (orientation:landscape) and (min-height:501px){#sitePick .spBox{width:min(560px,46vw)!important}}
+@media (min-width:1600px) and (orientation:landscape){#sitePick .spBox{width:min(820px,46vw)!important}}
+/* f5.8g (QA): one fold marker per company row (the left ▸/▾), no second one on the right */
+#hGal #picker details.pkRow > summary::after{content:none!important;display:none!important}
+#hGal #picker details.pkRow > summary::before{content:'▸'!important;display:inline!important;color:#7f93b3}
+#hGal #picker details.pkRow[open] > summary::before{content:'▾'!important}
+@media (orientation:portrait){#hGal{height:40dvh!important}#home #hCard{bottom:calc(40dvh + 8px)!important}}
+#hGal #picker .pkTabs{display:flex!important;gap:4px!important;flex-wrap:nowrap}#hGal #picker .pkTabs .pkTab{flex:1 1 auto!important;min-width:0;padding:0 6px!important;font-size:13px!important;white-space:nowrap}
+/* f5.8g (QA P2): same warp controls on every screen size; none on the pad */
+#wVal{display:none!important}
+#wDn[hidden],#wUp[hidden]{display:none!important}
+#wUp{position:relative}#wUp[data-x]:not([data-x=""])::after{content:attr(data-x);position:absolute;right:2px;bottom:1px;font:700 9px var(--mono,monospace);color:#ffd27a}
+body.touch.autoOn #wDn:not([hidden]){display:inline-flex!important}
+/* f5.8g: phone gallery in 40% — 4 cards per row so a row of pictures is always in view */
+@media (orientation:portrait) and (max-width:600px){#hGal #picker .pkG:not(.pkStrip){grid-template-columns:repeat(4,1fr)!important;gap:6px!important}#hGal #picker .pkG:not(.pkStrip) .pkC .pkT{height:104px!important}#hGal #picker .pkC b{font-size:12px!important}#hGal #picker .pkStrip{grid-auto-columns:86px!important}#hGal #picker .pkStrip .pkC .pkT{height:104px!important}}
+/* expanded phone Build: the stat bar folds into a small ▾ button so the parts list keeps its rows */
+body.touch:not(.bCol) #bMini{position:absolute;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:5;margin:0;padding:0;width:44px;min-height:44px;justify-content:center;border-radius:22px;background:#1a2a4a}
+body.touch:not(.bCol) #bMini #bStat{display:none}
+@media (orientation:landscape) and (max-height:500px){#sitePick .spBox{width:min(330px,40vw)!important}body > .bmPanel.on{width:min(330px,39vw)!important}}
+@media (orientation:landscape) and (max-height:500px){body > .bmPanel.on{bottom:auto!important;max-height:calc(100dvh - 16px)!important}}
