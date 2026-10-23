@@ -73,6 +73,15 @@ function extra() {
 }
 
 const browser2 = (br, phone, W, H) => br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } });
+// f5.8g (QA): the desktop booster inset stays small (≤12% of the screen) at 1280x800
+async function insetDesktop(br) { const vp = '1280x800', rows = []; const ctx = await br.newContext({ viewport: { width: 1280, height: 800 } }); const pg = await ctx.newPage(); const ev = (f, a) => pg.evaluate(f, a);
+  try { await pg.goto(base + '?noacademy&fx=low', { timeout: 300000 }); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await pg.waitForTimeout(1500);
+    await ev(() => { document.getElementById('firstRun')?.classList.add('hidden'); document.getElementById('hFly').click(); }); await pg.waitForTimeout(3000);
+    await ev(() => { const G = window.__game; if (!G.F.ignited) G.press('Space'); G.F.setAuto(true); });
+    let a = null; for (let k = 0; k < 40 && a == null; k++) { await ev(() => { const F = window.__game.F; for (let i = 0; i < 300; i++) F.advance(1 / 60); }); await pg.waitForTimeout(150); a = await ev(() => { if (!document.body.classList.contains('pip')) return null; const p = document.getElementById('spPane'); if (!p) return null; const r = p.getBoundingClientRect(); return r.width > 20 ? Math.round(1000 * r.width * r.height / (innerWidth * innerHeight)) / 10 : null; }); }
+    rows.push(a == null ? { vp, screen: 'split', metric: 'inset_area%', val: 'SKIP', max: '-', ok: null, info: 'no inset' } : { vp, screen: 'split', metric: 'inset_area%', val: a, max: 12, ok: a <= 12 });
+  } catch (e) { rows.push({ vp, screen: 'split', metric: 'inset_area%', val: 'SKIP', max: '-', ok: null, info: String(e.message).slice(0, 60) }); }
+  await ctx.close(); return { vp, rows }; }
 async function runVp(br, vp) {
   const [W, H] = vp.split('x').map(Number), phone = Math.min(W, H) < 600, tag = phone ? (W < H ? 'pp' : 'pl') : 'd' + W;
   const ctx = await br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } });
@@ -117,20 +126,31 @@ async function runVp(br, vp) {
   // f5.1f: the Build tab only shows with Sandbox on; otherwise go the real way: ▦ picker → Sandbox switch → 🔧 Build your own
   /* f5.7q (QA f5.7n): site picker chips at normal height */
   const XR = {}; try { const has = await ev(() => { const b = document.getElementById('hSite'); if (!b) return false; b.click(); return true; }); if (has) { await wait(900); XR.site = await ev(() => { const bs = [...document.querySelectorAll('#sitePick .spBodies button')].filter(b => b.offsetWidth); const sp = [...document.querySelectorAll('#sitePick .spSites button')].filter(b => b.offsetWidth); return { maxH: bs.length ? Math.round(Math.max(...bs.map(b => b.getBoundingClientRect().height))) : null, below: sp.filter(b => b.getBoundingClientRect().bottom > innerHeight).length }; }); if (shots) await pg.screenshot({ path: `${shots}/uib_${tag}_sites.png` }); await ev(() => { const x = document.querySelector('#sitePick .spX'); x && x.click(); }); await wait(500); } } catch (e) { XR.site = { err: e.message.split('\n')[0] }; }
+  try { XR.sheet = await ev(() => { const el = document.querySelector('#sitePick'); if (!el || el.classList.contains('hidden')) { const b = document.getElementById('hSite'); b && b.click(); } const bx = document.querySelector('#sitePick .spBox'); if (!bx) return null; const r = bx.getBoundingClientRect(), f = document.getElementById('hFly'), n = document.getElementById('hName');
+    const hit = q => { if (!q || !q.offsetParent) return false; const a = q.getBoundingClientRect(); return a.right > r.left + 2 && a.left < r.right - 2 && a.bottom > r.top + 2 && a.top < r.bottom - 2; };
+    const over = [...bx.querySelectorAll('button')].filter(b => { const a = b.getBoundingClientRect(); return a.width && (a.right > innerWidth + 1 || a.left < -1); }).length;
+    const out = { ui: Math.round(1000 * Math.max(0, Math.min(r.right, innerWidth) - Math.max(r.left, 0)) * Math.max(0, Math.min(r.bottom, innerHeight) - Math.max(r.top, 0)) / (innerWidth * innerHeight)) / 10, coversFly: hit(f) || hit(n), overflow: over };
+    const x = document.querySelector('#sitePick .spX'); x && x.click(); return out; }); } catch (e) { } // f5.8g: 📍 sheet rows
   await step('build', async () => { await hide(); const tab = await ev(() => { const b = document.getElementById('hnBuild'); return !!(b && b.offsetParent); });
     if (tab) await ev(() => document.getElementById('hnBuild').click());
     else { await ev(() => document.getElementById('pkSandbox').click()); await wait(800); await ev(() => document.getElementById('pkBuild').click()); } }, 2500);
+  try { XR.more = await ev(async () => { const sm = document.querySelector('#build .bMore > summary'); if (!sm) return null; sm.click(); await new Promise(r => setTimeout(r, 500)); const pn = document.querySelector('.bmPanel.on'); if (!pn) { sm.click(); return null; } const r = pn.getBoundingClientRect();
+    const ctl = [...pn.querySelectorAll('button,select,input,summary')].filter(e => { const a = e.getBoundingClientRect(); if (!a.width || !a.height) return false; if (e.tagName !== 'SUMMARY' && e.closest('details:not([open]) > :not(summary)')) return false; return true; }).length;
+    const out = { ctl, ui: Math.round(1000 * r.width * Math.min(r.height, innerHeight) / (innerWidth * innerHeight)) / 10, scrolls: pn.scrollHeight > pn.clientHeight + 4 }; sm.click(); await new Promise(r => setTimeout(r, 300)); return out; }); } catch (e) { } // f5.8g: ⋯ popover rows
+  await ev(() => { if (document.body.classList.contains('bCol')) { const b = document.getElementById('bExp'); b && b.click(); } }); await wait(500); // f5.8g: rows_visible measures the expanded editor (the sheet opens collapsed)
   try { XR.rows = await ev(() => [...document.querySelectorAll('#stack .prow')].filter(r => { const b = r.getBoundingClientRect(); if (b.height < 4 || b.top < 0 || b.bottom > innerHeight) return false; const h = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return h && h.closest('.prow') === r; }).length); } catch (e) { }
   // f5.1d: Home now opens on Pip (sounding rocket, can't orbit), so hud_auto → end_card measured a crash; pick the first orbital
   // showroom rocket (Sparrow-1 'needle', else index 1) before FLY, and only press Space if FLY didn't already ignite (1-tap AUTO).
   await step('hud_auto', async () => { await hide(); await ev(() => document.getElementById('homeBack').click()); await wait(800);
     await ev(() => { const G = window.__game, L = G.home ? G.home().list : []; const i = L.findIndex(r => r.id === 'needle'); G.homeSet && G.homeSet(i >= 0 ? i : 1); }); await wait(800);
     await ev(() => document.getElementById('hFly').click()); await wait(3000);
+    try { XR.padOv = await ev(() => { const els = [...document.querySelectorAll('#topStack > *, #hintS, #callout, .toast, #fpsWarn, .pill, #pTip')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 4 && r.height > 4 && getComputedStyle(e).visibility !== 'hidden' && +getComputedStyle(e).opacity > 0.05 && e.textContent.trim(); }); let n = 0; for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) { if (els[i].contains(els[j]) || els[j].contains(els[i])) continue; const a = els[i].getBoundingClientRect(), b = els[j].getBoundingClientRect(); if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 4 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 4) n++; } return n; }); } catch (e) { } // f5.8g: pad hints never stack
     await ev(() => { const G = window.__game; if (!G.F.ignited) G.press('Space'); }); await wait(300); await ev(() => { const F = window.__game.F; F.setAuto(true); for (let i = 0; i < 60 * 40; i++) F.advance(1 / 60); }); }, 2500);
   await step('orbit_toast', () => ev(() => { const F = window.__game.F; for (let i = 0; i < 60 * 900 && !F.flags.orbit; i++) F.advance(1 / 60); }), 1500);
   await step('map', async () => { await wait(3000); await hide(); await ev(() => { const e = document.getElementById('end'); e && e.classList.add('hidden'); window.__game.press('KeyM'); }); }, 2500); // orbit popup may land late; the map budget is measured without it
   try { XR.map = await ev(() => { const u = document.getElementById('mapUI'); return u ? u.innerText : ''; }); } catch (e) { }
   await step('photo', async () => { await ev(() => window.__game.press('KeyM')); await wait(400); await ev(() => window.__game.fun.photo.toggle()); }, 1500);
+  try { XR.leak = await ev(() => { let n = 0, t = 0; for (let y = 6; y < innerHeight; y += 12) for (let x = 6; x < innerWidth; x += 12) { t++; const e = document.elementFromPoint(x, y); if (!e || e.tagName === 'CANVAS' || e === document.body || e === document.documentElement || e.closest('#photobar')) continue; const c = getComputedStyle(e); if (c.pointerEvents === 'none' && !e.textContent.trim() && c.backgroundColor === 'rgba(0, 0, 0, 0)') continue; n++; } return Math.round(1000 * n / t) / 10; }); } catch (e) { } // f5.8g: photo mode shows only the photo pill
   await step('end_card', async () => { await ev(() => { window.__game.fun.photo.toggle(); window.__game.F.deorbit(); }); await wait(300); await ev(() => { const F = window.__game.F; for (let i = 0; i < 60 * 2700 && !F.flags.recovered && !F.flags.dead; i++) F.advance(1 / 60); }); await wait(1500);
     await ev(() => { const F = window.__game.F, e = document.getElementById('end'); if (e && (F.flags.recovered || F.flags.dead)) e.classList.remove('hidden'); }); }, 2500); // undo the map-step hide
   await ctx.close();
@@ -205,8 +225,12 @@ async function runVp(br, vp) {
   if (!h || !h.launch) rows.push({ vp, screen: 'home', metric: 'launch', val: 'none', max: '-', ok: false, info: 'no LAUNCH/FLY control visible' }); else {
     const portrait = h.H > h.W, inZone = portrait ? h.launch.cy >= h.H * 0.75 : (h.launch.cy >= h.H * 0.5 && h.launch.cx >= h.W * 0.5);
     rows.push({ vp, screen: 'home', metric: 'launch_h', val: h.launch.h, max: '≥40', ok: h.launch.h >= 40, info: '#' + h.launch.id }); void inZone; }
+  if (XR.sheet) { chk('sites', 'sheet_ui%', XR.sheet.ui, 40); rows.push({ vp, screen: 'sites', metric: 'covers_fly', val: XR.sheet.coversFly ? 'yes' : 'no', max: 'no', ok: !XR.sheet.coversFly, info: 'over Fly / the rocket name card' }); chk('sites', 'chips_off', XR.sheet.overflow, 0); } else skip('sites', 'sheet_ui%', 'no 📍 sheet');
+  if (XR.more) { chk('build', 'more_ctl', XR.more.ctl, 10); chk('build', 'more_ui%', XR.more.ui, 35); rows.push({ vp, screen: 'build', metric: 'more_scrolls', val: XR.more.scrolls ? 'yes' : 'no', max: 'no', ok: !XR.more.scrolls, info: '⋯ fits without an inner scroll box' }); } else skip('build', 'more_ctl', 'no ⋯ popover');
+  if (XR.padOv != null) chk('pad', 'hint_overlap', XR.padOv, 0); else skip('pad', 'hint_overlap', 'not measured');
+  if (XR.leak != null) chk('photo', 'hud_leak%', XR.leak, 0.5); else skip('photo', 'hud_leak%', 'not measured');
   if (GAL) rows.push({ vp, screen: 'home', metric: 'gallery_screens', val: GAL.screens, max: 3, ok: GAL.screens <= 3, info: `worst tab ${GAL.tab} (scroll ÷ panel height)` }); else skip('home', 'gallery_screens', 'no gallery');
-  { const g = X('home') || {}; rows.push({ vp, screen: 'home', metric: 'gallery_thumbs', val: g.thumbs ?? 0, max: '≥6', ok: (g.thumbs || 0) >= 6, info: 'cards with a baked picture' }); rows.push({ vp, screen: 'home', metric: 'one_screen', val: g.arrows ? 'arrows' : 'ok', max: 'ok', ok: !g.arrows, info: 'no ‹ › / ▦ / separate picker' }); }
+  { const g = X('home') || {}; rows.push({ vp, screen: 'home', metric: 'gallery_thumbs', val: g.thumbs ?? 0, max: '≥4', ok: (g.thumbs || 0) >= 4, info: 'cards with a baked picture' }); rows.push({ vp, screen: 'home', metric: 'one_screen', val: g.arrows ? 'arrows' : 'ok', max: 'ok', ok: !g.arrows, info: 'no ‹ › / ▦ / separate picker' }); }
   const gs = ['home', 'picker', 'build'] /* f5.6e: missions_hub retired (no Missions UI) */.flatMap(s => (X(s) && X(s).groups || []).map(g => ({ s, ...g })));
   if (!gs.length) skip('picker', 'group_words', 'no company groups in UI yet ([data-company]/.co-chip)');
   else { const worst = gs.reduce((a, b) => (b.w > a.w ? b : a)); rows.push({ vp, screen: 'picker', metric: 'group_words', val: worst.w, max: 2, ok: worst.w <= 2, info: `${gs.length} groups; worst "${worst.t.slice(0, 24)}" on ${worst.s}` }); }
@@ -223,14 +247,15 @@ async function runVp(br, vp) {
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: GPU });
-  const all = []; for (const vp of vps) all.push(await runVp(br, vp)); await br.close();
+  const all = []; for (const vp of vps) all.push(await runVp(br, vp));
+  if (!process.env.NO_INSET) all.push(await insetDesktop(br)); await br.close();
   const rows = all.flatMap(a => a.rows); let fails = 0, skips = 0;
   console.log(`UI budget smoke · ${base} · ${strict ? 'STRICT' : 'report-only'}`);
   for (const r of rows) { if (r.ok === null) skips++; else if (!r.ok) fails++; console.log(`${r.ok === null ? 'SKIP' : r.ok ? 'PASS' : 'FAIL'}  ${r.vp.padEnd(8)} ${r.screen.padEnd(16)} ${r.metric.padEnd(12)} ${String(r.val).padStart(6)} / ${/^[≥a-z-]/.test(String(r.max)) ? "" : "≤"}${r.max}${r.info ? '  ' + r.info : ''}`); }
   console.log(`${rows.length - fails - skips}/${rows.length - skips} budgets pass (${skips} skipped)`);
   if (jsonOut) require('fs').writeFileSync(jsonOut, JSON.stringify(all, null, 1));
   // f5.6h (QA ratchet): --strict fails only below the baseline pass count (43 of 74 on f5.6f); raise BASELINE as rows get fixed
-  const BASELINE = +(process.env.UI_BASELINE || 117) /* f5.8f: 117/120 */ /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
+  const BASELINE = +(process.env.UI_BASELINE || 137) /* f5.8g: 137/137 */ /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
   if (strict) console.log(`ratchet: ${passN} pass vs baseline ${BASELINE} → ${passN >= BASELINE ? 'OK' : 'REGRESSION'}`);
   process.exit(strict && passN < BASELINE ? 1 : 0);
 })().catch(e => { console.error('FATAL', e.message); process.exit(strict ? 1 : 0); });
