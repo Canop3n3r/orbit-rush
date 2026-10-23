@@ -1319,3 +1319,31 @@ body.touch:not(.bCol) #bMini{position:absolute;right:8px;bottom:calc(8px + env(s
 body.touch:not(.bCol) #bMini #bStat{display:none}
 @media (orientation:landscape) and (max-height:500px){#sitePick .spBox{width:min(330px,40vw)!important}body > .bmPanel.on{width:min(330px,39vw)!important}}
 @media (orientation:landscape) and (max-height:500px){body > .bmPanel.on{bottom:auto!important;max-height:calc(100dvh - 16px)!important}}
+/* f5.8h (QA f5.8g P1): desktop Build collapsed card */
+body:not(.touch) #bMini{display:flex;align-items:center;gap:10px;margin:8px 0 0;min-height:44px;padding:0 6px 0 12px;border-radius:12px;background:#111b30;border:1px solid #22324f;cursor:pointer}
+body:not(.touch) #bMini #bStat{flex:1;font:700 15px var(--mono,monospace);color:#dfe9ff;white-space:nowrap}body:not(.touch) #bMini #bStat.low{color:#ffb35c}
+body:not(.touch) #bMini #bExp{min-height:36px;padding:0 12px;border-radius:10px;background:#1a2a4a;border:1px solid #2c4166;color:#9fc3ff;font:600 13px var(--ui,system-ui);white-space:nowrap}
+body:not(.touch).bCol:not(.home) #build.builder{height:auto!important;max-height:none!important;min-height:0!important;width:auto!important;max-width:460px;right:auto!important;bottom:auto!important}
+body:not(.touch).bCol #build.builder > :not(.bTopRow):not(#bMini){display:none!important}
+.stageH span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.stageH em{white-space:nowrap}
+/* f5.8h: photo mode = only the photo pill */
+body.photo #navRd,body.photo .navArcs,body.photo #navArcs{display:none!important}
+/* f5.8h (QA P2): flight ☰ at 844 fits whole (🏠 Home was cut off) */
+@media (orientation:landscape) and (max-height:500px){#mMenu,body.touch.splitOn #mMenu{max-height:calc(100dvh - 66px)!important;overflow:visible!important;width:min(380px,46vw)!important}#mMenu .mg.mTop,body.touch.splitOn #mMenu .mg.mTop{grid-template-columns:repeat(3,1fr)!important}#mMenu .mg.mTop button{min-height:42px!important}}
+#sitePick .spB2{display:none!important}
+#sitePick .spWSel{min-height:40px;border-radius:12px;background:#16233a;border:1px solid #2c4166;color:#dfe9ff;padding:4px 10px;font:600 13px var(--ui,system-ui);max-width:100%}#sitePick .spWSel.on{border-color:#5aa0ff;background:#1d3a66}
+#build .bMore:not([open]) .bmPanel{display:none!important}
+body:not(.touch) #build .bTopRow .bMore > summary{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:40px;border-radius:12px;border:1px solid #2c4166;background:#16233a;color:#dfe9ff;font-size:18px;cursor:pointer}
+/* f5.8h (QA P1): ⋯ with every sub-list open stays under a third of a phone screen */
+body.touch > .bmPanel .bmG h5{display:none!important}
+body.touch > .bmPanel.on{gap:6px!important;padding:8px!important}
+body.touch > .bmPanel .bmR{gap:5px!important}
+body.touch > .bmPanel .bmR button,body.touch > .bmPanel .bmR select,body.touch > .bmPanel .bmSub > summary{min-height:34px!important}
+body.touch > .bmPanel .bmSub[open] > summary{margin-bottom:4px!important}
+@media (orientation:landscape) and (max-height:500px){body > .bmPanel.on{width:min(400px,48vw)!important}#sitePick .spBox{width:min(300px,36vw)!important;bottom:auto!important;height:auto!important;max-height:calc(100dvh - 16px)!important}}
+body.touch > .bmPanel label select,body.touch > .bmPanel label input:not([type=checkbox]){min-height:34px!important;height:34px!important;padding:2px 8px!important}
+body.touch > .bmPanel .bmG:first-child .bmR,body.touch > .bmPanel .bmG:nth-child(2) .bmR{flex-wrap:nowrap!important}
+body.touch > .bmPanel .bmG:first-child{display:inline-block}
+@media (orientation:landscape) and (max-height:500px){#sitePick .spBox{top:8px!important;bottom:auto!important;height:auto!important;min-height:0!important}}
+@media (orientation:landscape) and (max-height:500px){#sitePick{align-items:flex-start!important}#sitePick .spBox{margin:8px 8px 0 0!important;border-radius:16px!important}}
+/* f5.8h (QA): on the pad a toast (e.g. Frame rate low) sits under the AUTO/STAGE hint, never on it */ body.touch:not(.autoOn):has(#ignite:not(.hidden)) #hintS{top:calc(134px + var(--sat,0px))!important}@media (orientation:landscape) and (max-height:500px){body.touch:not(.autoOn):has(#ignite:not(.hidden)) #hintS{top:calc(134px + var(--sat,0px))!important}}
