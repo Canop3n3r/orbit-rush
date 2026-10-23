@@ -1128,8 +1128,8 @@ body.touch #stack .sHd,body.touch #stack .stageH{padding:2px 6px!important;min-h
 /* desktop Build: the per-stage summary duplicates the stage headers */
 body:not(.touch):not(.buildAdv) #build .bsR,body:not(.touch) #build .bcols .colH{display:none}
 /* phone split: minimal booster inset (speed + altitude only) */
-body.touch #split.pipM #spCardB .spBall,body.touch #split.pipM #spCardB .spR{display:none!important}
-body.touch #split.pipM #spCardB{justify-content:flex-start!important}
+#split.pipM:not(.fullB) #spCardB .spBall,#split.pipM:not(.fullB) #spCardB .spR{display:none!important}
+#split.pipM:not(.fullB) #spCardB{justify-content:flex-start!important}
 @media (orientation:landscape){body.touch.splitOn #mMenu{left:calc(10px + var(--sal))!important;right:auto!important;top:calc(60px + var(--sat))!important;width:min(330px,40vw)!important}}
 body.touch #navRd,body.touch #navRd *{font-size:12px!important}
 @media (orientation:landscape) and (max-height:500px){#sitePick .spBox{align-content:start!important;grid-auto-rows:min-content!important;overflow-y:auto!important}#sitePick .spMap{grid-row:2 / span 4!important;align-self:start}#sitePick .spAct{grid-row:6!important}#sitePick .spSites button,#sitePick .spBodies button{min-height:30px!important;padding:4px 8px!important;font-size:12px!important}#sitePick .spBodies,#sitePick .spSites{margin:4px 0!important}}
@@ -1168,3 +1168,18 @@ body.touch #stack .prow:not(.sel) small{display:none!important}
 @media (orientation:landscape) and (max-height:500px){#hGal #picker .pkC .pkT{height:92px}#home #hCard{padding:6px 10px!important}#home #hCard .hAct > *{min-height:40px!important}#home #hRole{display:none}}
 @media (orientation:landscape){#home #hTop{right:calc(min(560px,46vw) + 12px)!important}}
 #hGal .pkT{width:100%;object-fit:cover;object-position:50% 35%}
+/* f5.8b: site button = pad name over body, two short lines (no ellipsis cutoff on phones) */
+#home #hCard #hSite{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;white-space:normal;line-height:1.15;text-align:left;max-width:46%;padding:4px 10px}
+#home #hCard #hSite b{font:700 13px var(--ui,system-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#home #hCard #hSite small{font-size:12px;opacity:.75}
+/* f5.8b (QA): navball text ≥12px on desktop too (phones already 12px since f5.7q) */
+#navRd,#navRd *,.navLab,body.cx .navLab{font-size:12px!important}
+#nav #navSas button small{font-size:12px!important;letter-spacing:0}
+/* f5.8b (QA): one ☰ menu look at every size — a small sheet hanging under its ☰ (right-aligned), title + plain ✕ on one line, 2-col buttons, above toasts */
+#mMenu,#dMenu{left:auto!important;right:calc(8px + env(safe-area-inset-right,0px))!important;top:calc(58px + env(safe-area-inset-top,0px))!important;bottom:auto!important;width:min(300px,calc(100vw - 16px))!important;max-height:calc(100dvh - 70px)!important;overflow:auto;z-index:60!important;padding:8px 10px 10px!important;border-radius:14px!important;transform:none!important}
+#mMenu .mh,#dMenu .mh{display:flex!important;align-items:center;justify-content:space-between;margin:0 0 6px!important;padding:0!important;min-height:0!important}
+#mMenu .mh b,#dMenu .mh b{font:700 14px var(--ui,system-ui)}
+#mMenu #mClose,#dMenu #dClose{width:36px!important;height:36px!important;min-height:0!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;font-size:18px!important;position:static!important}
+#mMenu .mg.mTop,#dMenu .mg.mTop{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important}
+#mMenu .mg.mTop button,#dMenu .mg.mTop button{min-height:44px!important;font-size:13px!important;padding:6px 8px!important}
+body:has(#mMenu:not(.hidden)) #callout,body:has(#dMenu:not(.hidden)) #callout{visibility:hidden}
