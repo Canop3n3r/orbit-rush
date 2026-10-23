@@ -1,8 +1,9 @@
 // Orbit Rush parts: the catalog, rocket designs (a vertical stack of parts, top to bottom), staging, and the
 // per-stage mass / delta-v / TWR math. No DOM, so the hangar UI, the flight and the tests all share it.
-import { G0 } from './physics/constants.js?v=f5.8c';
-import { stackGeom, massProps } from './physics/vehicle.js?v=f5.8c';
-import { centerOfPressure } from './physics/aero.js?v=f5.8c';
+import { G0 } from './physics/constants.js?v=f5.8d';
+import { stackGeom, massProps } from './physics/vehicle.js?v=f5.8d';
+import { centerOfPressure } from './physics/aero.js?v=f5.8d';
+import { dimsOf } from './vehicles/dims.js?v=f5.8d';
 
 export const ORBIT_DV = 9400; // m/s: what reaching low Earth orbit really costs (≈7.8 km/s orbital speed + gravity, drag and steering losses)
 // type: pod | payload | fairing | tank | engine | decoupler | fins | rcs | shield | chute.  Masses in tonnes, thrust in kN (vacuum),
@@ -215,9 +216,25 @@ export function buildVehicle(design) {
     const dry = parts.filter(p => !['pod', 'payload', 'fairing'].includes(p.kind)).reduce((t, p) => t + p.m, 0);
     return { dry, fuel: s.fuel, fuelMax: s.fuel, ...(s.radial ? { radial: s.radial } : {}), eng: s.eng ? { ...s.eng, gimbal } : { tv: 0, ispSl: 1, ispVac: 1, gimbal: 0 }, n: s.n, fins: s.fins, parts };
   });
+  fitDims(stages, dimsOf(design.model));
   const rcsFuel = design.parts.filter(p => p.id === 'rcs').length * PARTS.rcs.mono;
   return { r: [0, 0, 0], v: [0, 0, 0], q: [1, 0, 0, 0], w: [0, 0, 0], throttle: 0, clamped: true, stages, cur: 0,
     payload: a.payload, fairing: a.fairing, rcsFuel, rcsOn: false, sas: 'stab', input: { pitch: 0, yaw: 0, roll: 0 }, trans: [0, 0, 0], mult: a.mult, qk: 0, aoa: 0, cdA: a.cdA };
+}
+// A house rocket's parts are generic (2.5 m stack), so its physics stack is stretched to the real vehicle's height and
+// core diameter (vehicles/dims.js): every core part's height by kh, every diameter by kd. The fairing ogive (1.6 × its
+// diameter, physics/vehicle.js stackGeom) counts toward the height. Radial boosters scale with the core.
+// dA keeps the pre-fit diameter: the drag reference area stays the one AUTO's ascent is tuned for (real diameters with this
+// drag curve lobbed Heron-9 and kept the Space Truck stack out of orbit), so only shape, length and inertia change.
+export function fitDims(stages, dm) {
+  if (!dm || !(dm.h > 0) || !(dm.d > 0)) return false;
+  const core = stages.filter(s => !s.radial), body = core.flatMap(s => s.parts).filter(p => p.kind !== 'fins' && p.kind !== 'fairing');
+  const top = core[core.length - 1], fair = top && top.parts.find(p => p.kind === 'fairing');
+  const tanks = body.filter(p => p.kind === 'tank'), dCore = Math.max(...(tanks.length ? tanks : body).map(p => p.d || 0));
+  const sumH = body.reduce((t, p) => t + (p.h || 0), 0); if (!(dCore > 0) || !(sumH > 0)) return false;
+  const kd = dm.d / dCore, cone = fair ? 1.6 * fair.d * kd : 0, kh = Math.max(0.05, (dm.h - cone) / sumH);
+  for (const s of stages) for (const p of s.parts) { if (p.h) p.h *= kh; if (p.d) { p.dA = p.d; p.d *= kd; } if (p.dr) p.dr *= kd; }
+  return true;
 }
 // Aero balance for the builder: CoM and CoP stations (m from the bottom), static margin in calibers
 // (body diameters; > 0 means the CoP is behind the CoM = weathervane-stable), at liftoff and at stage-1 burnout.

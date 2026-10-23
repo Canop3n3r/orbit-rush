@@ -4,14 +4,14 @@
 // Orbit camera: quaternion trackball (any angle, pole-down or edge-on, no gimbal lock), smooth zoom, pan,
 // focus with smooth transitions. Lines are drawn twice: depth-tested (bright) and through bodies (faint).
 // Markers and node handles are HTML (crisp, finger-sized). Mouse and touch.
-import * as UN from './fun/units.js?v=f5.8c';
+import * as UN from './fun/units.js?v=f5.8d';
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as GX from './gfx/gfx.js?v=f5.8c';
-import * as P from './physics.js?v=f5.8c';
-import * as C from './physics/patched.js?v=f5.8c';
-import { fmtDur } from './flight.js?v=f5.8c';
-import { layoutHandles } from './maplayout.js?v=f5.8c';
+import * as GX from './gfx/gfx.js?v=f5.8d';
+import * as P from './physics.js?v=f5.8d';
+import * as C from './physics/patched.js?v=f5.8d';
+import { fmtDur } from './flight.js?v=f5.8d';
+import { layoutHandles } from './maplayout.js?v=f5.8d';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
 const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : UN.dist(m); }; // f5.7q: Units setting

@@ -4,7 +4,7 @@ import { buildB } from './gen_b.js?v=art1';
 export const NAMES = {'conestogo': 'Conestogo', 'minotaurus-1': 'Minotaurus I/II', 'minotaurus-4': 'Minotaurus IV/V', 'taurox': 'Taurox'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length
 export const SPEC = {
-  'conestogo': { h: 15.2, stages: [{'r': 0.51, 'L': 8.8, 'ne': 1}, {'r': 0.51, 'L': 8.8, 'ne': 1}, {'r': 0.61, 'L': 2.0, 'ne': 1}], sides: [{'r': 0.51, 'L': 8.8, 'ne': 1}, {'r': 0.51, 'L': 8.8, 'ne': 1}, {'r': 0.51, 'L': 8.8, 'ne': 1}, {'r': 0.51, 'L': 8.8, 'ne': 1}], fair: { L: 0 } },
+  'conestogo': { h: 15.2, stages: [{'r': 0.51, 'L': 6.31, 'ne': 1}, {'r': 0.51, 'L': 6.31, 'ne': 1}, {'r': 0.61, 'L': 1.43, 'ne': 1}], sides: [{'r': 0.51, 'L': 6.31, 'ne': 1}, {'r': 0.51, 'L': 6.31, 'ne': 1}, {'r': 0.51, 'L': 6.31, 'ne': 1}, {'r': 0.51, 'L': 6.31, 'ne': 1}], fair: { L: 0.00 } },
   'minotaurus-1': { h: 19.2, stages: [{'r': 0.84, 'L': 7.5, 'ne': 1}, {'r': 0.66, 'L': 4.1, 'ne': 1}, {'r': 0.635, 'L': 3.7, 'ne': 1}, {'r': 0.485, 'L': 1.3, 'ne': 1}], sides: [], fair: { L: 1.4 } },
   'minotaurus-4': { h: 23.9, stages: [{'r': 1.175, 'L': 8.4, 'ne': 1}, {'r': 1.175, 'L': 5.3, 'ne': 1}, {'r': 1.175, 'L': 2.3, 'ne': 1}, {'r': 1.175, 'L': 2.1, 'ne': 1}, {'r': 0.5, 'L': 0.8, 'ne': 3}], sides: [], fair: { L: 3.8 } },
   'taurox': { h: 31.6, stages: [{'r': 1.15, 'L': 10.7, 'ne': 1}, {'r': 0.635, 'L': 10.0, 'ne': 1}, {'r': 0.635, 'L': 3.7, 'ne': 1}, {'r': 0.485, 'L': 1.3, 'ne': 1}], sides: [], fair: { L: 4.7 } },

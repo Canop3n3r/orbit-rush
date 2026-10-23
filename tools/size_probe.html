@@ -1,0 +1,20 @@
+<!doctype html><script type="importmap">{"imports":{"three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/tsl":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.tsl.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three/webgpu';
+import { build, VEHICLES, HOUSE_SETS } from '../gfx/vehicles/vehicles.js';
+const out = {}; const ids = new Set([...Object.values(HOUSE_SETS).flat(), 'sparrow-1','heron-9','heron-9-crew','heron-heavy','colossus-v3','selene','ares']);
+for (const id of ids) { try { const g = build(id, { detail: 'lo' }); g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(g), s = b.getSize(new THREE.Vector3());
+  // core diameter: widest x-extent of meshes within 0.2 m of the axis line at heights 20..60% (slice method on vertices)
+  let dmax = 0; const H = s.y; const v = new THREE.Vector3();
+  const st = g.userData.stages || {}; const sideKeys = Object.keys(st).filter(k => /side|srb|SRB|strut|LES|ET|orbiter|booster[0-9]|strap|blk/i.test(k));
+  const only = st.ET ? 'ET' : null; const FR = [0.2,0.25,0.3,0.35,0.4,0.45], sl = [];
+  const meshes = []; g.traverse(o => { if (!o.isMesh) return; let inOnly = !only; for (let p = o; p; p = p.parent) { if (p.name === only) inOnly = true; if (!only && sideKeys.includes(p.name) && p.parent && p.parent.userData.stages && p.parent.userData.stages[p.name] === p) return; } if (inOnly) meshes.push(o); });
+  for (const o of meshes) { o.material = Array.isArray(o.material) ? o.material.map(m => { m.side = THREE.DoubleSide; return m; }) : (o.material.side = THREE.DoubleSide, o.material); }
+  const rc = new THREE.Raycaster(); const R0 = 60;
+  for (const fr of FR) { const y = b.min.y + fr * H, rs = []; for (let k = 0; k < 16; k++) { const an = k * Math.PI / 8, o = new THREE.Vector3(Math.cos(an) * R0, y, Math.sin(an) * R0); rc.set(o, new THREE.Vector3(-Math.cos(an), 0, -Math.sin(an))); const hit = rc.intersectObjects(meshes, false)[0]; rs.push(hit ? R0 - hit.distance : 0); } rs.sort((x, z) => x - z); sl.push(2 * rs[8]); }
+  dmax = sl.slice().sort((a, c) => a - c)[2];
+  out[id] = { h: +s.y.toFixed(2), w: +Math.max(s.x, s.z).toFixed(2), core: +dmax.toFixed(2), declared: VEHICLES[id] && VEHICLES[id].height, keys: Object.keys(st), name: VEHICLES[id] && (VEHICLES[id].label||VEHICLES[id].name) };
+} catch (e) { out[id] = { err: String(e) }; } }
+window.__out = { out, sets: HOUSE_SETS };
+</script>

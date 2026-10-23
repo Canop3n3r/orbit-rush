@@ -4,12 +4,12 @@
 // A vehicle carries stages[i].parts (bottom → top) built by parts.js; each part: { id, kind, h, d, m (dry, t),
 // fuelCap (t), rw (kN·m), F/isp (RCS), cna/chord (fins), gimbal (rad), nose: { cd, rn, cpFrac } }.
 // Layout notes for the lessons: CoM = mass-weighted station; CoP = normal-force-weighted station (aero.js).
-import { thermalOf } from './thermal.js?v=f5.8c';
+import { thermalOf } from './thermal.js?v=f5.8d';
 const PI = Math.PI;
 export function stackGeom(v) {
   const key = v.cur + '|' + (v.fairing > 0 ? 1 : 0);
   if (v._g && v._g.key === key) return v._g;
-  const list = [], fins = [], radials = []; let y = 0, rw = 0, rcs = null, dmax = 0, payloadY = null;
+  const list = [], fins = [], radials = []; let y = 0, rw = 0, rcs = null, dmax = 0, dAero = 0, payloadY = null;
   for (let i = v.cur; i < v.stages.length; i++) {
     const s = v.stages[i], bottom = y; let engH = 0;
     if (s.radial) { // radial boosters ride beside the core from the bottom up: mass, drag and lift, no stack length
@@ -24,7 +24,7 @@ export function stackGeom(v) {
       list.push({ y, h: p.h, d: p.d, m: p.m, fuelCap: p.fuelCap || 0, stage: i, kind: p.kind, id: p.id, nose: p.nose, p });
       if (p.rw) rw += p.rw;
       if (p.kind === 'rcs') rcs = { y: y + p.h / 2, F: p.F, isp: p.isp };
-      y += p.h; dmax = Math.max(dmax, p.d);
+      y += p.h; dmax = Math.max(dmax, p.d); dAero = Math.max(dAero, p.dA || p.d);
     }
     for (const f of fins) if (f.stage === i && f.y === undefined) f.y = bottom + engH + f.p.chord / 2;
   }
@@ -33,13 +33,13 @@ export function stackGeom(v) {
   if (v.fairing > 0 && fair) {
     const y0 = payloadY ?? Math.max(0, L - 3), cone = 1.6 * fair.d;
     list.push({ y: y0, h: L - y0 + cone, d: fair.d, m: fair.m, fuelCap: 0, stage: v.stages.length - 1, kind: 'fairing', id: 'fairing', p: fair, covers: y0 });
-    L += cone; dmax = Math.max(dmax, fair.d);
+    L += cone; dmax = Math.max(dmax, fair.d); dAero = Math.max(dAero, fair.dA || fair.d);
     nose = { cd: 1.0, rn: 0.45, y: L - 0.466 * cone, kind: 'ogive fairing' };
   } else {
     const t = list[list.length - 1] || { h: 1, nose: { cd: 1.2, rn: 0.5, cpFrac: 0.4 } }, n = t.nose || { cd: 1.2, rn: 0.5, cpFrac: 0.4 };
     nose = { cd: n.cd, rn: n.rn, y: L - n.cpFrac * t.h, kind: t.id };
   }
-  const d = Math.max(dmax, 0.5), A = PI * d * d / 4;
+  const d = Math.max(dmax, 0.5), dRef = Math.max(dAero, 0.5), A = PI * dRef * dRef / 4; // sizes-1: drag area from the pre-fit diameter (parts.js fitDims)
   // radial boosters: each nose cone + body adds normal force like a small rocket (CNα ≈ 2 per its own area) near its top,
   // and its frontal area adds drag (per the core's reference area)
   const rLen = radials.reduce((s, e) => Math.max(s, e.y + e.h), 0), rSym = radials.length ? radials[0].sym : 0, rD = radials.length ? Math.max(...radials.map(e => e.dr)) : 0;
