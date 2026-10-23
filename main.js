@@ -616,7 +616,7 @@ const BUILD_OPEN = {};
 { // f4: hangar launch settings fold into one row (phones) so the rocket stays visible above the sheet
   const tr = document.querySelector('#build .trow'), labs = tr ? [...tr.querySelectorAll(':scope > label.chk')] : [];
   if (labs.length) { const d = document.createElement('details'); d.className = 'bset'; d.innerHTML = '<summary>⚙ Launch &amp; graphics settings</summary>'; labs.forEach(l => d.appendChild(l)); tr.insertBefore(d, tr.querySelector('.saved')); if (!(TOUCH && innerWidth < 600)) d.open = true; }
-  const lb = document.getElementById('launchBtn'), bp = document.getElementById('build'); if (lb && bp && innerWidth < 600 && innerHeight > innerWidth) { lb.classList.add('stickyLaunch'); bp.appendChild(lb); } }
+  const lb = document.getElementById('launchBtn'), bp = document.getElementById('build'); if (lb && bp && innerWidth < 600 && innerHeight > innerWidth && !lb.closest('.bTopRow')) { lb.classList.add('stickyLaunch'); bp.appendChild(lb); } }
 // f4: camera distance that fits a stack of length L into `frac` of the screen height (fov-aware, slim rockets fill the frame)
 function fitDist(L, frac) { const vf = (camera.fov || 50) * Math.PI / 180; return Math.max(18, L / frac / (2 * Math.tan(vf / 2))); }
 function buildPalette() {
@@ -1587,7 +1587,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
     const cs = v.stages[v.cur], fu = cs && cs.fuelMax > 0 ? Math.round(cs.fuel / cs.fuelMax * 100) + '%' : '—', dense = tel.q > 300;
     const hot = !dense && tel.heat > 2e4, hasChute = v.stages.slice(v.cur).some(s2 => s2.parts.some(p2 => p2.kind === 'chute'));
     const cv = flyingBooster() ? booster : v;
-    mobile.render({ hasChute: hasChutes(), canHome: false /* f5.7j (QA f5.7i P2): Return to pad only shows as 'Cancel return' once flying (key O still works) */, alt: fmtD(P.altOf(v)), spd: fmtS(V.len(v.v)), ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
+    mobile.render({ hasChute: hasChutes(), canHome: !!(F && F.ignited && F.alt < 1000) /* f5.7k: Return to pad only below ~1 km */, alt: fmtD(P.altOf(v)), spd: fmtS(V.len(v.v)), ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
       mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : `${V.dot(v.v, V.norm(v.r)).toFixed(0)} m/s`,
       mqC: tel.q > 30000 || tel.heat > 3e5 ? 'warn' : '', fuel: fu, score: F.score().toLocaleString(), thr: mobile.thrDragging() ? (cv.ut ?? cv.throttle ?? 0) : (cv.throttle || cv.ut || 0),
       auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME', booster: !!(F.booster && F.booster.state === 'flying') || !!(booster2 && booster2.state === 'flying'),
@@ -2131,7 +2131,7 @@ fun = createFunUI({
   tunnelGeom: mach => { const ab = aeroBalance(design, mach); if (!ab) return null; const vv = buildVehicle(design), g = P.stackGeom(vv); const COL = { engine: '#ff9a3c', tank: '#e8e8e8', pod: '#9cc3ff', payload: '#e0b84a', fins: '#555', decoupler: '#333', fairing: '#f4f4f4', shield: '#7a4a2a', chute: '#ff7a3c', rcs: '#8a9099' };
     return { parts: g.list.map(e => ({ y: e.y, h: e.h, d: e.kind === 'fins' ? (e.d || 2) * 1.8 : e.d, col: COL[e.kind] || '#ccc' })), L: g.L, ycom: ab.ycom, ycp: ab.ycp, stable: ab.stable, margin: ab.margin }; },
 });
-const cx = createCompact({ touch: TOUCH, press: k => press(k), menuState: () => ({ booster: !!(F && F.booster && F.booster.state === 'flying'), ret: !!(F && F.ret), chute: hasChutes(), canHome: false /* f5.7j (QA f5.7i P2): Return to pad only shows as 'Cancel return' once flying (key O still works) */ }), onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on), onEngTap: () => { mobile.sheet = !document.body.classList.contains('sheet'); document.body.classList.toggle('sheet', mobile.sheet); } });
+const cx = createCompact({ touch: TOUCH, press: k => press(k), menuState: () => ({ booster: !!(F && F.booster && F.booster.state === 'flying'), ret: !!(F && F.ret), chute: hasChutes(), canHome: !!(F && F.ignited && F.alt < 1000) /* f5.7k: Return to pad only below ~1 km */ }), onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on), onEngTap: () => { mobile.sheet = !document.body.classList.contains('sheet'); document.body.classList.toggle('sheet', mobile.sheet); } });
 { const dm = document.getElementById('dMap'); if (dm) dm.onclick = e => { e.currentTarget.blur(); press('KeyM'); }; }
 { // top-centre stack: callout, hint, toasts never overlap each other
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
@@ -2508,6 +2508,7 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
   if (!TOUCH && cols) { const ab = document.createElement('button'); ab.id = 'bAdv'; ab.className = 'bAdvBtn'; const lab = () => { const on = document.body.classList.contains('buildAdv'); ab.textContent = on ? '✕ Simple view' : '⚙ Advanced'; ab.setAttribute('aria-pressed', on); };
     try { document.body.classList.toggle('buildAdv', localStorage.getItem('orbitrush.buildAdv') === '1'); } catch (e) { }
     ab.onclick = () => { const on = document.body.classList.toggle('buildAdv'); try { localStorage.setItem('orbitrush.buildAdv', on ? '1' : '0'); } catch (e) { } lab(); }; lab(); window.__bAdv = ab; } // f5.4l: stats, tests, paint behind one toggle
+  if (TOUCH && cols) { const lb = $('launchBtn'), hb = $('homeBack'), row = document.createElement('div'); row.className = 'bTopRow'; b.insertBefore(row, b.firstChild); if (hb) row.appendChild(hb); if (lb) { lb.classList.remove('stickyLaunch'); row.appendChild(lb); } } // f5.7k (QA f5.7i P1): phone Fly sits beside Home at the top of the panel, never over the parts list
   if (!TOUCH && cols) { const lb = $('launchBtn'), row = document.createElement('div'); row.className = 'bTopRow'; const hb = $('homeBack'); b.insertBefore(row, b.querySelector('.bMore') || cols); if (hb) row.appendChild(hb); row.appendChild(b.querySelector('.bMore')); if (lb) row.appendChild(lb); if (window.__bAdv) row.appendChild(window.__bAdv); }
 }
 { // f5.1h: grouped rocket picker: Originals first, then one section per launch house; the builder lives behind Sandbox

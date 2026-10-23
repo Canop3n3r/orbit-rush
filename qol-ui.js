@@ -39,8 +39,8 @@ export function createQoL(api) {
         <h4>View</h4><label><input type="checkbox" data-set="overlay" ${s.overlay ? 'checked' : ''}> CoM / CoP / CoT markers in flight</label>
         <label>Flight camera <select data-set="camStyle"><option value="free" ${s.camStyle === 'free' ? 'selected' : ''}>Free (horizon up)</option><option value="locked" ${s.camStyle === 'locked' ? 'selected' : ''}>Locked to the craft</option></select></label>
         <label class="adv">Map patches <select data-set="conic"><option value="body" ${s.conic === 'body' ? 'selected' : ''}>Relative to their body</option><option value="parent" ${s.conic === 'parent' ? 'selected' : ''}>Moon patches as seen from the planet</option></select></label></section>
-      <section class="qKeys"><h4>Keys <button data-q="resetKeys" class="ghost">Reset all</button></h4><div class="keys">${ACTIONS.map(([a, l]) => `<div class="krow"><span>${esc(l)}</span><button data-key="${a}" class="${listening === a ? 'listen' : ''} ${keyOf(s, a) !== DEFAULT_KEYS[a] ? 'changed' : ''}">${listening === a ? 'press a key…' : esc(keyName(keyOf(s, a)))}</button></div>`).join('')}</div>
-        <p class="sm">Click an action, then press the new key (Esc cancels). A key used elsewhere is moved here.</p></section></div>`;
+      <section class="qKeys"><details ${listening || window.__qkOpen ? 'open' : ''} ontoggle="window.__qkOpen = this.open"><summary><b>Keys</b> (rebind)</summary><h4><button data-q="resetKeys" class="ghost">Reset all</button></h4><div class="keys">${ACTIONS.map(([a, l]) => `<div class="krow"><span>${esc(l)}</span><button data-key="${a}" class="${listening === a ? 'listen' : ''} ${keyOf(s, a) !== DEFAULT_KEYS[a] ? 'changed' : ''}">${listening === a ? 'press a key…' : esc(keyName(keyOf(s, a)))}</button></div>`).join('')}</div>
+        <p class="sm">Click an action, then press the new key (Esc cancels). A key used elsewhere is moved here.</p></details></section></div>`; /* f5.7k (QA f5.7i P1): key list folded by default */
   }
   root.addEventListener('click', e => {
     const t = e.target.closest('button'); if (!t) return; const q = t.dataset.q;

@@ -1064,3 +1064,15 @@ body.onPad #mAbort,body.onPad #dAbort{opacity:.35!important;filter:grayscale(1)!
 body.touch #nav #navThrT{display:none!important}
 #split.pipM:not(.fullB) #spCardB,#split.pipM:not(.fullB) #spCardB *{font-size:12px!important;line-height:1.25!important}
 #split.pipM:not(.fullB) #spCardB .spR{white-space:nowrap!important}
+/* f5.7k (QA f5.7i P1 screens) */
+body.touch #build .bTopRow{display:flex;gap:8px;align-items:stretch}
+body.touch #build .bTopRow > *{flex:1;margin:0!important}
+body.touch #build .bTopRow #launchBtn{position:static!important;min-width:0!important;width:auto!important;min-height:48px!important;box-shadow:none!important}
+body.touch #picker{background:#070b14!important}
+body:not(.touch) #build .colH small{display:none}
+body:not(.touch):not(.buildAdv) #palette small,body:not(.touch) #build .dropEnd{display:none}
+body:not(.touch):not(.buildAdv) #palette button,body:not(.touch):not(.buildAdv) #palette > *{min-height:0}
+#sitePick .spSub,#sitePick .spHint{display:none!important}
+body.touch #sitePick .spBodies{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent)}
+body.touch #sitePick .spBodies button{flex:0 0 auto}
+body.touch #sitePick .spInfo{font-size:12px}
