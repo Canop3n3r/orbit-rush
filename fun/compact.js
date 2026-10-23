@@ -17,13 +17,13 @@ export function shortHint(s) {
 export function createCompact({ touch, onSpeedTap, onMarkers, onEngTap, press, menuState }) {
   document.body.classList.add('cx');
   const strip = document.createElement('div'); strip.id = 'strip';
-  strip.innerHTML = `<div id="sL"><div class="c"><b>ALT km</b><i id="sAlt">—</i></div><button class="c" id="sSpdB" title="Speed reference: surface / orbit / target" aria-label="Speed reference"><b id="sSpdL">SRF m/s</b><i id="sSpd">—</i></button><div class="c ev"><b id="sEvL">AP · PE km</b><i id="sEv">—</i></div></div><div id="sR"></div>`;
+  strip.innerHTML = `<div id="sL"><div class="c"><b>ALT mi</b><i id="sAlt">—</i></div><button class="c" id="sSpdB" title="Speed reference: surface / orbit / target" aria-label="Speed reference"><b id="sSpdL">SRF mph</b><i id="sSpd">—</i></button><div class="c ev"><b id="sEvL">AP · PE km</b><i id="sEv">—</i></div></div><div id="sR"></div>`;
   document.body.appendChild(strip);
   const strip2 = document.createElement('div'); strip2.id = 'strip2'; // f5.4 (QA F1): periapsis, fuel left in this stage, stage n/N
-  strip2.innerHTML = '<div class="c"><b>PE km</b><i id="sPe">—</i></div><div class="c"><b>FUEL</b><i id="sFuel">—</i></div><div class="c"><b>STAGE</b><i id="sStg">—</i></div>'; document.body.appendChild(strip2);
+  strip2.innerHTML = '<div class="c"><b>PE mi</b><i id="sPe">—</i></div><div class="c"><b>FUEL</b><i id="sFuel">—</i></div><div class="c"><b>STAGE</b><i id="sStg">—</i></div>'; document.body.appendChild(strip2);
   const hintS = document.createElement('div'); hintS.id = 'hintS'; hintS.setAttribute('role', 'status'); document.body.appendChild(hintS);
   // Engineer view in the compact language: 8 fixed slots under the strip (phones) or down the left edge (wide)
-  const ENG = [['eMach', 'MACH'], ['eQ', 'Q kPa'], ['eG', 'G'], ['eVs', 'V/S m/s'], ['eDv', 'Δv m/s'], ['eFuel', 'FUEL'], ['eThr', 'THR'], ['eHeat', 'HEAT kW']];
+  const ENG = [['eMach', 'MACH'], ['eQ', 'Q kPa'], ['eG', 'G'], ['eVs', 'V/S ft/s'], ['eDv', 'Δv ft/s'], ['eFuel', 'FUEL'], ['eThr', 'THR'], ['eHeat', 'HEAT kW']];
   const eng = document.createElement('button'); eng.id = 'engS'; eng.className = 'hidden'; eng.setAttribute('aria-label', 'Engineer readouts, tap for the full sheet');
   eng.innerHTML = ENG.map(([id, l]) => `<span class="c"><b>${l}</b><i id="${id}">—</i></span>`).join(''); document.body.appendChild(eng);
   eng.onclick = e => { e.currentTarget.blur(); onEngTap && onEngTap(); };

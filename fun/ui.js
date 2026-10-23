@@ -57,7 +57,7 @@ export function createFunUI(ctx) {
     if (navMode === 'target' && !st.hasTarget) navMode = 'auto';
     lastAuto = st.alt < 40000 ? 'surface' : 'orbit'; const mode = navMode === 'auto' ? lastAuto : navMode;
     navOut.mode = mode; const vv = mode === 'surface' ? st.vSurf : mode === 'orbit' ? st.vOrb : st.vTgt, sp = Math.hypot(...(vv || [0, 0, 0]));
-    $('navMode').firstChild.textContent = mode.toUpperCase() + ' '; $('navSpd').textContent = sp < 1e4 ? Math.round(sp) + ' m/s' : (sp / 1000).toFixed(2) + ' km/s';
+    $('navMode').firstChild.textContent = mode.toUpperCase() + ' '; $('navSpd').textContent = Math.round(sp * 2.236936).toLocaleString('en-US') + ' mph'; /* f5.7n (Aaron): imperial */
     navOut.sp = sp; { const t = SAS_IC[st.sas] || '⊙'; const bt = $('navSasT'); if (bt.textContent !== t) bt.textContent = t; }
     const pg = sp > 0.5 ? vv.map(x => x / sp) : null, m = { ...st.markers }; if (pg) { m.pro = pg; m.retro = pg.map(x => -x); }
     { const cv = $('navBall'), want = Math.min(256, Math.max(96, Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1)))); if (cv.clientWidth && Math.abs(cv.width - want) > 4) { cv.width = cv.height = want; } } // f5: crisp ticks/labels at the shown size
@@ -92,7 +92,7 @@ export function createFunUI(ctx) {
     const altK = s.alt / 1000, aF = Math.min(1, Math.log10(1 + Math.max(0, altK)) / Math.log10(1 + 400)), vF = Math.min(1, s.spd / 7800);
     $('pAltArc').style.strokeDashoffset = ARC * (1 - aF); $('pSpdArc').style.strokeDashoffset = ARC2 * (1 - vF);
     $('pAlt').textContent = altK < 10 ? altK.toFixed(1) : altK < 1e4 ? Math.round(altK).toLocaleString() : (altK / 1e6).toFixed(2) + 'M';
-    $('pSpd').textContent = s.spd < 1e4 ? Math.round(s.spd) + ' m/s' : (s.spd / 1000).toFixed(1) + ' km/s';
+    $('pSpd').textContent = Math.round(s.spd * 2.236936).toLocaleString('en-US') + ' mph';
     $('pAltArc').classList.toggle('space', s.alt > 100000);
     const rings = $('pRings'); if (rings.children.length !== s.stages.length) rings.innerHTML = s.stages.map((_, i) => `<svg viewBox="0 0 44 44" class="ring"><circle cx="22" cy="22" r="17" class="trk"/><circle cx="22" cy="22" r="17" class="f" style="stroke-dasharray:${2 * Math.PI * 17}"/><text x="22" y="26">${i + 1}</text></svg>`).join('');
     s.stages.forEach((st, i) => { const c = rings.children[i]; c.classList.toggle('act', st.active); c.classList.toggle('gone', st.gone); c.querySelector('.f').style.strokeDashoffset = 2 * Math.PI * 17 * (1 - st.f); c.classList.toggle('low', st.active && st.f < 0.15); });

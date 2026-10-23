@@ -1109,3 +1109,8 @@ body:not(.touch) #settings #setBody{display:block!important}body:not(.touch) #se
 body.touch #ignite{top:calc(64px + var(--sat,0px))!important;transform:translateX(-50%)!important}
 body.autoOn #ignite{display:none!important}
 body:not(.touch) #gcamBtn:not([data-sp-pin]){top:calc(12px + var(--sat,0px))!important;left:12px!important;right:auto!important;bottom:auto!important}
+/* f5.7n: Build part rows show their ▲ ▼ ✕ ⓘ / ± tools only on the selected row (tap a row), or on hover (desktop) */
+body.touch #stack .prow:not(.sel) button,body.touch #stack .prow:not(.sel) .cnt{display:none!important}
+body:not(.touch):not(.buildAdv) #stack .prow:not(.sel):not(:hover) button,body:not(.touch):not(.buildAdv) #stack .prow:not(.sel):not(:hover) .cnt{display:none}
+/* f5.7n: settings sheet: the home screen behind steps back (dimmed, not clickable) */
+body:has(#settings:not(.hidden)) #home{visibility:hidden!important}

@@ -625,7 +625,7 @@ function buildPalette() {
   for (const [type, head] of TYPE_ORDER) {
     if (head !== lastH) { const h = document.createElement('button'); h.className = 'palH'; h.type = 'button'; h.textContent = head; el.appendChild(h); lastH = head;
       grp = document.createElement('div'); grp.className = 'palG'; el.appendChild(grp);
-      const shut = BUILD_OPEN[head] !== undefined ? !BUILD_OPEN[head] : (phoneB && gi > 0); gi++;
+      const shut = BUILD_OPEN[head] !== undefined ? !BUILD_OPEN[head] : ((phoneB || !TOUCH) && gi > 0); gi++; /* f5.7n: desktop also starts with only the first category open */
       h.classList.toggle('shut', shut); grp.classList.toggle('shut', shut);
       h.onclick = (g => () => { const now = !g.classList.contains('shut'); g.classList.toggle('shut', now); h.classList.toggle('shut', now); BUILD_OPEN[head] = !now; })(grp); }
     for (const [id, d] of Object.entries(PARTS)) if (d.type === type) {
@@ -695,7 +695,7 @@ function renderStack(stats) { setTimeout(() => { lastAdded = -1; }, 0);
   for (let gi = N - 1; gi >= 0; gi--) { // top stage first
     const st = stats.stages[gi], hd = document.createElement('div'); hd.className = 'stageH';
     const radK = stats.analysis.stages[gi].radial;
-    hd.innerHTML = `<span>STAGE ${gi + 1}${radK ? ` · RADIAL BOOSTERS ×${radK}` : ''}${gi === 0 ? ' · fires first' : gi === N - 1 ? ' · top' : ''}</span><em>${st.dv.toFixed(0)} m/s · TWR ${st.twr.toFixed(2)}</em>`;
+    hd.innerHTML = `<span>STAGE ${gi + 1}${radK ? ` · RADIAL BOOSTERS ×${radK}` : ''}${gi === 0 ? ' · fires first' : gi === N - 1 ? ' · top' : ''}</span><em>${Math.round(st.dv / 0.3048).toLocaleString('en-US')} ft/s · TWR ${st.twr.toFixed(2)}</em>`;
     const up = document.createElement('button'); up.textContent = '⇧'; up.title = 'Move this stage up (fires later)'; up.disabled = gi === N - 1; up.onclick = () => setDesign(swapStages(design, gi, gi + 1));
     const dn = document.createElement('button'); dn.textContent = '⇩'; dn.title = 'Move this stage down (fires sooner)'; dn.disabled = gi === 0; dn.onclick = () => setDesign(swapStages(design, gi, gi - 1));
     hd.append(up, dn); el.appendChild(hd);
@@ -755,7 +755,7 @@ function refreshBuild() {
   renderStack(stats);
   { let el = $('bStages'); if (!el) { const col = $('stack') && $('stack').parentElement; if (col) { el = document.createElement('div'); el.id = 'bStages'; col.insertBefore(el, $('stack')); } } // f5.4l (QA f5.4i #5): compact stage list
     if (el) el.innerHTML = stats.stages.map((st, i) => { const a = stats.analysis.stages[i], tw = st.twr < (i ? 0.3 : 1) ? 'bad' : st.twr < (i ? 0.5 : 1.2) ? 'warn' : '';
-      return `<div class="bsR"><b>S${i + 1}</b><span>${a.engines.join(', ') || '<i class="bad">no engine</i>'}</span><em>Δv ${st.dv.toFixed(0)}</em><em class="${tw}">TWR ${st.twr.toFixed(2)}</em></div>`; }).join('') + `<div class="bsT">Total Δv <b>${statsE.total.toFixed(0)} m/s</b> · orbit ~${ORBIT_DV.toLocaleString()}</div>`; }
+      return `<div class="bsR"><b>S${i + 1}</b><span>${a.engines.join(', ') || '<i class="bad">no engine</i>'}</span><em>Δv ${Math.round(st.dv / 0.3048).toLocaleString('en-US')}</em><em class="${tw}">TWR ${st.twr.toFixed(2)}</em></div>`; }).join('') + `<div class="bsT">Total Δv <b>${Math.round(statsE.total / 0.3048).toLocaleString('en-US')} ft/s</b> · orbit ~${Math.round(ORBIT_DV / 0.3048).toLocaleString('en-US')}</div>`; }
   const rows = stats.stages.map((st, i) => { const a = stats.analysis.stages[i];
     return `<tr><td>${i + 1}</td><td>${a.engines.join(', ') || '<span class="bad">none</span>'}</td><td>${st.m0.toFixed(1)}→${st.m1.toFixed(1)} t</td><td>${st.dv.toFixed(0)}</td><td class="${st.twr < (i && envId === 'earth' ? 0.3 : 1) ? 'bad' : st.twr < (i && envId === 'earth' ? 0.5 : 1.2) ? 'warn' : ''}">${st.twr.toFixed(2)}${i || envId !== 'earth' ? '' : ' SL'}</td><td>${st.burn.toFixed(0)} s</td></tr>`; }).join('');
   const pct = Math.min(100, statsE.total / (ORBIT_DV * 2) * 100), need = ORBIT_DV / (ORBIT_DV * 2) * 100;
@@ -1380,12 +1380,12 @@ function showEnd() {
   if (flags.dead) lines.push(`<span class="bad">Cause: ${flags.dead}</span>`);
   if (flags.recovered) lines.push(`<span class="good">✔ Recovered — touchdown at ${flags.touchdown.toFixed(1)} m/s · peak heating ${(F.maxHeat / 1000).toFixed(0)} kW/m² · peak skin ${F.maxTskin.toFixed(0)} K · ${F.maxGret.toFixed(1)} g on entry</span>`);
   if (flags.stranded && !flags.dead) lines.push(`<span class="warn">${F.advice()}</span>`);
-  lines.push(`Max altitude: ${((flags.maxAlt || 0) / 1000).toFixed(1)} km · Max-Q (ascent): ${(F.maxQ / 1000).toFixed(1)} kPa${F.maxQEntry > 1000 ? ` · entry peak q ${(F.maxQEntry / 1000).toFixed(1)} kPa` : ''} · max ${F.maxG.toFixed(1)} g · Δv used ${(F.dvUsed / 1000).toFixed(2)} km/s`);
+  lines.push(`Max altitude: ${((flags.maxAlt || 0) / 1609.344).toFixed(1)} mi · Max-Q (ascent): ${(F.maxQ / 1000).toFixed(1)} kPa${F.maxQEntry > 1000 ? ` · entry peak q ${(F.maxQEntry / 1000).toFixed(1)} kPa` : ''} · max ${F.maxG.toFixed(1)} g · Δv used ${Math.round(F.dvUsed / 0.3048).toLocaleString('en-US')} ft/s`);
   if (F.released) { const sv = F.released.saved, W0 = WORLD.load(localStorage); lines.unshift(sv ? `<b class="good">🛰 ${sv.name} delivered · Pe ${(F.released.pe / 1000).toFixed(0)} km · ${WORLD.count(W0, 'constellation')} in the constellation, ${WORLD.count(W0)} in orbit</b>` : `<b class="warn">🛰 Payload released too low: it will re-enter</b>`); }
   if (flags.deorbited) lines.push(`<span class="good">✔ Spent stage de-orbited (${flags.deorbited})</span>`); else if (F.released && !flags.recovered) lines.push('<span class="warn">Spent stage left in orbit as debris</span>');
   if (flags.space) lines.push('<span class="good">✔ Reached space (Kármán line, 100 km)</span>');
   { const hb = F.homeBody, g = hb && hb !== 'earth' && (F.goals[hb] || {}).orbit; if (g && !flags.dead) { const o2 = P.orbitOf(v); lines.unshift(`<b class="good">🛰️ In orbit around ${P.BODIES[hb].name} · Ap ${(o2.ap / 1000).toFixed(0)} / Pe ${(o2.pe / 1000).toFixed(0)} km</b>`); } }
-  if (flags.orbit && !landedOn) lines.push(`<span class="good">✔ Orbit — Ap ${isFinite(o.ap) ? (o.ap / 1000).toFixed(0) + ' km' : 'escape'} / Pe ${(o.pe / 1000).toFixed(0)} km · period ${isFinite(o.T) ? (o.T / 60).toFixed(1) + ' min' : '—'}</span>`);
+  if (flags.orbit && !landedOn) lines.push(`<span class="good">✔ Orbit — Ap ${isFinite(o.ap) ? (o.ap / 1609.344).toFixed(0) + ' mi' : 'escape'} / Pe ${(o.pe / 1609.344).toFixed(0)} mi · period ${isFinite(o.T) ? (o.T / 60).toFixed(1) + ' min' : '—'}</span>`);
   if (flags.booster) lines.push(flags.boosterBonus ? `<span class="good">✔ Booster ${flags.booster} (+${flags.boosterBonus})</span>` : `<span class="warn">✘ Booster ${flags.booster}</span>`);
   else if (booster && booster.state === 'flying') lines.push('Booster still descending…');
   { const fb = F.flagsB; if (fb && fb.booster) lines.push(fb.boosterBonus ? `<span class="good">✔ Booster B ${fb.booster} (+${fb.boosterBonus})</span>` : `<span class="warn">✘ Booster B ${fb.booster}</span>`); }
@@ -1588,7 +1588,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
     const hot = !dense && tel.heat > 2e4, hasChute = v.stages.slice(v.cur).some(s2 => s2.parts.some(p2 => p2.kind === 'chute'));
     const cv = flyingBooster() ? booster : v;
     mobile.render({ hasChute: hasChutes(), canHome: !!(F && F.ignited && F.alt < 1000) /* f5.7k: Return to pad only below ~1 km */, alt: fmtD(P.altOf(v)), spd: fmtS(V.len(v.v)), ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
-      mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : `${V.dot(v.v, V.norm(v.r)).toFixed(0)} m/s`,
+      mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : `${(V.dot(v.v, V.norm(v.r)) / 0.3048).toFixed(0)} ft/s`,
       mqC: tel.q > 30000 || tel.heat > 3e5 ? 'warn' : '', fuel: fu, score: F.score().toLocaleString(), thr: mobile.thrDragging() ? (cv.ut ?? cv.throttle ?? 0) : (cv.throttle || cv.ut || 0),
       auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME', booster: !!(F.booster && F.booster.state === 'flying') || !!(booster2 && booster2.state === 'flying'),
       rcs: v.rcsOn, fx: fx.q.toUpperCase(), warp: `${isGPU ? 'WebGPU' : 'WebGL2'} · warp ×${F.effWarp()}`, sas: v.sas, stageReady: false });
@@ -2317,39 +2317,39 @@ function worldVis(base, O, nose) {
     else if (bx.y + bx.h + 8 + TH < innerHeight * 0.8) { x = bx.x + bx.w / 2 - TW / 2; y = bx.y + bx.h + 8; } else if (bx.y - 8 - TH > innerHeight * 0.2) { x = bx.x + bx.w / 2 - TW / 2; y = bx.y - 8 - TH; } }
   if (x !== null) { x = Math.max(8, Math.min(innerWidth - TW - 8, x));
     t.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`; t.style.opacity = '1';
-    const a = $('ctAlt'), s2 = $('ctSpd'), at = fmtKm(P.altOf(v)) + ' km', st = Math.round(fun.navOut.sp).toLocaleString() + ' m/s'; if (a.textContent !== at) a.textContent = at; if (s2.textContent !== st) s2.textContent = st; }
+    const a = $('ctAlt'), s2 = $('ctSpd'), at = fmtKm(P.altOf(v)) + ' mi', st = Math.round(fun.navOut.sp * MPH).toLocaleString() + ' mph'; if (a.textContent !== at) a.textContent = at; if (s2.textContent !== st) s2.textContent = st; }
   else t.style.opacity = '0';
 }
 // compact strip: the same speed as the navball (one source), Ap/Pe or the next event, one short hint line
-const fmtKm = m => { const k = m / 1000; return Math.abs(k) < 100 ? k.toFixed(1) : Math.abs(k) < 1e5 ? Math.round(k).toLocaleString() : (k / 1e6).toFixed(2) + 'M'; };
+const fmtKm = m => { const k = m / 1609.344; /* f5.7n (Aaron): the compact HUD reads miles (name kept) */ return Math.abs(k) < 100 ? k.toFixed(1) : Math.abs(k) < 1e5 ? Math.round(k).toLocaleString() : (k / 1e6).toFixed(2) + 'M'; };
 // f2: Ap/Pe slot that means something on ascent: below orbit it shows the apoapsis and "SUBORB" (or time to Ap)
 function evAp(o) {
-  if (!isFinite(o.ap)) return ['AP · PE km', '—'];
+  if (!isFinite(o.ap)) return ['AP · PE mi', '—'];
   const orb = isFinite(o.pe) && o.pe > (F.body === 'earth' ? 70000 : F.body === 'mars' || F.body === 'venus' || F.body === 'titan' ? 50000 : 2000), tAp = P.timeToApV(v);
-  const k = x => (x >= 1e4 ? Math.round(x / 1000) : (x / 1000).toFixed(1)).toString();
-  if (orb) return ['AP · PE km', k(o.ap) + '/' + k(o.pe)];
+  const k = x => (x >= 16093 ? Math.round(x / 1609.344) : (x / 1609.344).toFixed(1)).toString();
+  if (orb) return ['AP · PE mi', k(o.ap) + '/' + k(o.pe)];
   const vr = V.dot(v.v, V.norm(v.r));
   if (vr > 5 && isFinite(tAp) && tAp > 0 && tAp < 3600) return ['AP · T−AP', k(o.ap) + '·' + (tAp < 60 ? Math.round(tAp) + 's' : Math.floor(tAp / 60) + 'm' + String(Math.round(tAp % 60)).padStart(2, '0'))];
-  if (isFinite(o.pe) && o.pe > 0) return ['AP · PE km', k(o.ap) + '/' + k(o.pe)];
-  return ['AP km', k(o.ap)];
+  if (isFinite(o.pe) && o.pe > 0) return ['AP · PE mi', k(o.ap) + '/' + k(o.pe)];
+  return ['AP mi', k(o.ap)];
 }
 function engCells() {
   if (!document.body.classList.contains('eng') || state !== 'flight' || !F) return null;
   const tel = v.tel, cs = v.stages[v.cur], cv = flyingBooster() ? booster : v, n0 = x => isFinite(x) ? x : 0;
-  return { eMach: n0(tel.machShown ?? tel.mach).toFixed(2), eQ: (n0(tel.q) / 1000).toFixed(1), eG: n0(tel.gload).toFixed(1), eVs: Math.round(V.dot(v.v, V.norm(v.r))).toString(),
-    eDv: Math.round(n0(craftDv())).toLocaleString(), eFuel: cs && cs.fuelMax > 0 ? Math.round(cs.fuel / cs.fuelMax * 100) + '%' : '—', eThr: Math.round(100 * n0(cv.throttle || cv.ut)) + '%', eHeat: (n0(tel.heat) / 1000).toFixed(0) };
+  return { eMach: n0(tel.machShown ?? tel.mach).toFixed(2), eQ: (n0(tel.q) / 1000).toFixed(1), eG: n0(tel.gload).toFixed(1), eVs: Math.round(V.dot(v.v, V.norm(v.r)) / 0.3048).toString(),
+    eDv: Math.round(n0(craftDv()) / 0.3048).toLocaleString(), eFuel: cs && cs.fuelMax > 0 ? Math.round(cs.fuel / cs.fuelMax * 100) + '%' : '—', eThr: Math.round(100 * n0(cv.throttle || cv.ut)) + '%', eHeat: (n0(tel.heat) / 1000).toFixed(0) };
 }
 function stripTick() {
   if (!F || !cx) return;
-  const no = fun.navOut, lab = { surface: 'SRF m/s', orbit: 'ORB m/s', target: 'TGT m/s' }[no.mode] || 'SRF m/s';
-  const sp = no.sp, b = F.booster, lc = F.landCue; let evL = 'AP · PE km', ev = '—';
+  const no = fun.navOut, lab = { surface: 'SRF mph', orbit: 'ORB mph', target: 'TGT mph' }[no.mode] || 'SRF mph';
+  const sp = no.sp, b = F.booster, lc = F.landCue; let evL = 'AP · PE mi', ev = '—';
   if (F.flyingBooster() && b && isFinite(b.burnIn) && b.burnIn > 0.5) { evL = 'BURN T−'; ev = b.burnIn.toFixed(1) + ' s'; }
   else if (lc && !F.flags.landed && lc.burnIn > 0.5 && lc.burnIn < 600 && V.dot(P.airVel(v), V.norm(v.r)) < 0) { evL = 'BURN T−'; ev = lc.burnIn.toFixed(1) + ' s'; }
   else if (F.nodes.length) { evL = 'NODE T−'; ev = fmtDur(Math.max(0, F.nodes[0].t - F.tAbs)); }
   else if (F.ignited || F.flags.orbit || P.altOf(v) > 1000) { const o = P.orbitOf(v); const ea = evAp(o); evL = ea[0]; ev = ea[1]; }
   const o2 = (F.ignited || F.flags.orbit) ? P.orbitOf(v) : null, cs = v.stages[v.cur]; // f5.4 (QA F1): PE, fuel per stage, stage n/N
   const pe = o2 && isFinite(o2.pe) ? (o2.pe < -50000 ? 'SUB' : fmtKm(o2.pe)) : '—', fuel = cs && cs.fuelMax > 0 ? Math.round(cs.fuel / cs.fuelMax * 100) + '%' : '—', stg = (v.cur + 1) + '/' + v.stages.length;
-  cx.update({ pe, fuel, stg, alt: fmtKm(P.altOf(v)), spd: sp < 1e5 ? Math.round(sp).toLocaleString() : (sp / 1000).toFixed(0) + 'k', spdL: lab, evL, ev, hint: $('hint').style.display === 'none' ? '' : $('hint').textContent });
+  cx.update({ pe, fuel, stg, alt: fmtKm(P.altOf(v)), spd: sp * MPH < 1e5 ? Math.round(sp * MPH).toLocaleString() : (sp * MPH / 1000).toFixed(0) + 'k', spdL: lab, evL, ev, hint: $('hint').style.display === 'none' ? '' : $('hint').textContent });
   cx.updateEng(engCells());
 }
 { const wantB = on => { try { if (!F || !booster || booster.state !== 'flying') return; if (!!booster.manual !== on && (on ? booster.stages[0].fuel > 0 : true)) F.toggleBooster(); } catch (e) { } }; // f5.6g: each pane's ball steers THAT pane's craft
