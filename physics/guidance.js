@@ -2,17 +2,17 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=f5.7j';
-import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.7j';
-import { elements, timeToAp } from './kepler.js?v=f5.7j';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.7j';
-import { massOf } from './vehicle.js?v=f5.7j';
-import { thermalOf } from './thermal.js?v=f5.7j';
-import { atmosphere } from './atmosphere.js?v=f5.7j';
-import { cd0 } from './aero.js?v=f5.7j';
-import { hoverslamSolve } from './hoverslam.js?v=f5.7j';
-import { sampleAscent } from '../timelines/ascent.js?v=f5.7j';
-import { BODIES, atmTop } from './solar.js?v=f5.7j';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f5.7k';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.7k';
+import { elements, timeToAp } from './kepler.js?v=f5.7k';
+import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.7k';
+import { massOf } from './vehicle.js?v=f5.7k';
+import { thermalOf } from './thermal.js?v=f5.7k';
+import { atmosphere } from './atmosphere.js?v=f5.7k';
+import { cd0 } from './aero.js?v=f5.7k';
+import { hoverslamSolve } from './hoverslam.js?v=f5.7k';
+import { sampleAscent } from '../timelines/ascent.js?v=f5.7k';
+import { BODIES, atmTop } from './solar.js?v=f5.7k';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
