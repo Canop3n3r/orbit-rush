@@ -3,11 +3,11 @@
 // PBR environment, quality presets (low keeps phones and software GPUs working). No physics here.
 import * as THREE from 'three/webgpu';
 import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass, attribute, normalView, positionView, sign } from 'three/tsl';
-import { oceanLook, oceanDisplace, oceanTime } from './ocean.js?v=f5.7q';
+import { oceanLook, oceanDisplace, oceanTime } from './ocean.js?v=f5.8a';
 export { oceanTime };
-export { GFX, GFX_ORDER } from './presets.js?v=f5.7q';
-import { GFX } from './presets.js?v=f5.7q';
-import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5.7q';
+export { GFX, GFX_ORDER } from './presets.js?v=f5.8a';
+import { GFX } from './presets.js?v=f5.8a';
+import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5.8a';
 export { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth };
 export const earthTexMatrix = () => new THREE.Matrix4().fromArray(EARTH_TEX_M4);
 export function softwareGPU() {

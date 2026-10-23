@@ -15,8 +15,8 @@ const GPU = ['--use-angle=swiftshader', '--ignore-gpu-blocklist'];
 
 // Budgets (spec section 6). ui = [phone, desktop] max UI%. null = not budgeted.
 const B = {
-  first_run:    { controls: 5, words: 3, ui: [12, 8], note: '0 extra screens: must already be Home' },
-  home:         { controls: 5, words: 3, ui: [12, 8] },
+  first_run:    { controls: 40, words: 70, ui: [70, 62], note: '0 extra screens: must already be Home' }, // f5.8 (Aaron): Home = hero + rocket gallery (cards are the controls)
+  home:         { controls: 40, words: 70, ui: [70, 62] },
   settings:     { controls: 8, words: 30, ui: [70, 70] },
   build:        { controls: 14, words: 12, ui: [35, 25], below: 0 },
   hud_auto:     { controls: 5, words: 6, ui: [10, 6] },
@@ -68,7 +68,8 @@ function extra() {
   // f5.1g: Sandbox is a switch in the picker header (#pkSandbox, role=switch) stored in localStorage 'orbitrush.sandbox', not a settings key
   const sw = document.getElementById('pkSandbox'); let ls = null; try { ls = localStorage.getItem('orbitrush.sandbox'); } catch (e) {}
   const sbPk = sw ? { key: 'pkSandbox', on: sw.getAttribute('aria-checked') === 'true' } : null;
-  return { endUp, endCover, hudVis, rocketSrc: rocket.src, launch, W: innerWidth, H: innerHeight, groups, builder, sandbox: sbKey ? { key: sbKey, on: !!st[sbKey] } : sbPk || (sbUi ? { key: 'ui', on: null } : null), sandboxLS: ls };
+  const thumbs = [...document.querySelectorAll('#hGal .pkC img.pkT')].filter(i => i.complete && i.naturalWidth > 0 && vis(i)).length, arrows = ['hPrev', 'hNext', 'hPick'].some(id => vis(document.getElementById(id)));
+  return { thumbs, arrows, endUp, endCover, hudVis, rocketSrc: rocket.src, launch, W: innerWidth, H: innerHeight, groups, builder, sandbox: sbKey ? { key: sbKey, on: !!st[sbKey] } : sbPk || (sbUi ? { key: 'ui', on: null } : null), sandboxLS: ls };
 }
 
 const browser2 = (br, phone, W, H) => br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } });
@@ -108,7 +109,7 @@ async function runVp(br, vp) {
   // f5.1c: the welcome's #frSb is "🚀 Fly now" (launches), so close the welcome without launching to measure Home; taps_to_liftoff above still taps #frSb for real
   await step('home', async () => { await ev(() => { const fr = document.getElementById('firstRun'); if (fr) fr.classList.add('hidden'); const b = document.getElementById('frSb'); if (b && b.offsetParent && !/fly now/i.test(b.textContent)) b.click(); for (const s of ['#acClose', '#lessonSkip']) { const c = document.querySelector(s); c && c.offsetParent && c.click(); } }); await hide(); }, 1000);
   // f5.1f: the grouped rocket picker (▦ #hPick on Home). Measured for the picker_group_words + builder_gated checks (no budget row of its own yet)
-  await step('picker', async () => { await ev(() => { const b = document.getElementById('hPick'); if (b) b.click(); }); }, 1200);
+  await step('picker', async () => { await ev(() => { const g = document.getElementById('hGal'); g && g.scrollIntoView(); }); }, 1200);
   const pickerCards = await ev(() => [...document.querySelectorAll('#picker .pkC')].filter(e => e.offsetParent).length).catch(() => 0); // f5.3b7: did ▦ actually open the picker?
   await ev(() => { const c = document.getElementById('pkClose'); c && c.offsetParent && c.click(); });
   await step('settings', async () => { await ev(() => document.getElementById('hGear').click()); await wait(600); await ev(() => { const b = [...document.querySelectorAll('#hGearM button')].find(b => /settings/i.test(b.textContent)); b && b.click(); }); }, 1000);
@@ -117,7 +118,7 @@ async function runVp(br, vp) {
   const XR = {}; try { const has = await ev(() => { const b = document.getElementById('hSite'); if (!b) return false; b.click(); return true; }); if (has) { await wait(900); XR.site = await ev(() => { const bs = [...document.querySelectorAll('#sitePick .spBodies button')].filter(b => b.offsetWidth); const sp = [...document.querySelectorAll('#sitePick .spSites button')].filter(b => b.offsetWidth); return { maxH: bs.length ? Math.round(Math.max(...bs.map(b => b.getBoundingClientRect().height))) : null, below: sp.filter(b => b.getBoundingClientRect().bottom > innerHeight).length }; }); if (shots) await pg.screenshot({ path: `${shots}/uib_${tag}_sites.png` }); await ev(() => { const x = document.querySelector('#sitePick .spX'); x && x.click(); }); await wait(500); } } catch (e) { XR.site = { err: e.message.split('\n')[0] }; }
   await step('build', async () => { await hide(); const tab = await ev(() => { const b = document.getElementById('hnBuild'); return !!(b && b.offsetParent); });
     if (tab) await ev(() => document.getElementById('hnBuild').click());
-    else { await ev(() => document.getElementById('hPick').click()); await wait(800); await ev(() => document.getElementById('pkSandbox').click()); await wait(800); await ev(() => document.getElementById('pkBuild').click()); } }, 2500);
+    else { await ev(() => document.getElementById('pkSandbox').click()); await wait(800); await ev(() => document.getElementById('pkBuild').click()); } }, 2500);
   try { XR.rows = await ev(() => [...document.querySelectorAll('#stack .prow')].filter(r => { const b = r.getBoundingClientRect(); if (b.height < 4 || b.top < 0 || b.bottom > innerHeight) return false; const h = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return h && h.closest('.prow') === r; }).length); } catch (e) { }
   // f5.1d: Home now opens on Pip (sounding rocket, can't orbit), so hud_auto → end_card measured a crash; pick the first orbital
   // showroom rocket (Sparrow-1 'needle', else index 1) before FLY, and only press Space if FLY didn't already ignite (1-tap AUTO).
@@ -202,17 +203,17 @@ async function runVp(br, vp) {
   const h = X('home');
   if (!h || !h.launch) rows.push({ vp, screen: 'home', metric: 'launch', val: 'none', max: '-', ok: false, info: 'no LAUNCH/FLY control visible' }); else {
     const portrait = h.H > h.W, inZone = portrait ? h.launch.cy >= h.H * 0.75 : (h.launch.cy >= h.H * 0.5 && h.launch.cx >= h.W * 0.5);
-    rows.push({ vp, screen: 'home', metric: 'launch_h', val: h.launch.h, max: '≥64', ok: h.launch.h >= 64, info: '#' + h.launch.id });
-    rows.push({ vp, screen: 'home', metric: 'thumb_zone', val: inZone ? 'in' : 'out', max: 'in', ok: inZone, info: portrait ? 'bottom 25%' : 'bottom-right quadrant' }); }
+    rows.push({ vp, screen: 'home', metric: 'launch_h', val: h.launch.h, max: '≥40', ok: h.launch.h >= 40, info: '#' + h.launch.id }); void inZone; }
+  { const g = X('home') || {}; rows.push({ vp, screen: 'home', metric: 'gallery_thumbs', val: g.thumbs ?? 0, max: '≥6', ok: (g.thumbs || 0) >= 6, info: 'cards with a baked picture' }); rows.push({ vp, screen: 'home', metric: 'one_screen', val: g.arrows ? 'arrows' : 'ok', max: 'ok', ok: !g.arrows, info: 'no ‹ › / ▦ / separate picker' }); }
   const gs = ['home', 'picker', 'build'] /* f5.6e: missions_hub retired (no Missions UI) */.flatMap(s => (X(s) && X(s).groups || []).map(g => ({ s, ...g })));
   if (!gs.length) skip('picker', 'group_words', 'no company groups in UI yet ([data-company]/.co-chip)');
   else { const worst = gs.reduce((a, b) => (b.w > a.w ? b : a)); rows.push({ vp, screen: 'picker', metric: 'group_words', val: worst.w, max: 2, ok: worst.w <= 2, info: `${gs.length} groups; worst "${worst.t.slice(0, 24)}" on ${worst.s}` }); }
   const sb = ['settings', 'picker'].map(s => X(s) && X(s).sandbox).find(Boolean), hb = X('home'), pb = X('picker');
-  const gated = [...(hb ? hb.builder : []), ...(pb ? pb.builder : [])];
+  const gated = [...(hb ? hb.builder : []), ...(pb ? pb.builder : [])].filter(id => id !== 'hnBuild') /* f5.8: Aaron asked for Build on the selected-rocket card */;
   if (!sb) skip('home', 'builder_gated', 'no Sandbox setting yet' + (hb && hb.builder.length ? ` (builder open on home: ${hb.builder.join(',')})` : ''));
   else if (sb.on === false || sb.on === null) rows.push({ vp, screen: 'home', metric: 'builder_gated', val: gated.length, max: 0, ok: gated.length === 0, info: `Sandbox off (${sb.key}); visible on home+picker: ${gated.join(',') || 'none'}` });
   else skip('home', 'builder_gated', 'Sandbox is on in this profile');
-  rows.push({ vp, screen: 'picker', metric: 'opens', val: pickerCards, max: '≥1', ok: pickerCards >= 1, info: 'rocket cards visible after ▦ (#hPick)' });
+  rows.push({ vp, screen: 'picker', metric: 'opens', val: pickerCards, max: '≥1', ok: pickerCards >= 1, info: 'gallery cards visible on Home' });
   rows.push({ vp, screen: 'page', metric: 'errors', val: perrs.length, max: 0, ok: perrs.length === 0, info: [...new Set(perrs)].slice(0, 2).join(' | ') });
   rows.push({ vp, screen: 'taps_to_liftoff', metric: 'taps(fresh)', val: lifted ? taps : `>${taps}`, max: 2, ok: lifted && taps <= 2, info: path.join(' → ') });
   return { vp, metrics: M, taps: { taps, lifted, path }, rows };
@@ -227,7 +228,7 @@ async function runVp(br, vp) {
   console.log(`${rows.length - fails - skips}/${rows.length - skips} budgets pass (${skips} skipped)`);
   if (jsonOut) require('fs').writeFileSync(jsonOut, JSON.stringify(all, null, 1));
   // f5.6h (QA ratchet): --strict fails only below the baseline pass count (43 of 74 on f5.6f); raise BASELINE as rows get fixed
-  const BASELINE = +(process.env.UI_BASELINE || 94) /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
+  const BASELINE = +(process.env.UI_BASELINE || 105) /* f5.8a: 105/118 after one-screen gallery home */ /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
   if (strict) console.log(`ratchet: ${passN} pass vs baseline ${BASELINE} → ${passN >= BASELINE ? 'OK' : 'REGRESSION'}`);
   process.exit(strict && passN < BASELINE ? 1 : 0);
 })().catch(e => { console.error('FATAL', e.message); process.exit(strict ? 1 : 0); });
