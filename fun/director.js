@@ -2,6 +2,7 @@
 // planner-built transfer nodes executed as finite burns, mid-course corrections, SOI warps, capture, Moon
 // landing) and tells the renderer which cinematic camera suits each phase. The player can take over anytime
 // (takeOver()); nothing here bypasses the physics. DOM-free, so tests/fun.mjs runs it headlessly.
+import * as UN from './units.js?v=f5.7n';
 import * as P from '../physics.js?v=f5.7n';
 import * as C from '../physics/patched.js?v=f5.7n';
 const V = P.V;
@@ -9,7 +10,7 @@ export const MISSIONS = {
   orbit: { name: 'Orbit & home', icon: '🛰️', tpl: 'Orbit & home', target: null, blurb: 'Fly to orbit, then bring the capsule home under parachutes.' },
   moon: { name: 'Moon landing', icon: '🌕', tpl: 'Moon lander', target: 'moon', land: true, blurb: 'Transfer burn, capture into lunar orbit, powered landing.' },
   mars: { name: 'Mars', icon: '🔴', tpl: 'Mars explorer', target: 'mars', capture: true, blurb: 'Wait for the window, cross the Sun’s gravity well, arrive at Mars.' },
-  hop: { name: 'Hop & land', icon: '🦗', tpl: 'Grasshopper', target: null, hop: 3000, land: true, blurb: 'Straight up to 3 km, engine off, fall back and hoverslam onto the pad.' },
+  hop: { name: 'Hop & land', icon: '🦗', tpl: 'Grasshopper', target: null, hop: 3000, land: true, blurb: 'Straight up, engine off, fall back and hoverslam onto the pad.' },
   venus: { name: 'Venus flyby', icon: '🟡', tpl: 'Mars explorer', target: 'venus', blurb: 'Fall inward toward the Sun and swing past Venus.' },
 };
 // phase → camera: the renderer picks chase / wide / map cams from this
@@ -21,7 +22,7 @@ export const MAX_CORR_WAIT = 400 * 86400; // s: never wait longer than this for 
 // onto the pad) instead of the orbital gravity turn that crashed it inverted. F.extAuto keeps the AUTO pill on while
 // the Flight's own ascent guidance stands aside.
 export const isHopper = d => !!d && ((d.name === 'Grasshopper' || d.name === 'Sandpiper') || d.hop === true);
-export function hopAuto(F, opts = {}) { const D = new Director(F, 'hop', opts); D.alt0 = F.alt - F.v.tel.ycom; F.extAuto = true; D.set('hop', 'Hop! Straight up to ' + (D.m.hop / 1000).toFixed(0) + ' km'); return D; }
+export function hopAuto(F, opts = {}) { const D = new Director(F, 'hop', opts); D.alt0 = F.alt - F.v.tel.ycom; F.extAuto = true; D.set('hop', 'Hop! Straight up to ' + UN.dist(D.m.hop)); return D; }
 const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'lift', 'capture', 'brake', 'descent', 'home', 'done'];
 const WARP_BURN = () => 4;
 const STALL_PH = ['plan', 'burn', 'correct', 'capture', 'lift'];
@@ -49,7 +50,7 @@ export class Director {
     this.t += dt;
     // f5.1h (QA): a mid-course phase that never finishes (sim time or wall time) ends with a card instead of a silent stall
     if (this.target && STALL_PH.includes(this.phase) && ((this.phase !== 'burn' && this.phase !== 'plan' && this.t > 5 * 86400) || Date.now() - (this._w0 || Date.now()) > 180000)) { this.finish('Stalled during ' + this.label.toLowerCase() + ' — try again', false); return; }
-    if (this.m.hop && this.phase === 'ascent') this.set('hop', 'Hop! Straight up to ' + (this.m.hop / 1000).toFixed(0) + ' km');
+    if (this.m.hop && this.phase === 'ascent') this.set('hop', 'Hop! Straight up to ' + UN.dist(this.m.hop));
     switch (this.phase) {
       case 'hop': { // vertical climb; cut when the ballistic apex reaches the target height
         const up = V.norm(v.r), va = P.airVel(v), vs = V.dot(va, up), R = V.len(v.r), g = P.BODIES[F.body].mu / (R * R);
@@ -90,7 +91,7 @@ export class Director {
               if (!(cn && cn.node && cn.good && cn.dv < this.dvCap())) { // QA f5.1c P1 (Venus ~1 in 3 missed): wider search; a flyby only needs to enter the SOI
                 const c2 = C.correctionNode('sun', v.r, v.v, F.tAbs, this.target, { peAlt: 300000, tol: this.m.capture || this.m.land ? 3e6 : 3e7, starts: [2 * 86400, 10 * 86400, 30 * 86400, 60 * 86400], scaleV: 4, byT: F.tAbs + 6e7 });
                 if (c2 && c2.node && c2.dv < this.dvCap() && (!cn || !cn.node || cn.dv >= this.dvCap() || (c2.good && !cn.good))) cn = c2; }
-              if (cn && cn.node && cn.dv < this.dvCap() && cn.node.t - F.tAbs < MAX_CORR_WAIT) { this.execNext(cn.node); this.set('correct', 'Course correction ' + cn.dv.toFixed(0) + ' m/s'); break; } }
+              if (cn && cn.node && cn.dv < this.dvCap() && cn.node.t - F.tAbs < MAX_CORR_WAIT) { this.execNext(cn.node); this.set('correct', 'Course correction ' + UN.dv(cn.dv)); break; } }
           }
           if (!F.warpToSOI()) this.finish('Missed ' + P.BODIES[this.target].name, false);
         }
@@ -123,7 +124,7 @@ export class Director {
       this.corrections++;
       const cn = this.target === 'moon' ? C.correctionNode('earth', v.r, v.v, F.tAbs, 'moon', { peAlt: 100000 })
         : C.correctionNode('earth', v.r, v.v, F.tAbs, this.target, { peAlt: 300000, tol: 3e6, starts: [3600, 6 * 3600, 86400], scaleV: 3, byT: F.tAbs + (this.plan && this.plan.hohmann ? this.plan.hohmann.tt * 1.25 : 3e7) });
-      if (cn && cn.node && cn.node.t - F.tAbs < MAX_CORR_WAIT) { this.execNext(cn.node); this.set('correct', 'Course correction ' + C.nodeDv(cn.node).toFixed(0) + ' m/s'); return; }
+      if (cn && cn.node && cn.node.t - F.tAbs < MAX_CORR_WAIT) { this.execNext(cn.node); this.set('correct', 'Course correction ' + UN.dv(C.nodeDv(cn.node))); return; }
     }
     this.set('cruise', 'Coasting to ' + P.BODIES[this.target].name);
   }
@@ -142,8 +143,8 @@ export class Director {
           if (!best || err < best.err) best = { nd, err }; }
         if (best) { this._lift = true; this.execNext(best.nd); this.set('lift', 'Course correction for a close pass of ' + b.name); return; } }
       if (low) { this.finish(`On a collision course with ${b.name}`, false); return; }
-      if (ca > FLYBY_MAX) { this.finish(`Passed ${b.name} at ${Math.round(ca / 1000).toLocaleString('en-US')} km: too far for a flyby`, false); return; }
-      this.finish(`Flew past ${b.name} at ${Math.round(ca / 1000).toLocaleString('en-US')} km!`); return; }
+      if (ca > FLYBY_MAX) { this.finish(`Passed ${b.name} at ${UN.big(ca)}: too far for a flyby`, false); return; }
+      this.finish(`Flew past ${b.name} at ${UN.big(ca)}!`); return; }
     if (F.body !== 'moon' && rp < b.R + 100000 && !this._lift) { // f5.1h: arriving low or on a collision course — raise periapsis first (a small radial burn soon), then capture
       const want = b.R + Math.max(300000, (b.atm ? 150000 : 0) + 200000), tn = F.tAbs + Math.min(3600, tp * 0.2); let best = null;
       for (let k = -80; k <= 80; k++) for (let j = -4; j <= 4; j++) { const nd = { t: tn, pro: j * 50, nrm: 0, rad: k * 25 }, s0 = P.propagate(v.r, v.v, tn - F.tAbs, b.mu), dv = C.nodeVector(s0.r, s0.v, nd), v1 = V.add(s0.v, dv);

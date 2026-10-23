@@ -2,6 +2,7 @@
 // Engineer toggle, the Missions & Progress hub, Planetary Atlas, first-visit reveals, photo mode, the
 // "Will it fly?" ghost trajectory, the wind tunnel and the disassembly card. Everything reads state through
 // the ctx the renderer passes in; nothing here touches the physics directly.
+import * as UN from './units.js?v=f5.7n';
 import { MISSIONS } from './director.js?v=f5.7n';
 import { CONTRACTS, ACHIEVEMENTS, PAINTS, DECALS, dailyChallenge, nextContract, isUnlocked } from './progress.js?v=f5.7n';
 import { ATLAS, poisOf } from './lore.js?v=f5.7n';
@@ -57,7 +58,7 @@ export function createFunUI(ctx) {
     if (navMode === 'target' && !st.hasTarget) navMode = 'auto';
     lastAuto = st.alt < 40000 ? 'surface' : 'orbit'; const mode = navMode === 'auto' ? lastAuto : navMode;
     navOut.mode = mode; const vv = mode === 'surface' ? st.vSurf : mode === 'orbit' ? st.vOrb : st.vTgt, sp = Math.hypot(...(vv || [0, 0, 0]));
-    $('navMode').firstChild.textContent = mode.toUpperCase() + ' '; $('navSpd').textContent = Math.round(sp * 2.236936).toLocaleString('en-US') + ' mph'; /* f5.7n (Aaron): imperial */
+    $('navMode').firstChild.textContent = mode.toUpperCase() + ' '; $('navSpd').textContent = UN.spd(sp); /* f5.7q: Units setting */
     navOut.sp = sp; { const t = SAS_IC[st.sas] || '⊙'; const bt = $('navSasT'); if (bt.textContent !== t) bt.textContent = t; }
     const pg = sp > 0.5 ? vv.map(x => x / sp) : null, m = { ...st.markers }; if (pg) { m.pro = pg; m.retro = pg.map(x => -x); }
     { const cv = $('navBall'), want = Math.min(256, Math.max(96, Math.round(cv.clientWidth * Math.min(2, devicePixelRatio || 1)))); if (cv.clientWidth && Math.abs(cv.width - want) > 4) { cv.width = cv.height = want; } } // f5: crisp ticks/labels at the shown size
@@ -91,8 +92,8 @@ export function createFunUI(ctx) {
   function renderPilot(s) { // s: { alt, spd, orbitalV, stages:[{f,active}], objective, prog, orbitPts2d, bodyR, director }
     const altK = s.alt / 1000, aF = Math.min(1, Math.log10(1 + Math.max(0, altK)) / Math.log10(1 + 400)), vF = Math.min(1, s.spd / 7800);
     $('pAltArc').style.strokeDashoffset = ARC * (1 - aF); $('pSpdArc').style.strokeDashoffset = ARC2 * (1 - vF);
-    $('pAlt').textContent = altK < 10 ? altK.toFixed(1) : altK < 1e4 ? Math.round(altK).toLocaleString() : (altK / 1e6).toFixed(2) + 'M';
-    $('pSpd').textContent = Math.round(s.spd * 2.236936).toLocaleString('en-US') + ' mph';
+    $('pAlt').textContent = UN.bigS(s.alt); if ($('pAltU').textContent !== UN.bigLab()) $('pAltU').textContent = UN.bigLab();
+    $('pSpd').textContent = UN.spd(s.spd);
     $('pAltArc').classList.toggle('space', s.alt > 100000);
     const rings = $('pRings'); if (rings.children.length !== s.stages.length) rings.innerHTML = s.stages.map((_, i) => `<svg viewBox="0 0 44 44" class="ring"><circle cx="22" cy="22" r="17" class="trk"/><circle cx="22" cy="22" r="17" class="f" style="stroke-dasharray:${2 * Math.PI * 17}"/><text x="22" y="26">${i + 1}</text></svg>`).join('');
     s.stages.forEach((st, i) => { const c = rings.children[i]; c.classList.toggle('act', st.active); c.classList.toggle('gone', st.gone); c.querySelector('.f').style.strokeDashoffset = 2 * Math.PI * 17 * (1 - st.f); c.classList.toggle('low', st.active && st.f < 0.15); });
@@ -138,7 +139,7 @@ export function createFunUI(ctx) {
     const s = ctx.progress(), B = ctx.bodies();
     $('atlasBody').innerHTML = Object.entries(ATLAS).filter(([id]) => B[id]).map(([id, a]) => { const b = B[id], seen = s.visited.includes(id), g = b.mu / (b.R * b.R);
       return `<div class="atl ${seen ? 'seen' : 'unseen'}"><div class="orb" style="background:${ctx.bodyColor(id)}"></div><div><b>${b.name}</b> <small>${a.tag}${seen ? ' · ✔ visited' : ' · not visited yet'}</small>
-        <p>${seen ? a.blurb : '???  Fly there to unlock the survey notes.'}</p><p class="sm">radius ${(b.R / 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })} km · gravity ${(g / 9.80665).toFixed(2)} g${b.atm ? ' · has air' : ' · no air'}${a.tip && seen ? ' · tip: ' + a.tip : ''}</p>
+        <p>${seen ? a.blurb : '???  Fly there to unlock the survey notes.'}</p><p class="sm">radius ${UN.big(b.R)} · gravity ${(g / 9.80665).toFixed(2)} g${b.atm ? ' · has air' : ' · no air'}${a.tip && seen ? ' · tip: ' + a.tip : ''}</p>
         ${seen ? poisOf(id).map(p => `<p class="poi">📍 <b>${p.name}</b> — ${p.lore}</p>`).join('') : ''}</div></div>`; }).join('');
     atlas.classList.remove('hidden');
   }
@@ -168,13 +169,13 @@ export function createFunUI(ctx) {
     g.fillStyle = '#2f6d3a'; g.fillRect(0, H - 14, W, 14);
     if (!track || track.length < 2) { g.fillStyle = '#9cc3ff'; g.font = '12px monospace'; g.fillText('simulating…', 10, 20); return; }
     const maxX = Math.max(50, ...track.map(p => p[0])), maxY = Math.max(120, ...track.map(p => p[1])), X = x => 8 + x / maxX * (W - 30), Y = y => H - 14 - y / maxY * (H - 30);
-    g.strokeStyle = '#ffffff22'; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(0, Y(100)); g.lineTo(W, Y(100)); g.stroke(); g.setLineDash([]); g.fillStyle = '#ffffff66'; g.font = '10px monospace'; g.fillText('100 km · space', 6, Y(100) - 3);
+    g.strokeStyle = '#ffffff22'; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(0, Y(100)); g.lineTo(W, Y(100)); g.stroke(); g.setLineDash([]); g.fillStyle = '#ffffff66'; g.font = '10px monospace'; g.fillText(UN.big(100000) + ' · space', 6, Y(100) - 3);
     const n = Math.max(2, Math.floor(track.length * Math.min(1, (performance.now() - (drawGhost.t0 || 0)) / 1400)));
     g.strokeStyle = verdict === 'good' ? '#7dffa6' : verdict === 'warn' ? '#ffd23a' : '#ff6262'; g.lineWidth = 2.5; g.shadowColor = g.strokeStyle; g.shadowBlur = 8;
     g.beginPath(); track.slice(0, n).forEach((p, i) => i ? g.lineTo(X(p[0]), Y(p[1])) : g.moveTo(X(p[0]), Y(p[1]))); g.stroke(); g.shadowBlur = 0;
     for (const p of track.slice(0, n)) if (p[3] === 'stage') { g.fillStyle = '#ffd23a'; g.beginPath(); g.arc(X(p[0]), Y(p[1]), 4, 0, 7); g.fill(); }
     const L = track[n - 1]; g.font = '16px sans-serif'; g.fillText(n < track.length ? '🚀' : L[3] === 'boom' ? '💥' : L[3] === 'orbit' ? '🛰️' : '🪂', X(L[0]) - 8, Y(L[1]) - 4);
-    g.fillStyle = '#dfe9ff'; g.font = '11px monospace'; g.fillText(`${L[1].toFixed(0)} km up · ${L[0].toFixed(0)} km downrange`, 8, 14);
+    g.fillStyle = '#dfe9ff'; g.font = '11px monospace'; g.fillText(`${UN.big(L[1] * 1000)} up · ${UN.big(L[0] * 1000)} downrange`, 8, 14);
     if (n < track.length) requestAnimationFrame(() => drawGhost(canvas, track, verdict));
   }
   // ---------- wind tunnel ----------

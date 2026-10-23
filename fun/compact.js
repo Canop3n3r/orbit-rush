@@ -1,5 +1,6 @@
 // Compact flight HUD (f1u): thin edge strips, one short self-hiding text line, everything secondary in one drawer.
 // It re-parents existing controls (warp arrows, MAP, ☰, TAKE OVER, Pilot buttons, desktop #ctl) so their handlers keep working.
+import * as UN from './units.js?v=f5.7n';
 import { menuHTML, menuUpdate, toggleFull } from './flightmenu.js?v=f5.7n';
 const $ = id => document.getElementById(id);
 // f2: hints are whole phrases, never cut mid-word with "…". Keep the first clause; if it still runs past
@@ -17,7 +18,7 @@ export function shortHint(s) {
 export function createCompact({ touch, onSpeedTap, onMarkers, onEngTap, press, menuState }) {
   document.body.classList.add('cx');
   const strip = document.createElement('div'); strip.id = 'strip';
-  strip.innerHTML = `<div id="sL"><div class="c"><b>ALT mi</b><i id="sAlt">—</i></div><button class="c" id="sSpdB" title="Speed reference: surface / orbit / target" aria-label="Speed reference"><b id="sSpdL">SRF mph</b><i id="sSpd">—</i></button><div class="c ev"><b id="sEvL">AP · PE km</b><i id="sEv">—</i></div></div><div id="sR"></div>`;
+  strip.innerHTML = `<div id="sL"><div class="c"><b>ALT mi</b><i id="sAlt">—</i></div><button class="c" id="sSpdB" title="Speed reference: surface / orbit / target" aria-label="Speed reference"><b id="sSpdL">SRF mph</b><i id="sSpd">—</i></button><div class="c ev"><b id="sEvL">AP · PE</b><i id="sEv">—</i></div></div><div id="sR"></div>`;
   document.body.appendChild(strip);
   const strip2 = document.createElement('div'); strip2.id = 'strip2'; // f5.4 (QA F1): periapsis, fuel left in this stage, stage n/N
   strip2.innerHTML = '<div class="c"><b>PE mi</b><i id="sPe">—</i></div><div class="c"><b>FUEL</b><i id="sFuel">—</i></div><div class="c"><b>STAGE</b><i id="sStg">—</i></div>'; document.body.appendChild(strip2);
@@ -55,6 +56,7 @@ export function createCompact({ touch, onSpeedTap, onMarkers, onEngTap, press, m
   const last = {};
   const set = (id, txt) => { if (last[id] !== txt) { last[id] = txt; $(id).textContent = txt; } };
   function update(d) { // { alt, spd, spdL, evL, ev, hint, now }
+    { const L = UN.bigLab(), D = UN.dvLab(); if (update.u !== L + D) { update.u = L + D; const a0 = strip.querySelector('#sL .c b'), p0 = strip2.querySelector('.c b'); if (a0) a0.textContent = 'ALT ' + L; if (p0) p0.textContent = 'PE ' + L; for (const [id, l] of [['eVs', 'V/S '], ['eDv', 'Δv ']]) { const c = document.getElementById(id); const b = c && c.parentElement && c.parentElement.querySelector('b'); if (b) b.textContent = l + D; } } } // f5.7q: labels follow the Units setting
     set('sAlt', d.alt); set('sPe', d.pe ?? '—'); set('sFuel', d.fuel ?? '—'); set('sStg', d.stg ?? '—'); set('sSpd', d.spd); set('sSpdL', d.spdL); set('sEvL', d.evL); set('sEv', d.ev);
     const now = d.now ?? performance.now(), h = shortHint(d.hint);
     if (h !== hintText) { hintText = h; hintT = now; set('hintS', h); }

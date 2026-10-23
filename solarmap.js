@@ -4,6 +4,7 @@
 // Orbit camera: quaternion trackball (any angle, pole-down or edge-on, no gimbal lock), smooth zoom, pan,
 // focus with smooth transitions. Lines are drawn twice: depth-tested (bright) and through bodies (faint).
 // Markers and node handles are HTML (crisp, finger-sized). Mouse and touch.
+import * as UN from './fun/units.js?v=f5.7n';
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
 import * as GX from './gfx/gfx.js?v=f5.7n';
@@ -13,8 +14,8 @@ import { fmtDur } from './flight.js?v=f5.7n';
 import { layoutHandles } from './maplayout.js?v=f5.7n';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
-const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : a >= 1e7 ? (m / 1e3).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' km' : a >= 1e4 ? (m / 1e3).toFixed(1) + ' km' : m.toFixed(0) + ' m'; };
-const fmtV = x => (Math.abs(x) >= 1000 ? (x / 1000).toFixed(2) + ' km/s' : x.toFixed(1) + ' m/s');
+const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : UN.dist(m); }; // f5.7q: Units setting
+const fmtV = x => UN.dv(x);
 const mv = (F, x) => [F[0] * x[0] + F[1] * x[1] + F[2] * x[2], F[3] * x[0] + F[4] * x[1] + F[5] * x[2], F[6] * x[0] + F[7] * x[1] + F[8] * x[2]];
 const PATCH_COL = [0x7dffa6, 0xffb35c, 0xc89cff, 0x6ad8ff, 0xff7ab0];
 
@@ -411,7 +412,7 @@ export function createSolarMap(opts) {
       for (let k = sats.length; k < satLines.length; k++) satLines[k].set(false);
       const tr = ui.querySelector('#mapTrack'); tr.classList.toggle('hidden', !sats.length);
       if (sats.length && (S._trT = (S._trT || 0) - rdt) <= 0) { S._trT = 1; const Rb = B.earth.R;
-        tr.innerHTML = `<h4>🛰 Tracking · ${sats.length} in orbit</h4>` + sats.slice(-12).map(o => { const st = P.propagate(o.r, o.v, t - o.t, mu); return `<div>${o.name} · ${((Math.hypot(...st.r) - Rb) / 1000).toFixed(0)} km</div>`; }).join(''); } }
+        tr.innerHTML = `<h4>🛰 Tracking · ${sats.length} in orbit</h4>` + sats.slice(-12).map(o => { const st = P.propagate(o.r, o.v, t - o.t, mu); return `<div>${o.name} · ${UN.big(Math.hypot(...st.r) - Rb)}</div>`; }).join(''); } }
     for (let k = markerN; k < markerPool.length; k++) markerPool[k].style.display = 'none';
     const n = S.sel && F.nodes.includes(S.sel) ? S.sel : null;
     handles.forEach(hd => { hd.style.display = 'none'; });

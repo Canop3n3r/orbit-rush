@@ -1,5 +1,6 @@
 // Milestone Q UI: pause menu, settings (key remap, sensitivity, units, overlays), the Δv map and rich part
 // tooltips. DOM only; the logic it shows lives in settings.js, physics/dvmap.js and parts.js.
+import * as UN from './fun/units.js?v=f5.7n';
 import { ACTIONS, keyOf, bindKey, resetKeys, saveSettings, DEFAULT_KEYS } from './settings.js?v=f5.7n';
 import { dvMap, ORBIT_DV, LEO } from './physics/dvmap.js?v=f5.7n';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -11,8 +12,8 @@ export function dvTableHTML(have, fromSurface) {
   const rows = dvMap(), base = fromSurface ? ORBIT_DV : 0;
   const ok = r => have !== null && have !== undefined && have >= base + r.eject + r.capture;
   const okL = r => ok(r) && r.land !== null && have >= base + r.total;
-  return `<div class="dvmap"><p class="sm">Ideal Δv in km/s (patched conics, Hohmann). Surface → LEO (${LEO / 1000} km) costs <b>${(ORBIT_DV / 1000).toFixed(1)}</b>.
-    ${have !== null && have !== undefined ? `Your Δv${fromSurface ? ' (from the pad)' : ' (left now)'}: <b>${(have / 1000).toFixed(2)}</b> — <span class="good">✔ reach</span> / <span class="good">⬇ land</span> marked.` : ''}</p>
+  return `<div class="dvmap"><p class="sm">Ideal Δv in thousand ${UN.dvLab()} (patched conics, Hohmann). Surface → LEO (${UN.big(LEO)}) costs <b>${(UN.dvN(ORBIT_DV) / 1000).toFixed(1)}</b>.
+    ${have !== null && have !== undefined ? `Your Δv${fromSurface ? ' (from the pad)' : ' (left now)'}: <b>${(UN.dvN(have) / 1000).toFixed(2)}</b> — <span class="good">✔ reach</span> / <span class="good">⬇ land</span> marked.` : ''}</p>
     <table><tr><th>Body</th><th title="Burn from low Earth orbit onto the transfer">LEO →</th><th title="Capture into a low orbit on arrival">capture</th><th title="Low orbit → surface (airless: ~ the same back up)">land</th><th>trip</th><th></th></tr>
     ${rows.map(r => `<tr class="${r.parent === 'sun' || r.parent === 'earth' ? '' : 'moonrow'}"><td>${r.parent !== 'sun' ? '↳ ' : ''}${esc(r.name)}</td><td>${fdv(r.eject)}</td><td>${fdv(r.capture)}</td><td title="${esc(r.landNote)}">${r.land === null ? '—' : fdv(r.land)}${r.land !== null && /atmos/.test(r.landNote) ? '*' : ''}</td><td>${fdays(r.transfer)}</td><td>${okL(r) ? '<span class="good">⬇</span>' : ok(r) ? '<span class="good">✔</span>' : ''}</td></tr>`).join('')}</table>
     <p class="sm">* has an atmosphere: aerobraking and parachutes can replace most of the landing burn.</p></div>`;
@@ -34,7 +35,7 @@ export function createQoL(api) {
   function renderSettings() {
     const s = S();
     $('setBody').innerHTML = `<div class="setGrid">
-      <section><h4>Units</h4><label><input type="radio" name="units" value="metric" ${s.units === 'metric' ? 'checked' : ''}> Metric (km, m/s)</label><label><input type="radio" name="units" value="imperial" ${s.units === 'imperial' ? 'checked' : ''}> Imperial (mi, ft, ft/s)</label>
+      <section><h4>Units</h4><label><input type="radio" name="units" value="metric" ${s.units === 'metric' ? 'checked' : ''}> Metric (km/h, km, m, m/s)</label><label><input type="radio" name="units" value="imperial" ${s.units === 'imperial' ? 'checked' : ''}> Imperial (mph, mi, ft, ft/s)</label>
         <details class="qMore" ${window.__qmOpen ? 'open' : ''} ontoggle="window.__qmOpen = this.open"><summary><b>More</b> (camera, sensitivity)</summary><h4>Sensitivity</h4>${[['cam', 'Camera drag'], ['zoom', 'Zoom'], ['stick', 'Touch stick']].map(([k, l]) => `<label>${l} <input type="range" min="0.25" max="3" step="0.05" data-sens="${k}" value="${s.sens[k]}"> <b>${(+s.sens[k]).toFixed(2)}×</b></label>`).join('')}
         <h4>View</h4><label><input type="checkbox" data-set="overlay" ${s.overlay ? 'checked' : ''}> CoM / CoP / CoT markers in flight</label>
         <label>Flight camera <select data-set="camStyle"><option value="free" ${s.camStyle === 'free' ? 'selected' : ''}>Free (horizon up)</option><option value="locked" ${s.camStyle === 'locked' ? 'selected' : ''}>Locked to the craft</option></select></label>

@@ -24,7 +24,7 @@ const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
-const fmtS = mps => fmtSpeed(mps, SET.units);
+const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // f5.7q (Aaron): every HUD/pane/card reads the Units setting
 import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.7n';
 import { halfPose, buildHalves } from './fun/fairing.js?v=f5.7n';
 import { guardToasts } from './fun/toastzone.js?v=f5.7n';
@@ -38,6 +38,7 @@ import { createAudio } from './fun/audio.js?v=f5.7n';
 import { createCompact } from './fun/compact.js?v=f5.7n';
 import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.7n';
 import { softPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.7n';
+import * as UN from './fun/units.js?v=f5.7n';
 import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.7n';
 import { createHome } from './fun/home.js?v=f5.7n';
 import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.7n';
@@ -606,7 +607,7 @@ function partTip(id, p) {
   if (d.type === 'engine') { const mdot = d.tv / (d.ispVac * 9.80665); kv('Thrust', `${(d.tv * d.ispSl / d.ispVac).toFixed(0)} kN sea level · ${d.tv} kN vacuum${n > 1 ? ` (×${n})` : ''}`); kv('Isp', `${d.ispSl} s sea level · ${d.ispVac} s vacuum`); kv('Mass', `${d.m} t each`); kv('Propellant flow', `${(mdot * 1000).toFixed(0)} kg/s each`); kv('Gimbal', `${(d.gimbal * 180 / Math.PI).toFixed(0)}°`); kv('TWR alone (Earth, vac)', (d.tv / (d.m * 9.80665)).toFixed(0)); }
   else if (d.type === 'tank') { kv('Propellant', `${d.fuel} t`); kv('Empty', `${(d.fuel * TANK_DRY).toFixed(2)} t`); kv('Size', `${d.h.toFixed(1)} m × ${d.d} m`); if (d.rho) kv('Density', `${d.rho} t/m³`); }
   else if (d.type === 'shield') { kv('Mass', `${d.m} t`); kv('Max temperature', `${d.heat.Tmax} K`); if (d.heat.abl) kv('Ablator', `${d.heat.abl} t, holds ${d.heat.Tabl} K`); }
-  else if (d.type === 'chute') { kv('Drogues', `CdA ${d.drogue.cda} m² · < Mach ${d.drogue.machMax}, < ${d.drogue.qMax / 1000} kPa`); kv('Mains', `CdA ${d.main.cda} m² · < ${d.main.vMax} m/s, < ${d.main.qMax / 1000} kPa`); kv('Mass', `${d.m} t`); }
+  else if (d.type === 'chute') { kv('Drogues', `CdA ${d.drogue.cda} m² · < Mach ${d.drogue.machMax}, < ${d.drogue.qMax / 1000} kPa`); kv('Mains', `CdA ${d.main.cda} m² · < ${UN.dv(d.main.vMax)}, < ${d.main.qMax / 1000} kPa`); kv('Mass', `${d.m} t`); }
   else if (d.type === 'rcs') { kv('Thrust', `${d.F} kN per axis · Isp ${d.isp} s`); kv('Monopropellant', `${d.mono} t`); kv('Mass', `${d.m} t`); }
   else if (d.type === 'fins') { kv('Lift slope', `CNα ${d.cna} /rad`); kv('Mass', `${d.m} t`); }
   else { kv('Mass', `${d.m} t`); if (d.mult) kv('Score', `×${d.mult}`); if (d.rw) kv('Reaction wheels', `${d.rw} kN·m`); }
@@ -695,7 +696,7 @@ function renderStack(stats) { setTimeout(() => { lastAdded = -1; }, 0);
   for (let gi = N - 1; gi >= 0; gi--) { // top stage first
     const st = stats.stages[gi], hd = document.createElement('div'); hd.className = 'stageH';
     const radK = stats.analysis.stages[gi].radial;
-    hd.innerHTML = `<span>STAGE ${gi + 1}${radK ? ` · RADIAL BOOSTERS ×${radK}` : ''}${gi === 0 ? ' · fires first' : gi === N - 1 ? ' · top' : ''}</span><em>${Math.round(st.dv / 0.3048).toLocaleString('en-US')} ft/s · TWR ${st.twr.toFixed(2)}</em>`;
+    hd.innerHTML = `<span>STAGE ${gi + 1}${radK ? ` · RADIAL BOOSTERS ×${radK}` : ''}${gi === 0 ? ' · fires first' : gi === N - 1 ? ' · top' : ''}</span><em>${UN.dv(st.dv)} · TWR ${st.twr.toFixed(2)}</em>`;
     const up = document.createElement('button'); up.textContent = '⇧'; up.title = 'Move this stage up (fires later)'; up.disabled = gi === N - 1; up.onclick = () => setDesign(swapStages(design, gi, gi + 1));
     const dn = document.createElement('button'); dn.textContent = '⇩'; dn.title = 'Move this stage down (fires sooner)'; dn.disabled = gi === 0; dn.onclick = () => setDesign(swapStages(design, gi, gi - 1));
     hd.append(up, dn); el.appendChild(hd);
@@ -755,21 +756,21 @@ function refreshBuild() {
   renderStack(stats);
   { let el = $('bStages'); if (!el) { const col = $('stack') && $('stack').parentElement; if (col) { el = document.createElement('div'); el.id = 'bStages'; col.insertBefore(el, $('stack')); } } // f5.4l (QA f5.4i #5): compact stage list
     if (el) el.innerHTML = stats.stages.map((st, i) => { const a = stats.analysis.stages[i], tw = st.twr < (i ? 0.3 : 1) ? 'bad' : st.twr < (i ? 0.5 : 1.2) ? 'warn' : '';
-      return `<div class="bsR"><b>S${i + 1}</b><span>${a.engines.join(', ') || '<i class="bad">no engine</i>'}</span><em>Δv ${Math.round(st.dv / 0.3048).toLocaleString('en-US')}</em><em class="${tw}">TWR ${st.twr.toFixed(2)}</em></div>`; }).join('') + `<div class="bsT">Total Δv <b>${Math.round(statsE.total / 0.3048).toLocaleString('en-US')} ft/s</b> · orbit ~${Math.round(ORBIT_DV / 0.3048).toLocaleString('en-US')}</div>`; }
+      return `<div class="bsR"><b>S${i + 1}</b><span>${a.engines.join(', ') || '<i class="bad">no engine</i>'}</span><em>Δv ${Math.round(UN.dvN(st.dv)).toLocaleString('en-US')}</em><em class="${tw}">TWR ${st.twr.toFixed(2)}</em></div>`; }).join('') + `<div class="bsT">Total Δv <b>${UN.dv(statsE.total)}</b> · orbit ~${Math.round(UN.dvN(ORBIT_DV)).toLocaleString('en-US')}</div>`; }
   const rows = stats.stages.map((st, i) => { const a = stats.analysis.stages[i];
     return `<tr><td>${i + 1}</td><td>${a.engines.join(', ') || '<span class="bad">none</span>'}</td><td>${st.m0.toFixed(1)}→${st.m1.toFixed(1)} t</td><td>${st.dv.toFixed(0)}</td><td class="${st.twr < (i && envId === 'earth' ? 0.3 : 1) ? 'bad' : st.twr < (i && envId === 'earth' ? 0.5 : 1.2) ? 'warn' : ''}">${st.twr.toFixed(2)}${i || envId !== 'earth' ? '' : ' SL'}</td><td>${st.burn.toFixed(0)} s</td></tr>`; }).join('');
   const pct = Math.min(100, statsE.total / (ORBIT_DV * 2) * 100), need = ORBIT_DV / (ORBIT_DV * 2) * 100;
   const dvC = design.sub ? 'good' : statsE.total < ORBIT_DV ? 'bad' : statsE.total < ORBIT_DV + 600 ? 'warn' : 'good';
   const envSel = `<label class="envSel" title="Stage Δv and TWR as if each stage were lit on this body's surface (its gravity and air pressure)">Δv / TWR at <select id="envSel"><option value="earth">Earth launch (stage 1 sea level)</option><option value="vac">Vacuum (Earth g)</option>${ENV_BODIES.map(id => `<option value="${id}">${P.BODIES[id].name} surface</option>`).join('')}</select></label>`;
-  $('readout').innerHTML = `${envSel}<table><tr><th>Stg</th><th>Engines</th><th>Mass wet→dry</th><th>Δv m/s</th><th>TWR${envId === 'earth' ? '' : ' (' + (envId === 'vac' ? 'vac' : P.BODIES[envId].name) + ')'}</th><th>Burn</th></tr>${rows}</table>
-    <div class="dvline">Total Δv <b class="${dvC}">${statsE.total.toFixed(0)} m/s</b>${envId !== 'earth' ? ` (${stats.total.toFixed(0)} m/s at ${envId === 'vac' ? 'vacuum' : P.BODIES[envId].name})` : ''} · orbit needs ~${ORBIT_DV.toLocaleString()} · liftoff mass ${stats.mass.toFixed(1)} t · score ×${stats.analysis.mult} · <a href="#" id="dvMapLink">Δv map</a></div>
+  $('readout').innerHTML = `${envSel}<table><tr><th>Stg</th><th>Engines</th><th>Mass wet→dry</th><th>Δv ${UN.dvLab()}</th><th>TWR${envId === 'earth' ? '' : ' (' + (envId === 'vac' ? 'vac' : P.BODIES[envId].name) + ')'}</th><th>Burn</th></tr>${rows}</table>
+    <div class="dvline">Total Δv <b class="${dvC}">${UN.dv(statsE.total)}</b>${envId !== 'earth' ? ` (${UN.dv(stats.total)} at ${envId === 'vac' ? 'vacuum' : P.BODIES[envId].name})` : ''} · orbit needs ~${UN.dv(ORBIT_DV)} · liftoff mass ${stats.mass.toFixed(1)} t · score ×${stats.analysis.mult} · <a href="#" id="dvMapLink">Δv map</a></div>
     <div class="dvbar"><i class="${dvC}" style="width:${pct}%"></i><s style="left:${need}%"></s><em style="left:${need}%">orbit</em></div>
     ${val.errors.map(e => `<div class="msg bad">✘ ${e}</div>`).join('')}${val.warnings.map(e => `<div class="msg warn">⚠ ${e}</div>`).join('')}
     ${fun ? fun.paintRow() : ''}
     <div class="ghostH">🔮 Will it fly? <small>AUTO's flight, simulated</small></div><canvas id="ghost" width="460" height="150"></canvas>
     <div id="verdict" class="msg">${val.ok ? 'AUTO test flight: simulating…' : ''}</div><div id="landPlan" class="msg"></div>
     ${aeroLine()}
-    <div class="small">Stage 1 TWR is at sea level, upper stages in vacuum. Δv uses mean Isp for stage 1. Full-scale Earth: orbit is ~7.8 km/s plus ~1.5 km/s of gravity, drag and steering losses.</div>`;
+    <div class="small">Stage 1 TWR is at sea level, upper stages in vacuum. Δv uses mean Isp for stage 1. Full-scale Earth: orbit is ~${UN.dv(7800)} plus ~${UN.dv(1500)} of gravity, drag and steering losses.</div>`;
   if (fun) fun.wirePaint(ch => { Object.assign(design, ch); refreshBuild(); });
   $('envSel').value = envId; $('envSel').onchange = e => { envId = e.target.value; refreshBuild(); };
   $('dvMapLink').onclick = e => { e.preventDefault(); qol.openDv(); };
@@ -1378,18 +1379,18 @@ function showEnd() {
   $('endTitle').innerHTML = flags.dead ? fun.boomCard(flags.cause) : landedOn ? `🏳️ Landed on the ${P.BODIES[landedOn[0]].name}!` : flags.recovered ? '🪂 Orbit and home!' : flags.dead ? (/burned up|overheated/.test(flags.dead) ? '🔥 Burned up' : '💥 Rapid Unscheduled Disassembly') : ok ? '🛰️ Orbit achieved!' : flags.stranded ? '🪂 Out of fuel — suborbital' : '🪂 Mission over';
   const lines = [];
   if (flags.dead) lines.push(`<span class="bad">Cause: ${flags.dead}</span>`);
-  if (flags.recovered) lines.push(`<span class="good">✔ Recovered — touchdown at ${flags.touchdown.toFixed(1)} m/s · peak heating ${(F.maxHeat / 1000).toFixed(0)} kW/m² · peak skin ${F.maxTskin.toFixed(0)} K · ${F.maxGret.toFixed(1)} g on entry</span>`);
+  if (flags.recovered) lines.push(`<span class="good">✔ Recovered — touchdown at ${UN.spd(flags.touchdown)} · peak heating ${(F.maxHeat / 1000).toFixed(0)} kW/m² · peak skin ${F.maxTskin.toFixed(0)} K · ${F.maxGret.toFixed(1)} g on entry</span>`);
   if (flags.stranded && !flags.dead) lines.push(`<span class="warn">${F.advice()}</span>`);
-  lines.push(`Max altitude: ${((flags.maxAlt || 0) / 1609.344).toFixed(1)} mi · Max-Q (ascent): ${(F.maxQ / 1000).toFixed(1)} kPa${F.maxQEntry > 1000 ? ` · entry peak q ${(F.maxQEntry / 1000).toFixed(1)} kPa` : ''} · max ${F.maxG.toFixed(1)} g · Δv used ${Math.round(F.dvUsed / 0.3048).toLocaleString('en-US')} ft/s`);
-  if (F.released) { const sv = F.released.saved, W0 = WORLD.load(localStorage); lines.unshift(sv ? `<b class="good">🛰 ${sv.name} delivered · Pe ${(F.released.pe / 1000).toFixed(0)} km · ${WORLD.count(W0, 'constellation')} in the constellation, ${WORLD.count(W0)} in orbit</b>` : `<b class="warn">🛰 Payload released too low: it will re-enter</b>`); }
+  lines.push(`Max altitude: ${UN.big(flags.maxAlt || 0)} · Max-Q (ascent): ${(F.maxQ / 1000).toFixed(1)} kPa${F.maxQEntry > 1000 ? ` · entry peak q ${(F.maxQEntry / 1000).toFixed(1)} kPa` : ''} · max ${F.maxG.toFixed(1)} g · Δv used ${UN.dv(F.dvUsed)}`);
+  if (F.released) { const sv = F.released.saved, W0 = WORLD.load(localStorage); lines.unshift(sv ? `<b class="good">🛰 ${sv.name} delivered · Pe ${UN.big(F.released.pe)} · ${WORLD.count(W0, 'constellation')} in the constellation, ${WORLD.count(W0)} in orbit</b>` : `<b class="warn">🛰 Payload released too low: it will re-enter</b>`); }
   if (flags.deorbited) lines.push(`<span class="good">✔ Spent stage de-orbited (${flags.deorbited})</span>`); else if (F.released && !flags.recovered) lines.push('<span class="warn">Spent stage left in orbit as debris</span>');
-  if (flags.space) lines.push('<span class="good">✔ Reached space (Kármán line, 100 km)</span>');
-  { const hb = F.homeBody, g = hb && hb !== 'earth' && (F.goals[hb] || {}).orbit; if (g && !flags.dead) { const o2 = P.orbitOf(v); lines.unshift(`<b class="good">🛰️ In orbit around ${P.BODIES[hb].name} · Ap ${(o2.ap / 1000).toFixed(0)} / Pe ${(o2.pe / 1000).toFixed(0)} km</b>`); } }
-  if (flags.orbit && !landedOn) lines.push(`<span class="good">✔ Orbit — Ap ${isFinite(o.ap) ? (o.ap / 1609.344).toFixed(0) + ' mi' : 'escape'} / Pe ${(o.pe / 1609.344).toFixed(0)} mi · period ${isFinite(o.T) ? (o.T / 60).toFixed(1) + ' min' : '—'}</span>`);
+  if (flags.space) lines.push('<span class="good">✔ Reached space (Kármán line, ${UN.big(100000)})</span>');
+  { const hb = F.homeBody, g = hb && hb !== 'earth' && (F.goals[hb] || {}).orbit; if (g && !flags.dead) { const o2 = P.orbitOf(v); lines.unshift(`<b class="good">🛰️ In orbit around ${P.BODIES[hb].name} · Ap ${UN.bigS(o2.ap)} / Pe ${UN.big(o2.pe)}</b>`); } }
+  if (flags.orbit && !landedOn) lines.push(`<span class="good">✔ Orbit — Ap ${isFinite(o.ap) ? UN.big(o.ap) : 'escape'} / Pe ${UN.big(o.pe)} · period ${isFinite(o.T) ? (o.T / 60).toFixed(1) + ' min' : '—'}</span>`);
   if (flags.booster) lines.push(flags.boosterBonus ? `<span class="good">✔ Booster ${flags.booster} (+${flags.boosterBonus})</span>` : `<span class="warn">✘ Booster ${flags.booster}</span>`);
   else if (booster && booster.state === 'flying') lines.push('Booster still descending…');
   { const fb = F.flagsB; if (fb && fb.booster) lines.push(fb.boosterBonus ? `<span class="good">✔ Booster B ${fb.booster} (+${fb.boosterBonus})</span>` : `<span class="warn">✘ Booster B ${fb.booster}</span>`); }
-  lines.push(`Rocket: ${design.name || 'Custom'} — ${v.stages.length} stages, ${F.stats.total.toFixed(0)} m/s · payload ×${v.mult}`, `<b style="font-size:20px">SCORE ${score.toLocaleString()}</b>`);
+  lines.push(`Rocket: ${design.name || 'Custom'} — ${v.stages.length} stages, ${UN.dv(F.stats.total)} · payload ×${v.mult}`, `<b style="font-size:20px">SCORE ${score.toLocaleString()}</b>`);
   if (director && director.result) lines.unshift(`<b class="${director.ok ? 'good' : 'warn'}">${MISSIONS[director.id].icon} ${director.result}</b>`);
   // f3: compact result card: headline result, score and medal up top; the stats wall folds into "Details"
   const extra = fun.endExtras(out, true), sc = lines.pop(), head = [], rest = [];
@@ -1408,7 +1409,7 @@ function showEnd() {
   $('shareBtn').textContent = 'Share score';
   // f5 lean end card (playtest ui_ideal_path #14 budget): ONE line + ↻ Retry + ▶ Next + ⋯; everything else lives in the ⋯ sheet
   { const L = out && out.ladder, starTxt = noStars ? '' : '★'.repeat(stars) + '☆'.repeat(3 - stars);
-    const what = design.sub && flags.space && !director ? 'Touched space ✓' : flags.dead ? 'Crashed' : F.released && F.released.saved && !director ? 'Delivered · ' + F.released.saved.name : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${Math.round(apKm * 0.621371)} mi` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : `${Math.round((flags.maxAlt || 0) / 1000)} km`;
+    const what = design.sub && flags.space && !director ? 'Touched space ✓' : flags.dead ? 'Crashed' : F.released && F.released.saved && !director ? 'Delivered · ' + F.released.saved.name : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${UN.big(apKm * 1000)}` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : UN.dist(flags.maxAlt || 0);
     const earn = false && L && (L.cash || L.sci) ? ` <span class="eLine">+$${L.cash}M${L.sci ? ' 🔬' + L.sci : ''}</span>` : '';
     $('endTitle').innerHTML = `<span class="eStars">${starTxt}</span> ${what}${earn}`;
     const nb = $('nextMisBtn'), n = careerUI.next(nb && nb.dataset.after || null); if (nb) nb.dataset.home = director && !stars ? '1' : ''; if (nb) nb.innerHTML = n && !rungLocked(n) && !(director && !stars) ? `▶ Next<small>${rungLabel(n)}</small>` : '▶ Home';
@@ -1506,14 +1507,14 @@ function updateOrbitLine(O) {
 // ---------- HUD ----------
 function hudNode() {
   const n = F.nodes[0]; if (!n) return ''; const dv = V.len(F.nodeRemaining(n) || [0, 0, 0]), bt = F.nodeBurnTime(n), dt = n.t - F.tAbs - bt / 2;
-  return `\n<b data-l="node">NODE</b  >  Δv ${fmtN(dv, 1)} m/s · burn ${fmtDur(P.burnTimeFor(v, dv))} · ${n.started ? '<span class="warn">BURNING</span>' : dt > 0 ? `start in ${fmtDur(dt)}` : '<span class="warn">BURN NOW</span>'}${F.exec ? ' · AUTO' : ''}`.replace('</b  >', '</b>');
+  return `\n<b data-l="node">NODE</b  >  Δv ${UN.dv(dv)} · burn ${fmtDur(P.burnTimeFor(v, dv))} · ${n.started ? '<span class="warn">BURNING</span>' : dt > 0 ? `start in ${fmtDur(dt)}` : '<span class="warn">BURN NOW</span>'}${F.exec ? ' · AUTO' : ''}`.replace('</b  >', '</b>');
 }
 let tgtCache = { t: 0, s: '' };
 function hudTarget() {
   const tg = F.target; if (!tg) return ''; const now = performance.now();
   if (now - tgtCache.t > 500) { tgtCache.t = now; const ts = P.transfer(tg, F.body, [0, 0, 0], [0, 0, 0], F.tAbs), d = V.len(V.sub(v.r, ts.r)), rv = V.len(V.sub(v.v, ts.v));
     let ca = ''; try { const pr = C.predict(F.body, v.r, v.v, F.tAbs, { nodes: F.nodes, maxPatches: 4, samples: 2 }), c = C.closestApproach(pr, tg); ca = c.inside ? ` · encounter Pe ${fmtD(c.alt)}` : isFinite(c.d) ? ` · CA ${fmtD(c.d)} in ${fmtDur(c.t - F.tAbs)}` : ''; } catch (e) { }
-    tgtCache.s = `\n<b data-l="tgt">TGT</b>   ${P.BODIES[tg].name} · ${fmtD(d)} · rel ${fmtN(rv)} m/s${ca}`; }
+    tgtCache.s = `\n<b data-l="tgt">TGT</b>   ${P.BODIES[tg].name} · ${fmtD(d)} · rel ${UN.dv(rv)}${ca}`; }
   return tgtCache.s;
 }
 const fmtD = m => fmtDist(m, SET.units);
@@ -1539,7 +1540,7 @@ function hud() {
   const W = F.effWarp(), [wMax, wWhy] = F.warpLimit();
   const clock = !F.ignited ? 'T- HOLD (on pad)' : !flags.liftoff ? 'T- 0:00 IGNITION' : `T+ ${fmtT(F.met)}`;
   const autoTag = v.auto ? ` [AUTOPILOT ${v.guid || ''}]` : F.autoOn ? ` [AUTO ${v.guid || ''}]` : '';
-  const fair = v.fairing > 0 ? (flags.fairing ? 'fairing jettisoned' : `fairing on (drops above ${P.FAIRING_ALT / 1000} km at q̇ < 1.1 kW/m²)`) : '';
+  const fair = v.fairing > 0 ? (flags.fairing ? 'fairing jettisoned' : `fairing on (drops above ${UN.big(P.FAIRING_ALT)} at q̇ < 1.1 kW/m²)`) : '';
   const hasRCS = v.stages.slice(v.cur).some(s => s.parts.some(p => p.kind === 'rcs'));
   const space = h > P.KARMAN ? '<span class="good">SPACE</span>' : tel.layer;
   let t = `${clock}${autoTag}${F.rails ? ' <span class="good">[RAILS]</span>' : ''}
@@ -1564,7 +1565,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
       const d = V.sub(V.norm(sAt), V.norm(at)); b.miss = V.dot(d, P.eastOf(at)) * R; b.missN = V.dot(d, V.cross(V.norm(at), P.eastOf(at))) * R; }
     const bd = ship ? (b.miss ?? 0) : 0, bn = b.missN || 0, tilt = Math.acos(Math.max(-1, Math.min(1, V.dot(b.dir, bu)))) * DEG;
     const dirS = !ship ? '' : Math.hypot(bd, bn) < 15 ? 'ON TARGET ✔' : `miss ${fmtD(Math.hypot(bd, bn))} — ship is ${bd > 0 ? 'EAST →' : '← WEST'}`;
-    const bt = `BOOSTER ${b.manual ? '(YOU)' : '(auto)'}\nALT   ${fmtD(bh)}\nV/S   ${bvr.toFixed(0)} m/s   air ${bsp.toFixed(0)} m/s  M${(b.mach || 0).toFixed(1)}\nSHIP  ${dirS}\nTILT  ${tilt.toFixed(0)}°  THR ${(b.throttle * 100).toFixed(0)}% ×${b.n}\nFUEL  ${b.stages[0].fuel.toFixed(2)} t  ${b.phase}`;
+    const bt = `BOOSTER ${b.manual ? '(YOU)' : '(auto)'}\nALT   ${fmtD(bh)}\nV/S   ${UN.dv(bvr)}   air ${UN.spd(bsp)}  M${(b.mach || 0).toFixed(1)}\nSHIP  ${dirS}\nTILT  ${tilt.toFixed(0)}°  THR ${(b.throttle * 100).toFixed(0)}% ×${b.n}\nFUEL  ${b.stages[0].fuel.toFixed(2)} t  ${b.phase}`;
     t = b.manual ? bt + `\n\nUPPER ${fmtD(h)} Ap ${apS} Pe ${peS}${v.auto ? ' [AUTOPILOT ' + (v.guid || '') + ']' : ''}` : t + '\n' + bt.split('\n').slice(0, 2).join('  ');
   } else if (b) t += `\nBOOSTER ${b.state}`;
   // Learn overlay: every readout label carries data-l (hover = one-line physics explanation, / lists them all)
@@ -1588,7 +1589,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
     const hot = !dense && tel.heat > 2e4, hasChute = v.stages.slice(v.cur).some(s2 => s2.parts.some(p2 => p2.kind === 'chute'));
     const cv = flyingBooster() ? booster : v;
     mobile.render({ hasChute: hasChutes(), canHome: !!(F && F.ignited && F.alt < 1000) /* f5.7k: Return to pad only below ~1 km */, alt: fmtD(P.altOf(v)), spd: fmtS(V.len(v.v)), ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
-      mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : `${(V.dot(v.v, V.norm(v.r)) / 0.3048).toFixed(0)} ft/s`,
+      mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : UN.vs(V.dot(v.v, V.norm(v.r))),
       mqC: tel.q > 30000 || tel.heat > 3e5 ? 'warn' : '', fuel: fu, score: F.score().toLocaleString(), thr: mobile.thrDragging() ? (cv.ut ?? cv.throttle ?? 0) : (cv.throttle || cv.ut || 0),
       auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME', booster: !!(F.booster && F.booster.state === 'flying') || !!(booster2 && booster2.state === 'flying'),
       rcs: v.rcsOn, fx: fx.q.toUpperCase(), warp: `${isGPU ? 'WebGPU' : 'WebGL2'} · warp ×${F.effWarp()}`, sas: v.sas, stageReady: false });
@@ -2232,10 +2233,10 @@ function funTick(rdt) {
   if ((funT2 = (funT2 || 0) + 1) % 5 === 0 || !lastO2) { try { const span = isFinite(o.T) ? o.T : 7200; for (let i = 0; i <= 64; i++) { const st = P.propagate(v.r, v.v, span * i / 64, b.mu); o2.push([V.dot(st.r, ex), V.dot(st.r, ey)]); } } catch (e) { o2 = []; } lastO2 = o2; } else o2 = lastO2;
   let obj;
   if (director) obj = (director.active ? '🎬 ' : '') + director.label;
-  else if (!F.ignited) obj = '▶ ' + (PR.nextContract(PROG) ? 'Contract: ' + PR.nextContract(PROG).goal : 'Free flight');
-  else if (!f.orbit) obj = P.altOf(v) < 100000 ? 'Climb to space — 100 km' : 'Build speed for orbit (Pe above 130 km)';
+  else if (!F.ignited) obj = '▶ ' + (PR.nextContract(PROG) ? 'Contract: ' + UN.txt(PR.nextContract(PROG).goal) : 'Free flight');
+  else if (!f.orbit) obj = P.altOf(v) < 100000 ? 'Climb to space — ' + UN.big(100000) : 'Build speed for orbit (Pe above ' + UN.big(130000) + ')';
   else obj = F.body === 'earth' ? 'In orbit! Open 🎯 Missions or the map (M) to go further' : 'Exploring ' + b.name;
-  if (F.parked || f.landed) { const lat = Math.asin(v.r[2] / r) * 180 / Math.PI, lon = Math.atan2(v.r[1], v.r[0]) * 180 / Math.PI, np = nearestPoi(F.body, b.R, lat, lon); if (np) obj += ` · 📍 ${np.poi.name} ${(np.d / 1000).toFixed(0)} km`; }
+  if (F.parked || f.landed) { const lat = Math.asin(v.r[2] / r) * 180 / Math.PI, lon = Math.atan2(v.r[1], v.r[0]) * 180 / Math.PI, np = nearestPoi(F.body, b.R, lat, lon); if (np) obj += ` · 📍 ${np.poi.name} ${UN.big(np.d)}`; }
   fun.renderPilot({ alt: P.altOf(v), spd: V.len(v.v), stages, objective: obj, prog: director ? director.progress : f.orbit ? 1 : Math.min(1, P.altOf(v) / 140000), orbit2d: o2, bodyR: b.R, bodyCol: BODY_COL[F.body], me: [r, 0], director: !!(director && director.active) });
 }
 // ---------- f1u: visuals on the rocket itself (world space), so the HUD can stay thin ----------
@@ -2317,39 +2318,39 @@ function worldVis(base, O, nose) {
     else if (bx.y + bx.h + 8 + TH < innerHeight * 0.8) { x = bx.x + bx.w / 2 - TW / 2; y = bx.y + bx.h + 8; } else if (bx.y - 8 - TH > innerHeight * 0.2) { x = bx.x + bx.w / 2 - TW / 2; y = bx.y - 8 - TH; } }
   if (x !== null) { x = Math.max(8, Math.min(innerWidth - TW - 8, x));
     t.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`; t.style.opacity = '1';
-    const a = $('ctAlt'), s2 = $('ctSpd'), at = fmtKm(P.altOf(v)) + ' mi', st = Math.round(fun.navOut.sp * MPH).toLocaleString() + ' mph'; if (a.textContent !== at) a.textContent = at; if (s2.textContent !== st) s2.textContent = st; }
+    const a = $('ctAlt'), s2 = $('ctSpd'), at = fmtKm(P.altOf(v)) + ' ' + UN.bigLab(), st = UN.spd(fun.navOut.sp); if (a.textContent !== at) a.textContent = at; if (s2.textContent !== st) s2.textContent = st; }
   else t.style.opacity = '0';
 }
 // compact strip: the same speed as the navball (one source), Ap/Pe or the next event, one short hint line
-const fmtKm = m => { const k = m / 1609.344; /* f5.7n (Aaron): the compact HUD reads miles (name kept) */ return Math.abs(k) < 100 ? k.toFixed(1) : Math.abs(k) < 1e5 ? Math.round(k).toLocaleString() : (k / 1e6).toFixed(2) + 'M'; };
+const fmtKm = m => UN.bigS(m); // f5.7q: mi or km per the Units setting (name kept)
 // f2: Ap/Pe slot that means something on ascent: below orbit it shows the apoapsis and "SUBORB" (or time to Ap)
 function evAp(o) {
-  if (!isFinite(o.ap)) return ['AP · PE mi', '—'];
+  if (!isFinite(o.ap)) return ['AP · PE ' + UN.bigLab(), '—'];
   const orb = isFinite(o.pe) && o.pe > (F.body === 'earth' ? 70000 : F.body === 'mars' || F.body === 'venus' || F.body === 'titan' ? 50000 : 2000), tAp = P.timeToApV(v);
-  const k = x => (x >= 16093 ? Math.round(x / 1609.344) : (x / 1609.344).toFixed(1)).toString();
-  if (orb) return ['AP · PE mi', k(o.ap) + '/' + k(o.pe)];
+  const k = x => (UN.bigN(x) >= 10 ? Math.round(UN.bigN(x)) : UN.bigN(x).toFixed(1)).toString();
+  if (orb) return ['AP · PE ' + UN.bigLab(), k(o.ap) + '/' + k(o.pe)];
   const vr = V.dot(v.v, V.norm(v.r));
   if (vr > 5 && isFinite(tAp) && tAp > 0 && tAp < 3600) return ['AP · T−AP', k(o.ap) + '·' + (tAp < 60 ? Math.round(tAp) + 's' : Math.floor(tAp / 60) + 'm' + String(Math.round(tAp % 60)).padStart(2, '0'))];
-  if (isFinite(o.pe) && o.pe > 0) return ['AP · PE mi', k(o.ap) + '/' + k(o.pe)];
-  return ['AP mi', k(o.ap)];
+  if (isFinite(o.pe) && o.pe > 0) return ['AP · PE ' + UN.bigLab(), k(o.ap) + '/' + k(o.pe)];
+  return ['AP ' + UN.bigLab(), k(o.ap)];
 }
 function engCells() {
   if (!document.body.classList.contains('eng') || state !== 'flight' || !F) return null;
   const tel = v.tel, cs = v.stages[v.cur], cv = flyingBooster() ? booster : v, n0 = x => isFinite(x) ? x : 0;
-  return { eMach: n0(tel.machShown ?? tel.mach).toFixed(2), eQ: (n0(tel.q) / 1000).toFixed(1), eG: n0(tel.gload).toFixed(1), eVs: Math.round(V.dot(v.v, V.norm(v.r)) / 0.3048).toString(),
-    eDv: Math.round(n0(craftDv()) / 0.3048).toLocaleString(), eFuel: cs && cs.fuelMax > 0 ? Math.round(cs.fuel / cs.fuelMax * 100) + '%' : '—', eThr: Math.round(100 * n0(cv.throttle || cv.ut)) + '%', eHeat: (n0(tel.heat) / 1000).toFixed(0) };
+  return { eMach: n0(tel.machShown ?? tel.mach).toFixed(2), eQ: (n0(tel.q) / 1000).toFixed(1), eG: n0(tel.gload).toFixed(1), eVs: Math.round(UN.dvN(V.dot(v.v, V.norm(v.r)))).toString(),
+    eDv: Math.round(UN.dvN(n0(craftDv()))).toLocaleString(), eFuel: cs && cs.fuelMax > 0 ? Math.round(cs.fuel / cs.fuelMax * 100) + '%' : '—', eThr: Math.round(100 * n0(cv.throttle || cv.ut)) + '%', eHeat: (n0(tel.heat) / 1000).toFixed(0) };
 }
 function stripTick() {
   if (!F || !cx) return;
-  const no = fun.navOut, lab = { surface: 'SRF mph', orbit: 'ORB mph', target: 'TGT mph' }[no.mode] || 'SRF mph';
-  const sp = no.sp, b = F.booster, lc = F.landCue; let evL = 'AP · PE mi', ev = '—';
+  const no = fun.navOut, lab = ({ surface: 'SRF', orbit: 'ORB', target: 'TGT' }[no.mode] || 'SRF') + ' ' + UN.spdLab();
+  const sp = no.sp, b = F.booster, lc = F.landCue; let evL = 'AP · PE ' + UN.bigLab(), ev = '—';
   if (F.flyingBooster() && b && isFinite(b.burnIn) && b.burnIn > 0.5) { evL = 'BURN T−'; ev = b.burnIn.toFixed(1) + ' s'; }
   else if (lc && !F.flags.landed && lc.burnIn > 0.5 && lc.burnIn < 600 && V.dot(P.airVel(v), V.norm(v.r)) < 0) { evL = 'BURN T−'; ev = lc.burnIn.toFixed(1) + ' s'; }
   else if (F.nodes.length) { evL = 'NODE T−'; ev = fmtDur(Math.max(0, F.nodes[0].t - F.tAbs)); }
   else if (F.ignited || F.flags.orbit || P.altOf(v) > 1000) { const o = P.orbitOf(v); const ea = evAp(o); evL = ea[0]; ev = ea[1]; }
   const o2 = (F.ignited || F.flags.orbit) ? P.orbitOf(v) : null, cs = v.stages[v.cur]; // f5.4 (QA F1): PE, fuel per stage, stage n/N
   const pe = o2 && isFinite(o2.pe) ? (o2.pe < -50000 ? 'SUB' : fmtKm(o2.pe)) : '—', fuel = cs && cs.fuelMax > 0 ? Math.round(cs.fuel / cs.fuelMax * 100) + '%' : '—', stg = (v.cur + 1) + '/' + v.stages.length;
-  cx.update({ pe, fuel, stg, alt: fmtKm(P.altOf(v)), spd: sp * MPH < 1e5 ? Math.round(sp * MPH).toLocaleString() : (sp * MPH / 1000).toFixed(0) + 'k', spdL: lab, evL, ev, hint: $('hint').style.display === 'none' ? '' : $('hint').textContent });
+  cx.update({ pe, fuel, stg, alt: fmtKm(P.altOf(v)), spd: UN.spdN(sp) < 1e5 ? Math.round(UN.spdN(sp)).toLocaleString() : (UN.spdN(sp) / 1000).toFixed(0) + 'k', spdL: lab, evL, ev, hint: $('hint').style.display === 'none' ? '' : $('hint').textContent });
   cx.updateEng(engCells());
 }
 { const wantB = on => { try { if (!F || !booster || booster.state !== 'flying') return; if (!!booster.manual !== on && (on ? booster.stages[0].fuel > 0 : true)) F.toggleBooster(); } catch (e) { } }; // f5.6g: each pane's ball steers THAT pane's craft
@@ -2367,7 +2368,7 @@ function stripTick() {
   if ($('spBallU')) attachNavStick($('spBallU'), { roll: false, mirrorX: true, onGrab: () => wantB(false), cur: () => v ? bFrame(v, P.noseOf(v)) : null, target: () => v && v.holdAtt ? bFrame(v, v.holdAtt.n) : null, // the mini ball is roll-free: keep the current roll
     onTarget: G => { const t = V.qrot(v.q, [0, 0, -1]), k = V.dot(t, G.n), tt = V.sub(t, V.scale(G.n, k)); upHold({ n: G.n, t: V.len(tt) > 1e-3 ? V.norm(tt) : (v.holdAtt ? v.holdAtt.t : t) }); } });
   ballFor($('spBallB'), () => booster); ballFor($('spBallB2'), () => booster2); }
-const fmtMph = m => Math.round(m * MPH).toLocaleString('en-US') + ' mph', fmtFps = m => (m >= 0 ? '+' : '−') + Math.round(Math.abs(m) / 0.3048).toLocaleString('en-US') + ' ft/s', fmtDv = m => Math.round(m / 0.3048).toLocaleString('en-US') + ' ft/s'; // f5.6h (Aaron): Δv in ft/s on the split strips // f5.6c: split cards in the same imperial units as the main card (Δv stays m/s, like the main card)
+const fmtMph = m => UN.spd(m), fmtFps = m => UN.vs(m), fmtDv = m => UN.dv(m); // f5.7q: split strips follow the Units setting
 const craftDvOf = (c, cur) => { try { const d = stageDvs(c.stages, cur, P.massOf(c)).reduce((a, x) => a + x.dv, 0); return isFinite(d) ? fmtDv(d) : '—'; } catch (e) { return '—'; } };
 const plain = createPlainHud();
 const dCtl = (() => { if (TOUCH) return null; const d = document.createElement('div'); d.id = 'dCtl'; d.className = 'hidden'; // f5.6d (QA P0 #2): desktop on-screen controls with key caps

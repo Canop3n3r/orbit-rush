@@ -1,5 +1,6 @@
 // f5 career UI: the progress screen (#careerM: ladder, wallet, unlocks, sandbox toggle) and the career block
 // of the post-flight results card. Logic lives in fun/ladder.js; names come in through `name` (brand-aware).
+import * as UN from './units.js?v=f5.7n';
 import * as L from './ladder.js?v=f5.7n';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 export function createCareerUI({ store, name, onPlay }) {
@@ -14,7 +15,7 @@ export function createCareerUI({ store, name, onPlay }) {
     S = L.load(store); const nx = L.next(S), done = L.LADDER.filter(c => S.done[c.id]).length, sand = sb();
     const rows = L.LADDER.map((c, i) => { const st = S.done[c.id] ? 'done' : L.rungLocked(c) ? 'soon' : c === nx ? 'next' : 'locked'; // QA f5a.2: placeholder-vehicle rungs show locked with a reason
       // f5b (QA P2): one line per rung; the goal, vehicle and unlocks live in the tooltip and the NEXT block
-      return `<li class="cr ${st}" title="${esc((st === 'soon' ? 'Coming soon: its rocket is still being built. ' : '') + c.goal + ' · ' + name.vehicle(c.vehicle) + (unlockList(c).length ? ' → ' + unlockList(c).join(', ') : ''))}"><span class="crI">${st === 'done' ? '✓' : st === 'next' ? '▶' : st === 'soon' ? '🔒' : i + 1}</span><div class="crT"><b>${esc(rungName(c))}</b><small class="crR">${st === 'soon' ? 'coming soon · rocket in build' : rw(c.reward)}</small></div></li>`; }).join('');
+      return `<li class="cr ${st}" title="${esc((st === 'soon' ? 'Coming soon: its rocket is still being built. ' : '') + UN.txt(c.goal) + ' · ' + name.vehicle(c.vehicle) + (unlockList(c).length ? ' → ' + unlockList(c).join(', ') : ''))}"><span class="crI">${st === 'done' ? '✓' : st === 'next' ? '▶' : st === 'soon' ? '🔒' : i + 1}</span><div class="crT"><b>${esc(rungName(c))}</b><small class="crR">${st === 'soon' ? 'coming soon · rocket in build' : rw(c.reward)}</small></div></li>`; }).join('');
     const have = k => L.ALL[k].filter(id => L.isUnlocked(S, k, id, sand));
     el.innerHTML = `<div class="crHead"><h2>Career</h2><button class="crX" aria-label="Close">✕</button></div>
       <div class="crWallet"><span>💰 <b>$${S.cash}M</b></span><span>🔬 <b>${S.sci}</b></span><span>🏁 <b>${done}/${L.LADDER.length}</b></span></div>
@@ -33,7 +34,7 @@ export function createCareerUI({ store, name, onPlay }) {
   function resultsHTML(out) {
     const e = out.earned.length ? `<div class="ecEarn">🏆 ${out.earned.map(c => esc(rungName(c))).join(' · ')} <b>+${rw({ cash: out.cash, sci: out.sci })}</b></div>` : '';
     const u = out.unlocks.length ? `<div class="ecUnl">Unlocked: ${esc(out.unlocks.map(unl).join(', '))}</div>` : '';
-    const n = out.next ? `<div class="ecNext">Next: <b>${esc(rungName(out.next))}</b> — ${esc(out.next.goal)} <span class="ecRw">${rw(out.next.reward)}</span></div>` : '<div class="ecNext">Career ladder complete 🎉</div>';
+    const n = out.next ? `<div class="ecNext">Next: <b>${esc(rungName(out.next))}</b> — ${esc(UN.txt(out.next.goal))} <span class="ecRw">${rw(out.next.reward)}</span></div>` : '<div class="ecNext">Career ladder complete 🎉</div>';
     return `<div class="endCareer">${e}${u}${n}<div class="ecWal">💰 $${S.cash}M · 🔬 ${S.sci}</div></div>`;
   }
   return { el, show, render, record, resultsHTML, get state() { return L.load(store); }, locked: (kind, id) => !L.isUnlocked(L.load(store), kind, id, sb()), next: id => (id ? L.nextAfter(L.load(store), id) : L.next(L.load(store))), unlockedBy: L.unlockedBy };

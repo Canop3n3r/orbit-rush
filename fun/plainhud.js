@@ -1,9 +1,10 @@
 // f5.5c (Aaron): plain telemetry for non-nerds. One bottom-left card: a big speedometer in mph, altitude,
 // Ap and Pe heights each with a T−/T+ clock, and Δv left per stage (replaces the fuel bars). The jargon chips
 // (ALT km / SRF m/s / AP·T−AP / PE / FUEL / STAGE) move behind the 📊 Details toggle (engineer view).
+import * as U from './units.js?v=f5.7n';
 export const MPH = 2.236936, MI = 1609.344, FT = 0.3048;
 const c0 = (x, d = 0) => (Math.round(x * 10 ** d) / 10 ** d).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
-export function fmtHeight(m) { if (!isFinite(m)) return '—'; if (Math.abs(m) < MI) return c0(m / FT) + ' ft'; const mi = m / MI; return (Math.abs(mi) < 100 ? c0(mi, 1) : c0(mi)) + ' mi'; }
+export function fmtHeight(m) { if (!isFinite(m)) return '—'; if (!U.imp()) return U.dist(m); if (Math.abs(m) < MI) return c0(m / FT) + ' ft'; const mi = m / MI; return (Math.abs(mi) < 100 ? c0(mi, 1) : c0(mi)) + ' mi'; } // f5.7q: follows the Units setting
 export function fmtClock(s) { if (!isFinite(s)) return ''; s = Math.max(0, s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = Math.floor(s % 60);
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${m}:${String(ss).padStart(2, '0')}`; }
 // apsis line: o = orbit elements { ap, pe, T, vr }, tAp/tPe = seconds (sim) to the next apsis, k = sim→real factor
@@ -32,9 +33,9 @@ export function stageDvs(stages, cur, massNow) {
 export function landAid(h, vs, aMax, g) {
   if (!(h < 3000) || !(vs < -2) || h < 0.5) return null;
   const vd = -vs, tImp = (-vd + Math.sqrt(vd * vd + 2 * g * h)) / g, net = aMax - g;
-  if (!(net > 0.05)) return { vs: Math.round(vs * 2.236936), tImp, burnIn: null, state: 'low' };
+  if (!(net > 0.05)) return { vs: Math.round(U.spdN(vs)), tImp, burnIn: null, state: 'low' };
   const dStop = vd * vd / (2 * net), burnIn = (h - dStop) / vd;
-  return { vs: Math.round(vs * 2.236936), tImp, burnIn, state: burnIn <= 0.3 ? 'now' : burnIn < 4 ? 'soon' : 'wait' };
+  return { vs: Math.round(U.spdN(vs)), tImp, burnIn, state: burnIn <= 0.3 ? 'now' : burnIn < 4 ? 'soon' : 'wait' };
 }
 export function createPlainHud() {
   const el = document.createElement('div'); el.id = 'plain'; el.className = 'hidden';
@@ -45,12 +46,12 @@ export function createPlainHud() {
   const $ = id => document.getElementById(id), last = {}, set = (id, t) => { if (last[id] !== t) { last[id] = t; $(id).textContent = t; } };
   function update(d) { // { on, mps, alt, ap:{h,t}, pe:{h,t}, dv:[{n,dv,on}] }
     el.classList.toggle('hidden', !d.on); if (!d.on) return;
-    el.querySelector('.spV').textContent = c0(d.mps * MPH);
+    el.querySelector('.spV').textContent = c0(U.spdN(d.mps)); { const sm = el.querySelector('#spd small'), l = U.spdLab().toUpperCase(); if (sm && sm.textContent !== l) sm.textContent = l; }
     set('plAlt', 'ALT ' + fmtHeight(d.alt)); set('plAp', d.ap.h); set('plApT', d.ap.t); set('plPe', d.pe.h); set('plPeT', d.pe.t);
-    const la = d.land || null; $('plLand').classList.toggle('hidden', !la); document.body.classList.toggle('plLandOn', !!la); if (la) { set('plVs', 'V/S ' + la.vs + ' mph'); set('plImp', 'Impact ' + la.tImp.toFixed(1) + ' s');
+    const la = d.land || null; $('plLand').classList.toggle('hidden', !la); document.body.classList.toggle('plLandOn', !!la); if (la) { set('plVs', 'V/S ' + la.vs + ' ' + U.spdLab()); set('plImp', 'Impact ' + la.tImp.toFixed(1) + ' s');
       set('plBurn', la.state === 'low' ? 'TWR too low' : la.state === 'now' ? '🔥 BURN NOW' : 'Burn in ' + la.burnIn.toFixed(1) + ' s'); $('plLand').className = 'on ' + la.state; }
     const key = d.dv.map(s => s.n + ':' + Math.round(s.dv) + (s.on ? '*' : '')).join(',');
-    if (last.dv !== key) { last.dv = key; $('dvStages').innerHTML = '<b class="dvH">Δv left</b>' + d.dv.map(s => `<div class="dvS${s.on ? ' on' : ''}"><span>Stage ${s.n}</span><em>${c0(s.dv / 0.3048)} ft/s</em></div>`).join(''); }
+    if (last.dv !== key) { last.dv = key; $('dvStages').innerHTML = '<b class="dvH">Δv left</b>' + d.dv.map(s => `<div class="dvS${s.on ? ' on' : ''}"><span>Stage ${s.n}</span><em>${U.dv(s.dv)}</em></div>`).join(''); }
   }
   return { el, update };
 }

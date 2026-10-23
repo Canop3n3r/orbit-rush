@@ -16,9 +16,9 @@ export const ACTIONS = [
   ['hangar', 'Back to hangar', 'KeyR'], ['fx', 'Effects quality', 'KeyU'], ['learn', 'Learn overlay', 'Slash'],
 ];
 export const DEFAULT_KEYS = Object.fromEntries(ACTIONS.map(a => [a[0], a[2]]));
-export const DEFAULTS = { v: 1, keys: {}, sens: { cam: 1, zoom: 1, stick: 1 }, units: 'metric', overlay: false, camStyle: 'free', conic: 'body' };
+export const DEFAULTS = { v: 1, unitsV: 2, keys: {}, sens: { cam: 1, zoom: 1, stick: 1 }, units: 'imperial', overlay: false, camStyle: 'free', conic: 'body' };
 export function loadSettings(store) {
-  try { const s = JSON.parse(store.getItem(SETTINGS_KEY)); if (s && s.v === 1) return { ...DEFAULTS, ...s, sens: { ...DEFAULTS.sens, ...(s.sens || {}) }, keys: { ...(s.keys || {}) } }; } catch (e) { /* corrupt or no storage */ }
+  try { const s = JSON.parse(store.getItem(SETTINGS_KEY)); if (s && s.v === 1) { if (!s.unitsV) { s.units = 'imperial'; s.unitsV = 2; } /* f5.7q (Aaron): imperial default, once */ return { ...DEFAULTS, ...s, sens: { ...DEFAULTS.sens, ...(s.sens || {}) }, keys: { ...(s.keys || {}) } }; } } catch (e) { /* corrupt or no storage */ }
   return { ...DEFAULTS, sens: { ...DEFAULTS.sens }, keys: {} };
 }
 export function saveSettings(store, s) { try { store.setItem(SETTINGS_KEY, JSON.stringify(s)); return true; } catch (e) { return false; } }
