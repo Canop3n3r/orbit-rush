@@ -110,6 +110,7 @@ async function runVp(br, vp) {
   await step('home', async () => { await ev(() => { const fr = document.getElementById('firstRun'); if (fr) fr.classList.add('hidden'); const b = document.getElementById('frSb'); if (b && b.offsetParent && !/fly now/i.test(b.textContent)) b.click(); for (const s of ['#acClose', '#lessonSkip']) { const c = document.querySelector(s); c && c.offsetParent && c.click(); } }); await hide(); }, 1000);
   // f5.1f: the grouped rocket picker (▦ #hPick on Home). Measured for the picker_group_words + builder_gated checks (no budget row of its own yet)
   await step('picker', async () => { await ev(() => { const g = document.getElementById('hGal'); g && g.scrollIntoView(); }); }, 1200);
+  let GAL = null; try { GAL = await ev(() => { const g = document.getElementById('hGal'); if (!g) return null; const tabs = [...g.querySelectorAll('.pkTab')]; let worst = 0, wt = ''; for (const t of tabs) { t.click(); const n = g.scrollHeight / Math.max(1, g.clientHeight); if (n > worst) { worst = n; wt = t.textContent; } } if (tabs[0]) tabs[0].click(); g.scrollTop = 0; return { screens: Math.round(worst * 10) / 10, tab: wt }; }); } catch (e) { } // f5.8f (QA P1): no region tab may be a wall
   const pickerCards = await ev(() => [...document.querySelectorAll('#picker .pkC')].filter(e => e.offsetParent).length).catch(() => 0); // f5.3b7: did ▦ actually open the picker?
   await ev(() => { const c = document.getElementById('pkClose'); c && c.offsetParent && c.click(); });
   await step('settings', async () => { await ev(() => document.getElementById('hGear').click()); await wait(600); await ev(() => { const b = [...document.querySelectorAll('#hGearM button')].find(b => /settings/i.test(b.textContent)); b && b.click(); }); }, 1000);
@@ -204,6 +205,7 @@ async function runVp(br, vp) {
   if (!h || !h.launch) rows.push({ vp, screen: 'home', metric: 'launch', val: 'none', max: '-', ok: false, info: 'no LAUNCH/FLY control visible' }); else {
     const portrait = h.H > h.W, inZone = portrait ? h.launch.cy >= h.H * 0.75 : (h.launch.cy >= h.H * 0.5 && h.launch.cx >= h.W * 0.5);
     rows.push({ vp, screen: 'home', metric: 'launch_h', val: h.launch.h, max: '≥40', ok: h.launch.h >= 40, info: '#' + h.launch.id }); void inZone; }
+  if (GAL) rows.push({ vp, screen: 'home', metric: 'gallery_screens', val: GAL.screens, max: 3, ok: GAL.screens <= 3, info: `worst tab ${GAL.tab} (scroll ÷ panel height)` }); else skip('home', 'gallery_screens', 'no gallery');
   { const g = X('home') || {}; rows.push({ vp, screen: 'home', metric: 'gallery_thumbs', val: g.thumbs ?? 0, max: '≥6', ok: (g.thumbs || 0) >= 6, info: 'cards with a baked picture' }); rows.push({ vp, screen: 'home', metric: 'one_screen', val: g.arrows ? 'arrows' : 'ok', max: 'ok', ok: !g.arrows, info: 'no ‹ › / ▦ / separate picker' }); }
   const gs = ['home', 'picker', 'build'] /* f5.6e: missions_hub retired (no Missions UI) */.flatMap(s => (X(s) && X(s).groups || []).map(g => ({ s, ...g })));
   if (!gs.length) skip('picker', 'group_words', 'no company groups in UI yet ([data-company]/.co-chip)');
@@ -228,7 +230,7 @@ async function runVp(br, vp) {
   console.log(`${rows.length - fails - skips}/${rows.length - skips} budgets pass (${skips} skipped)`);
   if (jsonOut) require('fs').writeFileSync(jsonOut, JSON.stringify(all, null, 1));
   // f5.6h (QA ratchet): --strict fails only below the baseline pass count (43 of 74 on f5.6f); raise BASELINE as rows get fixed
-  const BASELINE = +(process.env.UI_BASELINE || 106) /* f5.8b: 106/118 */ /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
+  const BASELINE = +(process.env.UI_BASELINE || 117) /* f5.8f: 117/120 */ /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
   if (strict) console.log(`ratchet: ${passN} pass vs baseline ${BASELINE} → ${passN >= BASELINE ? 'OK' : 'REGRESSION'}`);
   process.exit(strict && passN < BASELINE ? 1 : 0);
 })().catch(e => { console.error('FATAL', e.message); process.exit(strict ? 1 : 0); });
