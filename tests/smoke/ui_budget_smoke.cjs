@@ -26,6 +26,10 @@ const B = {
   end_card:     { controls: 3, words: 6, ui: [15, 10] },
 };
 
+/* f5.7m (QA f5.7j P2): split ui% the way the walk counts it: pointer-events:none HUD and the canvas-drawn inset pane both count */
+const SPLIT_ON = () => { const st = document.createElement('style'); st.id = 'uibSplit'; st.textContent = '*{pointer-events:auto!important} #spPane{background:rgba(0,0,0,.3)!important}'; document.head.appendChild(st); };
+const SPLIT_OFF = () => { const st = document.getElementById('uibSplit'); st && st.remove(); };
+const navLive = async (ev, w) => { const rd = () => ev(() => { const n = document.getElementById('nav'), t = n ? n.textContent : ''; const r = n ? n.getBoundingClientRect() : { width: 0 }; return { vis: r.width > 20 && getComputedStyle(n).display !== 'none', t }; }); const a = await rd(); await ev(() => { const F = window.__game.F; for (let i = 0; i < 120; i++) F.advance(1 / 60); }); await w(700); const b = await rd(); return a.vis && b.vis && a.t !== b.t; };
 function measure() {
   const top = e => { const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false; if (r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) return false;
     const x = Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), y = Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2)); const h = document.elementFromPoint(x, y); return h && (h === e || e.contains(h) || h.contains(e)); };
@@ -131,7 +135,7 @@ async function runVp(br, vp) {
       await ev2(() => document.getElementById('hFly').click()); await w2(2500); await ev2(() => { const G = window.__game; G.press('KeyF'); if (!G.F.ignited) G.press('Space'); }); await w2(800);
       /* f5.7j (QA f5.7i): split view during ascent, 20 s after staging: booster inset + the normal big upper HUD */
       if (await ev2(() => { const F = window.__game.F; for (let i = 0; i < 60 * 900; i++) { F.advance(1 / 60); if (F.booster && F.booster.state === 'flying') { for (let j = 0; j < 60 * 20; j++) F.advance(1 / 60); return true; } } return false; })) { await w2(900);
-        OS.asc = await ev2(measure); OS.asc.big = await ev2(() => { const v = id => { const e = document.getElementById(id); if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 20 && cs.display !== 'none' && cs.visibility !== 'hidden'; }; return (v('plain') || v('mhud')) && v('nav'); });
+        await ev2(SPLIT_ON); OS.asc = await ev2(measure); await ev2(SPLIT_OFF); OS.asc.navLive = await navLive(ev2, w2); OS.asc.big = await ev2(() => { const v = id => { const e = document.getElementById(id); if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 20 && cs.display !== 'none' && cs.visibility !== 'hidden'; }; return (v('plain') || v('mhud')) && v('nav'); });
         if (shots) await p2.screenshot({ path: `${shots}/uib_${tag}_ascent_split.png`, timeout: 180000 }); }
       const at = await ev2(() => { const F = window.__game.F; for (let i = 0; i < 60 * 1500; i++) { F.advance(1 / 60); if (F.booster && F.booster.state === 'landed') return 'booster landed'; if (F.flags.orbit && F.booster && F.booster.state === 'flying') return 'orbit'; } return 'timeout'; }); await w2(600);
       OS.split = await ev2(() => { const sp = document.getElementById('split'), on = !!sp && !sp.classList.contains('hidden'), t = on ? sp.textContent : '', u = (document.getElementById('spHud1R') || {}).textContent || '';
@@ -151,6 +155,15 @@ async function runVp(br, vp) {
       OS.end = await ev2(measure); OS.end.x = await ev2(extra); if (shots) await p2.screenshot({ path: `${shots}/uib_${tag}_end_card_orbit.png`, timeout: 180000 });
     } catch (e) { OS.err = e.message.split('\n')[0]; } finally { await c2.close(); } }
 
+  // f5.7m (QA f5.7j): Heron Heavy (two side boosters) must get the same inset + big HUD
+  let HV = null; { const c3 = await browser2(br, phone, W, H), p3 = await c3.newPage(); p3.on('pageerror', e => perrs.push(e.message.split('\n')[0])); const ev3 = f => p3.evaluate(f), w3 = ms => p3.waitForTimeout(ms);
+    try { await p3.goto(base + (base.includes('?') ? '&' : '?') + 'noacademy&fx=low', { timeout: 300000 }); await p3.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await w3(1500);
+      const ok = await ev3(() => { const fr = document.getElementById('firstRun'); fr && fr.classList.add('hidden'); const G = window.__game, i = G.home().list.findIndex(r => /heavy/i.test(r.id + ' ' + (r.name || ''))); if (i < 0) return false; G.homeSet(i); return true; });
+      if (!ok) HV = { err: 'no Heavy on home' }; else { await w3(800); await ev3(() => document.getElementById('hFly').click()); await w3(2500); await ev3(() => { const G = window.__game; G.press('KeyF'); if (!G.F.ignited) G.press('Space'); }); await w3(800);
+        const st = await ev3(() => { const F = window.__game.F; for (let i = 0; i < 60 * 900; i++) { F.advance(1 / 60); if (F.booster && F.booster.state === 'flying') { for (let j = 0; j < 60 * 20; j++) F.advance(1 / 60); return true; } } return false; }); await w3(900);
+        if (!st) HV = { err: 'no staging' }; else { await ev3(SPLIT_ON); HV = await ev3(measure); await ev3(SPLIT_OFF); Object.assign(HV, await ev3(() => { const v = id => { const e = document.getElementById(id); if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 20 && cs.display !== 'none' && cs.visibility !== 'hidden'; }; return { pip: document.body.classList.contains('pip'), big: (v('plain') || v('mhud')) && v('nav') }; }));
+          HV.navLive = await navLive(ev3, w3); if (shots) await p3.screenshot({ path: `${shots}/uib_${tag}_heavy_split.png`, timeout: 180000 }); } }
+    } catch (e) { HV = { err: e.message.split('\n')[0] }; } finally { await c3.close(); } }
   const di = phone ? 0 : 1;
   const chk = (screen, metric, val, max) => rows.push({ vp, screen, metric, val, max, ok: val != null && val <= max });
   for (const [s, b] of Object.entries(B)) { const r = M[s]; if (!r || r.err) { rows.push({ vp, screen: s, metric: 'measure', val: r ? r.err : 'missing', max: '-', ok: false }); continue; }
@@ -163,8 +176,9 @@ async function runVp(br, vp) {
   if (!e || !e.endUp) skip('end_card', 'hud_hidden', 'end card not visible'); else {
     rows.push({ vp, screen: 'end_card', metric: 'hud_hidden', val: e.hudVis.length, max: 0, ok: e.hudVis.length === 0, info: e.hudVis.slice(0, 6).join(',') });
     rows.push({ vp, screen: 'end_card', metric: 'over_rocket', val: e.endCover ? 'yes' : 'no', max: 'no', ok: !e.endCover, info: 'rocket@' + e.rocketSrc }); }
-  if (!OS.asc) skip('ascent_split', 'ui%', 'no split during ascent'); else { chk('ascent_split', 'ui%', OS.asc.uiPct, phone ? 40 : 30); chk('ascent_split', 'controls', OS.asc.controls, 16);
-    rows.push({ vp, screen: 'ascent_split', metric: 'big_upper_hud', val: OS.asc.big ? 'yes' : 'no', max: 'yes', ok: OS.asc.big }); }
+  if (!OS.asc) skip('ascent_split', 'ui%', 'no split during ascent'); else { chk('ascent_split', 'ui%', OS.asc.uiPct, 30); chk('ascent_split', 'controls', OS.asc.controls, 16);
+    rows.push({ vp, screen: 'ascent_split', metric: 'big_upper_hud', val: OS.asc.big ? 'yes' : 'no', max: 'yes', ok: OS.asc.big }); rows.push({ vp, screen: 'ascent_split', metric: 'navball_live', val: OS.asc.navLive ? 'yes' : 'no', max: 'yes', ok: OS.asc.navLive }); }
+  if (!HV || HV.err) rows.push({ vp, screen: 'heavy_split', metric: 'measure', val: HV ? HV.err : 'missing', max: '-', ok: false }); else { rows.push({ vp, screen: 'heavy_split', metric: 'pip', val: HV.pip ? 'yes' : 'no', max: 'yes', ok: HV.pip }); rows.push({ vp, screen: 'heavy_split', metric: 'big_upper_hud', val: HV.big ? 'yes' : 'no', max: 'yes', ok: HV.big }); chk('heavy_split', 'ui%', HV.uiPct, 30); rows.push({ vp, screen: 'heavy_split', metric: 'navball_live', val: HV.navLive ? 'yes' : 'no', max: 'yes', ok: HV.navLive }); }
   if (OS.err || !OS.split) rows.push({ vp, screen: 'orbit_split', metric: 'measure', val: OS.err || 'missing', max: '-', ok: false });
   else if (!OS.split.on) skip('orbit_split', 'upper_card', `split closed at ${OS.split.at}`);
   else { rows.push({ vp, screen: 'orbit_split', metric: 'upper_card', val: OS.split.upper ? 'yes' : 'no', max: 'yes', ok: OS.split.upper, info: OS.split.at });

@@ -1101,7 +1101,11 @@ body.touch #build .bcols .colH{display:none}
 body:not(.touch):not(.buildAdv) #stack small{display:none}
 /* f5.7l: Fly moved into the panel, so the 84px gap for the old floating Fly goes; the sheet sits on the bottom edge and scrolls inside */
 body.touch:not(.home) #build.builder{bottom:0!important;padding-bottom:calc(10px + var(--sab,0px))!important;overscroll-behavior:contain}
-@media (orientation:portrait){body.touch:not(.home) #build.builder{height:60dvh!important;max-height:60dvh!important}}
-@media (orientation:landscape) and (max-height:500px){body.touch:not(.home) #build.builder{bottom:8px!important;max-height:calc(100dvh - 16px)!important;overflow-y:auto!important}}
+@media (orientation:portrait){body.touch:not(.home) #build.builder{height:50dvh!important;max-height:50dvh!important}}
+@media (orientation:landscape) and (max-height:500px){body.touch:not(.home) #build.builder{bottom:8px!important;max-height:calc(100dvh - 100px)!important;overflow-y:auto!important}}
 body:not(.touch) #settings #setBody{display:block!important}body:not(.touch) #settings #setBody > *{width:auto!important;display:block}
 @media (orientation:portrait){body.touch.splitOn #mMenu .mg,body.touch.splitOn #mMenu .mg.mTop{grid-template-columns:repeat(4,1fr)!important}body.touch.splitOn #mMenu button{font-size:12px!important;padding:4px 2px!important}body.touch.splitOn #mMenu .mh{margin-bottom:4px!important}body.touch.splitOn #mMenu .mh b{display:none}body.touch.splitOn #mMenu .mh{justify-content:flex-end!important}}
+/* f5.7m (QA f5.7j P2 pad): hint under the top bar (not on the rocket); one hint everywhere; GROUND one slot (top-left) on every size */
+body.touch #ignite{top:calc(64px + var(--sat,0px))!important;transform:translateX(-50%)!important}
+body.autoOn #ignite{display:none!important}
+body:not(.touch) #gcamBtn:not([data-sp-pin]){top:calc(12px + var(--sat,0px))!important;left:12px!important;right:auto!important;bottom:auto!important}

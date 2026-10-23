@@ -1832,7 +1832,7 @@ renderer.setAnimationLoop(() => {
     if (mapOn) document.querySelectorAll('.modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
     smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
   updateSplit(rdt);
-  if (state === 'flight' && split.on && !split.full && !booster2) { if (camera.view && camera.view.enabled) camera.clearViewOffset(); } // f5.7j (QA f5.7i P1): the upper stage keeps the single-view framing in split (same pointing in every layout) // f5.7i: the upper stage sits centred below/right of the booster PiP
+  if (state === 'flight' && split.on && !split.full) /* f5.7m: Heavy too */ { if (camera.view && camera.view.enabled) camera.clearViewOffset(); } // f5.7j (QA f5.7i P1): the upper stage keeps the single-view framing in split (same pointing in every layout) // f5.7i: the upper stage sits centred below/right of the booster PiP
   else if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, booster2 ? innerHeight / 2 - ctlTop() / 6 : innerHeight * 0.25, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
   if (mapOn) { smap.update(rdt); mapPost.render(); }
   else { post.render(); renderSplit(O); }
@@ -1873,10 +1873,10 @@ const splitPortrait = () => innerHeight > innerWidth;
 const hasChutes = () => { try { return !!(F && F.v.stages.some(s => s.parts.some(p => /chute/i.test(p.kind || '')))); } catch (e) { return true; } }; // f5.7i
 const _html = {}; function setHTML(id, h) { if (_html[id] !== h) { _html[id] = h; const e = $(id); if (e) e.innerHTML = h; } }
 function placeTopStack(on) { // f4.1b: in split, toasts/hints (#topStack, compact #hintS) live in the upper pane, below its card and clear of the pane buttons
-  const por = splitPortrait(), land = on && camMode !== 'map', W = innerWidth, card = $('spCardU') || $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, pTop = innerHeight * (booster2 ? 1 / 3 : 0.5), top = booster2 ? (cb ? (por ? 70 : 112) : 0) : (() => { const pr = pipRect(); return por ? pr.y + pr.h + 10 : 112; })(); // f5.7j: below / beside the booster inset /* f5.6h: the cards moved to bottom strips */ // f4.2 portrait: under the upper card if it fits above the booster pane, else above the card
+  const por = splitPortrait(), land = on && camMode !== 'map', W = innerWidth, card = $('spCardU') || $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, pTop = innerHeight * (booster2 ? 1 / 3 : 0.5), top = (() => { const pr = pipRect(); return por ? pr.y + pr.h + 10 : 112; })(); // f5.7j: below / beside the booster inset /* f5.6h: the cards moved to bottom strips */ // f4.2 portrait: under the upper card if it fits above the booster pane, else above the card
   for (const id of ['topStack', 'hintS']) { const ts = $(id); if (!ts) continue;
     if (!land) { if (ts.dataset.sp) { ts.style.removeProperty('left'); ts.style.removeProperty('top'); ts.style.removeProperty('max-width'); delete ts.dataset.sp; } continue; }
-    ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * (por ? 0.5 : booster2 ? 0.25 : TOUCH ? 0.62 : 0.5)) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(por ? W - 24 : W * 0.5 - 32) + 'px', 'important'); } }
+    ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * (por ? 0.5 :  TOUCH ? 0.62 : 0.5)) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(por ? W - 24 : W * 0.5 - 32) + 'px', 'important'); } }
 // f5: portrait touch: the panes end above the stick / throttle / STAGE cluster so the lowest booster pane is never under them
 let ctlTopC = { t: 0, v: 0 };
 function ctlTop() { const H = innerHeight; if (!TOUCH || !splitPortrait()) return H; const now = performance.now(); if (now - ctlTopC.t < 500) return ctlTopC.v;
@@ -1903,7 +1903,7 @@ function updateSplit(rdt) {
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want && camMode !== 'map') { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
   if (!split.on) return;
   const nb = 1, R2 = paneRect(0, nb), fb = split.full === 'b'; // f5.6e (QA): two panes max on every screen (Heavy's 2nd booster has no pane)
-  $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('pipM', !booster2); document.body.classList.toggle('pip', !booster2 && split.full !== 'b');  // f5.6u (QA P1): at orbit the phone's upper pane drops its empty card + label
+  $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('pipM', true); document.body.classList.toggle('pip', split.full !== 'b'); /* f5.7m (QA f5.7j P1): Heron Heavy uses the same inset */  // f5.6u (QA P1): at orbit the phone's upper pane drops its empty card + label
  $('split').classList.toggle('fullB', fb); $('split').classList.toggle('fullU', split.full === 'u'); $('split').classList.toggle('tri', nb > 1);
   { const p2 = $('spPane2'), on2 = nb > 1 && !fb; p2.classList.toggle('hidden', !on2); if (on2) { const r3 = paneRect(1, nb), s2 = p2.style; s2.left = r3.x + 'px'; s2.top = r3.y + 'px'; s2.width = r3.w + 'px'; s2.height = r3.h + 'px'; } }
   layoutSplitCards(nb, fb);
@@ -1945,7 +1945,7 @@ function layoutSplitCards(nb, fb) {
   const ur = upperRect(nb), pinBottom = (el, side) => { if (!el) return; const st = el.style; if (!(!fb && split.full !== 'u')) { /* f5.6h (QA P2): landscape too: RELEASE / GROUND belong to the upper pane */ if (el.dataset.spPin) { for (const k of ['top', 'bottom', 'left', 'right']) st.removeProperty(k); delete el.dataset.spPin; } return; }
     el.dataset.spPin = '1'; st.setProperty('top', Math.round(ur.y + ur.h - el.offsetHeight - 10 - (($('spCardU') || {}).offsetHeight || 0)) + 'px', 'important'); /* f5.6h: above the upper strip */ st.setProperty('bottom', 'auto', 'important');
     st.setProperty(side, (side === 'left' ? ur.x + 10 : innerWidth - ur.x - ur.w + 10) + 'px', 'important'); st.setProperty(side === 'left' ? 'right' : 'left', 'auto', 'important'); };
-  if (booster2) pinBottom($('gcamBtn'), 'right'); // f5.7j: hidden in the inset layout // f5.7e (QA f5.7c P1): RELEASE is no longer pinned into the split; it has one fixed spot (style.css)
+  if (false) pinBottom($('gcamBtn'), 'right'); // f5.7j: hidden in the inset layout // f5.7e (QA f5.7c P1): RELEASE is no longer pinned into the split; it has one fixed spot (style.css)
   if (nb > 1) placeIn($('spCardB2'), paneRect(1, nb), 'strip');
 }
 // f5.6h (Aaron): each split half gets the same bottom strip: a simple navball centered, mph + altitude on its left,
@@ -2394,7 +2394,7 @@ function plainTick() {
 let navTgtT = 0, navTgt = null;
 function navTick() {
   stripTick(); plainTick(); dCtlTick();
-  if (camMode === 'map' || photoOn || !F || (split.on && innerHeight > innerWidth)) { fun.hideNav(); return; }
+  if (camMode === 'map' || photoOn || !F || (split.on && innerHeight > innerWidth && !document.body.classList.contains('pip'))) { fun.hideNav(); return; }
   const nose = P.noseOf(v), top = V.qrot(v.q, [0, 0, -1]), vs = P.airVel(v), up = V.norm(v.r), vo = v.v;
   const nrmv = V.len(V.cross(v.r, v.v)) > 1 ? V.norm(V.cross(v.r, v.v)) : null, pg = V.len(vo) > 1 ? V.norm(vo) : up, rad = V.norm(V.sub(up, V.scale(pg, V.dot(up, pg))));
   const now = performance.now();
