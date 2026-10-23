@@ -5,5 +5,5 @@ t(MENU_ITEMS.length <= 9 && MENU_ITEMS.filter(i => !i.b).length <= 7, `≤ 7 ite
 t(new Set(keys).size === keys.length && labels.filter(l => /home/i.test(l)).length === 1, 'no duplicate keys, one Home');
 t(!keys.includes('Comma') && !keys.includes('KeyT') && !keys.includes('KeyM'), 'no warp −/+ or MAP (the top bar has them)');
 t(labels.every(l => /[A-Za-z]{3}/.test(l)), 'every button has a word label (no icon-only)');
-t(/data-b="1"/.test(menuHTML()) && homeLabel(true) !== homeLabel(false), 'booster items are tagged; Return label flips to Cancel');
+t(!/data-b="1"/.test(menuHTML()) && MENU_ITEMS.length <= 6 && homeLabel(true) !== homeLabel(false), 'f5.7j: no booster items (tap the inset), ≤6 entries; Return label flips to Cancel');
 console.log(`flightmenu: ${p} passed, ${f} failed`); process.exit(f ? 1 : 0);

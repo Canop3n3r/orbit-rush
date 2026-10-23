@@ -2,7 +2,7 @@
 // (warp ◀◀ ▶▶ and MAP live there), booster items only while a booster flies, one Home.
 export const MENU_ITEMS = [
   { k: 'Escape', l: '⏸ Pause' }, { k: 'KeyG', l: '⏩ Warp to Ap' }, { k: 'KeyP', l: '🪂 Chute', chute: 1 },
-  { k: 'KeyY', l: '🎮 Fly booster', b: 1 }, { k: 'KeyB', l: '🎥 Booster cam', b: 1 },
+  /* f5.7j (QA f5.7i P2): Fly booster / Booster cam dropped, tapping the inset does both */
   { k: 'KeyO', l: '↩ Return to pad', home: 1 }, { full: 1, l: '⛶ Full screen' }, { k: 'KeyR', l: '🏠 Home' }];
 export function menuHTML() { return MENU_ITEMS.map(i => `<button${i.k ? ` data-p="${i.k}"` : ''}${i.b ? ' data-b="1"' : ''}${i.home ? ' data-home="1"' : ''}${i.full ? ' data-full="1"' : ''}${i.chute ? ' data-chute="1"' : ''}${i.cls ? ` class="${i.cls}"` : ''}>${i.l}</button>`).join(''); }
 export const homeLabel = cancel => cancel ? '✕ Cancel return' : '↩ Return to pad';

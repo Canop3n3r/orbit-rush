@@ -129,9 +129,13 @@ async function runVp(br, vp) {
     try { await p2.goto(base + (base.includes('?') ? '&' : '?') + 'noacademy&fx=low', { timeout: 300000 }); await p2.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await w2(1500);
       await ev2(() => { const fr = document.getElementById('firstRun'); fr && fr.classList.add('hidden'); const G = window.__game, i = G.home().list.findIndex(r => r.id === 'swift'); G.homeSet(i); }); await w2(800);
       await ev2(() => document.getElementById('hFly').click()); await w2(2500); await ev2(() => { const G = window.__game; G.press('KeyF'); if (!G.F.ignited) G.press('Space'); }); await w2(800);
+      /* f5.7j (QA f5.7i): split view during ascent, 20 s after staging: booster inset + the normal big upper HUD */
+      if (await ev2(() => { const F = window.__game.F; for (let i = 0; i < 60 * 900; i++) { F.advance(1 / 60); if (F.booster && F.booster.state === 'flying') { for (let j = 0; j < 60 * 20; j++) F.advance(1 / 60); return true; } } return false; })) { await w2(900);
+        OS.asc = await ev2(measure); OS.asc.big = await ev2(() => { const v = id => { const e = document.getElementById(id); if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 20 && cs.display !== 'none' && cs.visibility !== 'hidden'; }; return (v('plain') || v('mhud')) && v('nav'); });
+        if (shots) await p2.screenshot({ path: `${shots}/uib_${tag}_ascent_split.png`, timeout: 180000 }); }
       const at = await ev2(() => { const F = window.__game.F; for (let i = 0; i < 60 * 1500; i++) { F.advance(1 / 60); if (F.booster && F.booster.state === 'landed') return 'booster landed'; if (F.flags.orbit && F.booster && F.booster.state === 'flying') return 'orbit'; } return 'timeout'; }); await w2(600);
       OS.split = await ev2(() => { const sp = document.getElementById('split'), on = !!sp && !sp.classList.contains('hidden'), t = on ? sp.textContent : '', u = (document.getElementById('spHud1R') || {}).textContent || '';
-        return { on, upper: /Ap/.test(u) && /Δv/.test(u), landed: (t.match(/LANDED/g) || []).length, alt0: /ALT\s*-?0 ft/.test(t) }; }); OS.split.at = at;
+        return { on, upper: (/Ap/.test(u) && /Δv/.test(u)) || document.body.classList.contains('pip') /* f5.7j: inset layout keeps the main HUD */, landed: (t.match(/LANDED/g) || []).length, alt0: /ALT\s*-?0 ft/.test(t) }; }); OS.split.at = at;
       if (shots) await p2.screenshot({ path: `${shots}/uib_${tag}_orbit_split.png`, timeout: 180000 });
       await ev2(() => { const F = window.__game.F; for (let i = 0; i < 60 * 1500 && !(F.flags.orbit && F.v.guid === 'done'); i++) F.advance(1 / 60); }); await w2(100);
       // f5.7c QA: RELEASE must stay put while the landed booster's pane closes (it jumped ~250 px, so a real tap at that moment missed:
@@ -159,6 +163,8 @@ async function runVp(br, vp) {
   if (!e || !e.endUp) skip('end_card', 'hud_hidden', 'end card not visible'); else {
     rows.push({ vp, screen: 'end_card', metric: 'hud_hidden', val: e.hudVis.length, max: 0, ok: e.hudVis.length === 0, info: e.hudVis.slice(0, 6).join(',') });
     rows.push({ vp, screen: 'end_card', metric: 'over_rocket', val: e.endCover ? 'yes' : 'no', max: 'no', ok: !e.endCover, info: 'rocket@' + e.rocketSrc }); }
+  if (!OS.asc) skip('ascent_split', 'ui%', 'no split during ascent'); else { chk('ascent_split', 'ui%', OS.asc.uiPct, phone ? 40 : 30); chk('ascent_split', 'controls', OS.asc.controls, 16);
+    rows.push({ vp, screen: 'ascent_split', metric: 'big_upper_hud', val: OS.asc.big ? 'yes' : 'no', max: 'yes', ok: OS.asc.big }); }
   if (OS.err || !OS.split) rows.push({ vp, screen: 'orbit_split', metric: 'measure', val: OS.err || 'missing', max: '-', ok: false });
   else if (!OS.split.on) skip('orbit_split', 'upper_card', `split closed at ${OS.split.at}`);
   else { rows.push({ vp, screen: 'orbit_split', metric: 'upper_card', val: OS.split.upper ? 'yes' : 'no', max: 'yes', ok: OS.split.upper, info: OS.split.at });
@@ -197,7 +203,7 @@ async function runVp(br, vp) {
   console.log(`${rows.length - fails - skips}/${rows.length - skips} budgets pass (${skips} skipped)`);
   if (jsonOut) require('fs').writeFileSync(jsonOut, JSON.stringify(all, null, 1));
   // f5.6h (QA ratchet): --strict fails only below the baseline pass count (43 of 74 on f5.6f); raise BASELINE as rows get fixed
-  const BASELINE = +(process.env.UI_BASELINE || 59) /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
+  const BASELINE = +(process.env.UI_BASELINE || 70) /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
   if (strict) console.log(`ratchet: ${passN} pass vs baseline ${BASELINE} → ${passN >= BASELINE ? 'OK' : 'REGRESSION'}`);
   process.exit(strict && passN < BASELINE ? 1 : 0);
 })().catch(e => { console.error('FATAL', e.message); process.exit(strict ? 1 : 0); });

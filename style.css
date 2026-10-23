@@ -675,13 +675,13 @@ details.bset{display:contents}details.bset[open]>summary{display:none}
 #split.portrait #spCardU{top:auto!important;bottom:calc(50% + 10px)!important;right:10px}
 @media (orientation:landscape){#split:not(.portrait) .spBtns{top:calc(64px + var(--sat,0px));right:auto;left:10px}}
 /* f4: in split screen each pane has its own mini navball; the big one would sit across the pane border */
-body.splitOn #nav, body.splitOn #navCue{display:none!important}
+body.splitOn:not(.pip) #nav, body.splitOn:not(.pip) #navCue{display:none!important}
 /* f4.1: in side-by-side split screen, messages live in the upper-stage (left) pane, clear of the booster pane's buttons */
-@media (orientation:landscape){body.splitOn:not(.mapOn) #topStack{left:25%!important;top:calc(112px + env(safe-area-inset-top,0px))!important;max-width:46vw!important}}
+@media (orientation:landscape){body.splitOn:not(.mapOn):not(.pip) #topStack{left:25%!important;top:calc(112px + env(safe-area-inset-top,0px))!important;max-width:46vw!important}}
 /* f4.1: one telemetry layout at a time — while split, only the pane cards (no engineer tiles / classic tele / big navball) */
-body.splitOn #engS, body.splitOn #tele, body.splitOn #nav, body.splitOn #navCue{display:none!important}
+body.splitOn:not(.pip) #engS, body.splitOn:not(.pip) #tele, body.splitOn:not(.pip) #nav, body.splitOn:not(.pip) #navCue{display:none!important}
 /* f4.1b: in split the compact top-left tiles (ALT/ORB/AP) give way to the upper-stage pane card */
-body.splitOn #sL{display:none!important}
+body.splitOn:not(.pip) #sL{display:none!important}
 /* f4.2: 3-pane heavy split — booster B pane under A (landscape) / third row (portrait) */
 #spPane2{position:fixed;pointer-events:none;border-left:2px solid #9cc3ff88;border-top:2px solid #9cc3ff88;box-sizing:border-box}
 #split.portrait #spPane2{border-left:0}
@@ -870,7 +870,7 @@ body.eng #hintS{top:calc(138px + env(safe-area-inset-top,0px))}
 @media (orientation:landscape) and (max-height:500px){body.cx.touch #hintS{top:calc(14px + env(safe-area-inset-top,0px))}body.eng #hintS{top:calc(14px + env(safe-area-inset-top,0px))}}
 /* f5.4i: after RELEASE, End flight leaves the middle of the screen (where the sat and the stage are framed) for the low corner */
 @media (pointer:coarse){#relBtn.done{top:auto;bottom:calc(170px + env(safe-area-inset-bottom,0px));left:calc(12px + env(safe-area-inset-left,0px));right:auto}}
-body.splitOn #strip2{display:none!important} /* f5.4i: in split the pane cards carry the readouts; the row no longer lands on the avionics panel */
+body.splitOn:not(.pip) #strip2{display:none!important} /* f5.4i: in split the pane cards carry the readouts; the row no longer lands on the avionics panel */
 /* f5.4i (QA 4): short landscape (844x390): two columns, so the map and Back to Earth stay on screen */
 @media (orientation:landscape) and (max-height:500px){
   #sitePick .spBox{width:min(820px,100%);max-height:calc(100vh - 12px);display:grid;grid-template-columns:1fr 46%;grid-auto-flow:row dense;column-gap:12px;align-content:start;padding:8px 10px}
@@ -944,7 +944,7 @@ body.touch #mleft{left:calc(12px + var(--sal))}
 #academyBtn,#learnBtn,#firstRun,#learn,#learnTip,#hnCareer,#hnMis,#missionsBtn,#hub,#careerM,.eLine,.lockTag,.pkLock{display:none!important}
 /* f5.6c (Aaron video): one card per half, no duplicates; flight HUD only in flight; map shows only the map bar */
 #hud.hidden ~ #plain,#hud.hidden ~ #nav,#hud.hidden ~ #strip,#hud.hidden ~ #strip2,#hud.hidden ~ #hintS,#hud.hidden ~ #gcamBtn,#hud.hidden ~ #relBtn{display:none!important}
-body.splitOn #plain,body.splitOn #nav{display:none!important}
+body.splitOn:not(.pip) #plain,body.splitOn:not(.pip) #nav{display:none!important}
 .spBall{pointer-events:auto;touch-action:none;cursor:grab;border-radius:50%}
 body.mapOn #plain,body.mapOn #nav,body.mapOn #mright,body.mapOn #mleft,body.mapOn #gcamBtn,body.mapOn #relBtn,body.mapOn .spCard,body.mapOn #split .spBtns,body.mapOn #hintS,body.mapOn #ignite{display:none!important}
 .spBall{width:72px!important;height:72px!important}.spCard{padding:8px 10px}#spHud,#spHud1,#spHud2{font:700 13px/1.35 var(--ui,system-ui)!important}.spG b{color:#fff}
@@ -988,7 +988,7 @@ body.cx #topStack{display:none!important}
 .spStrip span{color:#9cb4d8;font-weight:700}.spStrip b{color:#fff}.spStrip i{font-style:normal;color:#ffd23a}
 .spStrip .spT{display:flex;justify-content:flex-end;gap:6px;align-items:center;font-size:10px}.spStrip .spT b{color:#cfe0ff;letter-spacing:.04em}.spStrip .pill{font-size:9px;padding:1px 6px}
 .spStrip .spBall{width:64px!important;height:64px!important;flex:none}
-@media (orientation:landscape){body.splitOn:not(.mapOn) #mright,body.splitOn:not(.mapOn) #dCtl{translate:0 -84px}}
+@media (orientation:landscape){body.splitOn:not(.mapOn):not(.pip) #mright,body.splitOn:not(.mapOn):not(.pip) #dCtl{translate:0 -84px}}
 /* f5.6h (QA P1): desktop ☰ = the phone's menu */
 #dMenu{z-index:95;width:340px}#dMenu .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}#dMenu .mh button{min-height:34px;min-width:40px}
 #dMenu .mTop button{min-height:46px;font:700 13px var(--ui,system-ui)}#mMenu [hidden],#dMenu [hidden]{display:none!important}
@@ -1025,7 +1025,7 @@ body.touch.inOrbit #mAbort,body.touch.inOrbit.autoOn #mThr{display:none!importan
 /* f5.6x (QA f5.6w P1): the end card hides the whole live HUD at every size (visibility, so no display:!important rule can bring a piece back) */
 body.endOn #plain,body.endOn #nav,body.endOn #navBall,body.endOn #mright,body.endOn #mleft,body.endOn #mhud,body.endOn #mThr,body.endOn #mAbort,body.endOn #dCtl,body.endOn #split,body.endOn .spCard,body.endOn #spPane2,body.endOn #hud,body.endOn #pilot,body.endOn #ctl,body.endOn #warpBar,body.endOn #topStack,body.endOn #hintS,body.endOn #badge,body.endOn #relBtn,body.endOn #gcamBtn,body.endOn #dMenu,body.endOn #mMenu,body.endOn #ignite{visibility:hidden!important;pointer-events:none!important}
 body.noStage #mStage,body.noStage #dStage{opacity:.35;filter:grayscale(1);box-shadow:none!important;animation:none!important}
-body.splitOn:not(.touch):not(.mapOn):has(#split:not(.hidden):not(.fullB):not(.fullU):not(.portrait)) #dCtl{right:auto!important;left:25%!important;transform:translateX(-50%)} /* f5.6x (QA f5.6w P2): desktop split: the AUTO/STAGE row belongs to the upper pane you fly */
+body.splitOn:not(.touch):not(.mapOn):not(.pip):has(#split:not(.hidden):not(.fullB):not(.fullU):not(.portrait)) #dCtl{right:auto!important;left:25%!important;transform:translateX(-50%)} /* f5.6x (QA f5.6w P2): desktop split: the AUTO/STAGE row belongs to the upper pane you fly */
 /* f5.6z (QA f5.6x): phone landscape RELEASE sits top-left under the top bar (it drew over the navball); desktop orbit drops ABORT + throttle like the phone */
 body.inOrbit #dAbort,body.inOrbit.autoOn #dThr{display:none!important}
 /* f5.7e (QA f5.7c P1): RELEASE / End flight has ONE fixed spot in split and single view, every size: top-left, clear of the top bar (right), toasts (centre) and navball; taps land because it never moves */
@@ -1048,3 +1048,19 @@ body.touch #split:not(.fullB) #spCardB .pill{display:none}
 /* f5.7i (QA f5.7g P1 budgets): phone Home = swipe + dots (no ‹ › arrows; .click() still works for tools); phone quick settings drop the advanced map-patch select */
 body.touch #home .hArr{display:none!important}
 body.touch #settings .adv{display:none!important}
+/* f5.7j (QA f5.7i P1): every size = picture-in-picture booster inset; the upper stage keeps its normal big HUD (no big→mini→big) */
+body.pip #spCardU,body.pip #spBtnsU{display:none!important}
+#split.pipM:not(.fullB) #spPane{border:2px solid #9cc3ffaa!important;border-radius:12px;overflow:hidden;box-shadow:0 4px 18px #000a}
+#split.pipM:not(.fullB) #spCardB{padding:6px 8px 5px!important;gap:6px!important}
+#split.pipM:not(.fullB) #spCardB .spBall{width:48px!important;height:48px!important}
+#split.pipM:not(.fullB) #spCardB .spL,#split.pipM:not(.fullB) #spCardB .spR{font-size:12px!important;overflow:visible!important;text-overflow:clip!important}
+#split.pipM:not(.fullB) #spCardB .pill{display:none}
+/* f5.7j (QA f5.7i P1 pad): one hint, never cut; GROUND in the free top-left slot; ABORT unlit on the pad; no stray % */
+body.touch #ignite{top:44%!important;bottom:auto!important;max-width:84vw!important;white-space:normal!important;text-align:center;font-size:16px!important}
+body.touch.autoOn #ignite{display:none!important}
+body.touch #gcamBtn{top:calc(12px + var(--sat,0px))!important;bottom:auto!important;left:calc(12px + env(safe-area-inset-left,0px))!important;right:auto!important}
+body.pip #gcamBtn{display:none!important}
+body.onPad #mAbort,body.onPad #dAbort{opacity:.35!important;filter:grayscale(1)!important;animation:none!important;box-shadow:none!important}
+body.touch #nav #navThrT{display:none!important}
+#split.pipM:not(.fullB) #spCardB,#split.pipM:not(.fullB) #spCardB *{font-size:12px!important;line-height:1.25!important}
+#split.pipM:not(.fullB) #spCardB .spR{white-space:nowrap!important}

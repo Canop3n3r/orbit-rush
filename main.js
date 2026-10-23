@@ -1075,7 +1075,7 @@ function launch() { academy.hideFirst && academy.hideFirst(); { const dm = $('dM
   }
   document.activeElement && document.activeElement.blur();
   $('build').classList.add('hidden'); $('hud').classList.remove('hidden');
-  mobile.show(true); $('ignite').innerHTML = TOUCH ? 'Tap <b>AUTO</b> if you want it, then <b>STAGE</b> to go' : 'Press <b>SPACE</b> to stage &amp; go · <b>F</b> = AUTO'; $('ignite').classList.remove('hidden'); // f5.5b
+  mobile.show(true); $('ignite').innerHTML = TOUCH ? '<b>AUTO</b> (optional), then <b>STAGE</b>' : 'Press <b>SPACE</b> to stage &amp; go · <b>F</b> = AUTO'; $('ignite').classList.remove('hidden'); // f5.5b
 }
 function goBuild() {
   try { plain.update({ on: false }); } catch (e) { } // f5.6c: no flight HUD in the Hangar
@@ -1587,7 +1587,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
     const cs = v.stages[v.cur], fu = cs && cs.fuelMax > 0 ? Math.round(cs.fuel / cs.fuelMax * 100) + '%' : '—', dense = tel.q > 300;
     const hot = !dense && tel.heat > 2e4, hasChute = v.stages.slice(v.cur).some(s2 => s2.parts.some(p2 => p2.kind === 'chute'));
     const cv = flyingBooster() ? booster : v;
-    mobile.render({ hasChute: hasChutes(), canHome: !!(F && F.canDeorbit && F.canDeorbit()), alt: fmtD(P.altOf(v)), spd: fmtS(V.len(v.v)), ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
+    mobile.render({ hasChute: hasChutes(), canHome: false /* f5.7j (QA f5.7i P2): Return to pad only shows as 'Cancel return' once flying (key O still works) */, alt: fmtD(P.altOf(v)), spd: fmtS(V.len(v.v)), ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
       mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : `${V.dot(v.v, V.norm(v.r)).toFixed(0)} m/s`,
       mqC: tel.q > 30000 || tel.heat > 3e5 ? 'warn' : '', fuel: fu, score: F.score().toLocaleString(), thr: mobile.thrDragging() ? (cv.ut ?? cv.throttle ?? 0) : (cv.throttle || cv.ut || 0),
       auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME', booster: !!(F.booster && F.booster.state === 'flying') || !!(booster2 && booster2.state === 'flying'),
@@ -1726,6 +1726,7 @@ renderer.setAnimationLoop(() => {
   if (W1) { earth.updateMatrixWorld(); W1.frame(rdt > 0 && pdt > rdt * 4.01 ? 0 : pdt, camera); } // clouds drift on sim time, frozen above 4x warp
   const tilesOn = !!(window.__tiles && window.__tiles.stats && window.__tiles.stats.on); // private Google tiles own the ground while they show (the LOD globe hid them)
   if (tilesOn) earthLOD.group.visible = false; else { if (window.__tiles) earthLOD.group.visible = true; lodFrame(); }
+  { const op = state === 'flight' && !!F && !F.ignited; if (op !== document.body.classList.contains('onPad')) document.body.classList.toggle('onPad', op); } // f5.7j: pad state for CSS (ABORT unlit)
   { const ao = state === 'flight' && !!(F && F.autoOn) && !(director && director.active === false && false); if (ao !== document.body.classList.contains('autoOn')) document.body.classList.toggle('autoOn', ao); } { const io = state === 'flight' && !!(F && F.flags.orbit); if (io !== document.body.classList.contains('inOrbit')) document.body.classList.toggle('inOrbit', io); const rb = $('relBtn'), ns = state === 'flight' && !!F && F.ignited && !F.canStage() && !(rb && !rb.classList.contains('hidden') && !F.released); if (ns !== document.body.classList.contains('noStage')) document.body.classList.toggle('noStage', ns); } // f5.6x: STAGE goes dark with nothing left to stage // f5.6u: orbit drops ABORT / throttle on phones // f5: manual controls hide while AUTO flies
   setRel(rocketG, base, O); toQ(v.q, rocketG.quaternion);
   worldVis(base, O, nose);
@@ -1831,7 +1832,7 @@ renderer.setAnimationLoop(() => {
     if (mapOn) document.querySelectorAll('.modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
     smap.show(mapOn); document.body.classList.toggle('mapOn', mapOn); }
   updateSplit(rdt);
-  if (state === 'flight' && split.on && !split.full && TOUCH && !booster2) { if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, -innerHeight * 0.06, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, -innerWidth * 0.1, 0, innerWidth, innerHeight); } // f5.7i: the upper stage sits centred below/right of the booster PiP
+  if (state === 'flight' && split.on && !split.full && !booster2) { if (camera.view && camera.view.enabled) camera.clearViewOffset(); } // f5.7j (QA f5.7i P1): the upper stage keeps the single-view framing in split (same pointing in every layout) // f5.7i: the upper stage sits centred below/right of the booster PiP
   else if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, booster2 ? innerHeight / 2 - ctlTop() / 6 : innerHeight * 0.25, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
   if (mapOn) { smap.update(rdt); mapPost.render(); }
   else { post.render(); renderSplit(O); }
@@ -1872,18 +1873,18 @@ const splitPortrait = () => innerHeight > innerWidth;
 const hasChutes = () => { try { return !!(F && F.v.stages.some(s => s.parts.some(p => /chute/i.test(p.kind || '')))); } catch (e) { return true; } }; // f5.7i
 const _html = {}; function setHTML(id, h) { if (_html[id] !== h) { _html[id] = h; const e = $(id); if (e) e.innerHTML = h; } }
 function placeTopStack(on) { // f4.1b: in split, toasts/hints (#topStack, compact #hintS) live in the upper pane, below its card and clear of the pane buttons
-  const por = splitPortrait(), land = on && camMode !== 'map', W = innerWidth, card = $('spCardU') || $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, pTop = innerHeight * (booster2 ? 1 / 3 : 0.5), top = cb ? (TOUCH ? (() => { const pr = pipRect(); return por ? pr.y + pr.h + 10 : 112; })() : (por ? 70 : 112)) : 0; /* f5.6h: the cards moved to bottom strips */ // f4.2 portrait: under the upper card if it fits above the booster pane, else above the card
+  const por = splitPortrait(), land = on && camMode !== 'map', W = innerWidth, card = $('spCardU') || $('spHud1'), cb = card && land ? card.getBoundingClientRect() : null, pTop = innerHeight * (booster2 ? 1 / 3 : 0.5), top = booster2 ? (cb ? (por ? 70 : 112) : 0) : (() => { const pr = pipRect(); return por ? pr.y + pr.h + 10 : 112; })(); // f5.7j: below / beside the booster inset /* f5.6h: the cards moved to bottom strips */ // f4.2 portrait: under the upper card if it fits above the booster pane, else above the card
   for (const id of ['topStack', 'hintS']) { const ts = $(id); if (!ts) continue;
     if (!land) { if (ts.dataset.sp) { ts.style.removeProperty('left'); ts.style.removeProperty('top'); ts.style.removeProperty('max-width'); delete ts.dataset.sp; } continue; }
-    ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * (por ? 0.5 : TOUCH ? 0.62 : 0.25)) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(por ? W - 24 : W * 0.5 - 32) + 'px', 'important'); } }
+    ts.dataset.sp = '1'; ts.style.setProperty('left', Math.round(W * (por ? 0.5 : booster2 ? 0.25 : TOUCH ? 0.62 : 0.5)) + 'px', 'important'); ts.style.setProperty('top', Math.round(top + (id === 'hintS' ? 0 : 40)) + 'px', 'important'); ts.style.setProperty('max-width', Math.round(por ? W - 24 : W * 0.5 - 32) + 'px', 'important'); } }
 // f5: portrait touch: the panes end above the stick / throttle / STAGE cluster so the lowest booster pane is never under them
 let ctlTopC = { t: 0, v: 0 };
 function ctlTop() { const H = innerHeight; if (!TOUCH || !splitPortrait()) return H; const now = performance.now(); if (now - ctlTopC.t < 500) return ctlTopC.v;
   let top = H; for (const id of ['mleft', 'mright']) { const e = document.getElementById(id); if (!e || getComputedStyle(e).display === 'none') continue; const r = e.getBoundingClientRect(); if (r.height > 0) top = Math.min(top, r.top); }
   ctlTopC = { t: now, v: Math.max(H * 0.6, top - 6) }; return ctlTopC.v; }
 // f5.7i (QA f5.7g P1, Aaron): phones fly the upper stage full screen with its HUD cluster; the booster is a picture-in-picture top-left
-const pipRect = () => { const W = innerWidth, H = innerHeight, sat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0; return splitPortrait() ? { x: 10, y: 64 + sat, w: Math.round(W * 0.62), h: Math.round(H * 0.3) } : { x: 10, y: 60 + sat, w: Math.round(W * 0.34), h: Math.round(H * 0.44) }; };
-function paneRect(i = 0, nb = 1) { if (TOUCH && nb === 1) return pipRect(); const W = innerWidth, H = innerHeight, Hc = ctlTop(); // f4.2: a heavy's two boosters: stacked on the right (landscape) or rows 2-3 (portrait)
+const pipRect = () => { const W = innerWidth, H = innerHeight, sat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0; return splitPortrait() ? { x: 10, y: 64 + sat, w: Math.round(W * 0.66), h: Math.round(H * 0.3) } : TOUCH ? { x: 10, y: 60 + sat, w: Math.round(W * 0.4), h: Math.round(H * 0.4) } : { x: 12, y: 64, w: Math.round(Math.min(560, W * 0.32)), h: Math.round(Math.min(380, H * 0.38)) }; }; // f5.7j: desktop gets the same inset
+function paneRect(i = 0, nb = 1) { if (nb === 1) return pipRect(); const W = innerWidth, H = innerHeight, Hc = ctlTop(); // f4.2: a heavy's two boosters: stacked on the right (landscape) or rows 2-3 (portrait)
   if (nb > 1) return splitPortrait() ? { x: 0, y: Hc / 3 * (i + 1), w: W, h: Hc / 3 } : { x: W * 0.5, y: H * 0.5 * i, w: W * 0.5, h: H * 0.5 };
   return splitPortrait() ? { x: 0, y: H * 0.5, w: W, h: H - H * 0.5, sh: Hc - H * 0.5 } : { x: W * 0.5, y: 0, w: W * 0.5, h: H }; } // f5.6h (QA P2): no dead strip under the panes; sh = where its bottom strip ends (above the thumb controls)
 function updateSplit(rdt) {
@@ -1898,10 +1899,11 @@ function updateSplit(rdt) {
   document.body.classList.toggle('splitOn', !!want); placeTopStack(!!(want && split.full !== 'b')); { const nw = performance.now(); if (!(nw - (guardToasts.t || 0) < 150)) { guardToasts.t = nw; try { guardToasts(); } catch (e) { } } } // fx-1: the one toast line never covers a telemetry card // f5.3: focused halves keep the split HUD (own card, no shared strip)
   if (want !== split.on && !want) for (const id of ['relBtn', 'gcamBtn']) { const el = $(id); if (el && el.dataset.spPin) { for (const k of ['top', 'bottom', 'left', 'right']) el.style.removeProperty(k); delete el.dataset.spPin; } } // f5.6h: unpin when the split closes
   if (flying) split.landT = 0;
+  if (!want) document.body.classList.remove('pip');
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want && camMode !== 'map') { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
   if (!split.on) return;
   const nb = 1, R2 = paneRect(0, nb), fb = split.full === 'b'; // f5.6e (QA): two panes max on every screen (Heavy's 2nd booster has no pane)
-  $('split').classList.toggle('portrait', splitPortrait());  // f5.6u (QA P1): at orbit the phone's upper pane drops its empty card + label
+  $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('pipM', !booster2); document.body.classList.toggle('pip', !booster2 && split.full !== 'b');  // f5.6u (QA P1): at orbit the phone's upper pane drops its empty card + label
  $('split').classList.toggle('fullB', fb); $('split').classList.toggle('fullU', split.full === 'u'); $('split').classList.toggle('tri', nb > 1);
   { const p2 = $('spPane2'), on2 = nb > 1 && !fb; p2.classList.toggle('hidden', !on2); if (on2) { const r3 = paneRect(1, nb), s2 = p2.style; s2.left = r3.x + 'px'; s2.top = r3.y + 'px'; s2.width = r3.w + 'px'; s2.height = r3.h + 'px'; } }
   layoutSplitCards(nb, fb);
@@ -1926,7 +1928,7 @@ function updateSplit(rdt) {
 // f5.3 (Aaron): identical layout in every half: the card (navball + telemetry) sits at the pane's top-left under one
 // button row, the pane buttons at its top-right. Positions are set here (viewport px) so every pane uses one rule.
 function upperRect(nb) { const W = innerWidth, H = innerHeight; if (split.full === 'u') return { x: 0, y: 0, w: W, h: H };
-  if (TOUCH && nb === 1) return splitPortrait() ? { x: 0, y: 0, w: W, h: H, sh: ctlTop() } : { x: 0, y: 0, w: W - 150, h: H }; // f5.7i: the upper stage owns the screen; its strip ends above (portrait) / left of (landscape) the AUTO/STAGE cluster
+  if (nb === 1) return splitPortrait() ? { x: 0, y: 0, w: W, h: H, sh: ctlTop() } : { x: 0, y: 0, w: W - 150, h: H }; // f5.7i: the upper stage owns the screen; its strip ends above (portrait) / left of (landscape) the AUTO/STAGE cluster
   return splitPortrait() ? { x: 0, y: 0, w: W, h: nb > 1 ? ctlTop() / 3 : H * 0.5 } : { x: 0, y: 0, w: W * 0.5, h: H }; }
 const SP_INSET = 58;
 function placeIn(el, r, corner) { if (!el) return; const s = el.style, sat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0;
@@ -1943,7 +1945,7 @@ function layoutSplitCards(nb, fb) {
   const ur = upperRect(nb), pinBottom = (el, side) => { if (!el) return; const st = el.style; if (!(!fb && split.full !== 'u')) { /* f5.6h (QA P2): landscape too: RELEASE / GROUND belong to the upper pane */ if (el.dataset.spPin) { for (const k of ['top', 'bottom', 'left', 'right']) st.removeProperty(k); delete el.dataset.spPin; } return; }
     el.dataset.spPin = '1'; st.setProperty('top', Math.round(ur.y + ur.h - el.offsetHeight - 10 - (($('spCardU') || {}).offsetHeight || 0)) + 'px', 'important'); /* f5.6h: above the upper strip */ st.setProperty('bottom', 'auto', 'important');
     st.setProperty(side, (side === 'left' ? ur.x + 10 : innerWidth - ur.x - ur.w + 10) + 'px', 'important'); st.setProperty(side === 'left' ? 'right' : 'left', 'auto', 'important'); };
-  pinBottom($('gcamBtn'), 'right'); // f5.7e (QA f5.7c P1): RELEASE is no longer pinned into the split; it has one fixed spot (style.css)
+  if (booster2) pinBottom($('gcamBtn'), 'right'); // f5.7j: hidden in the inset layout // f5.7e (QA f5.7c P1): RELEASE is no longer pinned into the split; it has one fixed spot (style.css)
   if (nb > 1) placeIn($('spCardB2'), paneRect(1, nb), 'strip');
 }
 // f5.6h (Aaron): each split half gets the same bottom strip: a simple navball centered, mph + altitude on its left,
@@ -1966,7 +1968,9 @@ function miniBall(cv, dir, r, vel, ghost = null) {
     c.strokeStyle = '#ffe14d'; c.lineWidth = 2; c.beginPath(); c.arc(px, py, 5, 0, 7); c.stroke(); }
   if (ghost && Math.acos(Math.max(-1, Math.min(1, V.dot(ghost, dir)))) > 0.017) { const gp = Math.asin(Math.max(-1, Math.min(1, V.dot(ghost, up)))), gh = Math.atan2(V.dot(ghost, e), V.dot(ghost, n)), nd = Math.atan2(V.dot(dir, e), V.dot(dir, n)); let dh = gh - nd; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; // f5.6h: ghost of the trackball target
     const gx = W / 2 + Math.max(-1, Math.min(1, dh / 1.2)) * R0 * 0.8, gy = H / 2 - Math.max(-1, Math.min(1, (gp - pit) / (Math.PI / 2))) * R0; c.setLineDash([4, 3]); c.strokeStyle = '#ffffffe0'; c.lineWidth = 2; c.beginPath(); c.moveTo(gx - 12, gy); c.lineTo(gx - 4, gy); c.moveTo(gx + 4, gy); c.lineTo(gx + 12, gy); c.stroke(); c.beginPath(); c.arc(gx, gy, 4, 0, 7); c.stroke(); c.setLineDash([]); }
-  c.restore(); c.strokeStyle = '#ffd23a'; c.lineWidth = 2; c.beginPath(); c.moveTo(W / 2 - 12, H / 2); c.lineTo(W / 2 - 4, H / 2); c.moveTo(W / 2 + 4, H / 2); c.lineTo(W / 2 + 12, H / 2); c.stroke();
+  c.strokeStyle = '#ffffff70'; c.lineWidth = 1; for (const dg of [-60, -30, 30, 60]) { const yy = H / 2 + hy - dg / 90 * R0; c.beginPath(); c.moveTo(W / 2 - R0 * 0.3, yy); c.lineTo(W / 2 + R0 * 0.3, yy); c.stroke(); } // f5.7j (QA f5.7i P1): a pitch ladder, so a steep ball is never one flat colour
+  c.restore(); c.strokeStyle = '#ffd23a'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(W / 2 - 14, H / 2 + 6); c.lineTo(W / 2, H / 2 - 4); c.lineTo(W / 2 + 14, H / 2 + 6); c.stroke(); // the nose chevron (was a bare '- -')
+  { const pd = Math.round(pit * 57.2958), t = (pd > 0 ? '+' : pd < 0 ? '−' : '') + Math.abs(pd) + '°'; c.font = `700 ${Math.round(W * 0.2)}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'top'; c.lineWidth = 3; c.strokeStyle = '#000a'; c.strokeText(t, W / 2, H / 2 + 10); c.fillStyle = '#fff'; c.fillText(t, W / 2, H / 2 + 10); }
   c.strokeStyle = '#9cc3ff88'; c.beginPath(); c.arc(W / 2, H / 2, R0, 0, 7); c.stroke();
 }
 function renderSplit(O) {
@@ -2127,7 +2131,7 @@ fun = createFunUI({
   tunnelGeom: mach => { const ab = aeroBalance(design, mach); if (!ab) return null; const vv = buildVehicle(design), g = P.stackGeom(vv); const COL = { engine: '#ff9a3c', tank: '#e8e8e8', pod: '#9cc3ff', payload: '#e0b84a', fins: '#555', decoupler: '#333', fairing: '#f4f4f4', shield: '#7a4a2a', chute: '#ff7a3c', rcs: '#8a9099' };
     return { parts: g.list.map(e => ({ y: e.y, h: e.h, d: e.kind === 'fins' ? (e.d || 2) * 1.8 : e.d, col: COL[e.kind] || '#ccc' })), L: g.L, ycom: ab.ycom, ycp: ab.ycp, stable: ab.stable, margin: ab.margin }; },
 });
-const cx = createCompact({ touch: TOUCH, press: k => press(k), menuState: () => ({ booster: !!(F && F.booster && F.booster.state === 'flying'), ret: !!(F && F.ret), chute: hasChutes(), canHome: !!(F && F.canDeorbit && F.canDeorbit()) }), onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on), onEngTap: () => { mobile.sheet = !document.body.classList.contains('sheet'); document.body.classList.toggle('sheet', mobile.sheet); } });
+const cx = createCompact({ touch: TOUCH, press: k => press(k), menuState: () => ({ booster: !!(F && F.booster && F.booster.state === 'flying'), ret: !!(F && F.ret), chute: hasChutes(), canHome: false /* f5.7j (QA f5.7i P2): Return to pad only shows as 'Cancel return' once flying (key O still works) */ }), onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on), onEngTap: () => { mobile.sheet = !document.body.classList.contains('sheet'); document.body.classList.toggle('sheet', mobile.sheet); } });
 { const dm = document.getElementById('dMap'); if (dm) dm.onclick = e => { e.currentTarget.blur(); press('KeyM'); }; }
 { // top-centre stack: callout, hint, toasts never overlap each other
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
@@ -2381,7 +2385,7 @@ function plainTick() {
   const h = P.altOf(v), onPad = v.clamped || !F.ignited, o = P.orbitOf(v);
   let tAp = NaN, tPe = NaN; if (!onPad) { try { tAp = P.timeToApV(v); tPe = C.timeToPe(v.r, v.v, P.muOf(v)); } catch (e) { } }
   const mps = P.altOf(v) < 40000 ? V.len(P.airVel(v, v.r, v.v)) : V.len(v.v); // f5.6e (QA F2): own live source; the navball readout pauses in portrait split
-  { const nv = $('nav'), mr = $('mright'), por = TOUCH && innerHeight > innerWidth && !split.on; if (nv) { if (por && mr && mr.offsetHeight) { const r = mr.getBoundingClientRect(), w = nv.offsetWidth || 130; nv.style.setProperty('left', Math.round(innerWidth - 8 - w / 2) + 'px', 'important'); nv.style.setProperty('bottom', Math.round(innerHeight - r.top + 6) + 'px', 'important'); nv.dataset.pp = '1'; }
+  { const nv = $('nav'), mr = $('mright'), por = TOUCH && innerHeight > innerWidth && (!split.on || document.body.classList.contains('pip')); if (nv) { if (por && mr && mr.offsetHeight) { const r = mr.getBoundingClientRect(), w = nv.offsetWidth || 130; nv.style.setProperty('left', Math.round(innerWidth - 8 - w / 2) + 'px', 'important'); nv.style.setProperty('bottom', Math.round(innerHeight - r.top + 6) + 'px', 'important'); nv.dataset.pp = '1'; }
     else if (nv.dataset.pp) { nv.style.removeProperty('left'); nv.style.removeProperty('bottom'); delete nv.dataset.pp; } } } // f5.6h (QA F3/P1): phone portrait navball sits above the thumb cluster, never under the telemetry card
   let land = null; try { if (F.ignited && F._alt0 == null) F._alt0 = h - v.tel.ycom; if (!onPad && !F.flags.landed && F._alt0 != null) { const up = V.norm(v.r), vs = V.dot(P.airVel(v), up), r = V.len(v.r), g = P.muOf(v) / (r * r), aMax = v.stages[v.cur] && v.stages[v.cur].fuel > 0 ? P.maxThrust(v, P.atmosphere(Math.max(0, h)).p) / (P.massOf(v) * 1000) : 0; land = landAid(h - v.tel.ycom - (F.body === F.homeBody || !F.homeBody ? F._alt0 : 0), vs, aMax, g); } } catch (e) { } // fx-2: manual landing aid
   plain.update({ on, mps, alt: h, ap: apsisLine('ap', o, tAp, SIM_SPEED, onPad), pe: apsisLine('pe', o, tPe, SIM_SPEED, onPad), dv: stageDvs(v.stages, v.cur, P.massOf(v)), land });
