@@ -6,7 +6,7 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=art1';
 import * as PR from './profiles.js?v=art1';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=art1';
+import { regNozzle, lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=art1';
 import { group, lmat, plume } from './co_civspace.js?v=art1';
 const PI = Math.PI, R = PR.R7;
 const darkBells = g => { for (const m of g.children) if (m.name.endsWith(':bell')) m.material = lmat('x-bellblack'); return g; };
@@ -14,7 +14,7 @@ function bands(k, prof, ys, key = 'grey') { for (const y of ys) { let r = 0; for
 // four-chamber engine cluster (+ vernier pair or quad), exits at y = 0
 // light bell (no powerhead): 36 chambers per vehicle, so keep them cheap. Key 'bell' -> darkened by darkBells
 function mini(k, re, L, x, y, z, rt) { const n = k.hi && !k.mid ? 5 : 3, seg = k.hi && !k.mid ? 14 : k.mid ? 8 : 6, pts = [];
-  for (let i = 0; i <= n; i++) { const t = i / n; pts.push(new THREE.Vector2(rt + (re - rt) * Math.pow(1 - t, 1.7), t * L)); } k.add(new THREE.LatheGeometry(pts, seg), 'bell', xf([x, y, z])); }
+  for (let i = 0; i <= n; i++) { const t = i / n; pts.push(new THREE.Vector2(rt + (re - rt) * Math.pow(1 - t, 1.7), t * L)); } k.add(new THREE.LatheGeometry(pts, seg), 'bell', xf([x, y, z])); regNozzle(k, x, y, z, re); }
 function cluster(k, x0, z0, rr, nV, vr) { for (const [x, z] of ringPos([[4, rr, PI / 4]])) mini(k, 0.36, 1.45, x0 + x, 0.05, z0 + z, 0.17);
   if (k.hi) for (const [x, z] of ringPos([[nV, vr, 0]])) mini(k, 0.17, 0.7, x0 + x, 0.35, z0 + z, 0.08); }
 function core(d) { const k = new Kit(d), prof = PR.rkCore(1.5); cluster(k, 0, 0, 0.42, 4, 1.05);

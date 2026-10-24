@@ -10,10 +10,11 @@ export function tube(k, r0, r1, h, y, key, o = {}) { const g = new THREE.Cylinde
 // ogive nose from radius r at y up to the tip (+Y)
 export function ogive(k, r, L, y, key, tip = 0.06) { lathe(k, PR.ogive(r, L, y, k.hi ? 18 : 7, tip), key); }
 const _nv = new THREE.Vector3(); // bell exit centre in the kit's current frame, rounded (data for userData.nozzles)
-function nozzleAt(k, x, y, z, re) { _nv.set(x, y, z).applyMatrix4(k.stack[k.stack.length - 1]); const r2 = v => Math.round(v * 100) / 100; return [r2(_nv.x), r2(_nv.y), r2(_nv.z), r2(re)]; }
+export const regNozzle = (k, x, y, z, re, ext = 0) => (k.noz || (k.noz = [])).push(nozzleAt(k, x, y, z, re, ext));
+function nozzleAt(k, x, y, z, re, ext) { _nv.set(x, y, z).applyMatrix4(k.stack[k.stack.length - 1]); const r2 = v => Math.round(v * 100) / 100; return ext ? [r2(_nv.x), r2(_nv.y), r2(_nv.z), r2(re), 1] : [r2(_nv.x), r2(_nv.y), r2(_nv.z), r2(re)]; }
 // rocket bell: exit radius re at y, throat rt, length L, regen look; ext = radiative extension fraction (vacuum)
 export function bell(k, re, L, x, y, z, o = {}) {
-  (k.noz || (k.noz = [])).push(nozzleAt(k, x, y, z, re)); // unit 3: every bell is registered (stage-local position + exit radius) so plumes can follow the model
+  regNozzle(k, x, y, z, re, o.ext ? 1 : 0); // unit 3: every bell is registered (stage-local position + exit radius) so plumes can follow the model
   const rt = o.rt || re * 0.38, pts = [], n = k.mid ? 4 : k.hi ? 12 : 5; // mid 4 rows (titan: 33 bells -> -1.6k tris)
   for (let i = 0; i <= n; i++) { const t = i / n; pts.push(new THREE.Vector2(rt + (re - rt) * Math.pow(1 - t, 1.7), t * L)); }
   k.add(new THREE.LatheGeometry(pts, k.mid ? 12 : k.hi ? 28 : 10), o.ext ? 'bellx' : 'bell', xf([x, y, z]));

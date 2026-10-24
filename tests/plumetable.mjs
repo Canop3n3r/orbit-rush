@@ -20,4 +20,5 @@ const L9 = plumeLayout([[1.1, 0, 0.5, 0.46], [0, 0, 0, 0.46], [-1.1, 0, -0.5, 0.
 ok(L9.n === 3 && L9.small === 1 && Math.abs(L9.rn - 0.92) < 1e-9 && L9.cen === 1, 'plumeLayout: vernier dropped, scaled, centre engine found');
 ok(plumeLayout([], 1) === null && plumeLayout(null, 1) === null, 'plumeLayout: no bells -> null');
 ok(plumeLayout([[0, 0, 0, 1]], 1).n === 1 && plumeLayout([[2, 0, 0, 1]], 1).cen === -1, 'plumeLayout: single and off-centre');
+ok(plumeLayout([[0, 0, 0, 1, 1]], 1).vac === true && plumeLayout([[0, 0, 0, 1], [1, 0, 0, 1, 1]], 1).vac === false, 'plumeLayout: vacuum when every main bell is an extension nozzle');
 process.exit(bad ? 1 : 0);

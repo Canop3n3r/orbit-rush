@@ -992,12 +992,12 @@ function attachHero() { showFrame = null; // re-frame from the new model at once
 // (gfx/vehicles/nozzles.js is generated from the models; tools/gen_nozzles.cjs). Stages the model has no bells for keep the data layout.
 function alignCorePlumes() {
   const NZ = hero && NOZZLES[design.model]; if (!NZ) return; const st = (hero.userData.hi || hero).userData.stages || {}, mg = modelGroups(Object.keys(st)), keys = [...mg.core.flat(), ...mg.top], k = hero.scale.x; let ci = 0;
-  for (const g of SG) { if (g.userData.radial) continue; const key = keys[Math.min(ci++, keys.length - 1)], L = plumeLayout(NZ[key], k), old = g.userData.plume; if (!L || !old) continue;
+  for (const g of SG) { if (g.userData.radial) continue; const key = keys[Math.min(ci++, keys.length - 1)], L = plumeLayout((NZ[key] && NZ[key].length ? NZ[key] : NZ.orbiter) || [], k), old = g.userData.plume; // a core with no bells of its own (the truck's tank): the engines ride on the orbiter if (!L || !old) continue;
     const prop = old.userData.prop, vac = old.userData.vac, ts = old.userData.ts, vis = old.visible; for (const e of [...(old.userData.extra || []), old]) g.remove(e); // (geometries are shared between plumes: not disposed)
     let plume; if (L.n > 1) { plume = makePlume(L.rn, prop); plume.userData.env = Math.max(1, L.ext / L.rn); plume.userData.noCore = L.cen < 0; g.add(plume);
       plume.userData.extra = L.pts.filter((p, i) => i !== L.cen).map(p => { const e = makePlume(L.rn, prop, true); e.position.set(p[0], 0, p[1]); g.add(e); return e; }); }
     else { plume = makePlume(Math.max(0.8, L.rn * 1.1), prop); g.add(plume); }
-    Object.assign(plume.userData, { prop, vac, ts, nEng: L.n }); plume.visible = vis; g.userData.plume = plume; }
+    Object.assign(plume.userData, { prop, vac: vac || L.vac, ts, nEng: L.n }); plume.visible = vis; g.userData.plume = plume; }
 }
 function parallelCore() { const vv = vehicleOf(design.model); return !!(vv && vv.stages && vv.stages.some(x => x.parallel)); }
 function isPlumeChild(o, g) { const pl = g.userData.plume, ex = (pl && pl.userData.extra) || []; for (let p = o; p && p !== g; p = p.parent) if (p === pl || ex.includes(p)) return true; return false; }

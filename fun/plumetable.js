@@ -32,5 +32,5 @@ export function plumeLayout(list, k = 1) {
   const big = Math.max(...list.map(n => n[3])), main = list.filter(n => n[3] >= 0.45 * big), rs = main.map(n => n[3]).sort((a, b) => a - b);
   const rn = rs[rs.length >> 1] * k, pts = main.map(n => [n[0] * k, n[2] * k]), ext = Math.max(...pts.map(p => Math.hypot(p[0], p[1]))) + rn;
   const cen = pts.findIndex(p => Math.hypot(p[0], p[1]) < 0.35 * rn);
-  return { n: pts.length, pts, rn, ext, cen, small: list.length - main.length };
+  return { n: pts.length, pts, rn, ext, cen, small: list.length - main.length, vac: main.every(n => n[4] === 1) }; // vac: every main bell is a radiative-extension (vacuum) nozzle
 }

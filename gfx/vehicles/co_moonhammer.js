@@ -4,12 +4,12 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=art1';
 import * as PR from './profiles.js?v=art1';
-import { lathe, tube, ringPos, ring, decal } from './parts.js?v=art1';
+import { regNozzle, lathe, tube, ringPos, ring, decal } from './parts.js?v=art1';
 import { group, plume } from './co_civspace.js?v=art1';
 const PI = Math.PI, H = 105.3;
 function mini(k, re, L, x, y, z, rt) { const hi = k.detail === 'hi', n = hi ? 5 : 3, seg = hi ? 14 : k.mid ? 8 : 6, pts = [];
   for (let i = 0; i <= n; i++) { const t = i / n; pts.push(new THREE.Vector2(rt + (re - rt) * Math.pow(1 - t, 1.7), t * L)); }
-  k.add(new THREE.LatheGeometry(pts, seg), 'bell', xf([x, y, z])); }
+  k.add(new THREE.LatheGeometry(pts, seg), 'bell', xf([x, y, z])); regNozzle(k, x, y, z, re); }
 const band = (k, r0, r1, h, y, key = 'grey') => tube(k, r0 * 1.004, r1 * 1.004, h, y, key, { open: true, seg: k.detail === 'hi' ? 40 : 14 });
 function s1(d) { const k = new Kit(d), y0 = 2.0, h = 30, r0 = 8.4, r1 = 5.15; // 24 outer + 6 inner engines
   for (const [x, z] of ringPos([[k.detail === 'lo' ? 12 : 24, 7.2, 0], [6, 2.4, PI / 6]])) mini(k, k.detail === 'lo' && Math.hypot(x, z) > 5 ? 0.95 : 0.7, 1.9, x, 0.1, z, 0.3);
