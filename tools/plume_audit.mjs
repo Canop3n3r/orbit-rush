@@ -2,14 +2,17 @@
 // Sources: gfx/vehicles/nozzles.js (the model's own bells), fun/exhaust.js stageEngines (roster propellant / engine data), fun/plumetable.js (look).
 import fs from 'fs';
 import { NOZZLES } from '../gfx/vehicles/nozzles.js';
-import { vehicleOf, stageEngines } from '../fun/exhaust.js';
+import { vehicleOf, stageEngines, coreInfo } from '../fun/exhaust.js';
 import { modelGroups } from '../fun/stagemap.js';
 import { plumeLayout, PLUME_TABLE } from '../fun/plumetable.js';
 const NOT_ROCKET = /^(catch-tower|payload-)/, mainN = l => (plumeLayout(l, 1) || { n: 0 }).n;
+// bells that legitimately differ from the roster engine count: multi-chamber engines (bells = 2..6 x engines), solid motors (one nozzle per motor,
+// the roster lists them as stages/groups), and radial groups (bells per booster vs roster per-booster average)
+const explained = s => s.prop === 'solid' || (s.bells > s.eng && s.eng > 0 && s.bells % s.eng === 0 && s.bells / s.eng <= 6);
 const rows = [], cls = {};
 for (const [id, st] of Object.entries(NOZZLES)) { if (NOT_ROCKET.test(id)) continue;
   const v = vehicleOf(id), mg = modelGroups(Object.keys(st)), core = [...mg.core.flat(), ...mg.top], note = [], stages = [];
-  core.forEach((k, i) => { const bells = mainN(st[k].length ? st[k] : st.orbiter || []), e = v ? stageEngines(id, i) : null;
+  core.forEach((k, i) => { const bells = mainN(st[k].length ? st[k] : st.orbiter || []), e = v ? coreInfo(id, i, core.length) : null;
     stages.push({ key: k, bells, eng: e ? e.n : null, prop: e ? e.prop : 'kerolox*', vac: e ? e.vacuumOnly : false, radial: false }); });
   mg.radial.filter(k => !/^struts/i.test(k)).forEach(k => { const bells = mainN(st[k]), e = v ? stageEngines(id, 0, [], true, Math.max(1, mg.radial.length)) : null;
     stages.push({ key: k, bells, eng: e ? e.n : null, prop: e ? e.prop : 'solid*', vac: false, radial: true }); });
@@ -17,7 +20,7 @@ for (const [id, st] of Object.entries(NOZZLES)) { if (NOT_ROCKET.test(id)) conti
   if (!Object.values(st).some(l => l.length)) status = 'NO-BELLS';
   else if (stages.some(s => !s.bells && !/^(orbiter|spaceplane|carrier|glider)$/i.test(s.key))) status = 'STAGE-WITHOUT-BELLS';
   else if (!v) status = 'NO-ROSTER';
-  else if (stages.some(s => s.eng != null && s.bells !== s.eng)) status = 'COUNT';
+  else if (stages.some(s => s.eng != null && s.bells !== s.eng && !explained(s))) status = 'COUNT';
   rows.push({ id, status, stages, roster: !!v }); cls[status] = (cls[status] || 0) + 1; }
 const T = { OK: 'bells = roster engines, roster propellant', COUNT: 'plumes follow the model bells; roster engine count differs', 'NO-ROSTER': 'no roster data: plumes follow the model bells, propellant is a guess (*)',
   'NO-BELLS': 'model registers no bells (custom nozzles): plumes use the formula layout', 'STAGE-WITHOUT-BELLS': 'a stage has no registered bells: that stage uses the formula layout' };

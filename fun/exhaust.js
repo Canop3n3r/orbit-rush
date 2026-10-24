@@ -8,6 +8,10 @@ export { PROPS };
 // look per propellant now lives in fun/plumetable.js (data-driven: colours, smoke, Mach diamonds, vacuum/sea-level rule, thrust scale)
 export const LOOK = PLUME_TABLE;
 const ENG = {}; for (const k in CAT) if (k.startsWith('ENGINES')) Object.assign(ENG, CAT[k]);
+// the engines of core stage i of a model that has nCore core stage groups: roster stages in flight order when they line up 1:1 (solid stages included), else stageEngines
+export function coreInfo(model, i, nCore, parts = []) { const v = vehicleOf(model), rs = v && v.stages ? v.stages.filter(x => !x.parallel).sort((a, b) => (a.group || 0) - (b.group || 0)) : [];
+  if (rs.length && rs.length === nCore) return stageInfo(rs[i]); return stageEngines(model, i, parts); }
+export const stageInfo = st => stagePlume(st, ENG); // plume summary of one roster stage
 export function vehicleOf(model) { if (!model) return null; const id = ALIAS[model] || model; let v = null; try { v = rosterFor(id); } catch (e) {}
   return (v && v.stages) ? v : ALL.find(x => x.id === id) || (/^colossus-/.test(id) ? ALL.find(x => x.id === 'colossus-v3') : null) || (/^heron-9/.test(id) ? ALL.find(x => x.id === 'heron-9') : null); }
 // propellant guess for a hand-built stage: hydrogen tanks/engines → hydrolox, else kerosene
