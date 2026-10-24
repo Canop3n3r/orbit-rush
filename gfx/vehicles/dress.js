@@ -40,16 +40,18 @@ export function dressStages(g, id, det) {
     const me = measure(sg); if (me && me.r >= 0.25 && me.h > 2.2 * me.r) cand.push({ key, sg, ...me }); }
   const nzs = NOZZLES[id] || {};
   if (!cand.length) return; const foot = Math.min(...cand.map(c => c.y0));
-  for (const c of cand) { const { key, sg, y0, h, cx, cz, r } = c, first = Math.abs(y0 - foot) < 0.5, k = new Kit(det), foamed = hd.includes(key); let n = 0;
+  for (const c of cand) { const { key, sg, y0, h, r } = c, cx = own ? 0 : c.cx, cz = own ? 0 : c.cz, // tier-A hero stacks sit on the model axis (grid fins and strakes skew the estimate)
+    first = Math.abs(y0 - foot) < 0.5, k = new Kit(det), foamed = hd.includes(key); let n = 0;
     if (foamed) { sg.traverse(m => { if (m.isMesh && /salmon|foam|orange|tan\b/.test(m.name)) n = -1; }); }
     if (foamed && n === 0 && det === 'hi') { const tint = H & 1; k.add(new THREE.CylinderGeometry(r * 1.012, r * 1.012, h * 0.84, det === 'hi' ? 40 : 18, 1, true), 'foam:' + tint, xf([cx, y0 + h * 0.5, cz])); }
     if (det === 'hi') { engineBay(k, nzs[key], y0, cx, cz, r);
-    if (own) { // tier-A hero stages already carry their own interstage and fins: add louvred engine bay, a vented hot-staging ring and hatch panels instead
-      const lh = Math.min(r * 0.3, h * 0.04), nl = Math.round(Math.min(40, r * 8)), ns = Math.min(24, Math.round(r * 5));
-      for (let i = 0; i < nl; i++) { const a = i / nl * 2 * PI; box(k, 'dark', r * 0.05, lh, r * 0.12, [cx + Math.cos(a) * r * 1.02, y0 + lh * 2.4 + r * 0.02, cz + Math.sin(a) * r * 1.02], -a); } // louvres above the engine bay
-      for (let i = 0; i < ns; i++) { const a = (i + 0.5) / ns * 2 * PI; box(k, 'dark', r * 0.05, lh * 1.4, r * 0.09, [cx + Math.cos(a) * r * 1.02, y0 + h - lh * 1.6, cz + Math.sin(a) * r * 1.02], -a); } // vent slots below the stage separation
-      k.add(new THREE.TorusGeometry(r * 1.03, r * 0.016, 4, 48), 'steel', xf([cx, y0 + h - lh * 3.2, cz], [PI / 2, 0, 0]));
-      for (let i = 0; i < 4; i++) { const a = a0hero(H) + i * PI / 2; box(k, 'grey', r * 0.05, lh * 2, r * 0.22, [cx + Math.cos(a) * r * 1.02, y0 + lh * 4.2 + r * 0.05, cz + Math.sin(a) * r * 1.02], -a); } } // access hatches
+    if (own) { const rr = r * 1.07; // the hull estimate runs a few percent low on tiled/stringered skins; slats stand proud of it
+     // tier-A hero stages already carry their own interstage and fins: add louvred engine bay, a vented hot-staging ring and hatch panels instead
+      const lh = Math.min(rr * 0.3, h * 0.04), nl = Math.round(Math.min(40, rr * 8)), ns = Math.min(24, Math.round(rr * 5));
+      for (let i = 0; i < nl; i++) { const a = i / nl * 2 * PI; box(k, 'dark', rr * 0.05, lh, rr * 0.12, [cx + Math.cos(a) * rr * 1.02, y0 + lh * 2.4 + rr * 0.02, cz + Math.sin(a) * rr * 1.02], -a); } // louvres above the engine bay
+      for (let i = 0; i < ns; i++) { const a = (i + 0.5) / ns * 2 * PI; box(k, 'dark', rr * 0.05, lh * 1.4, rr * 0.09, [cx + Math.cos(a) * rr * 1.02, y0 + h - lh * 1.6, cz + Math.sin(a) * rr * 1.02], -a); } // vent slots below the stage separation
+      k.add(new THREE.TorusGeometry(rr * 1.03, rr * 0.016, 4, 48), 'steel', xf([cx, y0 + h - lh * 3.2, cz], [PI / 2, 0, 0]));
+      for (let i = 0; i < 4; i++) { const a = a0hero(H) + i * PI / 2; box(k, 'grey', rr * 0.05, lh * 2, rr * 0.22, [cx + Math.cos(a) * rr * 1.02, y0 + lh * 4.2 + rr * 0.05, cz + Math.sin(a) * rr * 1.02], -a); } } // access hatches
     if (!own) {
       const nb = (H >> 3) % 3 === 0 ? 2 : r > 1.6 ? 6 : 4, a0 = (H % 7) * 0.3, FL = Math.min(h * 0.08, r * 1.7); // engine-section pump fairings (2, 4 or 6 by house)
       if (first) for (let i = 0; i < nb; i++) { const a = a0 + i / nb * 2 * PI, px = cx + Math.cos(a) * r * 1.035, pz = cz + Math.sin(a) * r * 1.035;
