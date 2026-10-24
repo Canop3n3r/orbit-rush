@@ -175,7 +175,31 @@ async function insetDesktop(br) { const vp = '1280x800', rows = []; const ctx = 
         const cc = await p2.evaluate(extra); if (shots) await p2.screenshot({ path: `${shots}/uib_1280x800_crash_card.png`, timeout: 180000 }); if (cc && cc.card && cc.card.dead) CARDROWS(rows, vp, 'crash_card', cc.card); else rows.push({ vp, screen: 'crash_card', metric: 'card_no_stars_next', val: 'SKIP', max: '-', ok: null, info: 'no crash card' }); } finally { await p2.close(); } } catch (e) { rows.push({ vp, screen: 'crash_card', metric: 'card_no_stars_next', val: 'SKIP', max: '-', ok: null, info: String(e.message).slice(0, 60) }); }
     rows.push(a == null ? { vp, screen: 'split', metric: 'inset_area%', val: 'SKIP', max: '-', ok: null, info: 'no inset' } : { vp, screen: 'split', metric: 'inset_area%', val: a, max: 12, ok: a <= 12 });
   } catch (e) { rows.push({ vp, screen: 'split', metric: 'inset_area%', val: 'SKIP', max: '-', ok: null, info: String(e.message).slice(0, 60) }); }
+  await UPPERTAKE(br, false, 1280, 800, vp, rows, []); // f5.8t
   await ctx.close(); return { vp, rows }; }
+async function UPPERTAKE(br, phone, W, H, vp, rows, perrs) {
+  /* f5.8t (QA f5.8r P1): upper-stage takeover at ~60 km (AUTO is still pitching over at ~0.3 rad/s), real tap on AUTO, then a real THR drag from the bottom of the strip. Pitch of the nose is read from the sim (nose · local up). */
+  { const c4 = await browser2(br, phone, W, H), p4 = await c4.newPage(); p4.on('pageerror', e => perrs.push(e.message.split('\n')[0])); const ev4 = (f, a) => p4.evaluate(f, a), w4 = ms => p4.waitForTimeout(ms);
+    const UP = () => { const F = window.__game.F, v = F.v, [w, x, y, z] = v.q, n = [2 * x * y - 2 * w * z, 1 - 2 * z * z - 2 * x * x, 2 * w * x + 2 * y * z]; const l = Math.hypot(...v.r); return { p: Math.asin((n[0] * v.r[0] + n[1] * v.r[1] + n[2] * v.r[2]) / l) * 180 / Math.PI, w: Math.hypot(...v.w), thr: v.throttle, alt: F.alt, sas: v.sas, auto: F.autoOn }; };
+    const adv = (s) => ev4(s => { for (let i = 0; i < Math.round(s * 60); i++) window.__game.F.advance(1 / 60); }, s);
+    try { await p4.goto(base + (base.includes('?') ? '&' : '?') + 'noacademy&fx=low', { timeout: 300000 }); await p4.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await w4(1500);
+      await ev4(() => { document.getElementById('firstRun')?.classList.add('hidden'); document.getElementById('hFly').click(); }); await w4(2500); await ev4(() => { const G = window.__game; G.F.setAuto(true); if (!G.F.ignited) G.press('Space'); }); await w4(600);
+      let at = null; for (let k = 0; k < 400 && !at; k++) { at = await ev4(() => { const F = window.__game.F; for (let i = 0; i < 120 && !(F.alt > 60000 && F.v.cur === F.last) && !F.flags.dead; i++) F.advance(1 / 60); return F.alt > 60000 && F.v.cur === F.last ? Math.round(F.alt) : F.flags.dead ? -1 : 0; }); if (at < 0) break; await w4(30); if (!at) at = null; }
+      if (!at) throw new Error('never reached the upper stage at 60 km');
+      const ab = await ev4(() => { const e = ['mAuto', 'dAuto'].map(id => document.getElementById(id)).find(e => e && e.getBoundingClientRect().width > 1); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+      if (!ab) throw new Error('no AUTO button'); if (phone) await p4.touchscreen.tap(ab.x, ab.y); else await p4.mouse.click(ab.x, ab.y); await w4(300);
+      const t0 = await ev4(UP), trace = [t0.p]; let tRest = null; for (let k = 1; k <= 48; k++) { await adv(0.25); const u = await ev4(UP); trace.push(u.p); if (tRest == null && u.w < 0.02) tRest = k * 0.25; } /* 12 s of sim after the takeover */
+      let travel = 0; for (let i = 1; i < trace.length; i++) travel += Math.abs(trace[i] - trace[i - 1]); const net = Math.abs(trace[trace.length - 1] - trace[0]), excess = travel - net, tail = Math.abs(trace[trace.length - 1] - trace[trace.length - 9]);
+      rows.push({ vp, screen: 'flight', metric: 'upper_takeover_no_overshoot', val: +excess.toFixed(1), max: 3, ok: excess <= 3 && tail <= 1.5 && tRest != null && tRest <= 10, info: `takeover at ${at} m with the nose swinging ${t0.w.toFixed(2)} rad/s: ${t0.p.toFixed(0)}° → ${trace[trace.length - 1].toFixed(0)}° over 12 s, ${travel.toFixed(0)}° travelled (${excess.toFixed(1)}° back-and-forth), still ${tail.toFixed(1)}° in the last 2 s, rate < 0.02 after ${tRest}s (STABILITY brakes the swing and holds where it stops)` });
+      const base1 = (await ev4(UP)).p, r = await ev4(() => { const e = ['mThr', 'dThr'].map(id => document.getElementById(id)).find(e => e && e.getBoundingClientRect().width > 1); if (!e) return null; const q = e.getBoundingClientRect(); return { x: q.left + q.width / 2, top: q.top, bot: q.bottom }; });
+      if (!r) throw new Error('no THR gauge'); const y0 = r.bot - 4, y1 = r.top + (r.bot - r.top) * 0.5; let minThr = 1;
+      const thr = async () => { const u = await ev4(UP); minThr = Math.min(minThr, u.thr); return u; };
+      if (phone) { const cdp = await c4.newCDPSession(p4), tp = (t, y) => cdp.send('Input.dispatchTouchEvent', { type: t, touchPoints: t === 'touchEnd' ? [] : [{ x: r.x, y }] }); await tp('touchStart', y0); await adv(0.05); await thr(); for (let i = 1; i <= 8; i++) { await tp('touchMove', y0 + (y1 - y0) * i / 8); await adv(0.05); await thr(); } await tp('touchEnd'); await cdp.detach(); }
+      else { await p4.mouse.move(r.x, y0); await p4.mouse.down(); await adv(0.05); await thr(); for (let i = 1; i <= 8; i++) { await p4.mouse.move(r.x, y0 + (y1 - y0) * i / 8); await adv(0.05); await thr(); } await p4.mouse.up(); }
+      let mx = 0; for (let k = 0; k < 6; k++) { await adv(0.5); const u = await thr(); mx = Math.max(mx, Math.abs(u.p - base1)); } const fin = await ev4(UP);
+      rows.push({ vp, screen: 'flight', metric: 'upper_thr_drag_pitch', val: +mx.toFixed(1), max: 5, ok: mx <= 5 && fin.thr > 0.3 && !fin.auto, info: `real ${phone ? 'touch' : 'mouse'} drag from the bottom of the THR strip after the upper-stage takeover at ${at} m; throttle dipped to ${minThr.toFixed(2)} → ${fin.thr.toFixed(2)}; nose ${base1.toFixed(1)}° → ${fin.p.toFixed(1)}°` });
+    } catch (e) { rows.push({ vp, screen: 'flight', metric: 'upper_thr_drag_pitch', val: 'ERR', max: 5, ok: false, info: String(e.message).slice(0, 120) }); } finally { await c4.close(); } }
+}
 async function runVp(br, vp) {
   const [W, H] = vp.split('x').map(Number), phone = Math.min(W, H) < 600, tag = phone ? (W < H ? 'pp' : 'pl') : 'd' + W;
   const ctx = await br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } }); await ctx.addInitScript(SETTLE);
@@ -308,6 +332,7 @@ async function runVp(br, vp) {
         if (!st) HV = { err: 'no staging' }; else { await ev3(SPLIT_ON); HV = await ev3(measure); await ev3(SPLIT_OFF); Object.assign(HV, await ev3(() => { const v = id => { const e = document.getElementById(id); if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 20 && cs.display !== 'none' && cs.visibility !== 'hidden'; }; return { pip: document.body.classList.contains('pip'), big: (v('plain') || v('mhud')) && v('nav') }; }));
           HV.navLive = await navLive(ev3, w3); if (shots) await p3.screenshot({ path: `${shots}/uib_${tag}_heavy_split.png`, timeout: 180000 }); } }
     } catch (e) { HV = { err: e.message.split('\n')[0] }; } finally { await c3.close(); } }
+  await UPPERTAKE(br, phone, W, H, vp, rows, perrs);
   const di = phone ? 0 : 1;
   const chk = (screen, metric, val, max) => rows.push({ vp, screen, metric, val, max, ok: val != null && val <= max });
   for (const [s, b] of Object.entries(B)) { const r = M[s]; if (!r || r.err) { rows.push({ vp, screen: s, metric: 'measure', val: r ? r.err : 'missing', max: '-', ok: false }); continue; }
@@ -388,6 +413,7 @@ async function runVp(br, vp) {
 
 (async () => {
   const br = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: GPU });
+  if (process.env.UT_ONLY) { for (const vp of vps) { const [W, H] = vp.split('x').map(Number), rows = [], perrs = []; await UPPERTAKE(br, Math.min(W, H) < 600, W, H, vp, rows, perrs); for (const r of rows) console.log(r.ok ? 'PASS' : 'FAIL', vp, r.metric, r.val, r.info); if (perrs.length) console.log('PAGEERR', perrs); } await br.close(); process.exit(0); }
   const all = []; for (const vp of vps) all.push(await runVp(br, vp));
   if (!process.env.NO_INSET) all.push(await insetDesktop(br)); await br.close();
   { const bk = Object.keys(BUILDLAB); if (bk.length > 1) { const same = f => bk.filter(k => f(BUILDLAB[k]) !== f(BUILDLAB[bk[0]])).length; all.push({ vp: 'all', rows: [
@@ -403,7 +429,7 @@ async function runVp(br, vp) {
   console.log(`${rows.length - fails - skips}/${rows.length - skips} budgets pass (${skips} skipped)`);
   if (jsonOut) require('fs').writeFileSync(jsonOut, JSON.stringify(all, null, 1));
   // f5.6h (QA ratchet): --strict fails only below the baseline pass count (43 of 74 on f5.6f); raise BASELINE as rows get fixed
-  const BASELINE = +(process.env.UI_BASELINE || 247) /* f5.8o: 247/247 */ /* f5.8n: 226/226 */ /* f5.8m: 215/215 */ /* f5.8l: 197/197 */ /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
+  const BASELINE = +(process.env.UI_BASELINE || 253) /* f5.8t: 253/253 (+6 upper-stage takeover rows) */ /* f5.8o: 247/247 */ /* f5.8n: 226/226 */ /* f5.8m: 215/215 */ /* f5.8l: 197/197 */ /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
   if (strict) console.log(`ratchet: ${passN} pass vs baseline ${BASELINE} → ${passN >= BASELINE ? 'OK' : 'REGRESSION'}`);
   process.exit(strict && passN < BASELINE ? 1 : 0);
 })().catch(e => { console.error('FATAL', e.message); process.exit(strict ? 1 : 0); });
