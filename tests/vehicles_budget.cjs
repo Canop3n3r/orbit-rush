@@ -35,6 +35,7 @@ for (const [id, d, k, v] of [["sparrow-1", "hi", 1, 17], ["heron-9-crew", "lo", 
 for (const [id, d, k, v] of [['jade-lantern-3b', 'hi', 1, 34], ['taiga-a5', 'hi', 1, 34], ['mogutny', 'hi', 0, 34000], ['saturnine-v', 'hi', 1, 34], ['new-glendale', 'hi', 1, 34]]) BUD[id][d][k] = v;
 // rockets-pass-1 unit 4b: the desktop (hi) tier carries the stage dressing (gfx/vehicles/dress.js: pump fairings, feedline, interstage, blanket, foam): +10 meshes / +5000 tris on every hi cap. Phone mid and lo caps are untouched.
 for (const v of Object.values(BUD)) if (v.hi) { v.hi[0] += 5000; v.hi[1] += 10; }
+for (const [id, m] of [['jade-lantern-2f', 48], ['jade-lantern-3b', 50], ['polar-slinger', 48]]) BUD[id].hi[1] = m; // multi-stage cluster stacks: one more dressed stage each (hi only)
 // space-center sites (art-sites-N): gfx/sites/budget.html discovers every site_<id>.js. Phone mid <= 8k tris / 40 meshes per complex.
 // SITES_ONLY=1 runs only this block (skips the vehicle probe page, e.g. while it is broken or too slow on a loaded box).
 async function sitesBudget(ok, errs) {
