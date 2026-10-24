@@ -1223,7 +1223,7 @@ function warpStep(d) { if (state !== 'flight' || !F) return false; F.autoWarp = 
   if (n < 0) return false; if (n > warpMaxI()) { const [m, why] = F.warpLimit(); toast(`Max warp ×${m}${why ? ': ' + why : ''}`, '#ffb35c'); return false; } F.setWarp(n); return true; }
 function warpReset() { if (state !== 'flight' || !F) return; F.autoWarp = false; F.setWarp(0); }
 function warpBarUpdate() { const b = $('warpBar'); if (!b || !F) return; const mi = warpMaxI(), W = F.effWarp(), [m, why] = F.warpLimit();
-  const cur = Math.min(F.warpI, mi); $('wDn').disabled = cur <= 0 && !F.autoWarp; $('wUp').disabled = cur >= mi;
+  const cur = Math.min(F.warpI, mi); $('wDn').disabled = cur <= 0 && !F.autoWarp; $('wUp').disabled = false; $('wUp').classList.toggle('atMax', cur >= mi); /* QA f5.8p: at the cap ▶▶ stays tappable so warpStep shows the 'Max warp ×N: why' toast (disabled = silent on touch) */
   { const pad = !F.ignited || (F.v && F.v.clamped), slow = cur > 0 || !!F.autoWarp; $('wDn').hidden = pad || !slow; $('wUp').hidden = pad; $('wVal').hidden = pad || !(W > 1 || F.autoWarp); const x = W > 1 ? '×' + W : ''; if ($('wUp').dataset.x !== x) $('wUp').dataset.x = x; } // f5.8g (QA P2): one warp rule at every size — ▶▶ (with ×N), ◀◀ only while warping, none on the pad
   $('wDn').title = `Slower (,) · now ×${W}`; $('wUp').title = cur >= mi ? `Max warp ×${m}${why ? ' — ' + why : ''}` : `Faster (T) → ×${WARPS[cur + 1]} · now ×${W}`;
   const t = $('wVal'); const txt = (F.autoWarp ? '⏩ ' : '') + '×' + W; if (t.textContent !== txt) t.textContent = txt; document.body.classList.toggle('warp1', W === 1 && !F.autoWarp); t.title = `Time warp ×${W}${W > 1 ? ' — tap for ×1' : ''}`; t.classList.toggle('on', W > 1); }

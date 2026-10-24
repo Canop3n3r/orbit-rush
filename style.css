@@ -1310,7 +1310,7 @@ body > .bmPanel .bmSub[open]{flex-basis:100%}
 /* f5.8g (QA P2): same warp controls on every screen size; none on the pad */
 #wVal[hidden]{display:none!important}
 #wDn[hidden],#wUp[hidden]{display:none!important}
-#wUp{position:relative}/* f5.8o: the ×N value is its own tappable button (tap = back to ×1) */
+#wUp{position:relative}#wUp.atMax{opacity:.35}/* QA f5.8p: capped, still tappable for the reason toast *//* f5.8o: the ×N value is its own tappable button (tap = back to ×1) */
 body.touch.autoOn #wDn:not([hidden]){display:inline-flex!important;align-items:center;justify-content:center}
 /* f5.8g: phone gallery in 40% — 4 cards per row so a row of pictures is always in view */
 @media (orientation:portrait) and (max-width:600px){#hGal #picker .pkG:not(.pkStrip){grid-template-columns:repeat(4,1fr)!important;gap:6px!important}#hGal #picker .pkG:not(.pkStrip) .pkC .pkT{height:104px!important}#hGal #picker .pkC b{font-size:12px!important}#hGal #picker .pkStrip{grid-auto-columns:86px!important}#hGal #picker .pkStrip .pkC .pkT{height:104px!important}}
