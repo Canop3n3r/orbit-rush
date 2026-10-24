@@ -1,16 +1,13 @@
 // f5.3 exhaust (engines-1 data): one plume per engine at each nozzle, coloured by propellant.
-import { VEHICLES, ROSTER_BLUEH } from '../vehicles/catalog.js?v=f5.8n';
+import * as CAT from '../vehicles/catalog.js?v=f5.8n';
+const { VEHICLES, ROSTER_BLUEH } = CAT;
 import { rosterFor } from './specstack.js?v=f5.8n';
 const ALL = [...VEHICLES, ...ROSTER_BLUEH], ALIAS = { 'titan-ss-v3': 'colossus-v3', 'titan-ss-v4': 'colossus-v4' };
-export const PROPS = ['kerolox', 'methalox', 'hydrolox', 'hypergolic', 'solid'];
-// look per propellant: plume/glow/core/bell colours, sprite HDR colour, opacity k, smoke amount, soot (dark smoke), diamond strength
-export const LOOK = {
-  kerolox:    { plume: 0xff9a3c, glow: 0xff5a10, core: 0xffd890, bell: 0xffb27a, sprite: [6, 3.2, 1.2], k: 1.15, smoke: 1.0, soot: 1, dia: 0.8 },
-  methalox:   { plume: 0x7a5cff, glow: 0x4a2cff, core: 0xb8b0ff, bell: 0x8f7aff, sprite: [2.4, 1.8, 6], k: 1.15, smoke: 0.45, soot: 0, dia: 1.0 },
-  hydrolox:   { plume: 0xd8e8ff, glow: 0xa8c4ff, core: 0xf2f8ff, bell: 0xc4d8ff, sprite: [2.2, 2.6, 4.2], k: 0.32, smoke: 0.2, soot: 0, dia: 1.8 },
-  hypergolic: { plume: 0xffc896, glow: 0xffa868, core: 0xfff0dc, bell: 0xffcfa0, sprite: [4, 3, 2.2], k: 0.7, smoke: 0.35, soot: 0, dia: 0.5 },
-  solid:      { plume: 0xfff2c8, glow: 0xffb44a, core: 0xffffff, bell: 0xffe0a0, sprite: [7, 5.6, 3.6], k: 1.3, smoke: 2.4, soot: 0, dia: 0.3 },
-};
+import { PLUME_TABLE, PROPS, stagePlume } from './plumetable.js?v=f5.8n';
+export { PROPS };
+// look per propellant now lives in fun/plumetable.js (data-driven: colours, smoke, Mach diamonds, vacuum/sea-level rule, thrust scale)
+export const LOOK = PLUME_TABLE;
+const ENG = {}; for (const k in CAT) if (k.startsWith('ENGINES')) Object.assign(ENG, CAT[k]);
 export function vehicleOf(model) { if (!model) return null; const id = ALIAS[model] || model; let v = null; try { v = rosterFor(id); } catch (e) {}
   return (v && v.stages) ? v : ALL.find(x => x.id === id) || (/^colossus-/.test(id) ? ALL.find(x => x.id === 'colossus-v3') : null) || (/^heron-9/.test(id) ? ALL.find(x => x.id === 'heron-9') : null); }
 // propellant guess for a hand-built stage: hydrogen tanks/engines → hydrolox, else kerosene
@@ -24,7 +21,7 @@ export function stageEngines(model, si, parts = [], radial = false, k = 1) {
     if (s && s.engineCount > 0 && k > 1) s = { ...s, engineCount: Math.max(1, Math.round(s.engineCount / k)) }; } // per side booster
   const nParts = parts.filter(p => p.kind === 'engine').reduce((t, p) => t + (p.n || 1), 0) || 1;
   if (!s || !(s.engineCount > 0)) return { n: nParts, prop: guessProp(parts), layout: { type: nParts > 1 ? 'ring' : 'single' } };
-  return { n: Math.min(40, s.engineCount), prop: LOOK[s.propellant] ? s.propellant : 'kerolox', layout: s.nozzleLayout || { type: 'ring' }, estimated: !!s.estimated };
+  const sp = stagePlume(s, ENG); return { n: Math.min(40, s.engineCount), prop: sp.prop, layout: s.nozzleLayout || { type: 'ring' }, estimated: !!s.estimated, vacuumOnly: sp.vacuumOnly, expansion: sp.expansion, tKN: sp.tKN };
 }
 // ring sizes for n engines (outer ring first … centre): heron 9 = 8+1, colossus 33 = 20+10+3, 7 = 6+1
 export function rings(n) { if (n <= 1) return [1]; if (n <= 4) return [n]; if (n <= 9) return [n - 1, 1]; if (n === 33) return [20, 10, 3];

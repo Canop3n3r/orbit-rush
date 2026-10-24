@@ -1,0 +1,19 @@
+// Plume table (rockets-pass-1 unit 3): data-driven look per propellant, vacuum/sea-level rule, thrust scaling.
+import { PLUME_TABLE, PROPS, lookFor, isVacuumEngine, expansionOf, thrustScale, stagePlume } from '../fun/plumetable.js';
+let bad = 0; const ok = (t, m) => { console.log((t ? 'ok   ' : 'FAIL ') + m); if (!t) bad++; };
+const hue = c => { const r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255; return { r, g, b }; };
+ok(PROPS.join() === 'kerolox,methalox,hydrolox,hypergolic,solid', 'one row per roster propellant');
+const kc = hue(PLUME_TABLE.kerolox.plume), mc = hue(PLUME_TABLE.methalox.plume);
+ok(kc.r > kc.b + 100, 'kerolox plume is orange-yellow'); ok(mc.b > mc.r + 40, 'methalox plume is pale blue');
+ok(PLUME_TABLE.hydrolox.k < 0.4 && PLUME_TABLE.hydrolox.k < PLUME_TABLE.kerolox.k / 2, 'hydrolox is nearly transparent');
+ok(PLUME_TABLE.solid.smoke > 2 && PLUME_TABLE.solid.trail === 'solid', 'solids leave a thick smoke trail');
+ok(PLUME_TABLE.hypergolic.k < PLUME_TABLE.kerolox.k / 2, 'hypergolic is faint'); ok(PLUME_TABLE.kerolox.soot === 1 && !PLUME_TABLE.methalox.soot, 'only kerolox sooty');
+ok(PLUME_TABLE.kerolox.dia >= 1 && PLUME_TABLE.solid.dia < 0.5, 'Mach diamonds: kerolox yes, solids barely');
+ok(lookFor('plasma') === PLUME_TABLE.kerolox, 'unknown propellant falls back to kerolox');
+ok(isVacuumEngine({ tSl: 0, tVac: 100 }) && !isVacuumEngine({ tSl: 800, tVac: 900 }), 'tSl = 0 is a vacuum engine');
+ok(expansionOf({ tSl: 0, tVac: 1 }) === 3 && expansionOf({ tSl: 800, tVac: 880 }) < 1.2 && expansionOf(null) === 1, 'expansion ratio');
+ok(thrustScale(100) < thrustScale(1000) && thrustScale(1000) < thrustScale(3000) + 1e-9 && thrustScale(1) >= 0.55 && thrustScale(1e6) <= 1.6, 'thrust scaling grows and is clamped');
+const sp = stagePlume({ engines: { a: 2 }, engineCount: 2, propellant: 'hydrolox' }, { a: { tSl: 0, tVac: 180, ispVac: 450, ispSl: 0 } });
+ok(sp.n === 2 && sp.vacuumOnly && sp.prop === 'hydrolox' && sp.tKN === 180, 'stagePlume summarises a vacuum hydrolox stage');
+ok(stagePlume({ engines: { a: 1 }, engineCount: 1, propellant: 'warp' }, { a: { tSl: 5, tVac: 6 } }).prop === 'kerolox', 'stagePlume unknown propellant -> kerolox');
+process.exit(bad ? 1 : 0);

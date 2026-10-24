@@ -38,6 +38,7 @@ import { createAudio } from './fun/audio.js?v=f5.8n';
 import { createCompact } from './fun/compact.js?v=f5.8n';
 import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.8n';
 import { softPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.8n';
+import { thrustScale } from './fun/plumetable.js?v=f5.8n';
 import * as UN from './fun/units.js?v=f5.8n';
 import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.8n';
 import { createHome } from './fun/home.js?v=f5.8n';
@@ -479,7 +480,7 @@ function makeRocketGroups(design) {
       plume = makePlume(rn, ei.prop); plume.userData.env = rMax / rn; plume.userData.noCore = cen < 0; g.add(plume);
       plume.userData.extra = nz.filter((p, i) => i !== cen).map(p => { const e = makePlume(rn, ei.prop, true); e.position.set(p[0], 0, p[1]); g.add(e); return e; });
     } else { plume = makePlume(Math.max(0.8, nEng > 1 ? rMax * 0.95 : bellW * 1.1), ei.prop); g.add(plume); }
-    plume.userData.prop = ei.prop; plume.userData.nEng = Math.max(1, nz.length);
+    plume.userData.prop = ei.prop; plume.userData.nEng = Math.max(1, nz.length); plume.userData.vac = !!ei.vacuumOnly; plume.userData.ts = thrustScale(ei.tKN || 1000); // unit 3: vacuum-nozzle + thrust-scaled plume (fun/plumetable.js)
     let legs = null;
     if (si === 0) {
       legs = new THREE.Group();
@@ -1477,7 +1478,7 @@ function emit(veh, group, dt, bottom, dir) {
   const h = V.len(veh.r) - R, p = P.pressureRatio(h), thr = veh.throttle;
   // underexpanded jet (fxmap.plumeShape): the plume widens ~sqrt(pe/pa) as the ambient pressure drops
   const ps = plumeShape(p * 101325, thr), pl = plumeLook(p * 101325, thr), ud = plume.userData, w0 = ud.w, fl = plumeFlicker(performance.now() / 1000, group.id || 0); // fx-1: smooth flicker (no per-frame random strobe)
-  let len = pl.len * w0 * fl * Math.sqrt(ud.env || 1); const len0 = len;
+  let len = pl.len * w0 * fl * Math.sqrt(ud.env || 1) * Math.sqrt(ud.ts || 1); const len0 = len;
   if (veh === v && booster && booster.state === 'flying' && performance.now() - WV.pulse < 6000) { const gap = V.len(V.sub(v.r, booster.r)) * 0.55; if (gap < len) len = Math.max(1.5, gap); } // f5.6c (Aaron video): the upper-stage plume never pokes through the booster just after separation
   plume.scale.set(1, 1, 1); const gk = glowScaleK(len, len0); // fx-1: the nozzle glow sprite fades with a clamped flame (no lone flat 2D sprite) // f5.3: the engines' jets merge into one column as long as the whole base would make
   const setL = (m, wk, lk = 1) => { m.scale.set(wk, len * lk, wk); m.position.y = -len * lk / 2; };
@@ -1485,13 +1486,13 @@ function emit(veh, group, dt, bottom, dir) {
   const applyTo = P0 => { const u = P0.userData; if (u.lite) { setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.05 * fl); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk); return; }
     setL(u.glow, pl.glowW * 1.15 * fl * Math.sqrt(env), 0.85); setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.05 * fl);
     u.outer.visible = u.core.visible = !u.noCore;
-    u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW * env, len * 0.45 * Math.sqrt(env), pl.bellW * env); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk * (u.noCore ? 0 : 1)); };
+    u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW * env * (ud.vac ? 1.35 : 1), len * 0.45 * Math.sqrt(env), pl.bellW * env * (ud.vac ? 1.35 : 1)); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk * (u.noCore ? 0 : 1)); };
   applyTo(plume); if (ex) for (const e of ex) applyTo(e);
   const hiF = 1 - 0.92 * Math.min(1, Math.max(0, (h - 25000) / 15000)); // f4: above ~40 km the vacuum plume is just a faint glow
   const kk = LK.k; PM.plume.opacity = Math.min(1, 0.72 * fl * pl.bright * (1 - 0.45 * pl.vac) * hiF * kk); PM.plumeGlow.opacity = Math.min(1, 0.42 * pl.bright * fl * hiF * kk * (1 - 0.9 * pl.vac)); PM.plume.opacity *= 1 - 0.8 * pl.vac; // fx-1: no dark-red/maroon cone in vacuum: a clean core + soft bell PM.plumeCore.opacity = Math.min(1, 0.87 * fl * (0.35 + 0.65 * hiF) * Math.max(0.5, kk));
   PM.plumeBell.opacity = 0.5 * pl.bell * fl * Math.max(0.3, hiF) * Math.max(0.6, kk) * (LK.k < 0.5 ? 1 : 0.6); PM.plumeSprite.opacity = Math.min(1, 0.9 * pl.bright * (0.4 + 0.6 * hiF) * Math.max(0.6, kk));
   const dia = ud.dia; dia.visible = QUALITY[fx.q].diamonds && ps.diamonds > 0.02;
-  if (dia.visible) { PM.diamond.opacity = Math.min(1, ps.diamonds * 0.7 * fl * LK.dia);
+  if (dia.visible) { PM.diamond.opacity = Math.min(1, ps.diamonds * 0.7 * fl * LK.dia * (ud.vac ? 0.35 : 1));
     dia.children.forEach((m, i) => { m.position.y = -(1.1 + i * 1.35) * w0 * (1 + 0.2 * thr); m.scale.set(1 - i * 0.12, 0.6, 1 - i * 0.12); }); }
   // continuous, thick, billowing exhaust column: puffs laid along the path since last frame (no gaps at 500 m/s),
   // warm and lit near the flame, drifting with the wind, thinning out as the air does
