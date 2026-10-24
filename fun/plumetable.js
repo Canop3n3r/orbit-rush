@@ -25,3 +25,12 @@ export function stagePlume(stage, ENG) {
   const vacuumOnly = es.length > 0 && es.every(isVacuumEngine), tKN = es.length ? es.reduce((t, e) => t + e.tVac, 0) / es.length : 0;
   return { n: stage ? stage.engineCount || 0 : 0, prop: PLUME_TABLE[stage && stage.propellant] ? stage.propellant : 'kerolox', vacuumOnly, expansion: es.length ? Math.max(...es.map(expansionOf)) : 1, tKN };
 }
+// The visible bells of a model stage -> plume layout. `list` = [[x, y, z, exitR], ...] (gfx/vehicles/nozzles.js), `k` = the hero's lateral scale.
+// Small bells (verniers, thruster pods: exit radius < 45 % of the biggest) do not get a main plume. Returns null when the stage has no bells.
+export function plumeLayout(list, k = 1) {
+  if (!list || !list.length) return null;
+  const big = Math.max(...list.map(n => n[3])), main = list.filter(n => n[3] >= 0.45 * big), rs = main.map(n => n[3]).sort((a, b) => a - b);
+  const rn = rs[rs.length >> 1] * k, pts = main.map(n => [n[0] * k, n[2] * k]), ext = Math.max(...pts.map(p => Math.hypot(p[0], p[1]))) + rn;
+  const cen = pts.findIndex(p => Math.hypot(p[0], p[1]) < 0.35 * rn);
+  return { n: pts.length, pts, rn, ext, cen, small: list.length - main.length };
+}

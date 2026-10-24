@@ -1,5 +1,5 @@
 // Plume table (rockets-pass-1 unit 3): data-driven look per propellant, vacuum/sea-level rule, thrust scaling.
-import { PLUME_TABLE, PROPS, lookFor, isVacuumEngine, expansionOf, thrustScale, stagePlume } from '../fun/plumetable.js';
+import { plumeLayout, PLUME_TABLE, PROPS, lookFor, isVacuumEngine, expansionOf, thrustScale, stagePlume } from '../fun/plumetable.js';
 let bad = 0; const ok = (t, m) => { console.log((t ? 'ok   ' : 'FAIL ') + m); if (!t) bad++; };
 const hue = c => { const r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255; return { r, g, b }; };
 ok(PROPS.join() === 'kerolox,methalox,hydrolox,hypergolic,solid', 'one row per roster propellant');
@@ -16,4 +16,8 @@ ok(thrustScale(100) < thrustScale(1000) && thrustScale(1000) < thrustScale(3000)
 const sp = stagePlume({ engines: { a: 2 }, engineCount: 2, propellant: 'hydrolox' }, { a: { tSl: 0, tVac: 180, ispVac: 450, ispSl: 0 } });
 ok(sp.n === 2 && sp.vacuumOnly && sp.prop === 'hydrolox' && sp.tKN === 180, 'stagePlume summarises a vacuum hydrolox stage');
 ok(stagePlume({ engines: { a: 1 }, engineCount: 1, propellant: 'warp' }, { a: { tSl: 5, tVac: 6 } }).prop === 'kerolox', 'stagePlume unknown propellant -> kerolox');
+const L9 = plumeLayout([[1.1, 0, 0.5, 0.46], [0, 0, 0, 0.46], [-1.1, 0, -0.5, 0.46], [0, 0, 0.9, 0.1]], 2);
+ok(L9.n === 3 && L9.small === 1 && Math.abs(L9.rn - 0.92) < 1e-9 && L9.cen === 1, 'plumeLayout: vernier dropped, scaled, centre engine found');
+ok(plumeLayout([], 1) === null && plumeLayout(null, 1) === null, 'plumeLayout: no bells -> null');
+ok(plumeLayout([[0, 0, 0, 1]], 1).n === 1 && plumeLayout([[2, 0, 0, 1]], 1).cen === -1, 'plumeLayout: single and off-centre');
 process.exit(bad ? 1 : 0);

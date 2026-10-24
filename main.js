@@ -38,7 +38,8 @@ import { createAudio } from './fun/audio.js?v=f5.8n';
 import { createCompact } from './fun/compact.js?v=f5.8n';
 import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.8n';
 import { softPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.8n';
-import { thrustScale } from './fun/plumetable.js?v=f5.8n';
+import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.8n';
+import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.8n';
 import * as UN from './fun/units.js?v=f5.8n';
 import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.8n';
 import { createHome } from './fun/home.js?v=f5.8n';
@@ -47,7 +48,7 @@ import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.8n';
 import { createFunUI } from './fun/ui.js?v=f5.8n';
 import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload } from './gfx/vehicles/vehicles.js?v=f5.8n';
 import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=art1';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.8n';
+import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.8n';
 import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.8n';
 import { dimsOf } from './vehicles/dims.js?v=f5.8n';
 import { EXTRA_STACKS } from './fun/showroom.js?v=f5.8n';
@@ -985,6 +986,18 @@ function attachHero() { showFrame = null; // re-frame from the new model at once
   hero.scale.set(sy * (dm ? dm.xz : 1), sy, sy * (dm ? dm.xz : 1)); rocketG.add(hero); heroKind = null; bayK = 0; bayTarget = 0; heroSyncPayload(); heroBayApply(); // rockets-pass-1: payload under the shell from t=0
   for (const g of SG) g.traverse(o => { if (o.isMesh && !isPlumeChild(o, g)) o.visible = false; });
   try { alignRadialPlumes(); } catch (e) { console.warn('[Orbit Rush] radial plumes', e); }
+  try { alignCorePlumes(); } catch (e) { console.warn('[Orbit Rush] core plumes', e); }
+}
+// rockets-pass-1 unit 3: once the art model is in, each core stage's plumes follow ITS bells (count, position, size), not a formula
+// (gfx/vehicles/nozzles.js is generated from the models; tools/gen_nozzles.cjs). Stages the model has no bells for keep the data layout.
+function alignCorePlumes() {
+  const NZ = hero && NOZZLES[design.model]; if (!NZ) return; const st = (hero.userData.hi || hero).userData.stages || {}, mg = modelGroups(Object.keys(st)), keys = [...mg.core.flat(), ...mg.top], k = hero.scale.x; let ci = 0;
+  for (const g of SG) { if (g.userData.radial) continue; const key = keys[Math.min(ci++, keys.length - 1)], L = plumeLayout(NZ[key], k), old = g.userData.plume; if (!L || !old) continue;
+    const prop = old.userData.prop, vac = old.userData.vac, ts = old.userData.ts, vis = old.visible; for (const e of [...(old.userData.extra || []), old]) g.remove(e); // (geometries are shared between plumes: not disposed)
+    let plume; if (L.n > 1) { plume = makePlume(L.rn, prop); plume.userData.env = Math.max(1, L.ext / L.rn); plume.userData.noCore = L.cen < 0; g.add(plume);
+      plume.userData.extra = L.pts.filter((p, i) => i !== L.cen).map(p => { const e = makePlume(L.rn, prop, true); e.position.set(p[0], 0, p[1]); g.add(e); return e; }); }
+    else { plume = makePlume(Math.max(0.8, L.rn * 1.1), prop); g.add(plume); }
+    Object.assign(plume.userData, { prop, vac, ts, nEng: L.n }); plume.visible = vis; g.userData.plume = plume; }
 }
 function parallelCore() { const vv = vehicleOf(design.model); return !!(vv && vv.stages && vv.stages.some(x => x.parallel)); }
 function isPlumeChild(o, g) { const pl = g.userData.plume, ex = (pl && pl.userData.extra) || []; for (let p = o; p && p !== g; p = p.parent) if (p === pl || ex.includes(p)) return true; return false; }

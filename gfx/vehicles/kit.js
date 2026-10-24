@@ -53,7 +53,7 @@ export class Kit {
   build(name = '') { const grp = new THREE.Group(); grp.name = name; let tris = 0;
     for (const [k, gs] of this.b) { const g = mergeGeometries(gs);
       if (k === 'steel') { const p = g.attributes.position, t = new Float32Array(p.count * 4); for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), l = Math.hypot(x, z) || 1; t[i * 4] = z / l; t[i * 4 + 2] = -x / l; t[i * 4 + 3] = 1; } g.setAttribute('tangent', new THREE.BufferAttribute(t, 4)); } g.computeBoundingSphere(); const mesh = new THREE.Mesh(g, mat(k)); mesh.name = name + ':' + k; if (k.startsWith('decal')) mesh.renderOrder = 2; grp.add(mesh); tris += g.attributes.position.count / 3; }
-    grp.userData.tris = tris; return grp; }
+    grp.userData.tris = tris; if (this.noz) grp.userData.nozzles = this.noz; return grp; }
 }
 
 // ---- perf helpers (QA perf report rockets-1) ----
