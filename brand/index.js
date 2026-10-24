@@ -1,7 +1,7 @@
 // Brand lookup. Every user-visible vehicle/payload/mission name and the title go through B()/vehicleName()/missionName().
 // Pack selection: build-time window.ORBIT_BRAND (set by a private build's index.html) or ?brand=<id> (loads brand/<id>.js).
 // The public repo ships only brand/default.js; a missing pack falls back to it silently.
-import DEFAULT from './default.js?v=f5.8o';
+import DEFAULT from './default.js?v=f5.8p';
 import { setBrandPack as setNames, displayName } from '../vehicles/brand.js';
 let PACK = DEFAULT;
 const merge = (a, b) => { const o = { ...a }; for (const k in b || {}) o[k] = b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) ? { ...(a[k] || {}), ...b[k] } : b[k]; return o; };
