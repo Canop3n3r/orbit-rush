@@ -478,7 +478,9 @@ export class Flight {
     this.shiftCom(() => { const i = top.parts.indexOf(pl[0]); top.parts = top.parts.filter(q => !pl.includes(q)); top.parts.splice(Math.max(0, i), 0, avi); v._g = null; });
     // f5.4: the payload starts clear of the stage's nose and the springs push it 2 m/s off the top, so it is seen leaving the stage
     const nrm = P.noseOf(v); let above = 6; try { above = Math.max(3, P.stackGeom(v).L - (v.tel && isFinite(v.tel.ycom) ? v.tel.ycom : 0)) + 3; } catch (e) { }
-    const rec = { r: V.addS(v.r, nrm, above), v: V.addS(v.v, nrm, 2.0), t: this.tAbs, m, body: this.body };
+    const pa = this.h && this.h.payloadAt && this.h.payloadAt(); // rockets-pass-1: the model's own payload leaves from where it sits (along the nose + any sideways offset, e.g. a ship's bay)
+    let r0 = V.addS(v.r, nrm, pa && Number.isFinite(pa.along) ? pa.along : above); if (pa && pa.lat) r0 = V.add(r0, pa.lat);
+    const rec = { r: r0, v: V.addS(v.v, nrm, 2.0), t: this.tAbs, m, body: this.body };
     V.addS(v.v, nrm, -2.0 * m / Math.max(0.5, P.massOf(v))).forEach((x, i) => { v.v[i] = x; });
     const o = P.orbitOf({ ...v, r: rec.r, v: rec.v }); rec.ap = o.ap; rec.pe = o.pe;
     this.released = rec; this.flags.released = rec;

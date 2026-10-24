@@ -12,6 +12,9 @@ export { dispose, release, geometryCacheSize };
 import * as PR from './profiles.js?v=art1';
 import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
 export { setLegs, mat };
+import { buildPayload, registerPayload } from './payloads.js?v=art1';
+import { NO_PAYLOAD, OWN_PAYLOAD } from './payload_kinds.js?v=art1';
+export { buildPayload };
 import { CO_CIVSPACE } from './co_civspace.js?v=art1'; // co-civspace-1: NOSA heritage vehicles
 import { CO_SOUTHSTAR_B } from './co_ssb.js?v=art1';
 import { CO_KOMETA } from './co_kometa.js?v=art1';
@@ -141,7 +144,7 @@ function ship(detail, y0, L = 52.1) { const k = new Kit(detail), r = 4.5, nose =
   decal(k, 'ship.side', r, y0 + 20, 6, -PI / 2, 0.9); // leeward steel side
   if (k.hi) { for (const a of [PI * 0.1, -PI * 0.1]) raceway(k, r, y0 + 3, y0 + 2 + cyl, a, 'steel'); for (const y of [y0 + 2.2, y0 + 2 + cyl * 0.42, y0 + 2 + cyl - 0.3]) ring(k, r, y, 0.04, 'grey'); // raceways, aft dome / common dome / forward weld lands
     k.add(new THREE.BoxGeometry(1.6, 1.2, 0.2), 'dark', xf([0, y0 + 2 + cyl - 3, r + 0.05])); } // payload/door hatch outline
-  const g = k.build('upper'); g.userData.top = y0 + 2 + cyl + nose; return g; }
+  const g = k.build('upper'); g.userData.top = y0 + 2 + cyl + nose; g.userData.bay = { y: y0 + 2 + cyl - 7.5, r, h: 7.5, cz: 0 }; return g; } // bay: where the payload rides out of the hull (rockets-pass-1)
 function colossus(o) { const b = colossusBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1); return group('colossus', [b, s], s.userData.top); }
 // ---- ground systems: catch tower with chopsticks + orbital launch mount ----
 function catchTower(o) { const k = new Kit(o.detail), W = 12, H = 146, TX = -24, lv = 9, n = Math.floor(H / lv);
@@ -230,6 +233,23 @@ export const HOUSE_SETS = { originals: K(CO_ORIGINALS), spacey: ['sparrow-1', 'h
   rocketwell: K(CO_ROCKETWELL), skyland: K(CO_SKYLAND), southstar: K(CO_SOUTHSTAR_B, CO_SOUTHSTAR_C, CO_SOUTHSTAR), unilift: K(CO_ULX, CO_VULC),
   cnfoll: K(CO_CNFOLL), expl: K(CO_EXPL), galen: K(CO_GALEN), levant: K(CO_LEVANT) };
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
+// ---- payload under the shell (rockets-pass-1) ----
+// The payload exists from t=0 inside the fairing (hidden by the opaque shell), is exposed when the shell goes, and is the object that is
+// released. Shell models: it sits on the shell base, sized to the shell. Ships have no shell: it rides in a bay (userData.bayExpose(k) slides it out).
+registerPayload('roadster', det => { const g = build('payload-roadster', { detail: det === 'lo' ? 'lo' : det, payload: false }), b = new THREE.Box3().setFromObject(g); return { group: g, h: b.max.y - b.min.y, r: Math.max(b.max.x - b.min.x, b.max.z - b.min.z) / 2 }; });
+export function setPayload(g, id, kind, det = 'hi') {
+  const st = g.userData.stages || (g.userData.stages = {}), old = st.sat; if (old) { dispose(old); delete st.sat; }
+  const bayOld = st.bay; if (bayOld) { g.remove(bayOld); delete st.bay; delete g.userData.bayExpose; }
+  const host = [st.upper, st.orbiter].find(x => x && x.userData.bay), bay = host && host.userData.bay;
+  if (!kind || NO_PAYLOAD.test(id) || /^(payload-|catch-tower)/.test(id) || (!bay && Object.keys(st).some(k => OWN_PAYLOAD.test(k)))) return null;
+  const shell = st.payload || st.fairing; g.updateMatrixWorld(true);
+  if (shell) { const b = new THREE.Box3().setFromObject(shell), sz = b.getSize(new THREE.Vector3()), D = Math.max(sz.x, sz.z);
+    const p = buildPayload(kind, { detail: det, r: D * 0.34, h: sz.y * 0.5 }); p.position.set(0, b.min.y + 0.05 * Math.min(1, sz.y / 4), 0); g.add(p); st.sat = p; return p; }
+  if (!bay) return null; // no shell and no bay (capsule/lander stacks, whose spacecraft is the payload): nothing to add
+  const cz = bay.cz || 0, p = buildPayload(kind, { detail: det, r: 1.7, h: bay.h }), zIn = cz + bay.r * 0.3, zOut = cz + bay.r + p.userData.r + 0.5; p.position.set(0, bay.y - 0.05, zIn); g.add(p); st.sat = p;
+  const piv = new THREE.Group(); piv.name = 'bay'; piv.position.set(1.4, bay.y + bay.h / 2, cz + bay.r + 0.04); const door = new THREE.Mesh(new THREE.BoxGeometry(2.8, bay.h + 1.0, 0.14), mat('steel')); door.position.x = -1.4; piv.add(door); g.add(piv); st.bay = piv;
+  g.userData.bayExpose = k => { const e = Math.max(0, Math.min(1, k)), sm = e * e * (3 - 2 * e); piv.rotation.y = -1.9 * sm; p.position.z = zIn + (zOut - zIn) * Math.max(0, Math.min(1, (e - 0.35) / 0.65)); };
+  g.userData.bayExpose(0); return p; }
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
   if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
   else if (/^heron-9|^kite-1$|^kite-3$|^ballast-1$|^granite-2$|^lifttop-1$|^onestep-m1$|^parabolica-1$|^dark-dart$|^conestogo$|^minotaurus-1$|^minotaurus-4$|^taurox$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
@@ -263,6 +283,7 @@ export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail
   else if (/^heron-9|^steppe-arrow-2$|^steppe-arrow-3$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^vulcanis-2s$|^vulcanis-4l$|^vulcanis-6l$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
+  if (o.payload !== false) setPayload(g, id, o.payload || 'comsat', det);
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)
 // o.phone: the near level uses 'mid' (titan ~11k instead of ~53k tris)

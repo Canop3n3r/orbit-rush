@@ -6,6 +6,7 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VEHICLES, build, setLegs, dispose } from './vehicles.js?v=f5.8n';
+import { payloadKindFor } from './payload_kinds.js?v=art1';
 const q = new URLSearchParams(location.search);
 const r = new THREE.WebGPURenderer({ antialias: true, forceWebGL: q.has('webgl') }); r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.setSize(innerWidth, innerHeight); r.toneMapping = THREE.ACESFilmicToneMapping; document.body.append(r.domElement); await r.init();
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x6f9fd8);
@@ -20,11 +21,15 @@ function show(id, o = {}) {
   // frees geometry (shared ones refcounted) so cycling models doesn't leak
   if (cur) dispose(cur);
   sel.value = id; const lo = o.lo ?? document.getElementById('lo').checked, lg = o.legs ?? +document.getElementById('legs').value;
-  const t0 = performance.now(); cur = build(id, { detail: lo ? 'lo' : 'hi', legs: lg, fins: o.fins }); const ms = performance.now() - t0; scene.add(cur);
+  const t0 = performance.now(); cur = build(id, { detail: lo ? 'lo' : 'hi', legs: lg, fins: o.fins, payload: ((v) => v === 'none' ? false : v)(o.payload || q.get('payload') || payloadKindFor({ model: id, hasSpec: true })) }); const ms = performance.now() - t0; scene.add(cur);
   const h = VEHICLES[id].height, d = o.dist ?? h * 1.75 + 6, yaw = o.yaw ?? 0.7; cam.position.set(Math.cos(yaw) * d, h * (o.camY ?? 0.5), Math.sin(yaw) * d); ctl.target.set(0, h * (o.aim ?? 0.5), 0); ctl.update();
+  if (o.sep) { // post-fairing-separation close-up of the upper stage (rockets-pass-1 contact sheets): hide the shell (or open the ship's bay), aim at the payload
+    const st = cur.userData.stages || {}, shell = ['payload', 'fairing'].map(k => st[k]).filter(Boolean); for (const sh of shell) sh.visible = false; if (cur.userData.bayExpose) cur.userData.bayExpose(1); cur.updateMatrixWorld(true);
+    const bb = new THREE.Box3(); if (shell.length) for (const sh of shell) { sh.visible = true; bb.union(new THREE.Box3().setFromObject(sh)); sh.visible = false; } else if (st.sat) bb.setFromObject(st.sat).expandByScalar(1.5); else { bb.min.set(-1, h * 0.82, -1); bb.max.set(1, h, 1); }
+    const sz = bb.getSize(new THREE.Vector3()), R = Math.max(sz.x, sz.z) / 2, dd = o.dist ?? Math.max(6, sz.y * 0.8 + R * 1.6), yy = bb.min.y + sz.y * (shell.length ? 0.2 : 0.5), cx = shell.length ? 0 : (bb.min.x + bb.max.x) / 2, cz = shell.length ? 0 : (bb.min.z + bb.max.z) / 2, yw = shell.length ? yaw : 1.25; cam.position.set(cx + Math.cos(yw) * dd, yy + dd * 0.18, cz + Math.sin(yw) * dd); ctl.target.set(cx, yy, cz); ctl.update(); cam.near = 0.05; cam.updateProjectionMatrix(); }
   let calls = 0; cur.traverse(m => { if (m.isMesh) calls++; }); document.getElementById('info').textContent = `${Math.round(cur.userData.tris)} tris · ${calls} meshes · ${ms.toFixed(0)} ms`; return { tris: Math.round(cur.userData.tris), meshes: calls, ms }; }
 sel.onchange = () => show(sel.value); document.getElementById('lo').onchange = () => show(sel.value); document.getElementById('legs').oninput = e => { for (const L of cur.userData.legs || []) setLegs(L, +e.target.value); };
-window.__viewer = { show, ids: Object.keys(VEHICLES), cam, ctl, ready: true };
+window.__viewer = { show, ids: Object.keys(VEHICLES), cam, ctl, ready: true, get cur() { return cur; } };
 show(q.get('id') || 'heron-9');
 r.setAnimationLoop(() => { ctl.update(); r.render(scene, cam); });
 </script></body></html>

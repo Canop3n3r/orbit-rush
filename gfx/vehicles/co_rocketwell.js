@@ -55,7 +55,7 @@ function orbiter(d) { const k = new Kit(d), y0 = 7.6, L = 37.2, top = y0 + L, fy
   for (const sx of [-1, 1]) { tube(k, 0.85, 0.85, 4.5, y0 - 0.2, 'paint:0,0', { x: sx * 1.85, z: 2.0, seg: k.hi ? 14 : 6 }); bell(k, 0.4, 1.0, sx * 1.85, y0 - 1.1, 2.0, { head: 0 }); }
   k.add(new THREE.BoxGeometry(5.6, 0.3, 2.2), 'x-tile', xf([0, y0 - 0.3, -1.4])); // body flap
   decal(k, 'orbiter.side', 2.55, y0 + 14, 3, PI / 2, 0.8);
-  k.pop(); return kbuild(k, 'orbiter'); }
+  k.pop(); const og = kbuild(k, 'orbiter'); og.userData.bay = { y: y0 + 15, h: 8, r: 2.5, cz: OZ }; return og; } // bay: dorsal payload bay (rockets-pass-1)
 export function spaceTruck(o) { const d = o.detail; const g = group('space-truck', [segBooster(d, -1), segBooster(d, 1), et(d), orbiter(d)], ETT + 1.5);
   if (o.plume) { const p = plume(5, [[-6.6, 0], [6.6, 0]], 2.4, 70 * o.plume); g.add(p); const q = plume(3, [[0, OZ + 1.3], [-1.35, OZ - 0.6], [1.35, OZ - 0.6]], 1.1, 30 * o.plume); q.position.y = 4.5; g.add(q); } return g; }
 // ---- Super Lift System: 8.4 m foam core (4 hydrogen engines in a square), two 5-segment boosters ----

@@ -44,7 +44,8 @@ import { createHome } from './fun/home.js?v=f5.8n';
 import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.8n';
 import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.8n';
 import { createFunUI } from './fun/ui.js?v=f5.8n';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.8n';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload } from './gfx/vehicles/vehicles.js?v=f5.8n';
+import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=art1';
 import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.8n';
 import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.8n';
 import { dimsOf } from './vehicles/dims.js?v=f5.8n';
@@ -858,6 +859,7 @@ function spawnFairHalves() {
 }
 const _fhq = new THREE.Quaternion(), _fhx = new THREE.Vector3(1, 0, 0), _fhz = new THREE.Vector3();
 function fairTick(dt, O) {
+  bayTick(dt);
   for (let k = fairHalves.length - 1; k >= 0; k--) { const f = fairHalves[k]; f.t += dt; const ps = halfPose(f.t, f.g.userData.side);
     if (ps.gone || state !== 'flight') { scene.remove(f.g); f.g.traverse(o => o.geometry && o.geometry.dispose()); f.mat.dispose(); fairHalves.splice(k, 1); continue; }
     const gr = V.scale(V.norm(f.r), -((P.BODIES[F.body] && P.BODIES[F.body].mu) || P.MU_E) / Math.max(1, V.dot(f.r, f.r))); f.v = V.addS(f.v, gr, dt); f.r = V.addS(f.r, f.v, dt); // ballistic shells (no thrust): the rocket pulls away
@@ -890,6 +892,7 @@ const hooks = {
   boosterLanded: b => { b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
   fail: () => { explode(v.r, v.v, true, true); rocketG.visible = false; slowMo = 2.5; },
   release: rec => onRelease(rec), // f5.2.3 payload lifecycle
+  payloadAt: () => heroPayloadAt(), // rockets-pass-1: the model's own payload is the one that leaves, from where it sits
   deorbited: () => { explode(v.r, v.v, false, true); rocketG.visible = false; },
   soi: (from, to) => { if (!PROG.visited.includes(to)) { PROG.visited.push(to); PR.save(localStorage, PROG); fun.reveal(to); } else fun.call('🪐', 'Entering ' + P.BODIES[to].name + ' space', '#9cc3ff'); },
   chute: st => { if (st === 'failed') for (let k = 0; k < 30; k++) smoke.spawn(V.sub(v.r, V.scale(P.noseOf(v), -stackL() * 0.5)), jit(v.v, 12), 2, 1, 4, 0xff7a3c, null, 0.6); },
@@ -978,7 +981,7 @@ function attachHero() { showFrame = null; // re-frame from the new model at once
   try { hero = HERO_READY.get(wk) || heroLOD(design.model, { phone: TOUCH }); HERO_READY.delete(wk); if (HERO_WARM.has(wk)) { takeWarm(design.model, { phone: TOUCH }); HERO_WARM.delete(wk); } } catch (e) { console.warn('[Orbit Rush] hero model', e); hero = null; return; }
   let L = 0; try { L = P.stackGeom(v).L; } catch (e) {} if (!(L > 0)) for (const g of SG) L += g.userData.h; const hH = new THREE.Box3().setFromObject(hero.userData.hi || hero).getSize(new THREE.Vector3()).y || L;
   const dm = dimsOf(design.model), sy = L / hH; // sizes-1: the physics stack is already the real height (parts.js fitDims); xz fixes the model's body width
-  hero.scale.set(sy * (dm ? dm.xz : 1), sy, sy * (dm ? dm.xz : 1)); rocketG.add(hero);
+  hero.scale.set(sy * (dm ? dm.xz : 1), sy, sy * (dm ? dm.xz : 1)); rocketG.add(hero); heroKind = null; bayK = 0; bayTarget = 0; heroSyncPayload(); heroBayApply(); // rockets-pass-1: payload under the shell from t=0
   for (const g of SG) g.traverse(o => { if (o.isMesh && !isPlumeChild(o, g)) o.visible = false; });
   try { alignRadialPlumes(); } catch (e) { console.warn('[Orbit Rush] radial plumes', e); }
 }
@@ -991,7 +994,27 @@ function heroPiece(i) { // a copy of the dropped hero stage rides on the detache
   for (const k of keys) if (st[k]) { const c = st[k].clone(); grp.add(c); }
   if (!grp.children.length) return null; grp.scale.copy(hero.scale); grp.position.y = -y0; return grp;
 }
-function heroFairing(on) { if (!hero) return; for (const lv of hero.levels || [{ object: hero }]) { const st = (lv.object.userData && lv.object.userData.stages) || {}; if (st.payload && !/titan/.test(design.model)) st.payload.visible = on; } } // the hero 'payload' group is the fairing shell
+function heroFairing(on) { if (!hero) return; heroBay(!on); heroSyncPayload(); for (const lv of hero.levels || [{ object: hero }]) { const st = (lv.object.userData && lv.object.userData.stages) || {}; if (st.payload && !/ti\x74an/.test(design.model)) st.payload.visible = on; } }
+// rockets-pass-1: the payload is a real mesh on the model from t=0 (under the shell, or in a ship's bay) and the one RELEASE sends away
+const heroLevels = () => hero ? (hero.levels || [{ object: hero }]).map(l => l.object) : [];
+let heroKind = null, bayK = 0, bayTarget = 0; // heroKind: the payload look built into the hero; bayK: ship bay opening 0..1
+function payloadKind() { try { return payloadKindFor({ missionId: opSess && opSess.m && opSess.m.id, partIds: (design.parts || []).map(p => p.id), hasSpec: !!design.spec, model: design.model || design.name, constellation: isConstellation() }); } catch (e) { return 'comsat'; } }
+function heroSyncPayload() { // the mission (and so the payload look) may only be known after the hero was built: rebuild it while the shell still hides it
+  if (!hero) return; const k = payloadKind(); if (k === heroKind) return; heroKind = k;
+  for (const o of heroLevels()) { try { heroSetPayload(o, o.userData.id || design.model, k, o.userData.detail || 'hi'); } catch (e) { console.warn('[Orbit Rush] hero payload', e); } } }
+function heroBay(open) { bayTarget = open ? 1 : 0; if (!open) bayK = 0; heroBayApply(); }
+function heroBayApply() { for (const o of heroLevels()) if (o.userData.bayExpose) o.userData.bayExpose(bayK); }
+function bayTick(dt) { if (bayK === bayTarget) return; bayK += Math.sign(bayTarget - bayK) * Math.min(Math.abs(bayTarget - bayK), dt / 2.5); heroBayApply(); }
+function heroTakePayload() { // detach the model's own payload mesh: the SAME object flies on as the released payload (no new mesh appears)
+  if (!hero) return null; let src = null; rocketG.updateMatrixWorld(true);
+  for (const o of heroLevels()) { const s = (o.userData.stages || {}).sat; if (!s) continue; if (!src) src = s; else s.visible = false; } // lower LODs just hide theirs
+  if (!src || !src.parent) return null;
+  const ws = src.getWorldScale(new THREE.Vector3()), wq = src.getWorldQuaternion(new THREE.Quaternion()), outer = new THREE.Group(); outer.name = 'released-payload';
+  src.parent.remove(src); src.visible = true; src.position.set(0, -(src.userData.cy || 0) * ws.y, 0); src.quaternion.identity(); src.scale.copy(ws); outer.add(src); outer.quaternion.copy(wq); return { outer, src, q0: wq }; }
+function heroPayloadAt() { // where the model's payload sits: metres along the nose axis from the stack's centre of mass, and its sideways offset in the inertial frame
+  if (!hero) return null; const o = heroLevels()[0], s = o && (o.userData.stages || {}).sat; if (!s || !s.parent || !v.tel || !isFinite(v.tel.ycom)) return null;
+  const cy = (s.userData.cy || 0) * s.scale.y, y = hero.position.y + hero.scale.y * (s.position.y + cy), lat = new THREE.Vector3(hero.scale.x * s.position.x, 0, hero.scale.z * s.position.z).applyQuaternion(rocketG.quaternion);
+  return { along: y - v.tel.ycom, lat: [lat.x, lat.y, lat.z] }; } // the hero 'payload' group is the fairing shell
 // f5.1h staging audit: which model groups leave with each physics stage (was hard-coded booster/upper)
 function heroPlan(st) { return dropPlan(Object.keys(st), v.stages).plan; }
 function heroFairing2(on) { if (!hero) return; for (const lv of hero.levels || [{ object: hero }]) { const st = (lv.object.userData && lv.object.userData.stages) || {}; if (st.fairing) st.fairing.visible = on; } } // f5.1h: Originals art names its shell 'fairing'
@@ -1032,9 +1055,9 @@ function payloadName() { const W0 = WORLD.load(localStorage), c = isConstellatio
 function onRelease(rec) {
   const o = WORLD.add(localStorage, { ...rec, name: payloadName(), group: isConstellation() ? 'constellation' : 'other', model: design.model || null, mission: director ? director.id : null });
   rec.saved = o; if (o) fun.call('🛰', `${o.name} deployed · ${WORLD.count(WORLD.load(localStorage))} in orbit`, '#7dffb0');
-  if (satVis) freeSat(); const g = new THREE.Group(), gold = new THREE.MeshStandardMaterial({ color: 0xd8b04a, metalness: 0.6, roughness: 0.35 }), pv = new THREE.MeshStandardMaterial({ color: 0x1d3f8f, metalness: 0.3, roughness: 0.4, side: THREE.DoubleSide });
-  g.add(new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.2, 1.4), gold)); for (const sx of [-1, 1]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(5, 1.4), pv); w.position.x = sx * 3.3; w.userData.unfold = sx; g.add(w); }
-  scene.add(g); satVis = { g, rec, t: 0 }; updateEndFlightBtn(); }
+  if (satVis) freeSat(); heroSyncPayload(); const tk = heroTakePayload(); let g, sat, q0 = null;
+  if (tk) { g = tk.outer; sat = tk.src; q0 = tk.q0; } else { sat = buildPayload(payloadKind() || 'comsat', { detail: 'hi', r: 1.0, h: 3.0 }); g = new THREE.Group(); sat.position.y = -sat.userData.cy * sat.scale.y; g.add(sat); } // no hero model (custom design): the same payload builder
+  scene.add(g); satVis = { g, sat, rec, t: 0, q0 }; updateEndFlightBtn(); }
 // f5.4k: after RELEASE the chase camera frames the sat and the stage together (aim at their midpoint, pull back to fit both)
 // for as long as they are close enough to read as a separation (< 600 m), then eases back to the stage
 let relMix = 0; const relMid = new THREE.Vector3();
@@ -1050,9 +1073,11 @@ function relFrame() { if (!satVis) return null; const W = innerWidth, H = innerH
   const sat = pj(satVis.g.position), stage = pj(new THREE.Vector3(0, 0, 0)), pad = 24;
   const under = !!br && [sat, stage].some(p => p.x > br.left - pad && p.x < br.right + pad && p.y > br.top - pad && p.y < br.bottom + pad);
   return { sat, stage, under, sep: +satVis.g.position.length().toFixed(1), dist: +camDist.toFixed(1), btn: br && { l: Math.round(br.left), t: Math.round(br.top), r: Math.round(br.right), b: Math.round(br.bottom) } }; }
-function freeSat() { if (!satVis) return; scene.remove(satVis.g); satVis.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); satVis = null; }
-function updateSat(O, pdt) { if (!satVis) return; const s = WORLD.stateAt(satVis.rec, F.tAbs); setRel(satVis.g, s.r, O); dirQ(satVis.g, V.norm(s.r)); satVis.t += pdt;
-  const k = Math.min(1, satVis.t / 4); for (const c of satVis.g.children) if (c.userData.unfold) c.scale.x = Math.max(0.05, k); } // panels unfold
+function freeSat() { if (!satVis) return; scene.remove(satVis.g); satVis.g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); satVis = null; } // payload / kit materials are shared and cached: never disposed here
+const _satQ = new THREE.Quaternion();
+function updateSat(O, pdt) { if (!satVis) return; const s = WORLD.stateAt(satVis.rec, F.tAbs); setRel(satVis.g, s.r, O); satVis.t += pdt;
+  if (satVis.q0) { const k = Math.min(1, satVis.t / 10), e = k * k * (3 - 2 * k), n = V.norm(s.r); _satQ.setFromUnitVectors(Y_AXIS, dv3.set(n[0], n[1], n[2])); satVis.g.quaternion.copy(satVis.q0).slerp(_satQ, e); } else dirQ(satVis.g, V.norm(s.r)); // keeps the stage's attitude at release, then eases to nadir
+  const d = satVis.sat && satVis.sat.userData.deploy; if (d) d.call(satVis.sat.userData, (satVis.t - 1.2) / 4); } // arrays unfold after the springs have pushed it clear
 function updateEndFlightBtn() { let b = $('relBtn'); if (!b) { b = document.createElement('button'); b.id = 'relBtn'; document.body.appendChild(b);
     b.onclick = e => { e.currentTarget.blur(); if (F.released) { if (!F.ended) showEnd(); } else F.releasePayload(); updateEndFlightBtn(); }; }
   const on = state === 'flight' && !F.ended && !F.flags.dead && (F.canRelease() || !!F.released);
@@ -2615,7 +2640,7 @@ function plumeAudit() {
   for (const p of smoke.d) { if (p.life <= 0) continue; const d = [p.x - base[0], p.y - base[1], p.z - base[2]], along = V.dot(d, vh); if (along > 60 || along < -400) continue; const lat = V.len(V.addS(d, vh, -along)); if (p.max - p.life > 2.5) continue; n++; s2 += lat * lat; mx = Math.max(mx, lat); }
   out.smoke = { samp: smoke.d.filter(p => { if (p.life <= 0 || p.max - p.life > 2.5) return false; const al = V.dot([p.x - base[0], p.y - base[1], p.z - base[2]], vh); return al < 60 && al > -400; }).slice(0, 10).map(p => { const d = [p.x - base[0], p.y - base[1], p.z - base[2]], al = V.dot(d, vh); return [+(p.max - p.life).toFixed(1), Math.round(al), Math.round(V.len(V.addS(d, vh, -al)))]; }), n, rms: n ? +Math.sqrt(s2 / n).toFixed(1) : 0, max: +mx.toFixed(1) }; return out;
 }
-window.__game = { get fairHalves() { return fairHalves; }, flight: () => F, mem: () => { const m = renderer.info.memory || {}; let meshes = 0, geo = new Set(); scene.traverse(o => { if (o.isMesh) { meshes++; geo.add(o.geometry); } }); return { geometries: m.geometries, textures: m.textures, programs: renderer.info.programs ? renderer.info.programs.length : null, meshes, sceneGeo: geo.size, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }; }, stageDbg: c => { if (!hero) return { model: design.model || null, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0) }; heroStage(c); const lv = (hero.levels || [{ object: hero }])[0].object, st = (lv.userData && lv.userData.stages) || {}; const r = { model: design.model, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0), hidden: Object.keys(st).filter(k => !st[k].visible), shown: Object.keys(st).filter(k => st[k].visible) }; heroStage(v.cur); return r; }, opDbg: () => ({ on: !!opSess, id: opSess && opSess.m.id, done: opSess && opSess.done, failed: opSess && opSess.failed, task: opSess && opSess.task && opSess.task.kind, lastOp, ended: F.ended, state }), get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
+window.__game = { get fairHalves() { return fairHalves; }, get satVis() { return satVis; }, get hero() { return hero; }, flight: () => F, mem: () => { const m = renderer.info.memory || {}; let meshes = 0, geo = new Set(); scene.traverse(o => { if (o.isMesh) { meshes++; geo.add(o.geometry); } }); return { geometries: m.geometries, textures: m.textures, programs: renderer.info.programs ? renderer.info.programs.length : null, meshes, sceneGeo: geo.size, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }; }, stageDbg: c => { if (!hero) return { model: design.model || null, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0) }; heroStage(c); const lv = (hero.levels || [{ object: hero }])[0].object, st = (lv.userData && lv.userData.stages) || {}; const r = { model: design.model, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0), hidden: Object.keys(st).filter(k => !st[k].visible), shown: Object.keys(st).filter(k => st[k].visible) }; heroStage(v.cur); return r; }, opDbg: () => ({ on: !!opSess, id: opSess && opSess.m.id, done: opSess && opSess.done, failed: opSess && opSess.failed, task: opSess && opSess.task && opSess.task.kind, lastOp, ended: F.ended, state }), get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
     const c0 = b.mesh.getWorldPosition(new THREE.Vector3()), p0 = c0.clone().project(cam), p1 = c0.clone().add(ny.clone().multiplyScalar(10)).project(cam), up = V.norm(b.r);
     const cu = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion), crt = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
     return { id: b.id || 'A', replay: !!(i === 0 && split.replay), state: b.state, phase: b.phase, meshVsDir: +(ny.x * b.dir[0] + ny.y * b.dir[1] + ny.z * b.dir[2]).toFixed(3), dirUp: +V.dot(b.dir, up).toFixed(3), noseScreenUp: +(p1.y - p0.y).toFixed(4), onScreen: Math.abs(p0.x) < 1 && Math.abs(p0.y) < 1 && p0.z < 1, camUpRadial: +(cu.x * up[0] + cu.y * up[1] + cu.z * up[2]).toFixed(3), roll: +(crt.x * up[0] + crt.y * up[1] + crt.z * up[2]).toFixed(3), R2: S.dbg.R2 }; }), dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds, lod: earthLOD.group }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
