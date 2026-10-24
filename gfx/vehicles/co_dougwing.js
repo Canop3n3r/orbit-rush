@@ -1,11 +1,11 @@
 // co-dougwing-1: Doug-Wing Aerospace (parody) — Deltoid II: 2.44 m teal first stage (main engine + 2 verniers), ring of slim white
 // solid motors (9 on the 7925-type, 3 on the 7320-type), 2.44 m second stage, 2.9 m fairing (3.0 m-class bulbous on 79xx).
 // rocketdb deltoid-2 (GCAT) + design.md; dims art-fitted. No logos/names.
-import { stage, fairing, PI, livery, ringPos, Kit, tube, lathe, PR, kb, isHi, ring } from './co_gen.js?v=f5.8r';
+import { stage, fairing, PI, livery, ringPos, Kit, tube, lathe, PR, kb, isHi, ring } from './co_gen.js?v=f5.8s';
 import * as THREE from 'three/webgpu';
-import { xf } from './kit.js?v=f5.8r';
-import { regNozzle } from './parts.js?v=f5.8r';
-import { group, plume } from './co_civspace.js?v=f5.8r';
+import { xf } from './kit.js?v=f5.8s';
+import { regNozzle } from './parts.js?v=f5.8s';
+import { group, plume } from './co_civspace.js?v=f5.8s';
 // a set of slim solids as ONE separable stage (the real vehicle drops them in groups: 6 ground-lit, then 3 air-lit)
 function solids(d, name, pos) { const k = new Kit(d), seg = isHi(k) ? 16 : k.mid ? 10 : 6, L = 13.0, nL = 1.6;
   for (const [x, z] of pos) { k.add(new THREE.LatheGeometry([[0.2, 0], [0.32, -0.15], [0.36, -0.6]].map(([r, y]) => new THREE.Vector2(r, y + 0.6)), seg), 'bell', xf([x, 0.4, z])); regNozzle(k, x, 0.4, z, 0.36);

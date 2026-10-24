@@ -4,14 +4,14 @@
 // drag 0.5 rho V^2 Cd(M) A, body+fin normal force at the centre of pressure, RCS. Torques: aero (CoP vs CoM)
 // plus aerodynamic damping, engine gimbal, reaction wheels, RCS. Integrated with fixed-step RK4.
 // Each step leaves v.tel (telemetry) for the HUD, the lessons and the effects system.
-import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=f5.8r';
-import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=f5.8r';
-import { atmosphere } from './atmosphere.js?v=f5.8r';
-import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=f5.8r';
-import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=f5.8r';
-import { stackGeom, massProps } from './vehicle.js?v=f5.8r';
-import { propagate } from './kepler.js?v=f5.8r';
-import { BODIES, bodyAtm } from './solar.js?v=f5.8r';
+import { R_E, MU_E, OMEGA_E, G0, P0 } from './constants.js?v=f5.8s';
+import { add, sub, scale, dot, cross, len, norm, qmul, qnorm, qrot, qinv, rotZ, qAxisAngle, clamp } from './vec.js?v=f5.8s';
+import { atmosphere } from './atmosphere.js?v=f5.8s';
+import { cd0, normalModel, stagnationTemp, heatFlux, bluntCd, knudsen, rarefaction, flowRegime } from './aero.js?v=f5.8s';
+import { stepThermal, leadingRadius, initThermal } from './thermal.js?v=f5.8s';
+import { stackGeom, massProps } from './vehicle.js?v=f5.8s';
+import { propagate } from './kepler.js?v=f5.8s';
+import { BODIES, bodyAtm } from './solar.js?v=f5.8s';
 // The craft's SOI body (patched conics): v.body is a body id (default Earth). Gravity, radius, spin and
 // atmosphere all come from it; for Earth these are exactly the constants used before the solar system.
 export const bodyOf = v => BODIES[(v && v.body) || 'earth'];

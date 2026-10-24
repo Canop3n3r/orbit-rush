@@ -2,10 +2,10 @@
 // and Deltoid IV (Medium, Medium+ (4,2)/(5,2)/(5,4), Heavy). Original geometry, no logos/names.
 // Dimensions: rocketdb atlantean-v / deltoid-4 (GCAT) + design.md; fairing lengths art-fitted to published totals.
 import * as THREE from 'three/webgpu';
-import { Kit, xf } from './kit.js?v=f5.8r';
-import * as PR from './profiles.js?v=f5.8r';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.8r';
-import { group, lmat, plume } from './co_civspace.js?v=f5.8r';
+import { Kit, xf } from './kit.js?v=f5.8s';
+import * as PR from './profiles.js?v=f5.8s';
+import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.8s';
+import { group, lmat, plume } from './co_civspace.js?v=f5.8s';
 const PI = Math.PI;
 function swap(g, map) { for (const m of g.children) { const key = m.name.split(':').slice(1).join(':'); if (map[key]) m.material = lmat(map[key]); else if (key.startsWith('x-')) m.material = lmat(key); } return g; }
 // solid booster: radius r, length L; group origin at its axis base (stage group so it detaches)

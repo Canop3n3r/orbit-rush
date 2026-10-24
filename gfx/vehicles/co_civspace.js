@@ -1,9 +1,9 @@
 // co-civspace-1: civil space agency heritage vehicles, rocketdb tier S. Original geometry, no logos/names.
 // Dimensions: game-studio rocketdb (GCAT stage table) + design.md; the stack breakdown is art-fitted to the 110.6 m total.
 import * as THREE from 'three/webgpu';
-import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.8r';
-import * as PR from './profiles.js?v=f5.8r';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.8r';
+import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.8s';
+import * as PR from './profiles.js?v=f5.8s';
+import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.8s';
 const PI = Math.PI;
 function group(name, kids, h) { const g = new THREE.Group(); g.name = name; for (const c of kids) g.add(c); g.userData.height = h; g.userData.stages = Object.fromEntries(kids.map(c => [c.name, c])); g.userData.legs = []; return g; }
 const LOCAL = new Map();

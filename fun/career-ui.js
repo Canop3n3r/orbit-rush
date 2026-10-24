@@ -1,7 +1,7 @@
 // f5 career UI: the progress screen (#careerM: ladder, wallet, unlocks, sandbox toggle) and the career block
 // of the post-flight results card. Logic lives in fun/ladder.js; names come in through `name` (brand-aware).
-import * as UN from './units.js?v=f5.8r';
-import * as L from './ladder.js?v=f5.8r';
+import * as UN from './units.js?v=f5.8s';
+import * as L from './ladder.js?v=f5.8s';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 export function createCareerUI({ store, name, onPlay }) {
   let S = L.load(store);

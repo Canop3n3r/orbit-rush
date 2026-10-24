@@ -1,5 +1,5 @@
 // Krunov, tier B (stage-table generator + hooks): Gulok and Kopyo-M, slim three-stage silo-derived launchers. White and pale grey.
-import { buildB } from './gen_b.js?v=f5.8r';
+import { buildB } from './gen_b.js?v=f5.8s';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'gulok': 'Gulok', 'kopyo-m': 'Kopyo-M'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length
