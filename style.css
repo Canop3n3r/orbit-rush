@@ -1429,3 +1429,7 @@ body:not(.touch) #mMenu #mClose,body:not(.touch) #dMenu #dClose{min-width:40px!i
 /* f5.8m: STAGE goes calm and grey once nothing is left to stage / release (no flash, no orange) */
 body.noStage #mStage,body.noStage #dStage{background:#3a4152!important;border-color:#5a6378!important;color:#9aa5b8!important;opacity:.55!important;filter:grayscale(1)!important;box-shadow:none!important;animation:none!important}
 #end.lean .eStars{display:none}
+
+/* f5.8n: end-card ⋯ expanded row never wraps a label: buttons wrap as whole items instead */
+#end .endMain button{white-space:nowrap}
+#end.lean.more .endMain{flex-wrap:wrap!important;align-items:stretch}#end.lean.more .endMain button{flex:1 1 auto!important}#end.lean.more #endMoreBtn{flex:0 0 48px!important}

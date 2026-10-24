@@ -1,65 +1,65 @@
 import * as THREE from 'three/webgpu';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.8m';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.8n';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.8m';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.8m';
-import * as C from './physics/patched.js?v=f5.8m';
+import * as P from './physics.js?v=f5.8n';
+import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.8n';
+import * as C from './physics/patched.js?v=f5.8n';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.8m';
-import { createCareerUI } from './fun/career-ui.js?v=f5.8m';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.8m';
-import { createSolarMap } from './solarmap.js?v=f5.8m';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.8m';
-import { FX } from './fx.js?v=f5.8m';
-import { createAcademy } from './academy-ui.js?v=f5.8m';
-import { createMobile, isTouch } from './mobile.js?v=f5.8m';
-import { localize } from './wording.js?v=f5.8m';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.8m';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.8m';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.8n';
+import { createCareerUI } from './fun/career-ui.js?v=f5.8n';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.8n';
+import { createSolarMap } from './solarmap.js?v=f5.8n';
+import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.8n';
+import { FX } from './fx.js?v=f5.8n';
+import { createAcademy } from './academy-ui.js?v=f5.8n';
+import { createMobile, isTouch } from './mobile.js?v=f5.8n';
+import { localize } from './wording.js?v=f5.8n';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.8n';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.8n';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // f5.7q (Aaron): every HUD/pane/card reads the Units setting
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.8m';
-import { halfPose, buildHalves } from './fun/fairing.js?v=f5.8m';
-import { guardToasts } from './fun/toastzone.js?v=f5.8m';
-import * as GX from './gfx/gfx.js?v=f5.8m';
-import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.8m';
-import * as PR from './fun/progress.js?v=f5.8m';
-import * as WORLD from './fun/world.js?v=f5.8m';
-import { stageEngines, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.8m';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.8m';
-import { createAudio } from './fun/audio.js?v=f5.8m';
-import { createCompact } from './fun/compact.js?v=f5.8m';
-import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.8m';
-import { softPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.8m';
-import * as UN from './fun/units.js?v=f5.8m';
-import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.8m';
-import { createHome } from './fun/home.js?v=f5.8m';
-import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.8m';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.8m';
-import { createFunUI } from './fun/ui.js?v=f5.8m';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.8m';
-import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.8m';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.8m';
-import { dimsOf } from './vehicles/dims.js?v=f5.8m';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.8m';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.8m';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.8m';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker, SHORT as SHORT_HOUSE } from './fun/picker.js?v=f5.8m';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.8n';
+import { halfPose, buildHalves } from './fun/fairing.js?v=f5.8n';
+import { guardToasts } from './fun/toastzone.js?v=f5.8n';
+import * as GX from './gfx/gfx.js?v=f5.8n';
+import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.8n';
+import * as PR from './fun/progress.js?v=f5.8n';
+import * as WORLD from './fun/world.js?v=f5.8n';
+import { stageEngines, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.8n';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.8n';
+import { createAudio } from './fun/audio.js?v=f5.8n';
+import { createCompact } from './fun/compact.js?v=f5.8n';
+import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.8n';
+import { softPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.8n';
+import * as UN from './fun/units.js?v=f5.8n';
+import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.8n';
+import { createHome } from './fun/home.js?v=f5.8n';
+import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.8n';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.8n';
+import { createFunUI } from './fun/ui.js?v=f5.8n';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease } from './gfx/vehicles/vehicles.js?v=f5.8n';
+import { dropPlan, pickBase } from './fun/stagemap.js?v=f5.8n';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.8n';
+import { dimsOf } from './vehicles/dims.js?v=f5.8n';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.8n';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.8n';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.8n';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker, SHORT as SHORT_HOUSE } from './fun/picker.js?v=f5.8n';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.8m';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.8m';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.8m';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.8m';
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.8n';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.8n';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.8n';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.8n';
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -304,7 +304,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.8m').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.8n').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -803,7 +803,7 @@ function refreshBuild() {
 let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
 try {
   if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.8m', import.meta.url), { type: 'module' });
+    verdictWorker = new Worker(new URL('./worker.js?v=f5.8n', import.meta.url), { type: 'module' });
     verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
       if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
       if (cb && id === verdictId) cb(a, p); };
@@ -1379,7 +1379,7 @@ function updateChunks(dt, O) {
     c.m.position.set(c.r[0] - O[0], c.r[1] - O[1], c.r[2] - O[2]); c.m.rotation.x += c.w[0] * dt; c.m.rotation.y += c.w[1] * dt; c.m.rotation.z += c.w[2] * dt;
     if (c.smk && Math.random() < 0.5) smoke.spawn(c.r, c.v, 1.5, 1, 5, 0x333333, null, 1); }
 }
-let endMin = false;
+let endMin = false, stageWant = false, stageWantAt = 0;
 function showEnd() {
   if (F.ended) return; const score = F.finish();
   const flags = F.flags, o = F.orbitSnap ? F.orbitSnap.o : P.orbitOf(v), ok = (flags.orbit || !!(F.homeBody && F.homeBody !== 'earth' && (F.goals[F.homeBody] || {}).orbit)) && !flags.dead;
@@ -1735,7 +1735,8 @@ renderer.setAnimationLoop(() => {
   const tilesOn = !!(window.__tiles && window.__tiles.stats && window.__tiles.stats.on); // private Google tiles own the ground while they show (the LOD globe hid them)
   if (tilesOn) earthLOD.group.visible = false; else { if (window.__tiles) earthLOD.group.visible = true; lodFrame(); }
   { const op = state === 'flight' && !!F && !F.ignited; if (op !== document.body.classList.contains('onPad')) document.body.classList.toggle('onPad', op); } // f5.7j: pad state for CSS (ABORT unlit)
-  { const ao = state === 'flight' && !!(F && F.autoOn) && !(director && director.active === false && false); if (ao !== document.body.classList.contains('autoOn')) document.body.classList.toggle('autoOn', ao); } { const io = state === 'flight' && !!(F && F.flags.orbit); if (io !== document.body.classList.contains('inOrbit')) document.body.classList.toggle('inOrbit', io); const rb = $('relBtn'), ns = state === 'flight' && !!F && F.ignited && !F.canStage() && !(rb && !rb.classList.contains('hidden') && !F.released); if (ns !== document.body.classList.contains('noStage')) document.body.classList.toggle('noStage', ns); { const lf = state === 'flight' && !!F && !!F.ignited; if (lf !== document.body.classList.contains('lifted')) document.body.classList.toggle('lifted', lf); } } // f5.6x: STAGE goes dark with nothing left to stage // f5.6u: orbit drops ABORT / throttle on phones // f5: manual controls hide while AUTO flies
+  { const ao = state === 'flight' && !!(F && F.autoOn) && !(director && director.active === false && false); if (ao !== document.body.classList.contains('autoOn')) document.body.classList.toggle('autoOn', ao); } { const io = state === 'flight' && !!(F && F.flags.orbit); if (io !== document.body.classList.contains('inOrbit')) document.body.classList.toggle('inOrbit', io); const rb = $('relBtn'), want = state === 'flight' && !!F && F.ignited && !(F.v && F.v.cur < F.last) && !(rb && !rb.classList.contains('hidden') && !F.released); /* f5.8n: ONE condition: lit while a payload is unreleased or a stage remains (not gated on tower/altitude, which made it flicker at ~141 m); 0.3 s debounce */
+    const nowT = performance.now(); if (want !== stageWant) { stageWant = want; stageWantAt = nowT; } const ns = (want !== document.body.classList.contains('noStage') && (!want || nowT - stageWantAt > 300 || state !== 'flight')) ? want : document.body.classList.contains('noStage'); if (ns !== document.body.classList.contains('noStage')) document.body.classList.toggle('noStage', ns); { const lf = state === 'flight' && !!F && !!F.ignited; if (lf !== document.body.classList.contains('lifted')) document.body.classList.toggle('lifted', lf); } } // f5.6x: STAGE goes dark with nothing left to stage // f5.6u: orbit drops ABORT / throttle on phones // f5: manual controls hide while AUTO flies
   setRel(rocketG, base, O); toQ(v.q, rocketG.quaternion);
   worldVis(base, O, nose);
   if (state === 'flight' && !F.flags.dead && SG[v.cur]) emit(v, SG[v.cur], pdt, base, nose);
@@ -2522,7 +2523,7 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
   if (TOUCH && cols && !b.querySelector('.bTabs')) { const tb = document.createElement('div'); tb.className = 'bTabs'; tb.innerHTML = ['Rocket', 'Parts', 'Stages'].map((l, i) => `<button data-bt="${i}" class="${i ? '' : 'on'}">${l}</button>`).join(''); cols.parentNode.insertBefore(tb, cols); b.dataset.bt = '0';
     tb.onclick = e => { const x = e.target.closest('[data-bt]'); if (!x) return; b.dataset.bt = x.dataset.bt; tb.querySelectorAll('button').forEach(q => q.classList.toggle('on', q === x)); }; } // f5.7l (QA f5.7i P1): phone Build shows one column at a time so it fits the screen
   if (TOUCH && cols) { const lb = $('launchBtn'), hb = $('homeBack'), row = document.createElement('div'); row.className = 'bTopRow'; b.insertBefore(row, b.firstChild); if (hb) row.appendChild(hb); if (lb) { lb.classList.remove('stickyLaunch'); row.appendChild(lb); } const bm = b.querySelector('.bMore'); if (bm) row.appendChild(bm); } /* f5.7q: ⋯ joins the top row (less chrome) */ if (!$('bMini')) { const mi = document.createElement('div'); mi.id = 'bMini'; mi.innerHTML = '<span id="bStat"></span><button id="bExp" aria-label="Edit parts" aria-expanded="false">✎ Edit</button>'; const tr = b.querySelector('.bTopRow'); if (tr) tr.after(mi); else b.prepend(mi); document.body.classList.add('bCol'); const sync = () => { const on = !document.body.classList.contains('bCol'); $('bExp').textContent = on ? '▾ Close' : '✎ Edit'; $('bExp').setAttribute('aria-expanded', on); $('bExp').setAttribute('aria-label', on ? 'Collapse' : 'Edit parts'); }; mi.onclick = () => { document.body.classList.toggle('bCol'); sync(); }; sync(); } /* f5.8g (QA P1): phone Build opens collapsed — icon row + one stat line; tap to edit */ // f5.7k (QA f5.7i P1): phone Fly sits beside Home at the top of the panel, never over the parts list
-  if (!TOUCH && cols) { const lb = $('launchBtn'), row = document.createElement('div'); row.className = 'bTopRow'; const hb = $('homeBack'); b.insertBefore(row, b.querySelector('.bMore') || cols); if (hb) row.appendChild(hb); row.appendChild(b.querySelector('.bMore')); if (lb) row.appendChild(lb); const bm = b.querySelector('.bMore'); if (window.__bAdv && bm) bm.insertBefore(window.__bAdv, bm.querySelector('summary').nextSibling); } /* f5.8b (QA): one control, not ⋯ + ⚙ Advanced: Advanced lives inside ⋯ */
+  if (!TOUCH && cols) { const lb = $('launchBtn'), row = document.createElement('div'); row.className = 'bTopRow'; const hb = $('homeBack'); b.insertBefore(row, b.querySelector('.bMore') || cols); const bm = b.querySelector('.bMore'); if (hb) row.appendChild(hb); if (lb) row.appendChild(lb); row.appendChild(bm); /* f5.8n: ⋯ sits at the card's right end so its panel opens beside the card, never over it */ if (window.__bAdv && bm) bm.insertBefore(window.__bAdv, bm.querySelector('summary').nextSibling); } /* f5.8b (QA): one control, not ⋯ + ⚙ Advanced: Advanced lives inside ⋯ */
 }
 { // f5.8h (QA f5.8g P1): desktop Build opens collapsed too: one card with Home · ⋯ · Fly + the stat line; ✎ opens the full editor
   const b = $('build'); if (!TOUCH && b && !$('bMini')) { const mi = document.createElement('div'); mi.id = 'bMini'; mi.innerHTML = '<span id="bStat"></span><button id="bExp" aria-label="Edit parts" aria-expanded="false">✎ Edit parts</button>'; const tr = b.querySelector('.bTopRow'); if (tr) tr.after(mi); else b.prepend(mi); document.body.classList.add('bCol'); setTimeout(() => { const t2 = b.querySelector('.bTopRow'); if (t2) t2.after(mi); }, 0);
@@ -2532,7 +2533,7 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
     const tabs = document.createElement('div'); tabs.id = 'bAdvTabs'; tabs.innerHTML = '<button data-v="stack">Rocket</button><button data-v="adv">Advanced</button>'; ab.classList.remove('bmOld'); tabs.appendChild(ab); mi.after(tabs);
     const view = v => { document.body.classList.toggle('advView', v === 'adv'); tabs.querySelectorAll('button[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v)); };
     tabs.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) view(b.dataset.v); });
-    const sync = () => view(document.body.classList.contains('buildAdv') ? 'adv' : 'stack'); sync(); ab.addEventListener('click', () => { sync(); const bm = document.querySelector('#build .bMore'); if (bm) bm.open = false; });
+    const sync = () => view(document.body.classList.contains('buildAdv') ? 'adv' : 'stack'); sync(); new MutationObserver(() => { const v = document.body.classList.contains('advView') ? 'adv' : 'stack'; tabs.querySelectorAll('button[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v)); }).observe(document.body, { attributes: true, attributeFilter: ['class'] }); /* f5.8n: the highlighted tab always matches the view */ ab.addEventListener('click', () => { sync(); const bm = document.querySelector('#build .bMore'); if (bm) bm.open = false; });
     { const t = col3.querySelector('.tests'); if (t) { const d = document.createElement('details'); d.className = 'advS'; d.dataset.k = 'tests'; d.innerHTML = '<summary>🧪 Tests</summary>'; t.before(d); d.appendChild(t); } const hf = [...col3.children].find(c => c.tagName === 'DETAILS' && !c.classList.contains('advS')); if (hf) { hf.classList.add('advS'); hf.dataset.k = 'how'; } }
     col3.addEventListener('toggle', e => { const d = e.target; if (d.classList && d.classList.contains('advS')) advOpen.set(d.dataset.k, d.open); }, true);
     const g = $('hGearM'); if (g) { const gb = document.createElement('button'); gb.id = 'hAdv'; const lb = () => { gb.textContent = '🛠 Advanced build: ' + (document.body.classList.contains('buildAdv') ? 'on' : 'off'); }; lb(); gb.onclick = () => { ab.click(); lb(); g.classList.add('hidden'); }; g.insertBefore(gb, g.querySelector('button')); $('hGear') && $('hGear').addEventListener('click', lb); } } }
@@ -2544,14 +2545,14 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
     { const ts = document.createElement('select'); ts.id = 'tplSel'; ts.title = 'Start from a template'; ts.innerHTML = '<option value="">Start from…</option>' + TEMPLATES.map((t, i) => /Moon lander|Mars explorer/.test(t.name) ? '' : `<option value="${i}">${i === 0 ? '★ ' : ''}${t.name}</option>`).join('') + '<option value="new">New (empty)</option>';
       ts.onchange = () => { const v = ts.value; ts.value = ''; if (v === 'new') $('clearBtn').click(); else if (v !== '') setDesign(cloneDesign(TEMPLATES[+v])); }; grp('Start from', [ts]); } // f5.8h (QA P1): one template picker; Moon/Mars templates hidden while missions are paused
     { const sv = bm.querySelector('.saved'); grp('My designs', [$('undoBtn'), $('redoBtn'), $('savedSel'), $('saveBtn'), $('delBtn')]);
-      grp('', [sub('More options', [lab('earthRot'), lab('inclIn'), lab('fxSel'), lab('gfxSel')] /* f5.8i (QA): desktop = phone's 11 controls, no ⚙ Advanced */)]); /* f5.8h: ≤12 controls with everything open; Credits lives in ☰, New in the template picker */ if (sv && !sv.children.length) sv.remove(); } // ≤10 controls when ⋯ opens
+      grp('', [sub('More options', [lab('earthRot'), lab('inclIn')] /* f5.8n (QA f5.8m): Effects + Graphics are settings: they stay in the Home ⚙ sheet */ /* f5.8i (QA): desktop = phone's 11 controls, no ⚙ Advanced */)]); /* f5.8h: ≤12 controls with everything open; Credits lives in ☰, New in the template picker */ if (sv && !sv.children.length) sv.remove(); } // ≤10 controls when ⋯ opens
     [...bm.children].forEach(c => { if (c.tagName !== 'SUMMARY' && c !== pn) { c.classList.add('bmOld'); } }); bm.appendChild(pn);
     const place = () => { /* f5.8k (QA f5.8j P1): ⋯ never covers Fly/Home: on a portrait phone it opens above the Build bar (or under the top row when the sheet is expanded) */
       for (const k of ['top', 'bottom', 'left', 'right']) pn.style.removeProperty(k);
-      if (!TOUCH && innerWidth >= 900 && innerHeight > 500) { const r = bm.querySelector('summary').getBoundingClientRect(); /* f5.8m (QA): desktop ⋯ opens right under its button */ const W = Math.min(460, innerWidth - 24); pn.style.setProperty('left', Math.round(Math.max(8, Math.min(r.left, innerWidth - W - 8))) + 'px', 'important'); pn.style.setProperty('right', 'auto', 'important'); pn.style.setProperty('top', Math.round(r.bottom + 6) + 'px', 'important'); pn.style.setProperty('bottom', 'auto', 'important'); return; }
+      if (!TOUCH && innerWidth >= 900 && innerHeight > 500) { const r = bm.querySelector('summary').getBoundingClientRect(), bd = $('build').getBoundingClientRect(); const W = Math.min(460, innerWidth - 24); /* f5.8n (QA f5.8m): beside the Build card, level with its ⋯ button */ pn.style.setProperty('left', Math.round(Math.max(8, Math.min(bd.right + 8, innerWidth - W - 8))) + 'px', 'important'); pn.style.setProperty('right', 'auto', 'important'); pn.style.setProperty('top', Math.round(Math.max(8, Math.min(r.top, innerHeight - 330))) + 'px', 'important'); pn.style.setProperty('bottom', 'auto', 'important'); return; }
       const tr = document.querySelector('#build .bTopRow'); if (!tr || !(innerHeight > innerWidth && innerWidth < 900)) return; const r = tr.getBoundingClientRect(), bd = $('build').getBoundingClientRect();
       if (r.top > innerHeight * 0.45) pn.style.setProperty('bottom', Math.round(innerHeight - bd.top + 8) + 'px', 'important'); else pn.style.setProperty('top', Math.round(r.bottom + 8) + 'px', 'important'), pn.style.setProperty('bottom', 'auto', 'important'); };
-    bm.addEventListener('toggle', () => { pn.classList.toggle('on', bm.open); if (bm.open) { if (document.body.classList.contains('advView')) { const sb = document.querySelector('#bAdvTabs button[data-v=stack]'); sb && sb.click(); } /* f5.8m: ⋯ now opens under its button, so it takes over from the Advanced view */ document.body.appendChild(pn); place(); } else bm.appendChild(pn); }); document.addEventListener('pointerdown', e => { if (bm.open && !e.target.closest('.bmPanel,.bMore')) bm.open = false; }, true); } } // the panel lives on <body> while open so it sits above the Build columns
+    bm.addEventListener('toggle', () => { pn.classList.toggle('on', bm.open); if (bm.open) { document.body.appendChild(pn); place(); } else bm.appendChild(pn); }); document.addEventListener('pointerdown', e => { if (bm.open && !e.target.closest('.bmPanel,.bMore')) bm.open = false; }, true); } } // the panel lives on <body> while open so it sits above the Build columns
 { // f5.1h: grouped rocket picker: Originals first, then one section per launch house; the builder lives behind Sandbox
   const SBK = 'orbitrush.sandbox', sbOn = () => { try { return localStorage.getItem(SBK) === '1'; } catch (e) { return false; } };
   const pk = document.createElement('div'); pk.id = 'picker'; pk.className = 'gal'; ($('hGal') || document.body).appendChild(pk); // f5.8 (Aaron): the picker IS the home gallery
