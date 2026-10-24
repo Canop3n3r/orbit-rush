@@ -3,7 +3,7 @@
 </head><body><script type="module">
 // rendered model-cycle heap probe: ?mode=old|release  (tests/vehicles_budget.cjs + Playtest QA perf_rockets-2 leak)
 import * as THREE from 'three/webgpu'; if (new URLSearchParams(location.search).has('noown')) globalThis.__noOwnMats = 1;
-import { build, VEHICLES, dispose, release } from './vehicles.js?v=f5.8s';
+import { build, VEHICLES, dispose, release } from './vehicles.js?v=f5.8t';
 const q = new URLSearchParams(location.search), mode = q.get('mode') || 'release';
 const renderer = new THREE.WebGPURenderer({ forceWebGL: !q.has('webgpu') }); renderer.setSize(390, 844); document.body.appendChild(renderer.domElement); await renderer.init();
 const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 390 / 844, 0.1, 1e4); cam.position.set(0, 50, 300); scene.add(new THREE.HemisphereLight(0xffffff, 0x333333, 1), new THREE.DirectionalLight(0xffffff, 2));
