@@ -12,7 +12,8 @@ const U = process.env.U || 'http://localhost:8931/', ids = process.argv.slice(2)
       G.syncStages && G.syncStages(); const st = G.hero && G.hero.userData.stages, sat = st && st.sat; let vis = !!sat; for (let o = sat; o; o = o.parent) if (!o.visible) vis = false;
       return { fairing: !!F.flags.fairing, has: !!sat, vis, uuid: sat && sat.uuid, onHero: (() => { for (let o = sat; o; o = o.parent) if (o === G.hero) return true; return false; })(), rel: F.canRelease && F.canRelease() }; });
     ok(A.fairing, `${id}: real ascent reaches fairing separation`); ok(A.has && A.vis && A.onHero, `${id}: payload mesh is visible on the upper stage after the fairing is gone (has=${A.has} vis=${A.vis})`);
-    const B = await pg.evaluate(async uuid => { const G = window.__game, F = G.F; if (!F.canRelease()) { F.placeInOrbit(170000); G.syncStages(); }
+    await pg.evaluate(() => { const G = window.__game, F = G.F; if (!F.canRelease()) { F.placeInOrbit(170000); G.syncStages(); } }); await pg.waitForFunction(() => window.__game.F.canRelease() && document.getElementById('relBtn'), null, { timeout: 60000 }); await pg.waitForTimeout(800);
+    const B = await pg.evaluate(async () => { const G = window.__game;
       const sat0 = G.hero.userData.stages.sat; const u0 = sat0.uuid; document.getElementById('relBtn').click(); await new Promise(r => setTimeout(r, 600));
       const sv = G.satVis; return { u0, same: !!sv && sv.sat.uuid === u0, left: (() => { for (let o = sv && sv.sat; o; o = o.parent) if (o === G.hero) return false; return !!sv; })(), gone: true }; });
     ok(B.same, `${id}: RELEASE flies off the model's own payload mesh (same object, no pop-in)`); ok(B.left && B.gone, `${id}: the payload left the stage`); ok(!errs.length, `${id}: no page errors ${errs.slice(0, 2).join(' | ')}`); await pg.close(); }
