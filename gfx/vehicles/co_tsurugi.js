@@ -1,7 +1,7 @@
 // co-jaxo-1: JAXO — Tsurugi: 5.2 m core (2 or 3 expander engines), 5.2 m upper, 5.2 m fairing; '-30' no solids / 3 engines,
 // '-22' two solids, '-24' four solids (long fairing). Cream with pale-blue bands. rocketdb tsurugi (GCAT) + design.md. No logos/names.
-import { stage, fairing, srm, PI, livery } from './co_gen.js?v=f5.8t';
-import { group, plume } from './co_civspace.js?v=f5.8t';
+import { stage, fairing, srm, PI, livery } from './co_gen.js?v=f5.8u';
+import { group, plume } from './co_civspace.js?v=f5.8u';
 const R = 2.6;
 function tsurugi(o, cfg) { const d = o.detail, sky = livery(0x7fa8cf), cream = livery(0xe8e2d2), ne = cfg === '30' ? 3 : 2, ns = cfg === '30' ? 0 : +cfg[1];
   const a = stage(d, 's1', { r: R, h: 34.5, y0: 2.8, eng: ne === 3 ? [[3, 1.0, 0.85, 2.6, PI / 2]] : [[2, 0.95, 0.85, 2.6, PI / 2]], key: cream, skirt: R * 1.02, bands: [[33.3, 1.2, sky], [5.5, 0.6, sky]], decalY: 20 });

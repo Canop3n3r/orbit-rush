@@ -2,7 +2,7 @@
 // +X east, +Y up (local vertical), +Z south, origin = the site's main pad at the surface.
 // Earth sites use the game's Earth-fixed frame (gfx/earthmap.js latLonToGame: the heritage pad at +x, east +y).
 // Other bodies use their plain body-fixed frame (+x at lon 0, +z north pole), radius from physics/solar.js BODIES.
-import { latLonToGame, geoToGame } from '../earthmap.js?v=f5.8t';
+import { latLonToGame, geoToGame } from '../earthmap.js?v=f5.8u';
 export const BODY_R = { earth: 6378137, moon: 1737400, mars: 3396190 };
 const D = Math.PI / 180, id3 = v => v;
 const tf = body => body === 'earth' ? geoToGame : id3;

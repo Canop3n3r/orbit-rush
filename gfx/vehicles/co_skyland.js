@@ -1,5 +1,5 @@
 // Skyland Space, tier B (stage-table generator + hooks): Ember Finch-2, 2E and 3. Steel grey lower, white upper.
-import { buildB } from './gen_b.js?v=f5.8t';
+import { buildB } from './gen_b.js?v=f5.8u';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'ember-finch-2': 'Ember Finch-2', 'ember-finch-2e': 'Ember Finch-2E', 'ember-finch-3': 'Ember Finch-3'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length
