@@ -13,6 +13,7 @@ import * as PR from './profiles.js?v=art1';
 import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
 export { setLegs, mat };
 import { buildPayload, registerPayload } from './payloads.js?v=art1';
+import { CRYO } from './cryo.js?v=art1';
 import { OWN_PAYLOAD } from './payload_kinds.js?v=art1';
 export { buildPayload };
 import { CO_CIVSPACE } from './co_civspace.js?v=art1'; // co-civspace-1: NOSA heritage vehicles
@@ -237,6 +238,15 @@ export const HOUSE_SETS = { originals: K(CO_ORIGINALS), spacey: ['sparrow-1', 'h
 // The payload exists from t=0 inside the fairing (hidden by the opaque shell), is exposed when the shell goes, and is the object that is
 // released. Shell models: it sits on the shell base, sized to the shell. Ships have no shell: it rides in a bay (userData.bayExpose(k) slides it out).
 registerPayload('roadster', det => { const g = build('payload-roadster', { detail: det === 'lo' ? 'lo' : det, payload: false }), b = new THREE.Box3().setFromObject(g); return { group: g, h: b.max.y - b.min.y, r: Math.max(b.max.x - b.min.x, b.max.z - b.min.z) / 2 }; });
+// rockets-pass-1 unit 4: frost over the tanks of cryogenic stages (gfx/vehicles/cryo.js, generated from the roster). One transparent overlay per stage, hi only (phone mid stays flat).
+const _fb = new THREE.Box3();
+function frostCryo(g, id, det) { const keys = CRYO[id], st = g.userData.stages; if (!keys || !st || det !== 'hi') return;
+  for (const key of keys) { const sg = st[key]; if (!sg || sg.getObjectByName('frost')) continue; let has = false; sg.traverse(m => { if (m.isMesh && /frost/.test(m.name)) has = true; }); if (has) continue;
+    _fb.makeEmpty(); sg.traverse(m => { if (m.isMesh && !/bell|soot|frost/.test(m.name)) { m.geometry.computeBoundingBox(); _fb.union(m.geometry.boundingBox); } }); if (_fb.isEmpty()) continue;
+    let foam = false; sg.traverse(m => { if (m.isMesh && /salmon|tan\b|foam|orange|x-c[0-9a-f]*:?$/.test(m.name) && /salmon|foam|orange|tan\b/.test(m.name)) foam = true; }); if (foam) continue; // foam-covered tanks do not show frost
+    const rs = []; sg.traverse(m => { if (m.isMesh && !/bell|soot|frost/.test(m.name)) { const p = m.geometry.attributes.position, ym = (_fb.min.y + _fb.max.y) / 2, hw = (_fb.max.y - _fb.min.y) * 0.08; for (let i = 0; i < p.count; i += 3) if (Math.abs(p.getY(i) - ym) < hw) rs.push(Math.hypot(p.getX(i) - (_fb.max.x + _fb.min.x) / 2, p.getZ(i) - (_fb.max.z + _fb.min.z) / 2)); } }); if (rs.length < 8) continue; rs.sort((a, b) => a - b);
+    const h = _fb.max.y - _fb.min.y, r = rs[rs.length >> 1]; // median hull radius around mid-height (fins and struts do not widen the frost) if (!(h > 2 * r) || r < 0.5) continue; // a tall barrel, not a cluster or a cap
+    const y0 = _fb.min.y + h * 0.1, hh = h * 0.8, m = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.006, r * 1.006, hh, det === 'hi' ? 40 : 18, 1, true), mat('frost')); m.name = key + ':frost'; m.position.set((_fb.max.x + _fb.min.x) / 2, y0 + hh / 2, (_fb.max.z + _fb.min.z) / 2); m.renderOrder = 2; sg.add(m); } }
 export function setPayload(g, id, kind, det = 'hi') {
   const st = g.userData.stages || (g.userData.stages = {}), old = st.sat; if (old) { dispose(old); delete st.sat; }
   const bayOld = st.bay; if (bayOld) { g.remove(bayOld); delete st.bay; delete g.userData.bayExpose; }
@@ -283,6 +293,7 @@ export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail
   else if (/^heron-9|^steppe-arrow-2$|^steppe-arrow-3$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^vulcanis-2s$|^vulcanis-4l$|^vulcanis-6l$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
+  frostCryo(g, id, det);
   if (o.payload !== false) setPayload(g, id, o.payload || 'comsat', det);
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)

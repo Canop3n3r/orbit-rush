@@ -32,7 +32,7 @@ const BUD = { ...Object.fromEntries(['dark-dart'].map(id => [id, { hi: [30000, 3
 // rockets-pass-1: the payload mesh every launch vehicle now carries under its fairing (+1..2 meshes, ~350-700 tris) lifts these caps
 for (const [id, d, k, v] of [["sparrow-1", "hi", 1, 17], ["heron-9-crew", "lo", 1, 13], ["jade-lantern-5", "mid", 1, 27], ["rodnik", "lo", 0, 4500], ["rodnik-2", "lo", 0, 4250], ["taiga-a5", "mid", 1, 28], ["atlantean-v-551-l", "lo", 0, 4250], ["atlantean-v-551", "lo", 0, 4250]]) BUD[id][d][k] = v;
 // rockets-pass-1 unit 4: hi-detail soot/weld/RCS detail on the shared stage builder (mid and lo are unchanged)
-for (const [id, d, k, v] of [['jade-lantern-3b', 'hi', 1, 34], ['taiga-a5', 'hi', 1, 34], ['mogutny', 'hi', 0, 34000]]) BUD[id][d][k] = v;
+for (const [id, d, k, v] of [['jade-lantern-3b', 'hi', 1, 34], ['taiga-a5', 'hi', 1, 34], ['mogutny', 'hi', 0, 34000], ['saturnine-v', 'hi', 1, 34], ['new-glendale', 'hi', 1, 34]]) BUD[id][d][k] = v;
 // space-center sites (art-sites-N): gfx/sites/budget.html discovers every site_<id>.js. Phone mid <= 8k tris / 40 meshes per complex.
 // SITES_ONLY=1 runs only this block (skips the vehicle probe page, e.g. while it is broken or too slow on a loaded box).
 async function sitesBudget(ok, errs) {
