@@ -24,7 +24,7 @@ export function mat(key) {
     case 'frost': m = new S({ color: 0xffffff, emissive: 0x14161a, roughness: 0.9, metalness: 0, alphaMap: T.frost(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }); break;
     case 'skirt': m = new S({ map: T.skirt(), roughness: 0.75, metalness: 0.35 }); break;
     case 'shield': m = new S({ map: T.blanket(), roughness: 0.9, metalness: 0.1 }); break;
-    case 'tiles': m = new S({ map: T.hexTiles(), roughness: 0.82, metalness: 0.05 }); break;
+    case 'tiles': m = new S({ map: T.hexTiles(), roughness: 0.62, metalness: 0.12, emissive: 0x181b21 }); break; // faint emissive floor: the black windward half of a ship must still read against space
     case 'dark': m = new S({ color: 0x1e1f22, roughness: 0.6, metalness: 0.4 }); break;
     case 'grey': m = new S({ color: 0x8a8f96, roughness: 0.5, metalness: 0.6 }); break;
     case 'gold': m = new S({ color: 0xc9a043, roughness: 0.35, metalness: 1 }); break;

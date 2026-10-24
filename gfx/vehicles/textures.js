@@ -34,7 +34,7 @@ export function steelSkin(seed = 5) { return once('steel' + seed, () => { const 
 // hexagonal heat-shield tiles (left half of the U range is tiled, right half bare steel shows through: alpha)
 export function hexTiles() { return once('hex', () => { const [c, x] = canvas(512, 512), r = rng(9); x.clearRect(0, 0, 512, 512);
   const s = 9, h = s * Math.sqrt(3);
-  for (let j = -1; j < 512 / h + 1; j++) for (let i = -1; i < 512 / (s * 1.5) + 1; i++) { const cx = i * s * 1.5, cy = j * h + (i % 2 ? h / 2 : 0); const l = 18 + r() * 14;
+  for (let j = -1; j < 512 / h + 1; j++) for (let i = -1; i < 512 / (s * 1.5) + 1; i++) { const cx = i * s * 1.5, cy = j * h + (i % 2 ? h / 2 : 0); const l = 42 + r() * 20;
     x.fillStyle = `rgb(${l},${l},${l + 3})`; x.beginPath(); for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; x.lineTo(cx + Math.cos(a) * (s - 0.8), cy + Math.sin(a) * (s - 0.8)); } x.fill(); }
   return fin(c); }); }
 // grid fin lattice (alpha-tested): square cells at 45°

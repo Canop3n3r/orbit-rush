@@ -92,7 +92,7 @@ const _M = new THREE.Matrix4(), _S = new THREE.Vector3(), _P = new THREE.Vector3
 export function decal(k, slot, r, y, h, ac = 0, arc = 1.1) { if (!k.hi) return; k.add(new THREE.CylinderGeometry(r * 1.004, r * 1.004, h, 24, 1, true, ac - arc / 2 + PI / 2, arc), 'decal:' + slot, xf([0, y + h / 2, 0])); }
 // external raceway / cable tray along a tank
 export function raceway(k, r, y0, y1, a = PI / 2, key = 'paint:0,0') { k.add(new THREE.BoxGeometry(0.14, y1 - y0, 0.32), key, xf([Math.cos(a) * (r + 0.1), (y0 + y1) / 2, Math.sin(a) * (r + 0.1)], [0, -a, 0])); }
-export function ring(k, r, y, t, key = 'dark') { tube(k, r + t, r + t, t * 1.6, y, key); }
+export function ring(k, r, y, t, key = 'dark') { tube(k, r + t, r + t, t * 1.6, y, key, { open: true }); } // a band: open ends (the flat end caps of a closed band stuck out as floating discs wherever the hull narrows, e.g. at a ship's nose base)
 // strut between two points
 export function strut(k, a, b, rad, key) { const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), L = A.distanceTo(B), g = new THREE.CylinderGeometry(rad, rad, L, 6);
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize()); k.add(g, key, new THREE.Matrix4().compose(A.clone().add(B).multiplyScalar(0.5), q, new THREE.Vector3(1, 1, 1))); }

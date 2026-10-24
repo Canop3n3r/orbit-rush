@@ -19,3 +19,8 @@ export function buildHalves(THREE, dims, mat) {
   }
   return out;
 }
+
+// Which shells split off at fairing separation. A hero model owns its shells ('payload' / 'fairing' stage groups); the
+// physics stack's own shell mesh is hidden whenever a hero is attached, so it only counts when there is no hero. Ships and
+// capsule stacks without a shell group therefore split nothing (before this, a ship got two ghost half cones around its nose).
+export function sepShells({ hero, heroShells, physShell }) { return hero ? (heroShells || []) : physShell ? [physShell] : []; }
