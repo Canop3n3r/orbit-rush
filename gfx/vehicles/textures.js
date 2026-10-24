@@ -8,13 +8,17 @@ const once = (k, f) => { if (!cache.has(k)) cache.set(k, f()); return cache.get(
 // white paint over aluminium-lithium: panel seams, weld rings, faint stringers; soot: 0..1 strength of the
 // engine-soot gradient toward v=0 (bottom of the cylinder UV), 'top' adds a light soot band at the top
 export function paint({ soot = 0, sootTop = 0, base = '#eeeeea', rings = 6, seed = 3 } = {}) {
-  return once(`paint${soot}${sootTop}${base}${rings}`, () => {
+  return once(`paint${soot}${sootTop}${base}${rings}u4b`, () => {
     const [c, x] = canvas(256, 512), r = rng(seed);
     x.fillStyle = base; x.fillRect(0, 0, 256, 512);
     for (let i = 0; i < 1200; i++) { x.fillStyle = `rgba(0,0,0,${r() * 0.025})`; x.fillRect(r() * 256, r() * 512, 2 + r() * 6, 1 + r() * 3); }
     x.fillStyle = 'rgba(0,0,0,0.18)'; for (let i = 1; i < rings; i++) x.fillRect(0, (i / rings) * 512, 256, 2);
     x.fillStyle = 'rgba(0,0,0,0.06)'; for (let i = 0; i < 16; i++) x.fillRect(i * 16, 0, 1, 512);
     x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, 8, 256, 1); // raceway shadow line hint
+    { const pr = rng(seed + 90), bh = 512 / rings; // unit 4b: per-panel tone drift, rivet rows on every seam, grime streaks running down from the seams
+      for (let i = 0; i < rings; i++) for (let j = 0; j < 8; j++) { const v = (pr() - 0.5) * 0.09; x.fillStyle = v > 0 ? `rgba(255,255,255,${v})` : `rgba(0,0,0,${-v})`; x.fillRect(j * 32, i * bh, 32, bh); }
+      for (let i = 1; i < rings; i++) { const y = i * bh; for (let X = 3; X < 256; X += 7) { x.fillStyle = 'rgba(0,0,0,0.22)'; x.fillRect(X, y - 4, 2, 2); x.fillRect(X, y + 4, 2, 2); }
+        const gg = x.createLinearGradient(0, y, 0, y + 46); gg.addColorStop(0, 'rgba(70,60,45,0.16)'); gg.addColorStop(1, 'rgba(70,60,45,0)'); x.fillStyle = gg; for (let q = 0; q < 14; q++) x.fillRect(pr() * 256, y, 3 + pr() * 8, 46); } }
     if (soot > 0) { const g = x.createLinearGradient(0, 512, 0, 512 * (1 - 0.85 * soot)); g.addColorStop(0, `rgba(38,35,32,${Math.min(1, 1.0 * soot)})`); g.addColorStop(0.3, `rgba(70,66,62,${0.85 * soot})`); g.addColorStop(0.65, `rgba(105,100,95,${0.5 * soot})`); g.addColorStop(1, 'rgba(60,50,40,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 512);
       for (let i = 0; i < 140; i++) { const X = r() * 256, L = 60 + r() * 330 * soot; const s = x.createLinearGradient(0, 512, 0, 512 - L); s.addColorStop(0, `rgba(20,16,12,${0.45 * soot})`); s.addColorStop(1, 'rgba(20,16,12,0)'); x.fillStyle = s; x.fillRect(X, 512 - L, 2 + r() * 5, L); } }
     if (sootTop > 0) { const g = x.createLinearGradient(0, 0, 0, 90); g.addColorStop(0, `rgba(40,34,28,${0.6 * sootTop})`); g.addColorStop(1, 'rgba(40,34,28,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 90); }
@@ -76,4 +80,13 @@ export function skirt() { return once('skirt', () => { const [c, x] = canvas(256
   for (let i = 0; i < 8; i++) { x.fillStyle = 'rgba(0,0,0,0.5)'; x.fillRect(i * 32, 0, 2, 128); } for (let i = 0; i < 120; i++) { x.fillStyle = `rgba(10,8,6,${r() * 0.4})`; x.fillRect(r() * 256, 60 + r() * 68, 2 + r() * 6, r() * 60); } return fin(c); }); }
 // octaweb heat-shield blanket: quilted dark grey
 export function blanket() { return once('blanket', () => { const [c, x] = canvas(128, 128); x.fillStyle = '#2b2a28'; x.fillRect(0, 0, 128, 128); x.strokeStyle = 'rgba(0,0,0,0.6)'; for (let i = 0; i < 128; i += 12) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 128); x.stroke(); x.beginPath(); x.moveTo(0, i); x.lineTo(128, i); x.stroke(); } x.fillStyle = 'rgba(255,255,255,0.05)'; for (let i = 0; i < 128; i += 12) for (let j = 0; j < 128; j += 12) x.fillRect(i + 3, j + 3, 5, 5); return fin(c, { rep: [3, 3] }); }); }
+// rockets-pass-1 unit 4b: spray-on insulation foam (tint 0 orange, 1 pale tan) and crinkled thermal-blanket foil
+export function foam(tint = 0) { return once('foam' + tint, () => { const [c, x] = canvas(256, 256), r = rng(41 + tint), base = tint ? [214, 176, 128] : [200, 112, 52]; x.fillStyle = `rgb(${base})`; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 1800; i++) { const d = (r() - 0.5) * 60; x.fillStyle = `rgba(${base[0] + d},${base[1] + d * 0.8},${base[2] + d * 0.5},0.55)`; x.fillRect(r() * 256, r() * 256, 1 + r() * 4, 1 + r() * 4); }
+  for (let i = 0; i < 90; i++) { x.fillStyle = `rgba(60,25,8,${0.05 + r() * 0.08})`; x.fillRect(r() * 256, r() * 256, 1 + r() * 2, 6 + r() * 30); }
+  x.fillStyle = 'rgba(40,18,6,0.28)'; x.fillRect(0, 0, 256, 2); x.fillRect(0, 128, 256, 1);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; }); }
+export function foil() { return once('foil', () => { const [c, x] = canvas(128, 128), r = rng(53); x.fillStyle = '#b98a2c'; x.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 260; i++) { const v = r(); x.fillStyle = v > 0.5 ? `rgba(255,224,140,${0.25 * r()})` : `rgba(70,40,5,${0.3 * r()})`; x.beginPath(); const X = r() * 128, Y = r() * 128; x.moveTo(X, Y); x.lineTo(X + 4 + r() * 14, Y + r() * 8 - 4); x.lineTo(X + r() * 10 - 5, Y + 4 + r() * 14); x.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; }); }
 export function clearCache() { cache.clear(); }

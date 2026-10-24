@@ -23,6 +23,8 @@ export function mat(key) {
     case 'steel': m = new P({ map: T.steelSkin(), roughness: 0.36, metalness: 0.72, /* plan #6: less mirror, more sun shading */ anisotropy: 0.65, anisotropyRotation: Math.PI / 2, envMapIntensity: 1.25 }); break;
     case 'frost': m = new S({ color: 0xffffff, emissive: 0x14161a, roughness: 0.9, metalness: 0, alphaMap: T.frost(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }); break;
     case 'soot': m = new S({ color: 0x14120f, roughness: 0.96, metalness: 0, alphaMap: T.soot(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }); break;
+    case 'foam': m = new S({ map: T.foam(+arg || 0), roughness: 0.97, metalness: 0 }); break;
+    case 'foil': m = new S({ map: T.foil(), roughness: 0.3, metalness: 0.85, side: THREE.DoubleSide }); break;
     case 'skirt': m = new S({ map: T.skirt(), roughness: 0.75, metalness: 0.35 }); break;
     case 'shield': m = new S({ map: T.blanket(), roughness: 0.9, metalness: 0.1 }); break;
     case 'tiles': m = new S({ map: T.hexTiles(), roughness: 0.62, metalness: 0.12, emissive: 0x181b21 }); break; // faint emissive floor: the black windward half of a ship must still read against space

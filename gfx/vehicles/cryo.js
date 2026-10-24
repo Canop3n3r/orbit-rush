@@ -28,3 +28,18 @@ export const CRYO = {
   "atlantean-v-551": ["ccb","upper"],
   "deltoid-4-heavy": ["cbc","dcss"]
 };
+// stage groups running hydrogen: insulation foam overlay (unit 4b)
+export const HYDRO = {
+  "saturnine-v": ["stage2","stage3"],
+  "deltoid-3": ["s2"],
+  "arion-5": ["core","upper"],
+  "arion-62": ["core","upper"],
+  "arion-64": ["core","upper"],
+  "new-glendale": ["s2"],
+  "jade-lantern-5": ["upper"],
+  "tsubame": ["s1","s2"],
+  "atlantean-v-401": ["upper"],
+  "atlantean-v-501": ["upper"],
+  "atlantean-v-551": ["upper"],
+  "deltoid-4-heavy": ["cbc","dcss"]
+};

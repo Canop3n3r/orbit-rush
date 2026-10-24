@@ -14,6 +14,7 @@ import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, race
 export { setLegs, mat };
 import { buildPayload, registerPayload } from './payloads.js?v=art1';
 import { CRYO } from './cryo.js?v=art1';
+import { dressStages } from './dress.js?v=art1';
 import { OWN_PAYLOAD } from './payload_kinds.js?v=art1';
 export { buildPayload };
 import { CO_CIVSPACE } from './co_civspace.js?v=art1'; // co-civspace-1: NOSA heritage vehicles
@@ -293,7 +294,7 @@ export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail
   else if (/^heron-9|^steppe-arrow-2$|^steppe-arrow-3$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^vulcanis-2s$|^vulcanis-4l$|^vulcanis-6l$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
-  frostCryo(g, id, det);
+  dressStages(g, id, det); frostCryo(g, id, det);
   if (o.payload !== false) setPayload(g, id, o.payload || 'comsat', det);
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)
