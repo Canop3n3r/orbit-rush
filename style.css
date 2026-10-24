@@ -1393,12 +1393,18 @@ body:not(.touch) > .bmPanel label select,body:not(.touch) > .bmPanel label input
 body:not(.touch) > .bmPanel input[type=checkbox]{width:64px!important;height:40px!important;border-radius:20px!important}body:not(.touch) > .bmPanel input[type=checkbox]::after{width:32px!important;height:32px!important;left:4px!important;top:4px!important}body:not(.touch) > .bmPanel input[type=checkbox]:checked::after{left:28px!important}
 body:not(.touch) > .bmPanel .bmR button,body:not(.touch) > .bmPanel .bmR select{height:40px}
 body:not(.touch) #palette .palH{min-height:40px!important}
-/* Advanced = a right-side panel (≤40% of the width), sections collapsed except Δv + Will it fly */
-body:not(.touch).buildAdv .panel.builder{width:min(600px,calc(100vw - 24px))!important}
-body:not(.touch).buildAdv .bcols{grid-template-columns:230px 1fr!important}
-body:not(.touch).buildAdv:not(.bCol):not(.home):has(#build:not(.hidden)) #bAdvP{display:flex!important;flex-direction:column;gap:8px;position:fixed;z-index:30;right:12px;top:12px;bottom:12px;width:min(40vw,520px);overflow:auto;background:#0b1424f2;border:1px solid #2a3c5c;border-radius:14px;padding:10px 12px;box-shadow:0 8px 28px #000a}
-body:not(.touch) #bAdvP{display:none}body:not(.touch).buildAdv.bCol #bAdvP{display:none!important}
-#bAdvHead{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 15px var(--ui,system-ui);color:#dfe9ff}
+/* f5.8l: Advanced = the builder's right column (one panel ≤45 % of the width, Rocket | Advanced switch) */
+body:not(.touch).buildAdv .panel.builder{width:min(560px,43.5vw)!important}
+body:not(.touch).buildAdv .bcols{grid-template-columns:190px 1fr!important}
+body:not(.touch) #bAdvP{display:none}
+body:not(.touch).buildAdv.advView .bcols>div:nth-child(3){display:flex!important;flex-direction:column;gap:8px;grid-column:2;grid-row:1;overflow:auto;max-height:calc(100vh - 230px)}
+body:not(.touch).buildAdv.advView .bcols>div:nth-child(2){display:none!important}
+#bAdvTabs{display:none}
+body:not(.touch).buildAdv:not(.bCol) #bAdvTabs{display:flex;gap:6px;margin:6px 0 0}
+#bAdvTabs button{flex:1;min-height:40px;border-radius:10px;background:#14203a;border:1px solid #2a3c62;color:#cfe0ff;font:700 13px var(--ui,system-ui);cursor:pointer}
+#bAdvTabs button.on{background:#2d5fd0;border-color:#9cc3ff;color:#fff}
+#bAdvTabs #bAdv{flex:0 0 auto;padding:0 12px;background:#16233a}
+#bAdvHeadX{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 15px var(--ui,system-ui);color:#dfe9ff}
 body:not(.touch) #bAdvHead #bAdv{height:40px;min-height:40px;padding:0 12px;border-radius:10px;background:#16233a;border:1px solid #2c4166;color:#dfe9ff;font:600 13px var(--ui,system-ui);cursor:pointer}
 .advS{border:1px solid #22324f;border-radius:10px;background:#0f1a30}
 .advS>summary{list-style:none;cursor:pointer;min-height:40px;display:flex;align-items:center;padding:0 12px;font:700 13px var(--ui,system-ui);color:#cfe3ff}
@@ -1412,3 +1418,10 @@ body.touch #build .bTabs button{min-height:40px!important}
 /* f5.8k: the in-flow ▾ Close bar costs one row, so the expanded sheet is a little taller */
 @media (orientation:portrait){body.touch:not(.bCol):not(.home) #build.builder{height:59dvh!important;max-height:59dvh!important}}
 @media (orientation:landscape) and (max-height:500px){body.touch:not(.bCol):not(.home) #build.builder{top:8px!important;bottom:8px!important;max-height:calc(100dvh - 16px)!important;height:calc(100dvh - 16px)!important}}
+/* f5.8l (QA f5.8k P3): the inset card keeps nothing clipped: parts that don't fit the small card are collapsed to zero size inside it (not display:none, which reads as "outside the card") */
+#split.pipM:not(.fullB) #spCardB .spBall,#split.pipM:not(.fullB) #spCardB .spR,#split.pipM:not(.fullB) #spCardB .pill,body.touch #split:not(.fullB) #spCardB .pill{display:block!important;position:absolute!important;left:0;top:0;width:0!important;height:0!important;min-width:0!important;padding:0!important;margin:0!important;border:0!important;font-size:0!important;line-height:0!important;overflow:hidden!important;visibility:hidden!important;pointer-events:none}
+#split.pipM:not(.fullB) #spCardB .spR *,#split.pipM:not(.fullB) #spCardB .pill{font-size:0!important}
+
+/* f5.8l: desktop ⋯ ↶ ↷ are ≥40 px */
+body:not(.touch) > .bmPanel #undoBtn,body:not(.touch) > .bmPanel #redoBtn{min-width:40px!important;width:auto!important;height:40px!important;min-height:40px!important}
+body:not(.touch) #mMenu #mClose,body:not(.touch) #dMenu #dClose{min-width:40px!important;min-height:40px!important;width:40px!important;height:40px!important}
