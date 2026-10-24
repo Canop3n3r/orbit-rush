@@ -4,10 +4,11 @@
 import { stage, fairing, PI, livery, ringPos, Kit, tube, lathe, PR, kb, isHi, ring } from './co_gen.js?v=art1';
 import * as THREE from 'three/webgpu';
 import { xf } from './kit.js?v=art1';
+import { regNozzle } from './parts.js?v=art1';
 import { group, plume } from './co_civspace.js?v=art1';
 // a set of slim solids as ONE separable stage (the real vehicle drops them in groups: 6 ground-lit, then 3 air-lit)
 function solids(d, name, pos) { const k = new Kit(d), seg = isHi(k) ? 16 : k.mid ? 10 : 6, L = 13.0, nL = 1.6;
-  for (const [x, z] of pos) { k.add(new THREE.LatheGeometry([[0.2, 0], [0.32, -0.15], [0.36, -0.6]].map(([r, y]) => new THREE.Vector2(r, y + 0.6)), seg), 'bell', xf([x, 0.4, z]));
+  for (const [x, z] of pos) { k.add(new THREE.LatheGeometry([[0.2, 0], [0.32, -0.15], [0.36, -0.6]].map(([r, y]) => new THREE.Vector2(r, y + 0.6)), seg), 'bell', xf([x, 0.4, z])); regNozzle(k, x, 0.4, z, 0.36);
     tube(k, RS, RS, L - nL - 0.6, 1.0, 'paint:0,0', { x, z, seg }); lathe(k, PR.ogive(RS, nL, L - nL + 0.4, isHi(k) ? 8 : 4, 0.08), 'paint:0,0', { seg, m: xf([x, 0, z]) }); }
   return kb(k, name, 13.4); }
 const R = 1.22, RS = 0.505, OFF = R + RS + 0.05;

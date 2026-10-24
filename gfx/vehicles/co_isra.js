@@ -3,10 +3,11 @@
 // two 3.2 m solid boosters, cryogenic upper, 5 m bulbous fairing. rocketdb polar-slinger / monsoon-heavy (GCAT) + design.md. No logos/names.
 import * as THREE from 'three/webgpu';
 import { xf } from './kit.js?v=art1';
+import { regNozzle } from './parts.js?v=art1';
 import { stage, fairing, srm, PI, livery, ringPos, Kit, tube, lathe, PR, kb, isHi } from './co_gen.js?v=art1';
 import { group, plume } from './co_civspace.js?v=art1';
 function solids(d, name, pos, r, L, nL) { const k = new Kit(d), seg = isHi(k) ? 16 : k.mid ? 10 : 6;
-  for (const [x, z] of pos) { k.add(new THREE.LatheGeometry([[0.4, 0], [0.62, -0.3], [0.7, -1.0]].map(([a, y]) => new THREE.Vector2(a * r / 0.5 * 0.5, y + 1.0)), seg), 'bell', xf([x, 0.3, z]));
+  for (const [x, z] of pos) { k.add(new THREE.LatheGeometry([[0.4, 0], [0.62, -0.3], [0.7, -1.0]].map(([a, y]) => new THREE.Vector2(a * r / 0.5 * 0.5, y + 1.0)), seg), 'bell', xf([x, 0.3, z])); regNozzle(k, x, 0.3, z, 0.7 * r);
     tube(k, r, r, L - nL - 1.0, 1.3, 'paint:0,0', { x, z, seg }); lathe(k, PR.ogive(r, nL, L - nL + 0.3, isHi(k) ? 8 : 4, 0.08), 'paint:0,0', { seg, m: xf([x, 0, z]) }); }
   return kb(k, name, L + 0.3); }
 function polarSlinger(o) { const d = o.detail, R = 1.4, grey = livery(0xb9b4aa), off = R + 0.5 + 0.08;

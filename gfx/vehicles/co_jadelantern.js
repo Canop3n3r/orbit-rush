@@ -13,7 +13,7 @@ function lm(key) { if (LM.has(key)) return LM.get(key); const m = new THREE.Mesh
 function kb(k, name) { const g = k.build(name); for (const m of g.children) { const key = m.name.split(':').slice(1).join(':'); if (key.startsWith('x-')) m.material = lm(key); } return g; }
 const sky = (k, r, y, h, lv = 'mid') => (lv === 'mid' ? k.hi : k.detail === 'hi') && tube(k, r * 1.005, r * 1.005, h, y, 'x-sky', { open: true, seg: k.hi ? 40 : 14 });
 // 5 m core stage: 2 hydrogen bells, white foam-look tank, pale-blue bands; y0 = tank bottom
-function core(d, h, y0 = 2.4) { const k = new Kit(d); for (const [x, z] of ringPos([[2, 1.05]])) bell(k, 0.75, 2.4, x, 0, z, { head: 0.5, rt: 0.25 });
+function core(d, h, y0 = 2.4) { const k = new Kit(d); for (const [x, z] of ringPos(k.detail === 'hi' ? [[7, 2.0, 0], [1, 0]] : k.detail === 'mid' ? [[3, 2.0, 0], [1, 0]] : [[2, 1.05]])) bell(k, k.detail === 'hi' ? 0.62 : 0.75, 2.4, x, 0, z, { head: 0.5, rt: 0.25 }); // 8 engines (roster), fewer bells on the light LODs
   lathe(k, [[0, y0], [R * 0.8, y0], [R, y0 + 0.6]], 'dark'); tube(k, R, R, h - 0.6, y0 + 0.6, 'x-cream', { hs: 1 });
   sky(k, R, y0 + h * 0.3, 0.9); sky(k, R, y0 + h - 1.2, 0.9); ring(k, R, y0 + h * 0.55, 0.02);
   if (k.hi) { for (const a of [0, PI]) k.add(new THREE.BoxGeometry(0.35, h - 3, 0.3), 'grey', xf([Math.cos(a) * (R + 0.12), y0 + h / 2, Math.sin(a) * (R + 0.12)], [0, -a, 0])); }

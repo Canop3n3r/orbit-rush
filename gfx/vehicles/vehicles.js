@@ -126,10 +126,10 @@ function colossusBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.
   tube(k, r, r, 1.8, H - 1.8, 'dark'); if (k.hi) for (let i = 0; i < 24; i++) { const a = i / 24 * 2 * PI; k.add(new THREE.BoxGeometry(0.25, 1.4, 0.9), 'steel', xf([Math.cos(a) * r, H - 0.9, Math.sin(a) * r], [0, -a, 0])); }
   gridFins(k, r + 0.05, H - 5.5, 2.4, 3.2, o.gridFins || 3, PI / 2, o.fins ?? 1); // brief: v3/v4 boosters carry 3 grid fins
   const g = k.build('booster'); g.userData.height = H; return g; }
-function ship(detail, y0, L = 52.1) { const k = new Kit(detail), r = 4.5, nose = 16, cyl = L - nose - 2;
+function ship(detail, y0, L = 52.1, nVac = 3) { const k = new Kit(detail), r = 4.5, nose = 16, cyl = L - nose - 2;
   // windward = -Z half (theta pi/2 .. 3pi/2 in three's cylinder/lathe convention); tile edge lines at +-X
   for (const [x, z] of ringPos([[3, 1.0, PI / 6]])) bell(k, 0.65, 1.6, x, y0 + 0.2, z, { rt: 0.26, head: 0.8 }); // sea-level (gimbaled)
-  for (const [x, z] of ringPos([[3, 3.05, PI / 2]])) bell(k, 1.15, 3.0, x, y0 - 1.0, z, { ext: true, rt: 0.26, head: 0.8 }); // vacuum (fixed, large)
+  for (const [x, z] of ringPos(detail === 'lo' || nVac < 6 ? [[3, 3.05, PI / 2]] : [[6, 3.1, PI / 6]])) bell(k, detail === 'lo' || nVac < 6 ? 1.15 : 1.0, 3.0, x, y0 - 1.0, z, { ext: true, rt: 0.26, head: 0.8 }); // vacuum (fixed, large): 6 + 3 sea-level = the roster's 9 engines
   tube(k, r, r, 2, y0, 'skirt'); tube(k, r, r, cyl, y0 + 2, 'steel'); ogive(k, r, nose, y0 + 2 + cyl, 'steel', 0.12);
   tube(k, r * 1.006, r * 1.006, cyl, y0 + 2, 'tiles', { open: true, t0: PI / 2, tl: PI });
   lathe(k, PR.ogive(r, nose, y0 + 2 + cyl, k.hi ? 18 : 7, 0.12).map(([a, b]) => [a * 1.006, b]), 'tiles', { p0: PI / 2, pl: PI });
@@ -145,7 +145,7 @@ function ship(detail, y0, L = 52.1) { const k = new Kit(detail), r = 4.5, nose =
   if (k.hi) { for (const a of [PI * 0.1, -PI * 0.1]) raceway(k, r, y0 + 3, y0 + 2 + cyl, a, 'steel'); for (const y of [y0 + 2.2, y0 + 2 + cyl * 0.42, y0 + 2 + cyl - 0.3]) ring(k, r, y, 0.04, 'grey'); // raceways, aft dome / common dome / forward weld lands
     k.add(new THREE.BoxGeometry(1.6, 1.2, 0.2), 'dark', xf([0, y0 + 2 + cyl - 3, r + 0.05])); } // payload/door hatch outline
   const g = k.build('upper'); g.userData.top = y0 + 2 + cyl + nose; g.userData.bay = { y: y0 + 2 + cyl - 7.5, r, h: 7.5, cz: 0 }; return g; } // bay: where the payload rides out of the hull (rockets-pass-1)
-function colossus(o) { const b = colossusBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1); return group('colossus', [b, s], s.userData.top); }
+function colossus(o) { const b = colossusBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1, o.nVac || 3); return group('colossus', [b, s], s.userData.top); }
 // ---- ground systems: catch tower with chopsticks + orbital launch mount ----
 function catchTower(o) { const k = new Kit(o.detail), W = 12, H = 146, TX = -24, lv = 9, n = Math.floor(H / lv);
   tube(k, 30, 32, 2, -2, 'concrete', { seg: 48 });
@@ -206,7 +206,7 @@ export const VEHICLES = {
   'heron-9-crew': { height: 65.7, build: o => heron({ ...o, crew: true }), src: 'specs sheet (heron-9-crew, capsule-2): 65.7 m, capsule 4 m dia, 8.1 m with trunk' },
   'heron-heavy': { height: 70, build: heronHeavy, src: 'specs sheet (heron-heavy): 70 m, 12.2 m wide' },
   'colossus-v3': { height: 124.4, build: o => colossus({ ...o, boosterH: 72.3, shipH: 52.1, gridFins: 3 }), src: 'specs sheet (colossus) Block 3: booster 72.3 m, ship 52.1 m (ESTIMATE), 9 m', est: ['shipH'] },
-  'colossus-v4': { height: 142, build: o => colossus({ ...o, boosterH: 81, shipH: 61, gridFins: 3 }), src: 'specs sheet (colossus) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
+  'colossus-v4': { height: 142, build: o => colossus({ ...o, boosterH: 81, shipH: 61, gridFins: 3, nVac: 6 }), src: 'specs sheet (colossus) Block 4 (planned): 81 m + 61 m', est: ['planned vehicle'] },
   'catch-tower': { height: 164, build: catchTower, src: 'public ~146 m tower (art estimate)', est: ['all'] },
   'payload-roadster': { height: 3.2, build: roadster, src: 'generic roadster-style car (art)', est: ['all'] },
   ...CO_CIVSPACE, ...CO_ORBITRON_B, ...CO_ALBION, ...CO_EUROPIA, ...CO_VEGARA, ...CO_ARION, ...CO_BLUEHZ, ...CO_BOLT, ...CO_CONVEX, ...CO_DOUGWING, ...CO_CNFOLL, ...CO_GAULOIS, ...CO_JADELANTERN2, ...CO_JADELANTERN, ...CO_IRG, ...CO_ISRA, ...CO_TSURUGI, ...CO_JAXO, ...CO_KRASNAYA, ...CO_MOGUTNY, ...CO_MOONHAMMER, ...CO_TAIGA, ...CO_KRUNOV, ...CO_LINGVOLT, ...CO_MARTELL, ...CO_VANTGUARD, ...CO_CIVSPACE2, ...CO_ORBITRON, ...CO_ORIGINALS, ...CO_ROCKETWELL, ...CO_SOUTHSTAR, ...CO_VULC, ...CO_ULX, ...CO_BALTIC, ...CO_ISRA_B, ...CO_LEVANT, ...CO_SKYLAND, ...CO_SOUTHSTAR_C, ...CO_JAXO_B, ...CO_MARTELL_B, ...CO_CONVEX_B, ...CO_JADE_B, ...CO_KRUNOV_B, ...CO_EXPL, ...CO_GALEN, ...CO_DOUGWING_B, ...CO_KOMETA, ...CO_SOUTHSTAR_B,
