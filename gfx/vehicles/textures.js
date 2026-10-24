@@ -49,6 +49,11 @@ export function bell(ext = false) { return once('bell' + ext, () => { const [c, 
   x.fillStyle = g; x.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 256; i += 2) { x.fillStyle = 'rgba(0,0,0,0.28)'; x.fillRect(i, ext ? 70 : 0, 1, 256); }
   x.fillStyle = 'rgba(0,0,0,0.45)'; for (const y of [12, 70, 190]) x.fillRect(0, y, 256, 3);
+  // rockets-pass-1 detail: temper-blue heat tint at the throat, regen-tube ribs along the bell, sooty streaks fanning up from the exit rim
+  const hr = rng(ext ? 5 : 9), tg = x.createLinearGradient(0, 0, 0, 90); tg.addColorStop(0, 'rgba(50,70,130,0.55)'); tg.addColorStop(1, 'rgba(50,70,130,0)'); x.fillStyle = tg; x.fillRect(0, 0, 256, 90);
+  for (let i = 0; i < 256; i += 8) { x.fillStyle = 'rgba(255,225,190,0.10)'; x.fillRect(i + 3, ext ? 70 : 0, 1, 256); }
+  const sg = x.createLinearGradient(0, 256, 0, 150); sg.addColorStop(0, 'rgba(8,6,5,0.7)'); sg.addColorStop(1, 'rgba(8,6,5,0)'); x.fillStyle = sg; x.fillRect(0, 150, 256, 106);
+  for (let i = 0; i < 70; i++) { const X = hr() * 256, L = 30 + hr() * 90, g2 = x.createLinearGradient(0, 256, 0, 256 - L); g2.addColorStop(0, 'rgba(6,5,4,0.55)'); g2.addColorStop(1, 'rgba(6,5,4,0)'); x.fillStyle = g2; x.fillRect(X, 256 - L, 1 + hr() * 3, L); }
   return fin(c); }); }
 // glass-like dark windows / solar cells
 export function solarCells() { return once('solar', () => { const [c, x] = canvas(256, 128); x.fillStyle = '#0d1630'; x.fillRect(0, 0, 256, 128); x.strokeStyle = '#2a3c6a'; x.lineWidth = 1;
