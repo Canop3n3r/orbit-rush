@@ -8,7 +8,7 @@ const U = process.env.U || 'http://localhost:8931/', ids = process.argv.slice(2)
     await pg.addInitScript(() => { try { localStorage.setItem('or_seen_welcome', '1'); } catch (e) {} });
     await pg.goto(U + '?noacademy&webgl', { waitUntil: 'load' }); await pg.waitForFunction(() => window.__game && !document.getElementById('loading')); await pg.waitForTimeout(1000);
     await pg.evaluate(id => { const c = document.querySelector(`.pkC[data-m="${id}"]`); if (!c) throw new Error('no picker card ' + id); c.click(); window.__game.launch(); }, id); await pg.waitForTimeout(2500);
-    const r = await pg.evaluate(async () => { const G = window.__game, { plumeLayout } = await import('/fun/plumetable.js?v=f5.8q'), { NOZZLES } = await import('/gfx/vehicles/nozzles.js?v=f5.8q');
+    const r = await pg.evaluate(async () => { const G = window.__game, { plumeLayout } = await import('/fun/plumetable.js?v=f5.8r'), { NOZZLES } = await import('/gfx/vehicles/nozzles.js?v=f5.8r');
       const g = G.SG.find(x => !x.userData.radial), pl = g.userData.plume, NZ = NOZZLES[G.design.model] || {}; const main = Object.values(NZ).find(l => l.length) || [];
       const first = Object.entries(NZ).find(([k, l]) => l.length && !/^(srb|strap|side)/i.test(k)); const L = plumeLayout(first ? first[1] : NZ.orbiter, 1);
       return { id: G.design.model, nEng: pl.userData.nEng, extras: (pl.userData.extra || []).length, want: L ? L.n : null, cen: L ? L.cen : null }; });

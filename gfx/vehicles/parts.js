@@ -1,7 +1,7 @@
 // Reusable part builders (all original geometry). y is up, units are metres, every builder adds to a Kit.
 import * as THREE from 'three/webgpu';
-import { xf, mat, mergeGeometries } from './kit.js?v=f5.8q';
-import * as PR from './profiles.js?v=f5.8q';
+import { xf, mat, mergeGeometries } from './kit.js?v=f5.8r';
+import * as PR from './profiles.js?v=f5.8r';
 export const lathe = (k, prof, key, o = {}) => k.add(new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r * (o.s || 1), y)), o.seg || k.seg, o.p0 || 0, o.pl || 2 * Math.PI), key, o.m);
 const PI = Math.PI;
 // cylinder/frustum with its base at y

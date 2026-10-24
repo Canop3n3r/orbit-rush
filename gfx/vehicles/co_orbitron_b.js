@@ -1,5 +1,5 @@
 // Orbitron Sciences, tier B (stage-table generator + hooks): Conestogo, Minotaurus I/II, Minotaurus IV/V, Taurox. White with grey bands.
-import { buildB } from './gen_b.js?v=art1';
+import { buildB } from './gen_b.js?v=f5.8r';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'conestogo': 'Conestogo', 'minotaurus-1': 'Minotaurus I/II', 'minotaurus-4': 'Minotaurus IV/V', 'taurox': 'Taurox'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

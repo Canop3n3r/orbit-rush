@@ -1,6 +1,6 @@
 // Southstar Design Bureau — tier B (generated from rocketdb stage tables + hooks): Cosmo-Kart family, Whirligig-2/3, Riverbend Silo-Hopper.
 // Olive-grey military finish on the lower stages, white upper stages.
-import { buildB } from './gen_b.js?v=art1';
+import { buildB } from './gen_b.js?v=f5.8r';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'cosmokart-1': 'Cosmo-Kart', 'cosmokart-1b': 'Cosmo-Kart 1', 'cosmokart-2': 'Cosmo-Kart 2', 'cosmokart-3m': 'Cosmo-Kart 3M', 'whirligig-2': 'Whirligig-2', 'whirligig-3': 'Whirligig-3', 'riverbend': 'Riverbend Silo-Hopper'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

@@ -1,8 +1,8 @@
 // Milestone Q UI: pause menu, settings (key remap, sensitivity, units, overlays), the Δv map and rich part
 // tooltips. DOM only; the logic it shows lives in settings.js, physics/dvmap.js and parts.js.
-import * as UN from './fun/units.js?v=f5.8q';
-import { ACTIONS, keyOf, bindKey, resetKeys, saveSettings, DEFAULT_KEYS } from './settings.js?v=f5.8q';
-import { dvMap, ORBIT_DV, LEO } from './physics/dvmap.js?v=f5.8q';
+import * as UN from './fun/units.js?v=f5.8r';
+import { ACTIONS, keyOf, bindKey, resetKeys, saveSettings, DEFAULT_KEYS } from './settings.js?v=f5.8r';
+import { dvMap, ORBIT_DV, LEO } from './physics/dvmap.js?v=f5.8r';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 export const keyName = c => !c ? '—' : c.startsWith('Key') ? c.slice(3) : c.startsWith('Digit') ? c.slice(5) : ({ Space: 'Space', ShiftLeft: 'Shift', ControlLeft: 'Ctrl', Comma: ',', Period: '.', Slash: '/', Backquote: '`', Backslash: '\\', Escape: 'Esc', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Minus: '−', Equal: '=' })[c] || c;
 const fdv = x => x === null || x === undefined ? '—' : (x / 1000).toFixed(2);
