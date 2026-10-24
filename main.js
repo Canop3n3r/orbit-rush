@@ -994,7 +994,7 @@ function heroPiece(i) { // a copy of the dropped hero stage rides on the detache
   for (const k of keys) if (st[k]) { const c = st[k].clone(); grp.add(c); }
   if (!grp.children.length) return null; grp.scale.copy(hero.scale); grp.position.y = -y0; return grp;
 }
-function heroFairing(on) { if (!hero) return; heroBay(!on); heroSyncPayload(); for (const lv of hero.levels || [{ object: hero }]) { const st = (lv.object.userData && lv.object.userData.stages) || {}; if (st.payload && !/ti\x74an/.test(design.model)) st.payload.visible = on; } }
+function heroFairing(on) { if (!hero) return; heroBay(!on); heroSyncPayload(); for (const lv of hero.levels || [{ object: hero }]) { const ud = lv.object.userData || {}, st = ud.stages || {}; if (st.payload && !ud.fixedNose) st.payload.visible = on; } }
 // rockets-pass-1: the payload is a real mesh on the model from t=0 (under the shell, or in a ship's bay) and the one RELEASE sends away
 const heroLevels = () => hero ? (hero.levels || [{ object: hero }]).map(l => l.object) : [];
 let heroKind = null, bayK = 0, bayTarget = 0; // heroKind: the payload look built into the hero; bayK: ship bay opening 0..1

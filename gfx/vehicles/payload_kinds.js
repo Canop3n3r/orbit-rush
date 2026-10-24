@@ -16,7 +16,4 @@ export function payloadKindFor(o = {}) {
   if (ids.includes('probe')) return 'probe';
   return SATS[0];
 }
-// models whose 'payload' stage group is a fixed nose (re-entry vehicle / warhead), not a jettisoned shell: they carry no visible payload
-export const NO_PAYLOAD = /^titanus-2/;
-// stage groups that already ARE the payload (capsule, lander, orbiter ...): nothing to add
 export const OWN_PAYLOAD = /^(capsule|lander|orbiter|csm|crew|probe|spaceplane|carrier)/i;

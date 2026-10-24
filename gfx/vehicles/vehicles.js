@@ -13,7 +13,7 @@ import * as PR from './profiles.js?v=art1';
 import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=art1';
 export { setLegs, mat };
 import { buildPayload, registerPayload } from './payloads.js?v=art1';
-import { NO_PAYLOAD, OWN_PAYLOAD } from './payload_kinds.js?v=art1';
+import { OWN_PAYLOAD } from './payload_kinds.js?v=art1';
 export { buildPayload };
 import { CO_CIVSPACE } from './co_civspace.js?v=art1'; // co-civspace-1: NOSA heritage vehicles
 import { CO_SOUTHSTAR_B } from './co_ssb.js?v=art1';
@@ -241,7 +241,7 @@ export function setPayload(g, id, kind, det = 'hi') {
   const st = g.userData.stages || (g.userData.stages = {}), old = st.sat; if (old) { dispose(old); delete st.sat; }
   const bayOld = st.bay; if (bayOld) { g.remove(bayOld); delete st.bay; delete g.userData.bayExpose; }
   const host = [st.upper, st.orbiter].find(x => x && x.userData.bay), bay = host && host.userData.bay;
-  if (!kind || NO_PAYLOAD.test(id) || /^(payload-|catch-tower)/.test(id) || (!bay && Object.keys(st).some(k => OWN_PAYLOAD.test(k)))) return null;
+  if (!kind || g.userData.fixedNose || /^(payload-|catch-tower)/.test(id) || (!bay && Object.keys(st).some(k => OWN_PAYLOAD.test(k)))) return null;
   const shell = st.payload || st.fairing; g.updateMatrixWorld(true);
   if (shell) { const b = new THREE.Box3().setFromObject(shell), sz = b.getSize(new THREE.Vector3()), D = Math.max(sz.x, sz.z);
     const p = buildPayload(kind, { detail: det, r: D * 0.34, h: sz.y * 0.5 }); p.position.set(0, b.min.y + 0.05 * Math.min(1, sz.y / 4), 0); g.add(p); st.sat = p; return p; }
