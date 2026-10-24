@@ -475,7 +475,7 @@ body.cx:not(.sheet) #tele,body.cx #heat{display:none!important}
 #sR #wVal{width:52px!important;font-family:var(--mono)!important}
 #sR #pTake{background:#b8322ad9!important;border-color:#ff8a7a!important;border-radius:50%!important;font-size:18px!important}
 #sR #pTake.hidden{display:none}
-@media (orientation:portrait){body.touch #sR #wDn{display:none!important}}
+/* f5.8o (Aaron): ◀◀ is available in portrait while warping */
 #hintS{position:fixed;z-index:24;top:calc(52px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);height:28px;box-sizing:border-box;max-width:min(520px,calc(100vw - 24px));padding:0 14px;border-radius:999px;font:600 13px/26px var(--ui);color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);pointer-events:none;opacity:0;transition:opacity .25s}
 #hintS.on{opacity:1}#hintS.call{color:#ffe9b0;font-weight:800}#hintS:not(.on){visibility:hidden}
 #craftTag{position:fixed;left:0;top:0;z-index:8;width:92px;box-sizing:border-box;padding:3px 8px;border-left:2px solid var(--acc);background:linear-gradient(90deg,#0b1424b0,#0b142400);font:700 11px/1.35 var(--mono);font-variant-numeric:tabular-nums;color:#eaf2ff;text-shadow:0 1px 2px #000;pointer-events:none;will-change:transform}
@@ -1308,9 +1308,9 @@ body > .bmPanel .bmSub[open]{flex-basis:100%}
 @media (orientation:portrait){#hGal{height:40dvh!important}#home #hCard{bottom:calc(40dvh + 8px)!important}}
 #hGal #picker .pkTabs{display:flex!important;gap:4px!important;flex-wrap:nowrap}#hGal #picker .pkTabs .pkTab{flex:1 1 auto!important;min-width:0;padding:0 6px!important;font-size:13px!important;white-space:nowrap}
 /* f5.8g (QA P2): same warp controls on every screen size; none on the pad */
-#wVal{display:none!important}
+#wVal[hidden]{display:none!important}
 #wDn[hidden],#wUp[hidden]{display:none!important}
-#wUp{position:relative}#wUp[data-x]:not([data-x=""])::after{content:attr(data-x);position:absolute;right:2px;bottom:1px;font:700 9px var(--mono,monospace);color:#ffd27a}
+#wUp{position:relative}/* f5.8o: the ×N value is its own tappable button (tap = back to ×1) */
 body.touch.autoOn #wDn:not([hidden]){display:inline-flex!important}
 /* f5.8g: phone gallery in 40% — 4 cards per row so a row of pictures is always in view */
 @media (orientation:portrait) and (max-width:600px){#hGal #picker .pkG:not(.pkStrip){grid-template-columns:repeat(4,1fr)!important;gap:6px!important}#hGal #picker .pkG:not(.pkStrip) .pkC .pkT{height:104px!important}#hGal #picker .pkC b{font-size:12px!important}#hGal #picker .pkStrip{grid-auto-columns:86px!important}#hGal #picker .pkStrip .pkC .pkT{height:104px!important}}
@@ -1433,3 +1433,7 @@ body.noStage #mStage,body.noStage #dStage{background:#3a4152!important;border-co
 /* f5.8n: end-card ⋯ expanded row never wraps a label: buttons wrap as whole items instead */
 #end .endMain button{white-space:nowrap}
 #end.lean.more .endMain{flex-wrap:wrap!important;align-items:stretch}#end.lean.more .endMain button{flex:1 1 auto!important}#end.lean.more #endMoreBtn{flex:0 0 48px!important}
+
+/* f5.8o: crash cause line in its own slot; the primary button is always the leftmost one */
+#endCause{display:none}#end.lean #endCause{display:block;font:600 13px var(--ui,system-ui);color:#ffb3a8;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#end.lean #endCause:empty{display:none}
+#end.lean #contBtn{order:-1}

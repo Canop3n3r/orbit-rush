@@ -2,7 +2,7 @@
 // (checked in tests/showroom.mjs): reach space, orbit, land the booster, Moon, Mars, Venus, orbit-and-home, hop.
 // No DOM here: the card bars are derived from the same stats the hangar uses.
 import { TEMPLATES, designStats, cloneDesign } from '../parts.js?v=f5.1a';
-import { setHeavyBase } from './stagemap.js?v=f5.8n';
+import { setHeavyBase } from './stagemap.js?v=f5.8o';
 const P = (id, n) => (n ? { id, n } : { id });
 const T = n => TEMPLATES.find(t => t.name === n);
 // check: what tests/showroom.mjs verifies.  space: AUTO apoapsis > 100 km · orbit: AUTO reaches a stable orbit ·

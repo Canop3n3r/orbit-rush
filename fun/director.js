@@ -2,9 +2,9 @@
 // planner-built transfer nodes executed as finite burns, mid-course corrections, SOI warps, capture, Moon
 // landing) and tells the renderer which cinematic camera suits each phase. The player can take over anytime
 // (takeOver()); nothing here bypasses the physics. DOM-free, so tests/fun.mjs runs it headlessly.
-import * as UN from './units.js?v=f5.8n';
-import * as P from '../physics.js?v=f5.8n';
-import * as C from '../physics/patched.js?v=f5.8n';
+import * as UN from './units.js?v=f5.8o';
+import * as P from '../physics.js?v=f5.8o';
+import * as C from '../physics/patched.js?v=f5.8o';
 const V = P.V;
 export const MISSIONS = {
   orbit: { name: 'Orbit & home', icon: '🛰️', tpl: 'Orbit & home', target: null, blurb: 'Fly to orbit, then bring the capsule home under parachutes.' },
