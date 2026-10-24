@@ -4,7 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=art1';
 import { HYDRO } from './cryo.js?v=art1';
-const PI = Math.PI, SKIP = /^(payload|sat|fairing|nose|bay|legs|orbiter|capsule|ship|crew|tower|abort|top|cap|tip|shroud|dragon|cargo|pod|probe)/i, OWN = /^(heron|colossus|sparrow|space-truck|saturnine|payload-|catch-tower)/;
+const PI = Math.PI, SKIP = /^(payload|sat|fairing|nose|bay|legs|orbiter|capsule|ship|crew|tower|abort|top|cap|tip|shroud|cargo|pod|probe)/i, OWN = /^(heron|colossus|sparrow|space-truck|saturnine|payload-|catch-tower)/;
 const _b = new THREE.Box3(), _m = new THREE.Matrix4();
 const hash = s => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };
 function measure(sg) { _b.makeEmpty(); sg.traverse(m => { if (m.isMesh && !/bell|soot|frost|foam|foil/.test(m.name)) { m.geometry.computeBoundingBox(); _b.union(m.geometry.boundingBox); } }); if (_b.isEmpty()) return null;
