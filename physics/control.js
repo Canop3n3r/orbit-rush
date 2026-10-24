@@ -40,20 +40,25 @@ export function steerTorque(v, dir, ctx) {
   return out;
 }
 // Combine pilot input (v.input: pitch/yaw/roll in -1..1), AUTO steering (v.steerDir) and SAS into v.cmdTorque.
+export const SETTLE_W = 0.02; // rad/s: below this STABILITY freezes the nose it is pointing at
 export function updateControl(v) {
   const g = stackGeom(v), mp = massProps(v, g), T = engineOut(v, atmAt(v, len(v.r) - radOf(v)).p).T, auth = authority(v, g, mp, T), ctx = { g, mp, auth };
   const inp = v.input || { pitch: 0, yaw: 0, roll: 0 }, manual = [inp.pitch, inp.roll, inp.yaw];
   let tau = [0, 0, 0];
   const target = v.steerDir || (v.sas && v.sas !== 'off' ? sasDir(v, v.sas) : null);
+  // f5.8t (QA f5.8r P1): STABILITY taken over while the nose is still swinging (AUTO's upper-stage pitch-over at ~60 km spins ~0.3 rad/s) used to freeze the CURRENT nose as the target and
+  // then overshoot it by w²/2a (+46° → −48°). Now it first kills the rotation and holds the attitude it stops at, so a later throttle drag never chases a stale target.
+  const settling = !v.steerDir && v.sas === 'stab' && !v.holdAtt && !v.sasHold && v.w && Math.hypot(v.w[0], v.w[1], v.w[2]) > SETTLE_W;
   const hold = !v.steerDir && v.sas === 'stab' && v.holdAtt ? v.holdAtt : null; // f5.6h: trackball navball target attitude (nose + roll)
   if (hold) { tau = steerTorque(v, hold.n, ctx); const I1 = mp.Iyy, a1 = auth[1] / I1, nose = qrot(v.q, [0, 1, 0]), e1 = rollError(nose, qrot(v.q, [0, 0, -1]), hold.t);
     const wd = Math.sign(e1) * Math.min(v.wMax || 0.5, Math.sqrt(2 * 0.5 * a1 * Math.abs(e1)), 2.5 * Math.abs(e1)); tau[1] = clamp(I1 * (wd - v.w[1]) * 4, -auth[1], auth[1]); }
+  else if (settling) { const I = [mp.Ixx, mp.Iyy, mp.Ixx]; tau = [0, 1, 2].map(k => clamp(I[k] * (0 - v.w[k]) * 4, -auth[k], auth[k])); }
   else if (target) tau = steerTorque(v, target, ctx);
   else if (v.sas === 'off') tau = [0, 0, 0];
   for (let k = 0; k < 3; k++) if (manual[k]) tau[k] = manual[k] * auth[k];
   if (manual.some(Boolean) && v.w) { const I = [mp.Ixx, mp.Iyy, mp.Ixx]; // f5.6g (QA): axes you are not commanding hold still (D yawed AND rolled −78°)
     for (let k = 0; k < 3; k++) if (!manual[k]) tau[k] = Math.max(-auth[k], Math.min(auth[k], I[k] * (0 - v.w[k]) * 4)); }
-  if (manual.some(Boolean)) { v.sasHold = null; v.holdAtt = null; } else if (v.steerDir) { v.sasHold = null; /* f5.8o (QA f5.8n P1): AUTO flying = no stale hold; on takeover STABILITY captures the CURRENT nose, so adding throttle never swings the rocket back to the launch attitude */ } else if (v.sas === 'stab' && !v.sasHold) v.sasHold = qrot(v.q, [0, 1, 0]);
+  if (manual.some(Boolean)) { v.sasHold = null; v.holdAtt = null; } else if (v.steerDir) { v.sasHold = null; /* f5.8o (QA f5.8n P1): AUTO flying = no stale hold; on takeover STABILITY captures the CURRENT nose, so adding throttle never swings the rocket back to the launch attitude */ } else if (v.sas === 'stab' && !v.sasHold && !settling) v.sasHold = qrot(v.q, [0, 1, 0]);
   v.cmdTorque = tau; v.auth = auth;
   return tau;
 }
