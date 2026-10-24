@@ -11,12 +11,12 @@ for (const m of [BODY, WING]) { m.userData.cached = true; m.name = 'payload'; }
 const C = { gold: 0xc9a043, goldD: 0x9d7b2c, white: 0xe3e5e8, silver: 0x9aa0a8, dark: 0x25272b, black: 0x0c0d0f, grey: 0x6d727a, blue: 0x1b3a86, blue2: 0x264a9c, cell: 0x0f2558, cube: 0xd8d8d2 };
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _c = new THREE.Color(), _s = new THREE.Vector3(1, 1, 1);
 const at = (x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) => _m.compose(new THREE.Vector3(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz, 'YXZ')), _s).clone();
-class Acc { constructor() { this.g = []; }
+class Acc { constructor(lo = false) { this.g = []; this.lo = lo; }
   add(geo, col, m) { const g = geo.index ? geo.toNonIndexed() : geo; g.applyMatrix4(m || _m.identity()); const n = g.attributes.position.count, c = new Float32Array(n * 3); _c.set(col); for (let i = 0; i < n; i++) { c[i * 3] = _c.r; c[i * 3 + 1] = _c.g; c[i * 3 + 2] = _c.b; }
     g.setAttribute('color', new THREE.BufferAttribute(c, 3)); this.g.push(g); return this; }
   box(w, h, d, col, x, y, z, ry = 0) { return this.add(new THREE.BoxGeometry(w, h, d), col, at(x, y, z, 0, ry, 0)); }
-  cyl(rt, rb, h, col, x, y, z, seg = 12, rx = 0, rz = 0) { return this.add(new THREE.CylinderGeometry(rt, rb, h, seg), col, at(x, y, z, rx, 0, rz)); }
-  dish(r, col, x, y, z, seg = 10) { return this.add(new THREE.SphereGeometry(r, seg, 4, 0, Math.PI * 2, 0, 1.0), col, at(x, y, z, Math.PI, 0, 0)); } // bowl opens upward
+  cyl(rt, rb, h, col, x, y, z, seg = 12, rx = 0, rz = 0) { return this.add(new THREE.CylinderGeometry(rt, rb, h, this.lo ? Math.min(seg, 6) : seg), col, at(x, y, z, rx, 0, rz)); }
+  dish(r, col, x, y, z, seg = 10) { return this.add(new THREE.SphereGeometry(r, this.lo ? Math.min(seg, 6) : seg, this.lo ? 2 : 4, 0, Math.PI * 2, 0, 1.0), col, at(x, y, z, Math.PI, 0, 0)); } // bowl opens upward
   mesh(mat, name) { if (!this.g.length) return null; const out = new THREE.BufferGeometry(); for (const a of ['position', 'normal', 'color']) { const n = a === 'uv' ? 2 : 3; let len = 0; for (const g of this.g) len += g.attributes[a].array.length; const arr = new Float32Array(len); let o = 0;
       for (const g of this.g) { arr.set(g.attributes[a].array, o); o += g.attributes[a].array.length; } out.setAttribute(a, new THREE.BufferAttribute(arr, n)); }
     for (const g of this.g) g.dispose(); const m = new THREE.Mesh(out, mat); m.name = name; return m; } }
@@ -57,7 +57,7 @@ export function buildPayload(kind, o = {}) {
   const detail = o.detail || 'hi', hi = detail !== 'lo', g = new THREE.Group(); g.name = 'sat';
   let nomH, wingMesh = null;
   if (BUILDERS.has(kind)) { const ext = BUILDERS.get(kind)(detail); g.add(ext.group); nomH = ext.h; g.userData = { kind, nomR: ext.r || 1 }; }
-  else { const bld = BUILD[kind] || BUILD.comsat, body = new Acc(), wing = new Acc(); nomH = bld(body, wing, hi);
+  else { const bld = BUILD[kind] || BUILD.comsat, body = new Acc(!hi), wing = new Acc(!hi); nomH = bld(body, wing, hi);
     if (!hi) { for (const gg of wing.g) gg.dispose(); wing.g.length = 0; } // lo: one body mesh (the stowed slabs), no deployable arrays
     const bm = body.mesh(BODY, 'sat-body'); g.add(bm); wingMesh = wing.mesh(WING, 'sat-wings'); if (wingMesh) { g.add(wingMesh); wingMesh.scale.x = 0.08; } g.userData = { kind, nomR: 1 }; }
   const s = Math.min((o.r ?? 1e9) / g.userData.nomR, (o.h ?? 1e9) / nomH); g.scale.setScalar(s);
