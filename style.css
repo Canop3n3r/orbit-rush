@@ -1096,7 +1096,7 @@ body.touch #build .bTabs button{flex:1;min-height:40px;border-radius:12px;backgr
 body.touch #build .bTabs button.on{background:#2d5fd0;border-color:#9cc3ff;color:#fff}
 body.touch #build[data-bt="0"] .bcols > :not(:nth-child(2)),body.touch #build[data-bt="1"] .bcols > :not(:nth-child(1)),body.touch #build[data-bt="2"] .bcols > :not(:nth-child(3)){display:none!important}
 body.touch #build .bcols .colH{display:none}
-body:not(.touch):not(.buildAdv) #stack small{display:none}
+body:not(.touch) #stack small{display:none}
 /* f5.7l: Fly moved into the panel, so the 84px gap for the old floating Fly goes; the sheet sits on the bottom edge and scrolls inside */
 body.touch:not(.home) #build.builder{bottom:0!important;padding-bottom:calc(10px + var(--sab,0px))!important;overscroll-behavior:contain}
 @media (orientation:portrait){body.touch:not(.home) #build.builder{height:50dvh!important;max-height:50dvh!important}}
@@ -1109,7 +1109,7 @@ body.autoOn #ignite{display:none!important}
 body:not(.touch) #gcamBtn:not([data-sp-pin]){top:calc(12px + var(--sat,0px))!important;left:12px!important;right:auto!important;bottom:auto!important}
 /* f5.7n: Build part rows show their ▲ ▼ ✕ ⓘ / ± tools only on the selected row (tap a row), or on hover (desktop) */
 body.touch #stack .prow:not(.sel) button,body.touch #stack .prow:not(.sel) .cnt{display:none!important}
-body:not(.touch):not(.buildAdv) #stack .prow:not(.sel):not(:hover) button,body:not(.touch):not(.buildAdv) #stack .prow:not(.sel):not(:hover) .cnt{display:none}
+body:not(.touch) #stack .prow:not(.sel):not(:hover) button,body:not(.touch) #stack .prow:not(.sel):not(:hover) .cnt{display:none}
 /* f5.7n: settings sheet: the home screen behind steps back (dimmed, not clickable) */
 body:has(#settings:not(.hidden)) #home{visibility:hidden!important}
 #sitePick .spBodies,#sitePick .spSites{align-items:flex-start!important;align-content:flex-start!important}#sitePick .spBodies button,#sitePick .spSites button{height:auto!important;min-height:36px;flex:0 0 auto} /* f5.7q (QA f5.7n): chips wrap to rows at normal height */
@@ -1373,6 +1373,42 @@ body.touch #mMenu #mClose{width:44px!important;height:44px!important}
 #dCtl kbd{display:none!important}
 body.autoOn:not(.inOrbit) #dThr{display:flex!important}
 body:not(.touch) #nav{bottom:156px!important;right:calc(12px + env(safe-area-inset-right,0px))!important}
-/* f5.8j: Advanced toggle sits on the desktop Build card */
-body:not(.touch) #bMini #bAdv{min-height:36px;padding:0 10px;border-radius:10px;background:#16233a;border:1px solid #2c4166;color:#dfe9ff;font:600 12px var(--ui,system-ui);white-space:nowrap;cursor:pointer}
 body:not(.touch).bCol:not(.home) #build.builder{max-width:560px}
+
+/* f5.8k (QA f5.8j): one Build card on every size: "‹ Home" · ⋯ · Fly + stat line with a labelled ✎ Edit */
+body.touch.bCol #build .bTopRow #homeBack{font-size:inherit!important}body.touch.bCol #build .bTopRow #homeBack::before{content:none!important}
+#build #homeBack{white-space:nowrap}
+#build #homeBack::after{content:none}
+#bMini #bExp{white-space:nowrap}
+body.touch #bMini #bExp,body:not(.touch) #bMini #bExp{width:auto!important;min-width:72px;height:40px!important;min-height:40px!important;padding:0 12px!important;font:700 14px var(--ui,system-ui)!important;background:#1a2a4a!important;border:1px solid #2c4166!important;border-radius:10px!important;color:#cfe3ff}
+/* expanded phone sheet: the collapse bar is in flow (it used to float over the part list) */
+body.touch:not(.bCol) #bMini{position:static!important;width:auto!important;min-height:44px;margin:6px 0 0!important;padding:0 4px 0 10px!important;justify-content:space-between;border-radius:12px!important;background:#111b30!important}
+body.touch:not(.bCol) #bMini #bStat{display:block!important}
+/* ☰ in portrait split sits below the booster inset */
+@media (orientation:portrait){body.touch.pip #mMenu,body.touch.splitOn #mMenu{top:calc(76px + 31.5vw + var(--sat,0px))!important}}
+/* desktop Build: every target ≥40 px */
+body:not(.touch) #build button,body:not(.touch) #build select,body:not(.touch) #build summary,body:not(.touch) > .bmPanel button,body:not(.touch) > .bmPanel select,body:not(.touch) > .bmPanel summary{min-height:40px!important}
+body:not(.touch) #build .prow .mini,body:not(.touch) #build .prow .cnt button,body:not(.touch) #build .stageH button{min-width:40px;min-height:40px!important}
+body:not(.touch) > .bmPanel label select,body:not(.touch) > .bmPanel label input:not([type=checkbox]){min-height:40px!important;height:40px!important}
+body:not(.touch) > .bmPanel input[type=checkbox]{width:64px!important;height:40px!important;border-radius:20px!important}body:not(.touch) > .bmPanel input[type=checkbox]::after{width:32px!important;height:32px!important;left:4px!important;top:4px!important}body:not(.touch) > .bmPanel input[type=checkbox]:checked::after{left:28px!important}
+body:not(.touch) > .bmPanel .bmR button,body:not(.touch) > .bmPanel .bmR select{height:40px}
+body:not(.touch) #palette .palH{min-height:40px!important}
+/* Advanced = a right-side panel (≤40% of the width), sections collapsed except Δv + Will it fly */
+body:not(.touch).buildAdv .panel.builder{width:min(600px,calc(100vw - 24px))!important}
+body:not(.touch).buildAdv .bcols{grid-template-columns:230px 1fr!important}
+body:not(.touch).buildAdv:not(.bCol):not(.home):has(#build:not(.hidden)) #bAdvP{display:flex!important;flex-direction:column;gap:8px;position:fixed;z-index:30;right:12px;top:12px;bottom:12px;width:min(40vw,520px);overflow:auto;background:#0b1424f2;border:1px solid #2a3c5c;border-radius:14px;padding:10px 12px;box-shadow:0 8px 28px #000a}
+body:not(.touch) #bAdvP{display:none}body:not(.touch).buildAdv.bCol #bAdvP{display:none!important}
+#bAdvHead{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 15px var(--ui,system-ui);color:#dfe9ff}
+body:not(.touch) #bAdvHead #bAdv{height:40px;min-height:40px;padding:0 12px;border-radius:10px;background:#16233a;border:1px solid #2c4166;color:#dfe9ff;font:600 13px var(--ui,system-ui);cursor:pointer}
+.advS{border:1px solid #22324f;border-radius:10px;background:#0f1a30}
+.advS>summary{list-style:none;cursor:pointer;min-height:40px;display:flex;align-items:center;padding:0 12px;font:700 13px var(--ui,system-ui);color:#cfe3ff}
+.advS>summary::-webkit-details-marker{display:none}.advS>summary::before{content:'▸';margin-right:8px;color:#8ea3c6}.advS[open]>summary::before{content:'▾'}
+.advS>:not(summary){margin-left:10px;margin-right:10px}.advS[open]{padding-bottom:8px}
+body:not(.touch) #bAdvP .tests{display:flex;gap:6px;flex-wrap:wrap}body:not(.touch) #bAdvP .tests button{flex:1;min-height:40px}
+body:not(.touch) #hGearM #hAdv{min-height:40px}
+body:not(.touch) #build .stageH{flex-wrap:wrap;row-gap:2px}body:not(.touch) #build .stageH span{flex:1 1 100%}body:not(.touch) #build .stageH em{flex:1}
+body.touch #build .bTabs button{min-height:40px!important}
+#bAdvP .colH{display:none}#bAdvP table{width:100%;font-size:12px}#bAdvP .advS{overflow-x:auto}#bAdvP select,#bAdvP button,#bAdvP input{min-height:40px}#bAdvP #envSel{width:100%;margin-top:4px}
+/* f5.8k: the in-flow ▾ Close bar costs one row, so the expanded sheet is a little taller */
+@media (orientation:portrait){body.touch:not(.bCol):not(.home) #build.builder{height:59dvh!important;max-height:59dvh!important}}
+@media (orientation:landscape) and (max-height:500px){body.touch:not(.bCol):not(.home) #build.builder{top:8px!important;bottom:8px!important;max-height:calc(100dvh - 16px)!important;height:calc(100dvh - 16px)!important}}
