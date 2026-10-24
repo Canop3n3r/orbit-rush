@@ -1,7 +1,7 @@
 // Independent Rocketeers Guild — plain white. 'flock-hopper': stubby 3.0 m suborbital booster (4 engines), ring fin near the top,
 // four wedge base fins, capsule on top. 'featherwing-1': small air-launched spaceplane (round fuselage, stub wings, twin feathering
 // tail booms) slung under a twin-boom carrier plane; built lying flat. rocketdb flock-hopper / featherwing-1 + design.md.
-import { stage, capsule, fin, Kit, kb, tube, lathe, PR, PI, isHi, xf } from './co_gen.js?v=art1';
+import { stage, capsule, fin, Kit, kb, tube, lathe, bell, PR, PI, isHi, xf } from './co_gen.js?v=art1';
 import { group, plume } from './co_civspace.js?v=art1';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = { 'flock-hopper': 'Flock Hopper', 'featherwing-1': 'Featherwing I' };
@@ -16,10 +16,11 @@ function flat(g, h) { g.rotation.x = -PI / 2; g.position.y = h; return g; }
 function plane(d) { const k = new Kit(d), r = 0.75, s = isHi(k) ? 18 : 8; tube(k, r, r, 2.6, -1.4, 'paint:0,0', { seg: s }); lathe(k, PR.ogive(r, 2.0, 1.2, isHi(k) ? 10 : 5, 0.05), 'paint:0,0', { seg: s });
   tube(k, r * 0.8, r, 0.6, -2.0, 'dark', { seg: s });
   tube(k, r * 0.3, r * 0.8, 0.5, -2.5, 'dark', { seg: s }); // plan #8: closed aft end (nozzle fairing)
+  bell(k, 0.26, 0.55, 0, -3.05, 0, { head: 0.1, rt: 0.09 }); // unit 4b: the rocket motor bell sits in the tail cone (exit 0.55 m behind the fairing)
   if (isHi(k)) tube(k, r * 1.01, r * 1.01, 0.35, 0.6, 'dark', { open: true, seg: s }); // window band
   for (const a of [0, PI]) { fin(k, a, r * 0.7, 2.0, 1.8, -1.6, 0.08, 'paint:0,0'); fin(k, a, r + 1.9, 0.08, 1.4, -2.6, 0.06, 'paint:0,0'); }
   for (const a of [PI / 2 - 0.25, PI / 2 + 0.25]) fin(k, a, r * 0.6, 1.1, 1.2, -2.4, 0.05, 'paint:0,0');
-  return flat(kb(k, 'spaceplane', 2.6), 1.9); }
+  const g = flat(kb(k, 'spaceplane', 2.6), 1.9); g.userData.nozzles = (g.userData.nozzles || []).map(([x, y, z, re]) => [x, Math.round((z + 1.9) * 100) / 100, -y, re]); return g; } // nozzles into the rotated group's frame (flat(): local y -> -z, z -> y + h)
 function carrier(d) { const k = new Kit(d), s = isHi(k) ? 16 : 6;
   tube(k, 0.6, 0.6, 5.5, -2.5, 'paint:0,0', { seg: s }); lathe(k, PR.ogive(0.6, 1.5, 3.0, isHi(k) ? 8 : 4, 0.05), 'dark', { seg: s });
   for (const a of [0, PI]) fin(k, a, 0.55, 12.0, 2.0, 0.0, 0.14, 'paint:0,0');

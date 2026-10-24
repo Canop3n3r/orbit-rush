@@ -13,8 +13,8 @@ function solids(d, name, pos, r, L, nL) { const k = new Kit(d), seg = isHi(k) ? 
 function polarSlinger(o) { const d = o.detail, R = 1.4, grey = livery(0xb9b4aa), off = R + 0.5 + 0.08;
   const a = stage(d, 's1', { r: R, h: 20.0, y0: 2.0, eng: [[1, 0, 0.8, 1.8]], key: grey, skirt: R * 1.04, bands: [[19.2, 0.8], [8, 0.3, 'paint:0,0']], decalY: 12 });
   const s = solids(d, 'srbA', ringPos([[6, off, PI / 6]]), 0.5, 12.0, 1.6);
-  const b = stage(d, 's2', { r: R, h: 10.8, y0: a.userData.top, eng: [[1, 0, 0.6, 1.5]], drop: 1.2, bands: [[0, 0.8], [10.0, 0.4]] });
-  const c = stage(d, 's3', { r: 1.0, r1: 1.0, h: 3.6, y0: b.userData.top, key: grey, skirt: R, bands: [] });
+  const b = stage(d, 's2', { r: R, h: 10.8, y0: a.userData.top, eng: [[2, 0.4, 0.42, 1.4, PI / 2]], drop: 1.2, bands: [[0, 0.8], [10.0, 0.4]] });
+  const c = stage(d, 's3', { r: 1.0, r1: 1.0, h: 3.6, y0: b.userData.top, eng: [[2, 0.3, 0.14, 0.5]], drop: 0.4, key: grey, skirt: R, bands: [] }); // unit 4b: s3 carries its two roster engines (in the interstage, like s4)
   const e = stage(d, 's4', { r: 0.95, h: 2.4, y0: c.userData.top, eng: [[2, 0.35, 0.15, 0.5]], drop: 0.4, ext: true, key: 'silver' });
   const f = fairing(d, 'payload', { r: 1.6, rb: 1.0, cyl: 2.6, nose: 3.0, y0: e.userData.top });
   const g = group('polar-slinger', [a, s, b, c, e, f], f.userData.top); if (o.plume) g.add(plume(0, [[0, 0]], 1.0, 35 * o.plume)); return g; }
