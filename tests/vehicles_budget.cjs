@@ -31,6 +31,8 @@ const BUD = { ...Object.fromEntries(['dark-dart'].map(id => [id, { hi: [30000, 3
   ...Object.fromEntries(['vulcanis-2s','vulcanis-4l','vulcanis-6l'].map(id => [id, { hi: [30000, 32], mid: [8000, 26], lo: [4000, 20] }])), ...Object.fromEntries(['atlantean-v-401','atlantean-v-411','atlantean-v-421','atlantean-v-431','atlantean-v-501','atlantean-v-511','atlantean-v-521','atlantean-v-531','atlantean-v-541','atlantean-v-551','atlantean-v-401-l','atlantean-v-501-m','atlantean-v-551-l','atlantean-v-541-m','deltoid-4-m','deltoid-4-m42','deltoid-4-m52','deltoid-4-m54','deltoid-4-heavy'].map(id => [id, { hi: [30000, 40], mid: [8000, 30], lo: [4000, 24] }])) }; // co-civspace-1: tier S phone budget = mid <= 8k tris
 // rockets-pass-1: the payload mesh every launch vehicle now carries under its fairing (+1..2 meshes, ~350-700 tris) lifts these caps
 for (const [id, d, k, v] of [["sparrow-1", "hi", 1, 17], ["heron-9-crew", "lo", 1, 13], ["jade-lantern-5", "mid", 1, 27], ["rodnik", "lo", 0, 4500], ["rodnik-2", "lo", 0, 4250], ["taiga-a5", "mid", 1, 28], ["atlantean-v-551-l", "lo", 0, 4250], ["atlantean-v-551", "lo", 0, 4250]]) BUD[id][d][k] = v;
+// rockets-pass-1 unit 4: hi-detail soot/weld/RCS detail on the shared stage builder (mid and lo are unchanged)
+for (const [id, d, k, v] of [['jade-lantern-3b', 'hi', 1, 34], ['taiga-a5', 'hi', 1, 34], ['mogutny', 'hi', 0, 34000]]) BUD[id][d][k] = v;
 // space-center sites (art-sites-N): gfx/sites/budget.html discovers every site_<id>.js. Phone mid <= 8k tris / 40 meshes per complex.
 // SITES_ONLY=1 runs only this block (skips the vehicle probe page, e.g. while it is broken or too slow on a loaded box).
 async function sitesBudget(ok, errs) {

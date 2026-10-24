@@ -53,6 +53,12 @@ export function bell(ext = false) { return once('bell' + ext, () => { const [c, 
 // glass-like dark windows / solar cells
 export function solarCells() { return once('solar', () => { const [c, x] = canvas(256, 128); x.fillStyle = '#0d1630'; x.fillRect(0, 0, 256, 128); x.strokeStyle = '#2a3c6a'; x.lineWidth = 1;
   for (let i = 0; i <= 256; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 128); x.stroke(); } for (let j = 0; j <= 128; j += 16) { x.beginPath(); x.moveTo(0, j); x.lineTo(256, j); x.stroke(); } return fin(c); }); }
+// engine soot (alpha) for the foot of a stage: v = 0 bottom (dense, streaked) fading to nothing at the top
+export function soot() { return once('soot', () => { const [c, x] = canvas(256, 512), r = rng(23); x.fillStyle = '#000'; x.fillRect(0, 0, 256, 512);
+  const g = x.createLinearGradient(0, 512, 0, 0); g.addColorStop(0, 'rgba(255,255,255,0.85)'); g.addColorStop(0.35, 'rgba(255,255,255,0.45)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 512);
+  for (let i = 0; i < 120; i++) { const X = r() * 256, L = 80 + r() * 320, sg = x.createLinearGradient(0, 512, 0, 512 - L); sg.addColorStop(0, `rgba(255,255,255,${0.25 * r()})`); sg.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = sg; x.fillRect(X, 512 - L, 2 + r() * 6, L); }
+  for (let i = 0; i < 500; i++) { x.fillStyle = `rgba(0,0,0,${r() * 0.25})`; x.fillRect(r() * 256, r() * 512, 1 + r() * 3, 1 + r() * 8); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; return t; }); }
 // frost bands (alpha) for a cryogenic tank barrel: v = 0 bottom .. 1 top; bands = [[v0, v1], ...]
 export function frost(bands = [[0.04, 0.5], [0.56, 0.86]]) { return once('frost' + bands, () => { const [c, x] = canvas(256, 1024), r = rng(11); x.fillStyle = '#000'; x.fillRect(0, 0, 256, 1024);
   // fine, even cryo frost: soft-edged bands, many thin vertical runs (no coarse dark blotches)
