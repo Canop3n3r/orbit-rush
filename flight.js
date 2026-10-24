@@ -1,10 +1,10 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.8n';
-import * as C from './physics/patched.js?v=f5.8n';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.8n';
-import { designReusable } from './vehicles/reusable.js?v=f5.8n';
+import * as P from './physics.js?v=f5.8p';
+import * as C from './physics/patched.js?v=f5.8p';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.8p';
+import { designReusable } from './vehicles/reusable.js?v=f5.8p';
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -493,13 +493,13 @@ export class Flight {
     if (on && this.ret) { this.ret.auto = true; if (!quiet) this.toast('AUTO is flying the return (deorbit, reentry, parachutes)', '#9cc3ff'); return; }
     if (!on && this.ret) { if (this.ret.auto && !quiet) this.toast('You have the capsule — parachutes stay armed (F hands it back)', '#9cc3ff'); this.ret.auto = false; this.v.steerDir = null; this.autoOn = false; if (this.v.auto) this.v.auto = false; return; }
     if (this.v.auto && !on) this.v.auto = false;
-    this.autoOn = on; if (!on) this.v.steerDir = null;
+    this.autoOn = on; if (!on) { this.v.steerDir = null; this.v.sasHold = null; this.v.holdAtt = null; }
     if (on) { this.v.guid = null; this.v.holdAtt = null; this.v.sasHold = null; if (this.flyingBooster()) this.v.auto = true; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; } // f5.6u: AUTO re-entry re-plans from the current state (drops the navball hold)
     if (!quiet) this.toast(on ? 'AUTO on: gravity turn, Max-Q throttling, coast, circularize' : 'Manual flight (SAS ' + P.SAS_LABEL[this.v.sas] + ')', '#9cc3ff');
   }
   setSAS(mode) { const v = this.v; v.sas = mode; v.sasHold = null; v.holdAtt = null; if (this.autoOn && mode !== 'stab') this.setAuto(false, true); if (this.ret && this.ret.auto) this.setAuto(false); this.toast('SAS: ' + P.SAS_LABEL[mode], '#9cc3ff'); }
   toggleRCS() { const v = this.v; v.rcsOn = !v.rcsOn; const has = v.stages.slice(v.cur).some(s => s.parts.some(p => p.kind === 'rcs')); this.toast(v.rcsOn ? (has ? `RCS on (${(v.rcsFuel * 1000).toFixed(0)} kg monoprop)` : 'RCS on — but this rocket has no RCS ring') : 'RCS off', '#9cc3ff'); }
-  takeOverUpper() { const v = this.v; if (v.auto) { v.auto = false; this.autoOn = false; v.steerDir = null; v.ut = v.throttle; this.toast('You have the upper stage', '#9cc3ff'); } }
+  takeOverUpper() { const v = this.v; if (v.auto) { v.auto = false; this.autoOn = false; v.steerDir = null; v.sasHold = null; v.holdAtt = null; v.ut = v.throttle; this.toast('You have the upper stage', '#9cc3ff'); } }
   flyingBooster() { const b = this.booster; return !!(b && b.state === 'flying' && b.manual); }
   toggleBooster() {
     const b = this.booster;
