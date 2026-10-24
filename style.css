@@ -728,7 +728,7 @@ body.touch #navRd{flex-direction:column;gap:0;padding:2px 7px;border-radius:8px;
   #endBody .endCareer{font:600 12px/1.35 var(--ui,system-ui);padding:5px 8px;margin:0 0 4px}#endBody .ecWal{display:none}
 }
 /* f5 lean end card: one line + Retry + Next + ⋯ (details sheet); flight HUD hidden under it */
-#end.lean #endBody,#end.lean .endShare,#end.lean #againBtn,#end.lean #contBtn,#end.lean #replayBtn{display:none!important}
+#end.lean #endBody,#end.lean .endShare,#end.lean #replayBtn{display:none!important}#end.lean:not(.more) #relaunchBtn.noRetry{display:none!important}
 #end.lean.more #endBody{display:block!important}#end.lean.more .endShare{display:flex!important}#end.lean.more #againBtn{display:inline-flex!important}
 #end.lean{width:min(420px,94vw)!important}
 #end.lean h2{font-size:19px!important;margin:0 0 4px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1425,3 +1425,7 @@ body.touch #build .bTabs button{min-height:40px!important}
 /* f5.8l: desktop ⋯ ↶ ↷ are ≥40 px */
 body:not(.touch) > .bmPanel #undoBtn,body:not(.touch) > .bmPanel #redoBtn{min-width:40px!important;width:auto!important;height:40px!important;min-height:40px!important}
 body:not(.touch) #mMenu #mClose,body:not(.touch) #dMenu #dClose{min-width:40px!important;min-height:40px!important;width:40px!important;height:40px!important}
+
+/* f5.8m: STAGE goes calm and grey once nothing is left to stage / release (no flash, no orange) */
+body.noStage #mStage,body.noStage #dStage{background:#3a4152!important;border-color:#5a6378!important;color:#9aa5b8!important;opacity:.55!important;filter:grayscale(1)!important;box-shadow:none!important;animation:none!important}
+#end.lean .eStars{display:none}

@@ -1,5 +1,5 @@
 // f5.4 sandbox launch-from-anywhere picker (Home 📍 button): world → preset base or tap a spot on the map.
-import { SITES, GAS } from '../sites.js?v=f5.8l';
+import { SITES, GAS } from '../sites.js?v=f5.8m';
 const KEY = 'orbitRush.site.v1';
 export function loadSite() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && s.body ? s : null; } catch (e) { return null; } }
 export function saveSite(s) { try { s ? localStorage.setItem(KEY, JSON.stringify(s)) : localStorage.removeItem(KEY); } catch (e) { } }
@@ -32,6 +32,11 @@ export function createSitePicker({ BODIES, onPick }) {
   cv.onclick = e => { const r = cv.getBoundingClientRect(), lon = ((e.clientX - r.left) / r.width) * 360 - 180, lat = 90 - ((e.clientY - r.top) / r.height) * 180;
     choose({ body, id: 'spot', name: `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'} ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}`, lat: +lat.toFixed(3), lon: +lon.toFixed(3) }); };
   q('.spX').onclick = () => show(false); q('.spMore').onclick = () => { const m = el.classList.toggle('more'); q('.spMore').textContent = m ? 'Less' : 'More…'; q('.spMore').setAttribute('aria-expanded', m); }; 
-  const show = v => { if (v) { el.classList.remove('more'); { const sel = loadSite(); el.classList.toggle('worlds', !!sel && order.indexOf(sel.body) >= 3); } q('.spMore').textContent = 'More…'; pick = loadSite(); body = pick ? pick.body : 'earth'; render(); } el.classList.toggle('hidden', !v); };
+  const anchor = () => { /* f5.8m (QA): on desktop the sheet opens right at the 📍 button, not in the far corner */
+    const box = q('.spBox'), b = document.getElementById('hSite'); if (!box) return; for (const k of ['position', 'left', 'top', 'bottom', 'right', 'margin']) box.style.removeProperty(k);
+    if (!b || !b.offsetWidth || !matchMedia('(min-width:900px) and (min-height:501px)').matches) return; const r = b.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight, im = 'important';
+    box.style.setProperty('position', 'fixed', im); box.style.setProperty('margin', '0', im); box.style.setProperty('left', Math.round(Math.max(8, Math.min(r.left, innerWidth - w - 8))) + 'px', im);
+    if (r.top > innerHeight / 2) { box.style.setProperty('top', 'auto', im); box.style.setProperty('bottom', Math.round(Math.max(8, innerHeight - r.top + 8)) + 'px', im); } else { box.style.setProperty('top', Math.round(Math.min(r.bottom + 8, innerHeight - h - 8)) + 'px', im); box.style.setProperty('bottom', 'auto', im); } };
+  const show = v => { if (v) { el.classList.remove('more'); { const sel = loadSite(); el.classList.toggle('worlds', !!sel && order.indexOf(sel.body) >= 3); } q('.spMore').textContent = 'More…'; pick = loadSite(); body = pick ? pick.body : 'earth'; render(); } el.classList.toggle('hidden', !v); if (v) setTimeout(() => anchor(), 0); };
   return { el, show, choose, get on() { return !el.classList.contains('hidden'); } };
 }
