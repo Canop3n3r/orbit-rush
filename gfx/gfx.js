@@ -5,6 +5,11 @@ import * as THREE from 'three/webgpu';
 import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass, attribute, normalView, positionView, sign } from 'three/tsl';
 import { oceanLook, oceanDisplace, oceanTime } from './ocean.js?v=f5.9-0';
 export { oceanTime };
+import { TILE_FADE } from './tilefade.js?v=f5.9-0';
+export { TILE_FADE, tileAlpha, tileAltAlpha, tileRimAlpha } from './tilefade.js?v=f5.9-0';
+export const TILE_LAND_GAIN = 2.4; // mean of (0.8+0.4 fbm)*2.4 in main.js updateTile
+export const padLandU = uniform(new THREE.Vector3(0.03, 0.043, 0.02)); // linear rgb of the inland ground around the pad (main.js sets it once the map is read)
+export const tileFadeU = uniform(new THREE.Vector4(0, 0, 1, 0)); // x: camera altitude (m), y: altitude alpha (main.js sets both every frame)
 export { GFX, GFX_ORDER } from './presets.js?v=f5.9-0';
 import { GFX } from './presets.js?v=f5.9-0';
 import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5.9-0';
@@ -43,7 +48,13 @@ export function waterLook(dayRgb, w, ndl) {
 // sunPos: a vec3 uniform in world space (far away in flight; the Sun mesh position on the map)
 export function earthMaterial(q, sunPos) {
   const m = new THREE.MeshStandardNodeMaterial();
-  const day = texture(tex('earth_day', q)), night = texture(tex('earth_night', q)), spec = texture(tex('earth_spec', q, false)).r;
+  const day0 = texture(tex('earth_day', q)), night = texture(tex('earth_night', q)), spec0 = texture(tex('earth_spec', q, false)).r;
+  // f5.9 terrain: the globe shows the SAME launch-site coast/land as the ground tile (main.js updateTile): within 30 km of the pad (smooth 6->30 km fade) the 1k map's
+  // coastal texel (which paints the pad as open sea) is replaced by the shaped coast 1.5 km east of the pad and the surrounding inland land colour. Same formulas, same constants.
+  const R0 = 6378137, dxm = uv().x.sub(0.27610).mul(2 * Math.PI * R0 * Math.cos(28.6084 * Math.PI / 180)), dym = uv().y.sub(0.65894).mul(Math.PI * R0);
+  const padK = float(1).sub(smoothstep(6000.0, 30000.0, dxm.mul(dxm).add(dym.mul(dym)).sqrt())), coast = float(1500).add(max(dym, 0.0).mul(0.03));
+  const wC = saturate(dxm.sub(coast).div(300).add(0.5)), tgt = wC.mul(0.9).add(select(wC.greaterThan(0.5), float(0.1), float(0))), landK = padK.mul(select(wC.lessThan(0.5), float(1), float(0)));
+  const spec = mix(spec0, tgt, padK), day = { rgb: mix(day0.rgb, padLandU, landK) };
   const L = normalize(sunPos.sub(positionWorld)), ndl = dot(normalWorld, L), Vv = normalize(cameraPosition.sub(positionWorld));
   const fres = pow(float(1).sub(saturate(dot(normalWorld, Vv))), 2.5);
   const dayK = smoothstep(-0.2, 0.35, ndl), nightK = smoothstep(0.1, -0.2, ndl);
@@ -137,7 +148,7 @@ export const BODY_TEX = { mercury: 'mercury', venus: 'venus', moon: 'moon', mars
 // km-scale noise terms (±0.3) on the 1k mask's 40 km coastal ramp, so every vertex with a mixed mask became a noise-
 // carved dark "scrub" blot in open water: the speckle seen at ~2 km. Now the coastline is the mask's 0.5 contour with a
 // small multi-km wobble, and land carved out of the sea is beach/scrub land colour, not a dark slab.
-export function tileMaterial(sunPos = uniform(new THREE.Vector3(1e11, 0, 0)), tier = 'med') {
+export function tileMaterial(sunPos = uniform(new THREE.Vector3(1e11, 0, 0)), tier = 'med', handoff = false) {
   const m = new THREE.MeshStandardNodeMaterial(); // f3: no vertexColors flag: colorNode already reads the colour attribute (the flag multiplied it in again: vc^2, near-black ground and sea)
   const p = positionLocal, n1 = mx_noise_float(p.mul(0.004)), n2 = mx_noise_float(p.mul(0.05)), n3 = mx_noise_float(p.mul(0.6));
   const d = length(positionWorld), fade = smoothstep(4000.0, 300.0, d);
@@ -145,13 +156,23 @@ export function tileMaterial(sunPos = uniform(new THREE.Vector3(1e11, 0, 0)), ti
   const k = float(1).add(r0.mul(0.28)).add(r1.mul(0.22)).add(r2.mul(0.14)).add(n1.mul(0.16)).add(n2.mul(0.1)).add(n3.mul(0.12).mul(fade));
   const vc = attribute('color', 'vec4').xyz, tint = mix(vec3(0.82, 1.08, 0.72), vec3(1.12, 0.98, 0.78), saturate(r1.mul(0.9).add(0.5)));
   const w0 = attribute('color', 'vec4').w, w = smoothstep(0.47, 0.53, w0.add(r1.mul(0.05)).add(r2.mul(0.015)));
-  const land = mix(vc, vc.mul(tint), saturate(r0.mul(0.6).add(0.55))).mul(k);
+  const farL = smoothstep(10000.0, 50000.0, length(positionWorld.sub(cameraPosition))), land = mix(vc, vc.mul(tint), saturate(r0.mul(0.6).add(0.55))).mul(k).mul(mix(float(1), float(1 / TILE_LAND_GAIN), farL)); // f5.9: updateTile bakes land x~2.4 (near-field punch); with distance it returns to the map's own albedo = the globe's
   const sea = oceanLook({ vc, w0, w, sunPos, tier });
   if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('oceandbg') === '7') { m.colorNode = vec3(0, 0, 0); m.emissiveNode = vec3(w0, w, 1); return m; } // test-only: raw mask, shaped mask
   if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('oceandbg') === '8') { const nw = normalWorld.mul(sign(dot(normalWorld, cameraPosition.sub(positionWorld)).add(1e-4))); m.colorNode = vec3(0, 0, 0); m.emissiveNode = vec3(saturate(dot(nw, normalize(sunPos))), land.x.mul(4), saturate(dot(nw, normalize(positionWorld)))); return m; } // test-only: n.L, land albedo, n.up
   m.colorNode = mix(land, sea.color, w); m.roughnessNode = mix(float(0.95).sub(n2.mul(0.05)), sea.rough, w); m.metalnessNode = float(0);
   const nfv = normalView.mul(sign(dot(normalView, positionView.negate()).add(1e-4))); m.normalNode = mix(nfv, sea.normalView, w); // f3: tile winding gave inward normals -> unlit black ground m.emissiveNode = sea.emissive.mul(w);
+  // f5.9 terrain: with distance the tile takes on the globe's aerial perspective + sea sheen (earthMaterial/waterLook: same terms, same constants), so tile and globe agree in brightness where they meet
+  { const Vf = normalize(cameraPosition.sub(positionWorld)), nW = normalWorld.mul(sign(dot(normalWorld, Vf).add(1e-4))), ndl = dot(nW, normalize(sunPos.sub(positionWorld))), dayK = smoothstep(-0.2, 0.35, ndl), cv = saturate(dot(nW, Vf));
+    const fr = pow(float(1).sub(cv), 2.5), haze = vec3(0.28, 0.52, 1.0).mul(pow(fr, 1.8)).mul(dayK).mul(0.55), dusk = vec3(1.0, 0.45, 0.15).mul(fr).mul(smoothstep(-0.25, 0.0, ndl).mul(smoothstep(0.3, 0.0, ndl))).mul(0.6);
+    const sheen = vec3(0.10, 0.20, 0.38).mul(pow(float(1).sub(cv), 3.0).mul(0.8).add(0.12)).mul(dayK).mul(w), far = smoothstep(6000.0, 50000.0, length(positionWorld.sub(cameraPosition)));
+    m.emissiveNode = haze.add(dusk).add(sheen).mul(far); }
   const disp = oceanDisplace(w0, tier); if (disp) m.positionNode = disp;
+  // f5.9 terrain: fade=true builds the hand-off variant, used above ~TILE_FADE.swap m: it dissolves into the globe by ground range from the nadir and by
+  // altitude (tilefade.js). It is a true blend (no dither grain) drawn right after the opaque pass and before clouds/plumes. Below that the opaque variant is used
+  // (cheaper: it hides the globe behind it) because the rim is at or beyond the horizon there.
+  if (handoff) { const dW = positionWorld.sub(cameraPosition), dh = max(dW.dot(dW).sub(tileFadeU.x.mul(tileFadeU.x)), 0.0).sqrt();
+    m.opacityNode = float(1).sub(smoothstep(float(TILE_FADE.r0), float(TILE_FADE.r1), dh)).mul(tileFadeU.y); m.transparent = true; m.depthWrite = true; }
   return m;
 }
 // post: HDR → bloom → tone map (high preset only; otherwise renderer.render + tone mapping)
