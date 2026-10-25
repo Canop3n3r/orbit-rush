@@ -107,3 +107,17 @@ export function fillLight(day, k, sunK, phone = false) {
 // fx-4: plume shells fade by |n·v|^k at their silhouettes (fun/plumemat.js runs this on the GPU)
 export const SOFT_K = { glow: 2.2, plume: 1.4, bell: 2.6, core: 0.8 };
 export const edgeFade = (nDotV, k) => Math.pow(Math.min(1, Math.abs(nDotV)), k);
+
+// plume-soft-1 (QA f5.8r/v): the vacuum plume is one soft flaring shell, not a hard cone with a starburst.
+//   radialK: facing fade exponent (edges dissolve)   axialK: alpha falls to 0 at the far end (length falloff)   ramp: fraction of the length it fades in over at the nozzle rim
+//   flare: exit radius -> far-end radius   hard: 0 = nothing draws as a hard edge
+export const VAC_PLUME = { radialK: 2.4, axialK: 1.6, ramp: 0.05, flare: 1.9, hard: 0 };
+// how far into vacuum-mode rendering a plume is (0 = sea-level cones, 1 = the soft vacuum shell) from the plumeLook vac factor
+export const vacBlend = vac => smooth(0.2, 0.75, vac);
+// above the atmosphere the exhaust gets wider and fainter: altK 0 at 40 km .. 1 at 120 km
+export const vacAlt = h => smooth(40000, 120000, h);
+export const vacWidth = (altK, thrustK = 1) => (1 + 1.2 * altK) * Math.min(1.4, Math.max(0.8, thrustK));
+export const vacOpacity = (altK, bright = 1, k = 1) => Math.min(0.8, 0.62 * bright * Math.min(1.2, k) * (1 - 0.6 * altK));
+// Exhaust smoke caps (Heron Heavy S2 filled the screen): particle width and growth are bounded and the smoke thins out with height. h in metres.
+export const smokeWidthCap = h => (h < 1500 ? 1e9 : 10 + 30 * (1 - smooth(4000, 30000, h)));
+export const smokeFade = h => 1 - smooth(14000, 40000, h);

@@ -25,7 +25,7 @@ let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and 
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // f5.7q (Aaron): every HUD/pane/card reads the Units setting
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight } from './fxmap.js?v=f5.8x';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.8x';
 import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.8x';
 import { guardToasts } from './fun/toastzone.js?v=f5.8x';
 import * as GX from './gfx/gfx.js?v=f5.8x';
@@ -37,7 +37,7 @@ import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.8x';
 import { createAudio } from './fun/audio.js?v=f5.8x';
 import { createCompact } from './fun/compact.js?v=f5.8x';
 import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.8x';
-import { softPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.8x';
+import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.8x';
 import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.8x';
 import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.8x';
 import * as UN from './fun/units.js?v=f5.8x';
@@ -391,7 +391,8 @@ const M = {
   plume: softPlumeMaterial({ color: 0xffb066, opacity: 0.85, k: SOFT_K.plume }), // fx-4: soft-edged shells (fun/plumemat.js)
   plumeGlow: softPlumeMaterial({ color: 0xff7a2a, opacity: 0.25, k: SOFT_K.glow }),
   plumeBell: softPlumeMaterial({ color: 0xffb27a, opacity: 0, k: SOFT_K.bell, vertexColors: true }),
-  plumeSprite: new THREE.SpriteMaterial({ map: GX.glowTexture(), color: new THREE.Color(5, 3.2, 1.6), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
+  plumeVac: vacPlumeMaterial({ color: 0xc4d8ff }), // plume-soft-1: the soft vacuum shell
+  plumeSprite: new THREE.SpriteMaterial({ map: GX.softGlowTexture(), color: new THREE.Color(5, 3.2, 1.6), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
   plumeCore: softPlumeMaterial({ color: 0xbfe0ff, opacity: 0.9, k: SOFT_K.core }), // fx-5: soft core too (thin hard 'needles' on far boosters)
   diamond: new THREE.MeshBasicMaterial({ color: 0xfff2d0, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }),
   canopy: new THREE.MeshStandardMaterial({ color: 0xff7a2a, roughness: 0.8, side: THREE.DoubleSide }),
@@ -415,12 +416,14 @@ function addFins(g, y, chord, r) {
 // hydrolox near-clear with Mach diamonds, hypergolic pale orange, solid bright with heavy smoke
 const PLUME_MATS = {};
 function plumeMats(prop = 'kerolox') { if (PLUME_MATS[prop]) return PLUME_MATS[prop]; const L = PLOOK[prop] || PLOOK.kerolox, c = m => { const x = m.clone(); x.userData = { ...m.userData, cached: true }; return x; };
-  const o = { plume: c(M.plume), plumeGlow: c(M.plumeGlow), plumeCore: c(M.plumeCore), plumeBell: c(M.plumeBell), plumeSprite: c(M.plumeSprite), diamond: c(M.diamond), look: L, prop };
-  o.plume.color.setHex(L.plume); o.plumeGlow.color.setHex(L.glow); o.plumeCore.color.setHex(L.core); o.plumeBell.color.setHex(L.bell); o.plumeSprite.color.setRGB(...L.sprite); if (prop === 'hydrolox') o.diamond.color.setHex(0xe8f0ff);
+  const o = { plume: c(M.plume), plumeGlow: c(M.plumeGlow), plumeCore: c(M.plumeCore), plumeBell: c(M.plumeBell), plumeSprite: c(M.plumeSprite), plumeVac: c(M.plumeVac), diamond: c(M.diamond), look: L, prop };
+  o.plume.color.setHex(L.plume); o.plumeGlow.color.setHex(L.glow); o.plumeCore.color.setHex(L.core); o.plumeBell.color.setHex(L.bell); o.plumeSprite.color.setRGB(...L.sprite); o.plumeVac.color.setHex(L.bell); if (prop === 'hydrolox') o.diamond.color.setHex(0xe8f0ff);
   return (PLUME_MATS[prop] = o); }
+let VAC_GEO = null; // one unit flaring shell shared by every plume (radius 1 at the bell exit, VAC_PLUME.flare at the far end, y 0 .. -1; uv.y 0 .. 1 downstream)
+const vacGeo = () => VAC_GEO || (VAC_GEO = (() => { const pts = []; for (let i = 0; i <= 14; i++) { const t = i / 14; pts.push(new THREE.Vector2(0.97 + (VAC_PLUME.flare - 0.97) * Math.pow(t, 0.75), -t)); } return new THREE.LatheGeometry(pts, 40); })());
 function makePlume(w, prop = 'kerolox', lite = false) { // f1 layered exhaust: outer glow, mid flame, hot core, vacuum bell, shock diamonds, nozzle glow
   const PM = plumeMats(prop), g = new THREE.Group(), cone = (rw, mat, seg = 24) => { const m = new THREE.Mesh(new THREE.ConeGeometry(rw, 1, seg, 1, true), mat); m.rotation.x = Math.PI; m.position.y = -0.5; g.add(m); return m; };
-  if (lite) { const outer = cone(w, PM.plume, 12), core = cone(w * 0.5, PM.plumeCore, 8), noz = new THREE.Sprite(PM.plumeSprite); noz.position.y = -0.3; g.add(noz); g.userData = { w, outer, core, noz, lite: true, mats: PM }; g.visible = false; return g; }
+  if (lite) { const outer = cone(w, PM.plume, 12), core = cone(w * 0.5, PM.plumeCore, 8), vacm = new THREE.Mesh(vacGeo(), PM.plumeVac), noz = new THREE.Sprite(PM.plumeSprite); vacm.visible = false; vacm.renderOrder = 2; g.add(vacm); noz.position.y = -0.3; g.add(noz); g.userData = { w, outer, core, vacm, noz, lite: true, mats: PM }; g.visible = false; return g; }
   const glow = cone(w, PM.plumeGlow), outer = cone(w, PM.plume), core = cone(w * 0.5, PM.plumeCore, 16);
   // underexpanded bell: a lathe that flares from the nozzle rim into a wide, soft "jellyfish" (scaled by plumeLook().bellW)
   const pts = []; for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push(new THREE.Vector2(w * (0.9 + Math.sin(t * Math.PI * 0.62) * 1.0 + t * 0.15), -t)); }
@@ -429,8 +432,9 @@ function makePlume(w, prop = 'kerolox', lite = false) { // f1 layered exhaust: o
   bg.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const bell = new THREE.Mesh(bg, PM.plumeBell); g.add(bell);
   const dia = new THREE.Group(); for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(w * 0.32, 12, 8), PM.diamond); m.scale.y = 0.45; dia.add(m); }
+  const vacm = new THREE.Mesh(vacGeo(), PM.plumeVac); vacm.visible = false; vacm.renderOrder = 2; g.add(vacm); // plume-soft-1
   const noz = new THREE.Sprite(PM.plumeSprite); noz.position.y = -0.3; g.add(noz);
-  g.add(dia); g.userData = { dia, w, glow, outer, core, bell, noz, mats: PM, env: 1 };
+  g.add(dia); g.userData = { dia, w, glow, outer, core, bell, vacm, noz, mats: PM, env: 1 };
   g.visible = false; return g;
 }
 // Parachute canopies (drogues, mains), drawn downstream of the canister along the airflow.
@@ -1510,6 +1514,12 @@ function emit(veh, group, dt, bottom, dir) {
   const hiF = 1 - 0.92 * Math.min(1, Math.max(0, (h - 25000) / 15000)); // f4: above ~40 km the vacuum plume is just a faint glow
   const kk = LK.k; PM.plume.opacity = Math.min(1, 0.72 * fl * pl.bright * (1 - 0.45 * pl.vac) * hiF * kk); PM.plumeGlow.opacity = Math.min(1, 0.42 * pl.bright * fl * hiF * kk * (1 - 0.9 * pl.vac)); PM.plume.opacity *= 1 - 0.8 * pl.vac; // fx-1: no dark-red/maroon cone in vacuum: a clean core + soft bell PM.plumeCore.opacity = Math.min(1, 0.87 * fl * (0.35 + 0.65 * hiF) * Math.max(0.5, kk));
   PM.plumeBell.opacity = 0.5 * pl.bell * fl * Math.max(0.3, hiF) * Math.max(0.6, kk) * (LK.k < 0.5 ? 1 : 0.6); PM.plumeSprite.opacity = Math.min(1, 0.9 * pl.bright * (0.4 + 0.6 * hiF) * Math.max(0.6, kk));
+  { const vk = vacBlend(pl.vac), ck = 1 - vk, altK = vacAlt(h), vm = ud.vacm; // plume-soft-1: in thin air the cones hand over to one soft flaring shell that starts at the bell exit, widens and fades with altitude
+    PM.plume.opacity *= ck; PM.plumeGlow.opacity *= ck; PM.plumeCore.opacity *= ck; PM.plumeBell.opacity *= ck; PM.plumeSprite.opacity *= 1 - 0.55 * vk;
+    PM.plumeVac.opacity = vk > 0.01 ? vacOpacity(altK, pl.bright * fl, LK.k) * vk : 0;
+    const vshow = P0 => { const u = P0.userData, m = u.vacm; if (!m) return; const on = vk > 0.01; m.visible = on; const cones = ck > 0.02; if (u.outer) u.outer.visible = u.core.visible = cones && !u.noCore; if (u.glow) u.glow.visible = cones; if (u.bell) u.bell.visible = u.bell.visible && ck > 0.02;
+      if (on) { const wv = u.w * vacWidth(altK, Math.sqrt(u.ts || 1)) * Math.sqrt(u.env || 1), lv = len * (1.25 + 0.7 * altK) * (u.noCore ? 0.8 : 1); m.scale.set(wv, lv, wv); } };
+    vshow(plume); if (ex) for (const e of ex) vshow(e); }
   const dia = ud.dia; dia.visible = QUALITY[fx.q].diamonds && ps.diamonds > 0.02;
   if (dia.visible) { PM.diamond.opacity = Math.min(1, ps.diamonds * 0.7 * fl * LK.dia * (ud.vac ? 0.35 : 1));
     dia.children.forEach((m, i) => { m.position.y = -(1.1 + i * 1.35) * w0 * (1 + 0.2 * thr); m.scale.set(1 - i * 0.12, 0.6, 1 - i * 0.12); }); }
@@ -1517,18 +1527,18 @@ function emit(veh, group, dt, bottom, dir) {
   // warm and lit near the flame, drifting with the wind, thinning out as the air does
   // f3: one clean continuous trail straight behind the nozzle: hot and engine-lit at the flame, white condensation in
   // dense humid low air when transonic or at high thrust, widening and fading with altitude. No random kicks, no spiral.
-  const sm = Math.min(1, pl.smoke * LK.smoke), tr = group.userData.trail || (group.userData.trail = { last: null });
+  const sm = Math.min(1, pl.smoke * LK.smoke) * (0.35 + 0.65 * smokeFade(h)), wCap = smokeWidthCap(h), tr = group.userData.trail || (group.userData.trail = { last: null });
   const Mach = veh.tel && veh.tel.mach || 0, hum = Math.max(0, 1 - h / 12000), cond = hum * Math.min(1, Math.max(Mach > 0.7 ? (Mach - 0.7) / 0.4 : 0, thr > 0.6 ? (thr - 0.6) * 1.5 : 0) * (Mach < 2.2 ? 1 : 0.3));
   const vacW = thinAir(); // f5.4: airless worlds (Moon...): no exhaust smoke/condensation, just the flame
   if (sm > 0.03 && h < 40000 && !vacW) { // f4.1: no smoke/condensation above 40 km
     const vAir = V.sub(veh.v, siteVel(veh)), sp0 = V.len(vAir), back = sp0 > 30 ? V.scale(vAir, -1 / sp0) : V.scale(dir, -1);
     const at = V.addS(bottom, back, len * 0.5), lw = tr.last && V.addS(tr.last, siteVel(veh), dt), last = lw && V.len(V.sub(at, lw)) < 400 ? lw : V.addS(at, vAir, -dt); // the previous point rode the rotating air for dt (else: a sawtooth/corkscrew)
-    const seg = V.sub(at, last), dist = V.len(seg), wid = (3 + 5 * sm) * (1 + h / 9000) * (1 + 0.6 * cond) * (LK.smoke > 2 ? 1.6 : 1) * Math.min(2, Math.sqrt(env)), N = Math.min(TOUCH ? 10 : 18, Math.ceil(dist / Math.max(1.5, wid * 0.45)) + 1), sz = Math.max(wid, dist / N * 1.6);
+    const seg = V.sub(at, last), dist = V.len(seg), wid = Math.min(wCap, (3 + 5 * sm) * (1 + h / 9000) * (1 + 0.6 * cond) * (LK.smoke > 2 ? 1.6 : 1) * Math.min(2, Math.sqrt(env))), N = Math.min(TOUCH ? 10 : 18, Math.ceil(dist / Math.max(1.5, wid * 0.45)) + 1), sz = Math.min(wCap * 1.5, Math.max(wid, dist / N * 1.6)); // plume-soft-1: bounded size, so one stage's smoke cannot fill the screen
     tr.rate = (tr.rate || 60) * 0.9 + 0.1 * N / Math.max(dt / SIM_SPEED, 1e-3); const lifeK = Math.min(1, smoke.n * 0.85 / (tr.rate * 9));
     const wind = siteVel(veh), ground = h < 60 ? 1 : 0, soot = LK.soot && cond <= 0.3, cA = cond > 0.3 ? 0xf6f8fb : soot ? 0x9a9690 : 0xe4e6ea, cB = cond > 0.3 ? 0xdfe6ee : soot ? 0x6e6a66 : 0xb9bfc8; // kerolox: sooty grey
     for (let i = 0; i < N; i++) { const pos = V.addS(V.addS(last, seg, (i + 0.5) / N), wind, -dt); // pre-step: update() moves it by vel·dt this same frame
       const vel = ground ? V.add(wind, [rnd(25), rnd(25), rnd(25)]) : wind; // fx-1: calmer liftoff cloud
-      smoke.spawn(pos, vel, Math.max(1.5, (4 + 3 * cond) * (0.6 + 0.4 * sm) * lifeK * (1 - Math.min(0.6, h / 60000))), sz, wid * (2.6 + 1.4 * cond) * (ground ? groundSmokeK(h) : 1), cond > 0.3 ? cA : 0xffe4c4, cB, 0.35); }
+      smoke.spawn(pos, vel, Math.max(1.5, (4 + 3 * cond) * (0.6 + 0.4 * sm) * lifeK * (1 - Math.min(0.6, h / 60000))), sz, wid * (2.6 + 1.4 * cond) * (ground ? groundSmokeK(h) : 1), cond > 0.3 ? cA : 0xffe4c4, cB, 0.35 * (0.45 + 0.55 * smokeFade(h))); }
   }
   tr.last = sm > 0.03 && h < 40000 && !vacW ? (() => { const va = V.sub(veh.v, siteVel(veh)), s0 = V.len(va); return V.addS(bottom, s0 > 30 ? V.scale(va, -1 / s0) : V.scale(dir, -1), len * 0.5); })() : null;
   const n = h < 40000 && !(F && F.body !== 'earth' && !P.BODIES[F.body].atm) ? Math.round(Math.min(6, Math.ceil(dt * 120)) * flamePuffs(p)) : 0; /* fx-1: no flame puffs in thin air / vacuum (the white puffs) */ /* f5.4d: airless worlds: the plume mesh is the glow, no flame puffs */ // f4.1: in vacuum the plume mesh is the glow; no flame particles (they read as dotted puffs)
