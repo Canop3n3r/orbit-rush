@@ -1,5 +1,5 @@
 // Krasnaya Orbita Bureau, tier B (stage-table generator + hooks): Kometa, four tapered strap-ons with four-chamber engines, waisted core, crew fairing. Pale grey-green.
-import { buildB } from './gen_b.js?v=f5.8w';
+import { buildB } from './gen_b.js?v=f5.8x';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'kometa': 'Kometa'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length
