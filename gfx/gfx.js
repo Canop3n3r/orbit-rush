@@ -107,6 +107,12 @@ export function glowTexture(size = 256) {
   x.globalCompositeOperation = 'lighter'; x.strokeStyle = 'rgba(255,240,220,0.07)'; x.lineWidth = 2; for (let i = 0; i < 4; i++) { const a = i * Math.PI / 4; x.beginPath(); x.moveTo(size / 2 - Math.cos(a) * size / 2, size / 2 - Math.sin(a) * size / 2); x.lineTo(size / 2 + Math.cos(a) * size / 2, size / 2 + Math.sin(a) * size / 2); x.stroke(); }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
+// plume-soft-1: nozzle glow without the hot pin-point and diffraction spikes (a smooth gaussian falloff to nothing at the edge)
+export function softGlowTexture(size = 128) {
+  const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d'), g = x.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  for (let i = 0; i <= 8; i++) { const t = i / 8; g.addColorStop(t, `rgba(255,236,205,${(Math.exp(-t * t * 5) * (1 - t * t * t * t)).toFixed(4)})`); }
+  x.fillStyle = g; x.fillRect(0, 0, size, size); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
 // sky panorama for PBR reflections (original, procedural): blue zenith, bright horizon, warm ground, sun spot
 export function envTexture() {
   const W = 512, H = 256, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
