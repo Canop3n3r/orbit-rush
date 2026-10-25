@@ -134,3 +134,6 @@ Away from Earth the flight view now draws the body you are orbiting (Moon, Mars,
 
 ## f2 + f2h (2026-10-19)
 **Home is a rocket showroom**: nine original prebuilt rockets (Pip sounding rocket, Needle slim orbiter, Swift reusable booster, Heron crew capsule, Bulwark side-booster heavy, Selene Moon rocket + lander, Red Arrow Mars/Venus stack, Colossus 5 m super-heavy, Grasshopper hopper), swipe or arrows, a card with Power / Range / Difficulty bars, one big FLY and one mission/Customize button; Fly · Build · Missions · Atlas, settings behind the gear. Build is its own mode (clone any rocket, ‹ Home to return). Every rocket flies its role in tests/showroom.mjs; Grasshopper hops to 3 km and hoverslams back onto the pad. Also: whole-phrase hints, Ap · T−Ap / SUBORB readout, hull heat glow + plasma sheath, compact Engineer view with a working telemetry sheet.
+
+## License
+MIT, see [LICENSE](LICENSE). Third-party credits are in [CREDITS.md](CREDITS.md).
