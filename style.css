@@ -1502,3 +1502,5 @@ body.touch #build .stageH{flex-wrap:nowrap;gap:4px}body.touch #build .stageH spa
 }
 /* f5.8w (QA f5.8v P2): desktop end card after ⋯ + Flight details is <= 60 % of the height at every size, the details scroll inside */
 @media (min-width:601px) and (min-height:501px){#end.lean.more{max-height:60dvh!important;overflow:hidden!important}#end.lean.more #endBody{min-height:0;overflow-y:auto!important;flex:1 1 auto}#end.lean.more .endMain,#end.lean.more .endShare{flex:none}}
+/* f5.8w (QA f5.8v P2): the grey STAGE is instant (the .15 s button background transition left it orange on a starved frame at the crash) */
+body.noStage #mStage,body.noStage #dStage{transition:none!important}
