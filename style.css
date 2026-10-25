@@ -1486,7 +1486,7 @@ body.touch #build .stageH{flex-wrap:nowrap;gap:4px}body.touch #build .stageH spa
   body.touch #build #stack .prow{min-height:32px!important;padding-top:2px!important;padding-bottom:2px!important;margin:1px 0!important}
 }
 /* f5.8w (QA f5.8v P1): the portrait phone ⋯ panel is a full-width short sheet of two control rows just above the card, next to the ⋯ button (the f5.8v 156 px tower crushed 'Saved designs…' and clipped Save/Delete) */
-@media (max-width:899px) and (orientation:portrait){
+@media (max-width:899px) and (orientation:portrait),(orientation:landscape) and (max-height:500px){
   body > .bmPanel.on.on{display:flex!important;flex-direction:row!important;flex-wrap:wrap;gap:4px!important;row-gap:4px!important;align-content:flex-start;padding:3px 8px!important}
   body > .bmPanel.on .bmG,body > .bmPanel.on .bmG > .bmR{display:contents!important}body > .bmPanel.on .bmG h5{display:none!important}
   body > .bmPanel.on #tplSel{order:1;flex:1 1 110px;min-width:0}body > .bmPanel.on #undoBtn{order:2;flex:0 0 44px;min-width:44px}body > .bmPanel.on #redoBtn{order:3;flex:0 0 44px;min-width:44px}
@@ -1508,3 +1508,13 @@ body.noStage #mStage,body.noStage #dStage{transition:none!important}
 body.touch #build .stageH{flex-wrap:wrap;gap:2px 6px}
 body.touch #build .stageH span,body.touch #build .stageH em{flex:0 0 auto;min-width:0;overflow:visible!important;text-overflow:clip;white-space:nowrap;font-size:10.5px}
 body.touch #build .stageH button:first-of-type{margin-left:auto}
+/* f5.8x (QA f5.8w P2): Build panels stop filling the screen. Landscape phone: the Build card is ONE column 35 % of the width (min 280 px) at the left, the ⋯ sheet lives inside that column, so everything open is <= 35 % of the width and the rocket keeps the right 65 %; portrait phone: the expanded card is 45 % of the height and the ⋯ sheet sits inside it */
+@media (orientation:landscape) and (max-height:500px){
+  html body.touch:not(.home) #build.builder:not(.hidden){left:8px!important;right:auto!important;width:max(280px,35vw)!important;max-width:max(280px,35vw)!important}
+  html body.touch:not(.bCol):not(.home) #build.builder:not(.hidden){display:flex!important;flex-direction:column;top:8px!important;bottom:8px!important;height:auto!important;max-height:calc(100dvh - 16px)!important;overflow:hidden!important;gap:4px!important}
+  html body.touch:not(.bCol):not(.home) #build.builder > *{grid-column:auto!important;grid-row:auto!important}
+  html body.touch:not(.bCol):not(.home) #build.builder > .bcols{flex:1 1 auto;min-height:0;overflow-y:auto!important;margin:0!important}
+  html body.touch:not(.home) #build .bTopRow #homeBack{flex:0 0 auto;padding:0 10px!important;min-width:0!important}
+  html body.touch:not(.home) #build .bTopRow #launchBtn{flex:1 1 0;padding:0 8px!important;min-width:0}
+}
+@media (orientation:portrait){html body.touch:not(.bCol):not(.home) #build.builder{height:45dvh!important;max-height:45dvh!important}}
