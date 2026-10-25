@@ -213,13 +213,14 @@ async function UPPERTAKE(br, phone, W, H, vp, rows, perrs) {
       else { await p4.mouse.move(r.x, y0); await p4.mouse.down(); await adv(0.05); await thr(); for (let i = 1; i <= 8; i++) { await p4.mouse.move(r.x, y0 + (y1 - y0) * i / 8); await adv(0.05); await thr(); } await p4.mouse.up(); }
       let mx = 0; for (let k = 0; k < 6; k++) { await adv(0.5); const u = await thr(); mx = Math.max(mx, Math.abs(u.p - base1)); } const fin = await ev4(UP);
       rows.push({ vp, screen: 'flight', metric: 'upper_thr_drag_pitch', val: +mx.toFixed(1), max: 5, ok: mx <= 5 && fin.thr > 0.3 && !fin.auto, info: `real ${phone ? 'touch' : 'mouse'} drag from the bottom of the THR strip after the upper-stage takeover at ${at} m; throttle dipped to ${minThr.toFixed(2)} → ${fin.thr.toFixed(2)}; nose ${base1.toFixed(1)}° → ${fin.p.toFixed(1)}°` });
-      try { const dr = await QAFLOW(br, phone, W, H, true), ct = await QAFLOW(br, phone, W, H, false), ex = Math.max(0, dr.mx - ct.mx);
-        rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_vs_control', val: +ex.toFixed(0), max: 10, ok: ex <= 10, info: `QA path, real time: THR drag PIT ${dr.seq} (max ${dr.mx}°) vs the same takeover with no drag ${ct.seq} (max ${ct.mx}°)` });
-        rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_pitch', val: dr.mx, max: 35, ok: dr.mx <= 35, info: 'QA path: the whole nose motion after the drag stays under 35° (QA saw 37-112°)' }); } catch (e) { rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_vs_control', val: 'ERR', max: 5, ok: false, info: String(e.message).slice(0, 100) }); }
       /* f5.8u (QA f5.8r P3): the crash frame: STAGE must not be lit (nothing to stage) */
       await ev4(() => { const F = window.__game.F; F.fail('Hit the ground at 128 m/s', 'impact'); }); await w4(900); const sgc = await ev4(STAGEINFO);
       rows.push({ vp, screen: 'crash_frame', metric: 'stage_lit_on_crash', val: sgc ? (sgc.lit ? 'lit' : 'grey') : 'hidden', max: 'grey', ok: !sgc || !sgc.lit, info: sgc ? `bg ${sgc.bg}; flash ${sgc.flash}; op ${sgc.op}` : 'STAGE not on screen' });
     } catch (e) { rows.push({ vp, screen: 'flight', metric: 'upper_thr_drag_pitch', val: 'ERR', max: 5, ok: false, info: String(e.message).slice(0, 120) }); } finally { await c4.close(); } }
+  /* f5.8v: QA's real-time path runs after the probe page is closed (three live swiftshader pages at 1280x800 made the load time out at 300 s) */
+  try { const dr = await QAFLOW(br, phone, W, H, true), ct = await QAFLOW(br, phone, W, H, false), ex = Math.max(0, dr.mx - ct.mx);
+        rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_vs_control', val: +ex.toFixed(0), max: 10, ok: ex <= 10, info: `QA path, real time: THR drag PIT ${dr.seq} (max ${dr.mx}°) vs the same takeover with no drag ${ct.seq} (max ${ct.mx}°)` });
+        rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_pitch', val: dr.mx, max: 35, ok: dr.mx <= 35, info: 'QA path: the whole nose motion after the drag stays under 35° (QA saw 37-112°)' }); } catch (e) { rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_vs_control', val: 'ERR', max: 5, ok: false, info: String(e.message).slice(0, 100) }); }
 }
 async function runVp(br, vp) {
   const [W, H] = vp.split('x').map(Number), phone = Math.min(W, H) < 600, tag = phone ? (W < H ? 'pp' : 'pl') : 'd' + W;
