@@ -7,6 +7,7 @@ import { LADDER, rankOf, goalOf, goalMet, STARTERS, priceOf } from '../career_la
 import * as E from '../career_ladder/economy.js';
 import { createCareer } from '../career_ladder/session.js';
 import { flightStrip, STRIP_KEYS, goalProgress } from '../career_ladder/strip.js';
+import { simulateCareer, tuningRows } from '../career_ladder/sim.js';
 import * as S from '../career_ladder/state.js';
 import { createAutoTracker, DT_CAP } from '../career_ladder/auto_tracker.js';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log('FAIL', m); } };
@@ -172,5 +173,43 @@ const fly = (c, secs, auto) => { for (let m = 0; m <= secs; m++) c.tick({ met: m
   ok(!JSON.stringify([st, pad, bad]).includes('NaN'), 'no NaN in any text');
   const g = goalOf(ORDER[0]); ok(flightStrip({ maxAlt: 50000 }, g).goal.label === g.label && Math.abs(flightStrip({ maxAlt: 50000 }, g).goal.progress - 0.5) < 1e-9, 'goal marker: label + progress');
   ok(goalProgress(goalOf(ORDER[ORDER.length - 1]), { ap: 1e12, pe: 18e4 }) === 1 && goalProgress({ kind: 'orbit', pe: 120000 }, { ap: 3e5, pe: 60000 }) === 0.5 && goalProgress(g, {}) === 0 && goalProgress(null, {}) === 0, 'goal progress is clamped 0..1'); }
+// ---- 7. simulation: the ladder is completable, ~1 flight per unlock, no farming shortcut ----
+const stats = r => { const f = r.unlocks.map(u => u.flights); return { max: Math.max(...f), avg: f.reduce((a, b) => a + b, 0) / f.length }; };
+{ const need = ORDER.length - STARTERS.length;
+  for (const [auto, maxFlights, maxAvg] of [[0, 1.0, 0.95], [0.5, 1.0, 1.05], [1, 1.2, 1.3]]) {
+    const r = simulateCareer({ auto }), s = stats(r);
+    ok(r.ok && r.unlocks.length === need && S.isComplete(r.save), `fresh career at ${auto * 100}% AUTO reaches the end of the ladder (${r.unlocks.length}/${need} unlocks, ${r.flights} flights)`);
+    ok(s.max <= 2, `at ${auto * 100}% AUTO no unlock takes more than 2 flights (max ${s.max})`);
+    ok(r.flights <= need * maxFlights * 1.5 && s.avg <= maxAvg + 0.35, `at ${auto * 100}% AUTO about one flight per unlock (avg ${s.avg.toFixed(2)}, ${r.flights} flights for ${need})`); }
+  ok(simulateCareer({ auto: 0 }).flights < simulateCareer({ auto: 1 }).flights, 'flying by hand climbs the ladder faster than all-AUTO');
+  const first = simulateCareer({ auto: 1 }).unlocks.slice(0, 10); ok(first.every(u => u.flights === 1), 'early ladder: every flight earns the next rocket even on all-AUTO');
+  const crashy = simulateCareer({ auto: 0, fail: n => n % 3 === 0 }); ok(crashy.ok, 'a career that crashes every third flight still finishes (' + crashy.flights + ' flights)');
+  const broke = simulateCareer({ auto: 0, save: { ...S.blank(), cash: 0 } }); ok(broke.ok && broke.save.stipends >= 1, 'starting with $0 is not a softlock');
+  const stuck = S.blank(); stuck.cash = 0; const cc = createCareer(stuck); let guard = 0; while (guard++ < 50) { const a = cc.startFlight(R0); if (a.ok) cc.onFlightEvent({ type: 'crash', rocketId: R0, met: 9, liftedOff: true }); }
+  ok(stuck.cash >= 0 && stuck.stipends > 0, 'failing again and again at $0 never goes negative and always allows another launch'); }
+{ // repeat-farming: grinding the oldest rocket is allowed but far slower than flying the newest; payouts never favour old rockets
+  const own = ORDER.slice(0, 40); const net = id => E.payoutOf(id, 0).total - E.feeOf(id);
+  ok(own.every((id, i) => i === 0 || net(id) > net(own[i - 1])), 'net profit per flight rises with the rung (the newest rocket is always the best earner)');
+  const N = 40, grind = S.blank(), cg = createCareer(grind); let flights = 0;
+  while (S.ownedIds(grind).length < N && flights < 5000) { flights++; if (cg.startFlight(R0).ok) { cg.onFlightEvent({ type: 'goal', rocketId: R0, met: 1, ...reading(R0) }); cg.onFlightEvent({ type: 'recover', rocketId: R0, met: 2 }); } while (S.ownedIds(grind).length < N && cg.buyNext().ok); }
+  const proper = simulateCareer({ auto: 0 }), ownN = proper.unlocks.slice(0, N - 2).reduce((a, u) => a + u.flights, 0);
+  ok(flights > 5 * ownN && flights < 5000, `grinding only the oldest rocket still progresses (${N} rockets) but takes ${flights} flights vs ${ownN} playing the newest (>5x slower)`); }
+{ // tuning table sanity (the first 10 rungs)
+  const rows = tuningRows(10); ok(rows.length === 10 && rows.every(r => r.fail === 3 * r.fee && r.pay > r.payAuto && r.payAuto > r.fee), 'tuning rows: fail = 3x fee, manual > AUTO > fee'); }
+// ---- 8. neutrality: no real names in ids, code, comments, docs (ROT13 list, same as tests/missions.mjs) ----
+{ const rot = s => s.replace(/[a-z]/gi, c => String.fromCharCode((c <= 'Z' ? 65 : 97) + ((c.charCodeAt(0) - (c <= 'Z' ? 65 : 97) + 13) % 26)));
+  const BAD = ['fcnprk', 'fgneyvaxf?', 'snypbaf?', 'qentbaf?', 'fgnefuvcf?', 'fhcre ?urnil', 'zrpunmvyyn', 'pubcfgvpxf?', 'encgbef?', 'zreyvaf?', 'SU', 'nfqf', 'zhfx', 'S9'].map(rot);
+  const BRANDS = new RegExp('\\b(' + BAD.join('|') + ')\\b', 'i'), here = new URL('..', import.meta.url);
+  ok(BRANDS.test(rot('fgnefuvc')) && !BRANDS.test('heron-9'), 'scan catches a real name and passes a neutral id');
+  for (const id of ORDER) ok(/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id) && !BRANDS.test(id), 'neutral id: ' + id);
+  const files = [...readdirSync(new URL('career_ladder/', here)).map(f => 'career_ladder/' + f), 'data/ladder_meta.js', 'tests/career_ladder.mjs', 'docs/career_ladder.md', 'docs/superpowers/plans/2026-10-25-career-ladder.md'];
+  ok(files.length >= 12, 'scan covers every career_ladder file: ' + files.length);
+  for (const f of files) readFileSync(new URL(f, here), 'utf8').split('\n').forEach((l, i) => ok(!BRANDS.test(l), `${f}:${i + 1} neutral (code + comments): ${l.trim().slice(0, 80)}`)); }
 ok(E.fmtMoney(750) === '$750K' && E.fmtMoney(1500) === '$1.5M' && E.fmtMoney(2200000) === '$2.2B' && E.fmtMoney(250000) === '$250M', 'fmtMoney: K / M / B');
+// ---- public entry point ----
+{ const I = await import('../career_ladder/index.js');
+  for (const k of ['createCareer', 'createAutoTracker', 'flightStrip', 'goalMet', 'goalOf', 'LADDER', 'STARTERS', 'feeOf', 'failChargeOf', 'rewardOf', 'payoutOf', 'fmtMoney', 'blank', 'load', 'save', 'migrate', 'sanitize', 'nextInLine', 'buyNext', 'ownedIds', 'simulateCareer', 'setLaunchCostSource', 'META'])
+    ok(k in I, 'index exports ' + k); }
+// ---- tuning table (printed for the PR) ----
+if (process.argv.includes('--table')) { console.log('rank id price fee fail pay(manual) pay(AUTO)'); for (const r of tuningRows(12)) console.log(r.rank, r.id, E.fmtMoney(priceOf(r.id)), E.fmtMoney(r.fee), E.fmtMoney(r.fail), E.fmtMoney(r.pay), E.fmtMoney(r.payAuto)); }
 console.log(`career_ladder: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);

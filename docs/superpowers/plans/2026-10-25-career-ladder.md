@@ -23,7 +23,7 @@
 - Create `career_ladder/state.js`: blank/migrate/sanitize/load/save, buy.
 - Create `career_ladder/session.js`: startFlight, onFlightEvent, revertToLaunch, revertToStage.
 - Create `career_ladder/strip.js`: stat strip values + labels from a flight state object.
-- Create `career_ladder/index.js`, `career_ladder/API.md`, `tests/career_ladder.mjs`.
+- Create `career_ladder/index.js`, `docs/career_ladder.md`, `tests/career_ladder.mjs`.
 
 ## Tasks (each: failing test, run (red), minimal code, run (green), commit)
 1. **Meta + ladder order**: every roster id resolves; year sort; ties by class then payload; ids neutral.
