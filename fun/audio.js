@@ -4,7 +4,7 @@
 export function createAudio(getCtx) {
   const KEY = 'orbitrush.mute.f3'; /* f3: new key, nobody stays stuck on a mute set while audio was broken */ let muted = (() => { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } })();
   let wind = null, windF = null, windSrc = null, live = true, bus = null; // f5.8y: `live` gates the wind loop; `bus` routes one flight sound through the flight bus; windSrc is the one looping source here
-  const A = () => getCtx(), FB = () => { const c = getCtx(); return c && (c.fbus || c.master); }, UIM = () => getCtx() && getCtx().master; // flight sounds go through the flight bus (fbus), UI sounds straight to master
+  const A = () => getCtx(), FB = () => { const c = getCtx(); return c && (c.fbus || c.master); }, UIM = () => { const c = getCtx(); return c && (c.sbus || c.master); }; // flight sounds go through the flight bus (fbus), UI sounds straight to master
   function noise(sec) { const ac = A().ac, b = ac.createBuffer(1, Math.max(1, ac.sampleRate * sec) | 0, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; }
   function env(node, t0, a, peak, dec) { const g = A().ac.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(peak, t0 + a); g.gain.exponentialRampToValueAtTime(0.0001, t0 + a + dec); node.connect(g); g.connect(bus || UIM()); return g; }
   function tone(f, dur, type = 'sine', vol = 0.08, t = 0, f2) { const c = A(); if (!c) return; const ac = c.ac, o = ac.createOscillator(), t0 = ac.currentTime + t; o.type = type; o.frequency.setValueAtTime(f, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur); env(o, t0, 0.005, vol, dur); o.start(t0); o.stop(t0 + dur + 0.05); }

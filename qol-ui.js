@@ -35,7 +35,8 @@ export function createQoL(api) {
   function renderSettings() {
     const s = S();
     $('setBody').innerHTML = `<div class="setGrid">
-      <section><h4>Units</h4><label><input type="radio" name="units" value="metric" ${s.units === 'metric' ? 'checked' : ''}> Metric (km/h, km, m, m/s)</label><label><input type="radio" name="units" value="imperial" ${s.units === 'imperial' ? 'checked' : ''}> Imperial (mph, mi, ft, ft/s)</label>
+      <section><h4>Sound</h4><label><input type="checkbox" data-set="musicOn" ${s.musicOn !== false ? 'checked' : ''}> Music</label><label>Music volume <input type="range" min="0" max="1" step="0.05" data-vol="musicVol" value="${s.musicVol == null ? 0.5 : s.musicVol}"> <b>${Math.round((s.musicVol == null ? 0.5 : s.musicVol) * 100)}%</b></label><label>Effects volume <input type="range" min="0" max="1" step="0.05" data-vol="sfxVol" value="${s.sfxVol == null ? 1 : s.sfxVol}"> <b>${Math.round((s.sfxVol == null ? 1 : s.sfxVol) * 100)}%</b></label>
+        <h4>Units</h4><label><input type="radio" name="units" value="metric" ${s.units === 'metric' ? 'checked' : ''}> Metric (km/h, km, m, m/s)</label><label><input type="radio" name="units" value="imperial" ${s.units === 'imperial' ? 'checked' : ''}> Imperial (mph, mi, ft, ft/s)</label>
         <details class="qMore" ${window.__qmOpen ? 'open' : ''} ontoggle="window.__qmOpen = this.open"><summary><b>More</b> (camera, sensitivity)</summary><h4>Sensitivity</h4>${[['cam', 'Camera drag'], ['zoom', 'Zoom'], ['stick', 'Touch stick']].map(([k, l]) => `<label>${l} <input type="range" min="0.25" max="3" step="0.05" data-sens="${k}" value="${s.sens[k]}"> <b>${(+s.sens[k]).toFixed(2)}×</b></label>`).join('')}
         <h4>View</h4><label><input type="checkbox" data-set="overlay" ${s.overlay ? 'checked' : ''}> CoM / CoP / CoT markers in flight</label>
         <label>Flight camera <select data-set="camStyle"><option value="free" ${s.camStyle === 'free' ? 'selected' : ''}>Free (horizon up)</option><option value="locked" ${s.camStyle === 'locked' ? 'selected' : ''}>Locked to the craft</option></select></label>
@@ -56,6 +57,8 @@ export function createQoL(api) {
   });
   root.addEventListener('input', e => { const t = e.target, s = S();
     if (t.dataset.sens) { s.sens[t.dataset.sens] = +t.value; t.nextElementSibling.textContent = (+t.value).toFixed(2) + '×'; commit(true); }
+    if (t.dataset.vol) { s[t.dataset.vol] = +t.value; t.nextElementSibling.textContent = Math.round(+t.value * 100) + '%'; commit(true); }
+    if (t.dataset.set === 'musicOn') { s.musicOn = t.checked; commit(true); }
     if (t.name === 'units') { s.units = t.value; commit(); }
     if (t.dataset.set === 'overlay') { s.overlay = t.checked; commit(); }
     if (t.dataset.set === 'camStyle' || t.dataset.set === 'conic') { s[t.dataset.set] = t.value; commit(); } });
