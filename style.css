@@ -1494,3 +1494,9 @@ body.touch #build .stageH{flex-wrap:nowrap;gap:4px}body.touch #build .stageH spa
   body > .bmPanel.on #savedSel{order:5;flex:1 1 120px;min-width:0}body > .bmPanel.on #saveBtn{order:6;flex:0 0 auto;min-width:60px}body > .bmPanel.on #delBtn{order:7;flex:0 0 auto;min-width:60px}
   body > .bmPanel.on .bmSub[open]{order:8;flex:1 1 100%}
 }
+/* f5.8w (QA f5.8v P1): the collapsed Build card at 844x390 is ~98 px tall (was 137) so the ⋯ panel under it is within 80 px of the ⋯ button */
+@media (orientation:landscape) and (max-height:500px){
+  body.touch.bCol:not(.home) #build.builder{padding-bottom:6px!important;bottom:auto!important}
+  body.touch.bCol:not(.home) #build.builder > .bTopRow{margin-bottom:2px!important}
+  body.touch.bCol:not(.home) #build.builder > #bMini{margin-top:0!important;min-height:40px!important;height:40px}
+}
