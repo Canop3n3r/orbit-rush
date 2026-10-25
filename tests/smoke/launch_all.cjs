@@ -1,6 +1,6 @@
 // f5.9-0: Build is gone. Every roster rocket launches straight from Home (Fly -> pad -> STAGE) with no page errors, and
 // old deep links (?hangar, a stale saved-design key) fall back to Home with the default rocket. Also asserts no Build DOM remains.
-// Usage: U=http://localhost:8958/ node tests/smoke/launch_all.cjs [N=limit]   (one browser, one page per rocket)
+// Usage: U=http://localhost:8958/ node tests/smoke/launch_all.cjs   (env N=limit, STRIDE=k tests every k-th rocket; full roster = 154 rockets, ~20 min; prepush uses STRIDE=6)
 const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-core');
 const U = process.env.U || 'http://localhost:8958/';
 const GPU = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'];
@@ -14,14 +14,16 @@ const BUILD_IDS = ['build', 'launchBtn', 'saveBtn', 'delBtn', 'savedSel', 'palet
   for (const [tag, q, pre] of [['plain', '?noacademy&fx=low'], ['?hangar', '?noacademy&fx=low&hangar'], ['stale design key', '?noacademy&fx=low', { 'orbitrush.designs.v1': '[{"name":"old","design":{"stages":[]}}]', 'orbitrush.sandbox': '1' }]]) {
     const [ctx, pg] = await mk(q, pre); const r = await pg.evaluate(ids => { const G = window.__game, h = G.home(); return { homeOn: !!document.getElementById('home') && getComputedStyle(document.getElementById('home')).display !== 'none', sel: h && h.list[h.index] ? h.list[h.index].id : null, left: ids.filter(i => document.getElementById(i)), fly: !!document.getElementById('hFly') }; }, BUILD_IDS).catch(e => ({ err: e.message }));
     ok(r.homeOn && r.fly && !r.err, `${tag}: opens Home with Fly ${r.err || ''}`); ok(r.left && r.left.length === 0, `${tag}: no Build elements in the DOM ${r.left ? r.left.join(',') : ''}`); ok(pg.errs.length === 0, `${tag}: no page errors ${pg.errs.slice(0, 2).join(' | ')}`); await ctx.close(); }
-  // 2) every roster rocket: Home -> Fly -> flight state, ignites with STAGE and climbs
-  let [c0, p0] = await mk('?noacademy&fx=low'); const ids = await p0.evaluate(() => window.__game.home().list.map(r => r.id)); await c0.close();
+  // 2) every rocket on the roster (every picker card): select it, Home -> Fly -> flight state, STAGE lifts off, then back to Home. One page, no reload.
+  const [ctx, pg] = await mk('?noacademy&fx=low'); const ids = await pg.evaluate(() => [...document.querySelectorAll('.pkC[data-m]')].map(c => c.dataset.m)); ok(ids.length >= 9, `roster: ${ids.length} rockets in the picker`);
   const lim = +(process.env.N || 0) || ids.length;
-  for (const id of ids.slice(0, lim)) { const [ctx, pg] = await mk('?noacademy&fx=low'); const tag = `launch ${id}`;
-    try { await pg.evaluate(id => { const G = window.__game, i = G.home().list.findIndex(r => r.id === id); G.homeSet(i); document.getElementById('hFly').click(); }, id); await pg.waitForTimeout(1800);
+  for (const id of ids.filter((x, k) => k % (+process.env.STRIDE || 1) === 0).slice(0, lim)) { const tag = `launch ${id}`; const e0 = pg.errs.length;
+    try { await pg.evaluate(id => { const c = document.querySelector(`.pkC[data-m="${id}"]`); if (!c) throw new Error('no picker card'); c.click(); document.getElementById('hFly').click(); }, id); await pg.waitForTimeout(900);
       const a = await pg.evaluate(() => ({ st: window.__game.state, home: document.getElementById('home') && getComputedStyle(document.getElementById('home')).display !== 'none' }));
       await pg.evaluate(() => { const F = window.__game.F; F.stagePress(); F.setAuto(true, true); for (let i = 0; i < 400; i++) { F.realT += 0.02; F.step(0.02); } }); const b = await pg.evaluate(() => ({ alt: window.__game.F.alt, met: window.__game.F.met }));
       ok(a.st === 'flight' && !a.home && b.met > 5 && b.alt > 20, `${tag}: Fly goes straight to flight and lifts off (alt ${Math.round(b.alt)} m at T+${Math.round(b.met)}s)`);
     } catch (e) { ok(false, `${tag}: ${e.message}`); }
-    ok(pg.errs.length === 0, `${tag}: no page errors ${pg.errs.slice(0, 2).join(' | ')}`); await ctx.close(); }
+    ok(pg.errs.length === e0, `${tag}: no page errors ${pg.errs.slice(e0, e0 + 2).join(' | ')}`);
+    try { await pg.evaluate(() => window.__game.goHome()); await pg.waitForTimeout(500); } catch (e) { ok(false, `${tag}: back to Home ${e.message}`); } }
+  await ctx.close();
   console.log(`launch_all: ${n - bad}/${n} pass`); await br.close(); process.exit(bad ? 1 : 0); })().catch(e => { console.log('FAIL ' + e.message); process.exit(1); });
