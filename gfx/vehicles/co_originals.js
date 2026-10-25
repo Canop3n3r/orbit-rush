@@ -4,10 +4,10 @@
 //   ares:   5-engine booster -> 4-engine hydrogen transfer stage -> kick stage -> entry capsule (ablative shield, chute) under a fairing
 // Stages detach on every LOD; lander legs take setLegs(). Original designs: no real names/logos.
 import * as THREE from 'three/webgpu';
-import { Kit, xf } from './kit.js?v=f5.8y';
-import * as PR from './profiles.js?v=f5.8y';
-import { lathe, tube, bell, ringPos, ring, decal, legs, setLegs } from './parts.js?v=f5.8y';
-import { group, plume } from './co_civspace.js?v=f5.8y';
+import { Kit, xf } from './kit.js?v=f5.8z';
+import * as PR from './profiles.js?v=f5.8z';
+import { lathe, tube, bell, ringPos, ring, decal, legs, setLegs } from './parts.js?v=f5.8z';
+import { group, plume } from './co_civspace.js?v=f5.8z';
 const PI = Math.PI, R = PR.ORIG.r;
 function stripes(k, r, ys, key) { for (const y of ys) tube(k, r * 1.006, r * 1.006, 0.5, y, key, { open: true }); }
 function booster(d, H, accent) { const k = new Kit(d);

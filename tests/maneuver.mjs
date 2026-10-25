@@ -1,9 +1,9 @@
 // f6.5 maneuver tool: planned nodes never block the engines; manual and AUTO burns both work.
 // Run: node tests/maneuver.mjs
-import * as P from '../physics.js?v=f5.8y';
-import * as C from '../physics/patched.js?v=f5.8y';
-import { Flight } from '../flight.js?v=f5.8y';
-import { TEMPLATES } from '../parts.js?v=f5.8y';
+import * as P from '../physics.js?v=f5.8z';
+import * as C from '../physics/patched.js?v=f5.8z';
+import { Flight } from '../flight.js?v=f5.8z';
+import { TEMPLATES } from '../parts.js?v=f5.8z';
 const V = P.V; let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('FAIL', m); } };
 const T0 = P.tFromDate(Date.UTC(2026, 9, 19, 15)), DT = 1 / 30, tpl = n => TEMPLATES.find(t => t.name === n);
 const run = (F, until, maxFrames = 2e5, each) => { for (let i = 0; i < maxFrames; i++) { if (until()) return true; if (each) each(i); F.advance(DT); if (F.flags.dead) return false; } return until(); };

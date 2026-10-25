@@ -2,9 +2,9 @@
 // then adds distinct materials in one merged mesh per material per stage: engine-section pump fairings, an external feedline with brackets, a composite interstage
 // with separation ring + bolt pads, a thermal blanket on upper stages and spray-on foam on hydrogen tanks (roster-driven, see cryo.js). Mid keeps only the foam overlay.
 import * as THREE from 'three/webgpu';
-import { Kit, xf } from './kit.js?v=f5.8y';
-import { HYDRO } from './cryo.js?v=f5.8y';
-import { NOZZLES } from './nozzles.js?v=f5.8y';
+import { Kit, xf } from './kit.js?v=f5.8z';
+import { HYDRO } from './cryo.js?v=f5.8z';
+import { NOZZLES } from './nozzles.js?v=f5.8z';
 const PI = Math.PI, SKIP = /^(payload|sat|fairing|nose|bay|legs|orbiter|capsule|ship|crew|tower|abort|top|cap|tip|shroud|cargo|pod|probe)/i, OWN = /^(heron|colossus|sparrow|space-truck|saturnine|payload-|catch-tower)/;
 const _b = new THREE.Box3(), _m = new THREE.Matrix4();
 const hash = s => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };
