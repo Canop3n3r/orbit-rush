@@ -38,43 +38,13 @@ details{margin-top:12px;font-size:13px;opacity:.9}details li{margin:4px 0}
 @media (pointer:coarse){#ctl{top:auto;bottom:140px}}
 
 /* fix pass 2 */
-.bar{width:34px}.bar b{position:absolute;bottom:3px;width:100%;text-align:center;font:700 9px monospace;z-index:2;text-shadow:0 1px 2px #000}
-#presets button{font-size:13px}.rec{display:inline-block;padding:1px 5px;border-radius:6px;background:#f29a1f;color:#111;font:800 9px system-ui;vertical-align:middle}
-#landPlan{margin-top:4px}
+.bar{width:34px}.bar b{position:absolute;bottom:3px;width:100%;text-align:center;font:700 9px monospace;z-index:2;text-shadow:0 1px 2px #000}.rec{display:inline-block;padding:1px 5px;border-radius:6px;background:#f29a1f;color:#111;font:800 9px system-ui;vertical-align:middle}
 .endMain{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.endMain .big{flex:1 1 100%;margin:0}
 .endShare{display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #fff2;opacity:.85}.endShare button{font-size:12px;padding:6px 10px}
 #end button{margin:0}
-#presets small{display:block;font:500 10px system-ui;opacity:.7;margin-top:3px}
-
-/* part builder */
-.panel.builder{left:12px;top:12px;transform:none;width:min(1000px,calc(100vw - 24px));max-height:calc(100vh - 24px);padding:12px 16px;display:flex;flex-direction:column}
-.builder .bhead{display:flex;align-items:baseline;gap:14px}.builder h1{font-size:28px;letter-spacing:4px}.builder .sub{margin:0}
-.trow{display:flex;align-items:center;gap:8px;margin:8px 0 6px;flex-wrap:wrap}.trow label{font-size:12px;opacity:.7}
-.trow #presets{flex:0 1 auto}.trow #presets button{padding:6px 10px;font-size:12px;flex:none}
-.saved{display:flex;gap:4px;margin-left:auto}.saved select{background:#1b2a44;color:#e8f1ff;border:1px solid #4a7ad077;border-radius:8px;font:12px system-ui;padding:5px}.saved button{padding:5px 8px;font-size:12px}
-.bcols{display:grid;grid-template-columns:230px 330px 1fr;gap:12px;min-height:0;flex:1}
-.bcols>div{min-height:0;display:flex;flex-direction:column}
-.colH{font:700 12px system-ui;letter-spacing:1px;text-transform:uppercase;opacity:.85;margin-bottom:4px}.colH small{text-transform:none;letter-spacing:0;font-weight:400;opacity:.7}
-#palette,#stack{overflow:auto;max-height:calc(100vh - 140px);padding-right:4px}
-.palH{font:700 10px system-ui;opacity:.55;margin:6px 0 2px;text-transform:uppercase}
-.tile,.prow{display:grid;grid-template-columns:10px 1fr auto;column-gap:7px;align-items:center;background:#13213a;border:1px solid #4a7ad044;border-radius:8px;padding:3px 7px;margin:2px 0;cursor:pointer;font-size:12.5px}
-.tile:hover,.prow:hover{border-color:#9cc3ff}.tile i,.prow i{width:10px;height:22px;border-radius:3px;grid-row:span 2}
-.tile b,.prow b{font-weight:600}.tile small,.prow small{grid-column:2;opacity:.65;font-size:10.5px}
-.prow{grid-template-columns:10px 1fr auto auto auto auto;cursor:grab}.prow.sel{background:#22417a;border-color:#ffd23a}.prow.dec{background:#1a1a22}
-.prow .mini{padding:1px 6px;font-size:11px;border-radius:6px;grid-row:span 2}.prow .cnt{grid-row:span 2;display:flex;align-items:center;gap:3px}.prow .cnt button{padding:0 6px;font-size:13px;border-radius:6px}.prow .cnt u{text-decoration:none;font:700 12px monospace;min-width:22px;text-align:center}
-.prow.over,.dropEnd.over{outline:2px dashed #ffd23a}
-.stageH{display:flex;align-items:center;gap:6px;margin:8px 0 2px;font:700 11px system-ui;color:#9cc3ff}.stageH span{flex:1}.stageH em{font:400 11px monospace;color:#cfe;opacity:.85}.stageH button{padding:0 7px;font-size:12px;border-radius:6px}.stageH button:disabled{opacity:.3}
-.dropEnd{margin-top:6px;padding:8px;border:1px dashed #4a7ad077;border-radius:8px;text-align:center;font-size:11px;opacity:.7}
-#readout table{width:100%;border-collapse:collapse;font:12px monospace}#readout th{text-align:left;opacity:.6;font-weight:400;border-bottom:1px solid #fff2;padding:2px 4px}#readout td{padding:3px 4px;border-bottom:1px solid #ffffff10}
-.dvline{margin-top:8px;font-size:12.5px}.dvbar{position:relative;height:12px;background:#0006;border-radius:6px;margin:6px 0 12px;overflow:visible}.dvbar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px}
-.dvbar i.good{background:#3bb36b}.dvbar i.warn{background:#d9952a}.dvbar i.bad{background:#c94444}.dvbar s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff}.dvbar em{position:absolute;top:12px;font:10px system-ui;transform:translateX(-50%);opacity:.8}
 .msg{font-size:12px;margin:4px 0;line-height:1.4}.small{font-size:10.5px;opacity:.6;margin-top:6px}
-.builder .big{margin-top:10px}.builder .big:disabled{background:#444;cursor:not-allowed}
-.builder details{margin-top:8px;font-size:12px}
 
 .chk{display:inline-flex;align-items:center;gap:4px;margin:0 8px;font-size:13px;color:#cfe3ff;cursor:pointer}
-.kcom{color:#ffd23a}.kcop{color:#38e1ff}
-.msg.aero{font-size:12px;line-height:1.35}
 /* heat gauges (thermal.js): hottest parts vs their limits, shield, parachutes */
 #heat{position:fixed;right:10px;bottom:10px;font:12px/1.35 monospace;background:#0009;padding:8px 10px;border-radius:10px;width:250px;pointer-events:none}
 #heat h4{margin:0 0 4px;font:700 12px monospace;color:#ffb35c;letter-spacing:1px}
@@ -86,8 +56,7 @@ details{margin-top:12px;font-size:13px;opacity:.9}details li{margin:4px 0}
 #heat .bad{color:#ff6262}#heat .warn{color:#ffb35c}#heat .good{color:#7dffa6}
 @media (max-width:700px){#heat{width:190px;font-size:11px}#heat .hg{grid-template-columns:70px 1fr 44px}}
 @media (pointer:coarse){#heat{bottom:auto;top:84px}}
-/* Academy (academy-ui.js) */
-.builder .bhead .acad{margin-left:auto;font:700 14px system-ui;padding:7px 14px;background:linear-gradient(90deg,#2a5bd7,#7b3fd6);border:0}
+
 #academy{width:min(640px,94vw);z-index:40}
 #academy .lessons{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:6px}
 #academy .lessons li{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;background:#ffffff0d;border-radius:10px;padding:7px 10px}
@@ -167,18 +136,6 @@ body.touch #lesson.build{left:auto;right:calc(6px + var(--sar));top:auto;bottom:
   body.touch.sheet #tele{top:calc(88px + var(--sat));max-height:45dvh;max-width:calc(100vw - 80px)}
   body.touch #ignite{bottom:calc(184px + var(--sab));max-width:90vw}
 }
-/* hangar at phone sizes: one scrolling column, parts as a horizontal drawer, long-press to drag */
-@media (max-width:900px),(max-height:520px){
-  .panel.builder{left:0;top:0;width:100vw;height:100dvh;max-height:100dvh;border-radius:0;padding:calc(6px + var(--sat)) calc(8px + var(--sar)) calc(6px + var(--sab)) calc(8px + var(--sal));overflow:auto;touch-action:pan-y}
-  .builder .bhead{flex-wrap:wrap;gap:6px}.builder h1{font-size:20px}.builder .sub{display:none}
-  .bcols{display:flex;flex-direction:column;gap:8px;flex:none}
-  #palette{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-height:none;gap:6px;padding-bottom:6px;touch-action:pan-x;-webkit-overflow-scrolling:touch}
-  #palette .palH{writing-mode:vertical-rl;transform:rotate(180deg);margin:0;flex:none}
-  #palette .tile{flex:none;width:150px;min-height:48px;margin:0}
-  #stack{max-height:none;overflow:visible}.prow{min-height:44px}.prow .mini,.prow .cnt button,.stageH button{min-width:32px;min-height:32px}
-  .trow{gap:4px}.trow #presets{flex-wrap:wrap}.saved{margin-left:0}
-}
-.dragGhost{position:fixed;z-index:100;pointer-events:none;opacity:.85;transform:translate(-50%,-120%);box-shadow:0 6px 20px #000c}
 #mMenu .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}#mMenu .mh span{font:700 11px monospace;opacity:.8}#mMenu .mh button{min-height:36px;min-width:44px}
 @media (orientation:landscape){#mMenu{width:min(470px,calc(100vw - 12px))}#mMenu .mg{grid-template-columns:repeat(6,1fr)}#mMenu button{min-height:38px}}
 /* ---------- 3D map (Milestone A) ---------- */
@@ -232,8 +189,6 @@ body.touch #mapPanel .nk{width:54px}body.touch #mapPanel input{width:58px}body.t
 #tip{position:fixed;z-index:70;max-width:300px;background:#0b1220f5;border:1px solid #3a4c6c;border-radius:10px;padding:8px 10px;color:#dfe8ff;font:13px system-ui;pointer-events:none;box-shadow:0 6px 20px #0008}
 #tip.hidden{display:none}#tip .sm{display:block;color:#9fb0cf;font-size:12px;margin:3px 0 5px}#tip .kv{display:flex;justify-content:space-between;gap:10px}#tip .kv span{color:#9fb0cf}
 .tipBtn{background:none;border:none;color:#9cc3ff;font-size:15px;padding:0 4px;margin-left:auto;cursor:pointer}
-.prow.radial{border-left:3px solid #ff9a3c;padding-left:4px}.prow u.sym{text-decoration:none;color:#ff9a3c;font-size:11px}
-.envSel{display:block;font-size:12px;margin:0 0 4px}.envSel select{font-size:12px}
 #pauseBtn{font-weight:700}
 /* short landscape phones: the map panel takes the full right column, the toolbar the space left of it */
 @media (max-height:520px) and (orientation:landscape){
@@ -305,14 +260,10 @@ body.photo #hud, body.photo #pilot, body.photo #touch, body.photo #mobile, body.
 @keyframes rv{from{opacity:0;transform:translate(-50%,20px) scale(.9)}}
 #photobar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:50;background:#0b1424dd;padding:8px 12px;border-radius:14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:96vw}
 #photobar.hidden{display:none}#photobar button.on{background:#1d6fd6}
-.acad.hot{background:linear-gradient(90deg,#ff7a2a,#ffb35c);color:#1a0d00}
-.tests{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}.tests button{flex:1;font-weight:700}
 .paint{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}.paint label{font-size:12px;opacity:.9}
 .sw{width:26px;height:26px;border-radius:50%;border:4px solid;padding:0;font-size:11px}.sw.on{outline:3px solid #4ad6ff}.sw.lock{opacity:.45}
 #nameIn{width:120px}
-.ghostH{font:700 13px system-ui;margin-top:6px}#ghost{width:100%;max-width:460px;border-radius:10px;display:block;margin:4px 0}
-.prow.snap{animation:snap .35s ease-out}@keyframes snap{0%{transform:translateY(-14px) scale(1.06);background:#4ad6ff55}60%{transform:translateY(2px)}100%{transform:none}}
-.tile.locked{opacity:.4;filter:grayscale(1)}
+.ghostH{font:700 13px system-ui;margin-top:6px}@keyframes snap{0%{transform:translateY(-14px) scale(1.06);background:#4ad6ff55}60%{transform:translateY(2px)}100%{transform:none}}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin:10px 0}
 .mis{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:12px;border-radius:14px;background:linear-gradient(160deg,#16305e,#0b1424);position:relative;gap:3px}
 .mis span{font-size:30px}.mis b{font:800 16px system-ui}.mis small{opacity:.8}.mis i{margin-top:6px;font:800 12px system-ui;color:#7dffa6;font-style:normal}
@@ -404,20 +355,6 @@ body.touch #mapInfo{top:calc(60px + var(--sat))!important}
 body.touch #mapBar button,body.touch #mapPanel button{min-height:44px!important;min-width:44px!important}
 body.touch.mapOn #toasts{left:8px;bottom:auto;top:calc(150px + var(--sat))}
 @media (orientation:portrait){body.touch #mtop{top:calc(60px + var(--sat))}body.touch #pilot{top:calc(60px + var(--sat))}}
-/* ---------- hangar redesign ---------- */
-#build.builder{background:radial-gradient(1200px 600px at 70% -10%,#1b2d52 0%,#0a1120 60%)!important;border:none;border-radius:0}
-.builder .bhead h1{font:900 var(--fs-xl)/1 var(--ui);letter-spacing:3px;background:linear-gradient(90deg,#fff,#9cd8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
-.builder .bhead .acad{border-radius:999px!important;min-height:var(--tap);padding:0 16px!important;font:700 var(--fs-s) var(--ui)!important;background:var(--glass-hi)!important;border:1px solid var(--line)!important}
-.builder .bhead .acad.hot{background:linear-gradient(135deg,#ff8a3c,#d9468f)!important;border-color:#ffb38a!important}
-.builder .bcols>div{background:var(--glass);border:1px solid var(--line);border-radius:var(--r-l);padding:10px 12px;-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
-.builder .colH{font:800 var(--fs-xs)/1.2 var(--ui);letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
-.builder .colH small{text-transform:none;letter-spacing:0;font-weight:500}
-.builder #launchBtn{background:linear-gradient(135deg,#29c46a,#1d8fd6)!important;border:none!important;border-radius:var(--r)!important;min-height:52px;font:900 var(--fs-l) var(--ui)!important;letter-spacing:1px;box-shadow:0 6px 22px #1d8fd655}
-.builder .tests button{min-height:var(--tap);border-radius:var(--r-s)!important;background:var(--glass-hi)!important;border:1px solid var(--line)!important}
-.builder .trow{gap:8px}.builder .trow label{color:var(--dim);font-size:var(--fs-s)}
-.builder #presets button{border-radius:999px!important;min-height:36px}
-.tile{border-radius:var(--r-s)!important;transition:transform .15s var(--ease),border-color .15s}.tile:hover{transform:translateY(-2px)}
-body.touch .builder button,body.touch .builder select{min-height:var(--tap)}
 /* end card */
 #end{border-radius:var(--r-l)!important;animation:fPop .3s var(--ease)}
 #end .endMain button{min-height:var(--tap);border-radius:var(--r)!important}
@@ -455,9 +392,6 @@ body.touch #split button{min-width:var(--tap);min-height:var(--tap)}
 @media (max-height:430px){body.touch #nav{--nb:84px;gap:2px}body.touch .navWrap{height:calc(var(--nb) + 56px)}}
 @media (orientation:portrait){body.touch #topStack{top:calc(194px + var(--sat))}}
 @media (max-height:430px){#topStack:has(#callout.show)>#toasts{display:none}#topStack{gap:5px}}
-/* hangar: no layout shift when the AUTO verdict arrives; launch stays reachable on phones */
-#verdict{min-height:4.2em}#landPlan{min-height:2.8em}
-body.touch .builder #launchBtn{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:6}
 
 /* ===================== f1u compact remaster: the rocket is the hero ===================== */
 body.cx #pilot,body.cx #mhud,body.cx #mtop,body.cx #topStack,body.cx #navMode,body.cx #navCue,body.cx #bars,body.cx #warpBar,body.cx.touch #badge{display:none!important}
@@ -540,7 +474,7 @@ body.mapOn #engS,body.photo #engS{display:none!important}
 body.sheet #craftTag{display:none!important}
 @media (orientation:portrait){body.touch #engS .c{width:80px;height:32px}body.touch #engS:not(.pB) .c:nth-child(n+5),body.touch #engS.pB .c:nth-child(-n+4){display:none}body.touch.eng #hintS{top:calc(96px + env(safe-area-inset-top,0px))}}
 /* ===================== f2h home: rocket showroom ===================== */
-body.home #build,body.home #badge{display:none!important}
+body.home #badge{display:none!important}
 #home{position:fixed;inset:0;z-index:20;pointer-events:auto;touch-action:pan-y;font-variant-numeric:tabular-nums}
 #home.hidden{display:none}
 #hTop{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:calc(14px + env(safe-area-inset-left,0px));right:calc(14px + env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:center;pointer-events:none}
@@ -565,7 +499,6 @@ body.home #build,body.home #badge{display:none!important}
 @media (orientation:landscape) and (max-height:500px){#hCard{left:auto;right:calc(12px + env(safe-area-inset-right,0px));transform:none;bottom:auto;top:calc(62px + env(safe-area-inset-top,0px));width:330px;padding:10px 12px 8px}#hBars{margin:6px 0}#hFly,#hMis{height:46px}
  #hNav{left:auto;right:calc(12px + env(safe-area-inset-right,0px));transform:none;width:330px}#hNext{right:calc(354px + env(safe-area-inset-right,0px))}.hArr{top:42%}}
 @media (min-width:900px) and (min-height:600px){#hCard{bottom:96px;width:460px}#hNav{width:460px}.hArr{width:56px;height:84px}#hPrev{left:calc(50% - 400px)}#hNext{right:calc(50% - 400px)}}
-#homeBack{margin-right:6px}
 #hGearM{position:fixed;z-index:31;top:calc(60px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));width:min(300px,calc(100vw - 28px));padding:10px 12px;box-sizing:border-box;display:grid;gap:8px;background:var(--glass);border:1px solid var(--line);border-radius:16px;-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:var(--shadow);color:var(--txt)}
 #hGearM.hidden{display:none}#hGearM button{min-height:44px;width:100%}#hGearM label{display:flex;justify-content:space-between;align-items:center;min-height:44px;font:600 13px var(--ui)}#hGearM select{min-height:36px}
 @media (orientation:portrait){body.touch #engS .c{width:80px;height:44px}body.touch.eng #hintS{top:calc(108px + env(safe-area-inset-top,0px))}}
@@ -600,7 +533,6 @@ body.touch .qKeys{display:none} /* f3: no key bindings on a phone */
 #hub .mbox,#atlas .mbox{max-height:calc(100dvh - 24px - var(--sat,0px) - var(--sab,0px));overflow:auto;display:flex;flex-direction:column}#hub #hubBody{overflow:auto;min-height:0;flex:1 1 auto}
 #hub .mis,#hub .grid,#hubBody>div{max-width:100%}
 #hubBody .misGrid,#hubBody .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-body.touch #build #launchBtn{position:sticky;bottom:calc(8px + var(--sab,0px));z-index:5;box-shadow:0 -6px 24px #000a}
 #hub .mgrid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important;gap:8px}#hub .mgrid .mis{min-width:0}
 /* f4: operations mission task prompt (compact execute-burn chip) */
 #opTask{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 92px);z-index:30;background:rgba(10,20,36,.86);border:1px solid #ffd23a88;border-radius:22px;padding:8px 14px;min-height:44px;box-sizing:border-box;display:flex;gap:8px;align-items:center;font:600 13px system-ui;color:#ffe9b0;max-width:min(92vw,520px);pointer-events:none}
@@ -613,20 +545,7 @@ body.touch #build #launchBtn{position:sticky;bottom:calc(8px + var(--sab,0px));z
   button.tipBtn{min-width:44px!important}
   input[type=checkbox],input[type=radio]{width:44px!important;height:44px!important;margin:0}
   button.sw{width:44px;height:44px}
-  #dvMapLink,a[href]{display:inline-flex;align-items:center;min-height:44px}
-}
-/* f4: hangar categories collapse; phone portrait builder is a bottom sheet with the rocket visible above */
-.palH{display:flex;width:100%;align-items:center;justify-content:space-between;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:6px 4px}
-.palH::after{content:'▾';opacity:.6}.palH.shut::after{content:'▸'}
-.palG.shut{display:none}
-details.bset{display:contents}details.bset[open]>summary{display:none}
-@media (max-width:600px) and (orientation:portrait){
-  details.bset{display:block;width:100%}details.bset>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;opacity:.85}
-  details.bset[open]>summary{display:flex}
-  body:not(.home) #build.builder{top:auto!important;bottom:0!important;height:58vh!important;max-height:58vh!important;overflow-y:auto;border-radius:18px 18px 0 0}
-  #build .bhead p.sub{display:none}
-  #build #presets{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:8px}
-  #build #presets>*{flex:0 0 auto}
+  a[href]{display:inline-flex;align-items:center;min-height:44px}
 }
 /* f4: compact phone end card (QA: <= 45% of a 390x844 screen) */
 @media (orientation:portrait) and (max-width:600px){
@@ -648,16 +567,7 @@ details.bset{display:contents}details.bset[open]>summary{display:none}
   #endBody{overflow:auto;min-height:0;flex:1 1 auto}
   #end .endMain,#end .endShare{flex:none}
 }
-@media (max-width:600px) and (orientation:portrait){
-  #build #launchBtn.stickyLaunch{position:sticky;bottom:calc(4px + env(safe-area-inset-bottom,0px));z-index:40;width:100%;min-height:52px;box-shadow:0 6px 24px #000a;margin-top:8px}
-}
-/* f4 phone palette: category chips that open one tile row each (accordion) */
-@media (max-width:900px),(max-height:520px){
-  #palette{flex-wrap:wrap!important;overflow:visible!important;touch-action:auto!important}
-  #palette .palH{writing-mode:horizontal-tb!important;transform:none!important;width:auto!important;flex:0 0 auto!important;min-height:44px;padding:4px 12px!important;border:1px solid var(--line)!important;border-radius:22px!important;font:700 11px system-ui!important;opacity:.9;gap:6px}
-  #palette .palG{flex:0 0 100%;display:flex;gap:6px;overflow-x:auto;touch-action:pan-x;padding-bottom:4px}
-  #palette .palG.shut{display:none}
-}
+
 /* f4 split panes: each pane has a compact card (mini navball + telemetry + autopilot pill) */
 .spCard{position:absolute;display:flex;gap:8px;align-items:center;background:#0b1424d9;border:1px solid #9cc3ff44;border-radius:12px;padding:6px 8px;color:#dfe9ff;pointer-events:none;max-width:calc(100% - 24px)}
 #spCardB{left:10px;bottom:10px}#spCardU{right:10px;bottom:10px}
@@ -743,12 +653,7 @@ body.menuOn #pilot,body.menuOn #nav,body.menuOn #mleft,body.menuOn #mright,body.
 /* f5 (ui_ideal_path #13): manual controls + navball hide while AUTO is on; they return the moment AUTO is off */
 body.autoOn #mStick,body.autoOn #mRoll,body.autoOn #mThr,body.autoOn #nav,body.autoOn #mleft{display:none!important}
 @media (orientation:landscape) and (max-height:500px){body.touch #nav #navSas{left:auto!important;right:calc(100% + 6px)!important;bottom:0!important;transform:none!important;margin-bottom:0!important}}
-#hTop .hTopR{display:flex;gap:8px}#hnCareer{pointer-events:auto;width:44px;height:44px;border-radius:50%;font-size:19px;padding:0;background:var(--glass);border:1px solid var(--line);color:var(--txt)}
-/* f5a.2 (QA P2): the build screen's LAUNCH is always on screen on phones and ≥64 px tall */
-body.touch #launchBtn{position:fixed!important;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));left:auto;width:auto!important;min-width:180px;min-height:64px!important;z-index:60!important;padding:0 22px;box-shadow:0 6px 24px #000c}
-body.touch #build{padding-bottom:84px}
-body.touch #build, body.touch #build div:has(#launchBtn){backdrop-filter:none!important;-webkit-backdrop-filter:none!important} /* a backdrop filter makes a containing block for the fixed LAUNCH */
-body.touch #build{background:#0b1220f2}
+#hTop .hTopR{display:flex;gap:8px}#hnCareer{pointer-events:auto;width:44px;height:44px;border-radius:50%;font-size:19px;padding:0;background:var(--glass);border:1px solid var(--line);color:var(--txt)} 
 /* f5b: one career; compact missions hub */
 #hub .hubCareer{display:flex;gap:8px;align-items:center;width:100%;min-height:52px;padding:8px 14px;border-radius:14px;background:linear-gradient(135deg,#1d3a6a,#14284a);border:1px solid #3d6bb3;color:#fff;font:700 15px var(--ui);text-align:left}
 #hub .hubCareer span{margin-left:auto;color:#ffd27a;font-weight:800}
@@ -768,19 +673,8 @@ body.touch #build{background:#0b1220f2}
 /* f5b: Google tiles attribution (must stay visible) sits under the top HUD on touch, clear of the navball and sticks */
 body.touch #tilesAttr{top:calc(62px + env(safe-area-inset-top,0px))!important;bottom:auto!important;left:auto!important;right:6px!important;max-width:40vw!important;text-align:right;font-size:10px!important}
 .cr.soon{opacity:.6}.cr.soon .crR{color:#ffb35c}
-/* QA f5a.2 P2: LAUNCH sits in its own bar under the build sheet on phones (never on top of the parts list) */
-body.touch:not(.home) #build.builder{bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;padding-bottom:8px!important;max-height:calc(100vh - 84px - env(safe-area-inset-bottom,0px))!important}
-@media (orientation:portrait){body.touch:not(.home) #build.builder{height:calc(58vh - 84px)!important;max-height:calc(58vh - 84px)!important}}
 body #hFly{min-height:64px;height:64px}
 body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #hNext{display:none!important}
-.bMore>summary{cursor:pointer;font:700 14px var(--ui);padding:8px 4px;list-style:none;opacity:.85}.bMore>summary::-webkit-details-marker{display:none}
-#build>#homeBack{margin:2px 0 4px}
-@media (orientation:landscape) and (max-height:500px){body.touch:not(.home) #build.builder{left:calc(8px + env(safe-area-inset-left,0px))!important;right:auto!important;width:46vw!important;max-width:46vw!important;top:8px!important;height:auto!important}}
-.palRow{display:flex;gap:6px;margin:4px 0 8px;flex-wrap:nowrap}
-.palRow .palH{flex:1;min-width:44px;height:44px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:12px}
-.palRow .palH.on{background:#2b5fd9;border-color:#6d9bff}
-.palRow .palH img{width:24px;height:24px;filter:invert(1)}
-.palRow .palH::after{display:none!important}
 #hMis.hidden{display:none}
 /* f5.1f grouped rocket picker */
 #hPick{pointer-events:auto;width:44px;height:44px;border-radius:50%;font-size:19px;padding:0;background:var(--glass);border:1px solid var(--line);color:var(--txt,#fff)}
@@ -799,17 +693,12 @@ body.careerOn #hCard,body.careerOn .hArrow,body.careerOn #hPrev,body.careerOn #h
 #mMenu .mTop{grid-template-columns:repeat(4,1fr)}#mMenu .mTop button{min-height:46px;font-size:12px}
 #mMenu .mMore summary{min-height:44px;display:flex;align-items:center;justify-content:center;font:700 12px system-ui;background:#1b2a44;border-radius:10px;margin:2px 0 6px;cursor:pointer;list-style:none}
 @media (orientation:landscape){#mMenu{right:calc(130px + var(--sar));top:calc(58px + var(--sat));width:min(470px,calc(100vw - 150px - var(--sal) - var(--sar)));max-height:calc(100dvh - 64px - var(--sat) - var(--sab))}#mMenu .mTop{grid-template-columns:repeat(4,1fr)}#mMenu .mTop button{min-height:40px}}
-/* f5.1f (QA P1): Build trim: ⋯ is a 44 px+ target everywhere; desktop top row = ‹ Home · ⋯ · ROLL TO PAD */
-.bMore>summary{min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;list-style:none}
-.bTopRow{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}.bTopRow .bMore{flex:1}.bTopRow #launchBtn{margin:0;flex:0 0 auto;min-width:220px}
-.bTopRow #homeBack{flex:0 0 auto;min-height:44px}
 /* f5.1g: Sandbox toggle switch (44 px) */
 #picker .pkSw{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px 0 6px;border-radius:22px;background:#14203a;border:1px solid #2a3c62;color:#e8f0ff;font:600 14px system-ui}
 #picker .pkSw i{position:relative;width:44px;height:26px;border-radius:13px;background:#3a4560;transition:background .15s}
 #picker .pkSw i::after{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
 #picker .pkSw[aria-checked="true"] i{background:#2fb36b}#picker .pkSw[aria-checked="true"] i::after{left:21px}
-/* f5.1g Build nav dedupe: Missions / Atlas / Academy live on Home's nav (and ⚙); Build keeps ‹ Home */
-#build #academyBtn,#build #missionsBtn,#build #atlasBtn{display:none}
+
 /* f5.1g mission card: choose the rocket, AUTO opt-in */
 #misCard{position:fixed;inset:0;z-index:70;background:#000a;display:flex;align-items:center;justify-content:center;padding:12px}#misCard.hidden{display:none}
 #misCard .mcIn{background:#0b1324;border:1px solid #2a3c62;border-radius:16px;padding:14px;width:min(460px,100%);max-height:92dvh;overflow:auto;color:#e8f0ff;font:14px system-ui}
@@ -883,18 +772,6 @@ body.splitOn:not(.pip) #strip2{display:none!important} /* f5.4i: in split the pa
 /* f5.4j (Aaron, desktop 1024): the engineer tiles start under the PE / FUEL / STAGE row instead of under-lapping it */
 body.cx #engS{top:calc(92px + env(safe-area-inset-top,0px))}
 body.cx:not(.touch) #engS{top:104px}
-/* f5.4l (QA f5.4i #5): rocket-first Build on desktop. Simple view = parts + your rocket + a compact stage list; the stats
-   column (Δv table, paint, decal, name, "Will it fly?", tests, notes) and the CoM/CoP/CoT markers sit behind ⚙ Advanced */
-#bStages{display:flex;flex-direction:column;gap:3px;margin:0 0 8px}
-#bStages .bsR{display:grid;grid-template-columns:28px 1fr auto auto;gap:8px;align-items:center;padding:5px 8px;border-radius:9px;background:#ffffff0d;font:600 12px var(--ui,system-ui)}
-#bStages .bsR b{color:#9cc3ff}#bStages .bsR em{font-style:normal;font-variant-numeric:tabular-nums;color:#cfe3ff}#bStages .bsR em.bad{color:#ff7a7a}#bStages .bsR em.warn{color:#ffc46b}
-#bStages .bsT{font:600 12px var(--ui,system-ui);color:#9fb4d6;padding:2px 8px}
-.bAdvBtn{flex:0 0 auto;padding:0 14px;height:40px;border-radius:12px;border:1px solid var(--line,#2c4166);background:#16233a;color:#dfe9ff;font:700 13px var(--ui,system-ui);cursor:pointer}
-body:not(.touch):not(.buildAdv) .panel.builder{width:min(600px,calc(100vw - 24px))}
-body:not(.touch):not(.buildAdv) .bcols{grid-template-columns:230px 1fr}
-body:not(.touch):not(.buildAdv) .bcols>div:nth-child(3){display:none}
-body.touch #bStages,body.buildAdv #bStages{display:none}
-body:not(.touch):not(.buildAdv) .bTopRow #launchBtn{min-width:150px}body:not(.touch) .bTopRow .bMore{flex:0 0 auto}body:not(.touch) .bTopRow #launchBtn{flex:1}
 /* f5.4j (QA declutter): picker = search + 4 regions with folding launch houses */
 #picker #pkQ{width:100%;box-sizing:border-box;margin:6px 0 4px;padding:9px 12px;border-radius:12px;border:1px solid #2c4166;background:#0d1626;color:#e6eefc;font:600 14px var(--ui,system-ui)}
 #picker .pkCo{border-top:1px solid #1c2a44}#picker .pkCo>summary{cursor:pointer;padding:9px 4px;font:700 14px var(--ui,system-ui);color:#dfe9ff;list-style:none}
@@ -906,14 +783,13 @@ body:not(.touch):not(.buildAdv) .bTopRow #launchBtn{min-width:150px}body:not(.to
 #hMenuB{pointer-events:auto;width:44px;height:44px;border-radius:50%;font-size:20px;padding:0;background:var(--glass);border:1px solid var(--line);color:var(--txt)}
 #hMenu{position:fixed;z-index:70;top:calc(62px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:14px;background:#0d1626f2;border:1px solid #2a3c5c;min-width:190px}
 #hMenu.hidden{display:none}#hMenu button{text-align:left;padding:10px 12px;border-radius:10px;border:0;background:transparent;color:#e6eefc;font:700 14px var(--ui,system-ui)}#hMenu button:hover{background:#ffffff14}
-#hBuildB{flex:0 0 54px;height:54px;border-radius:14px;font-size:22px;background:var(--glass-hi);border:1px solid var(--line-hi);color:var(--txt)}
 body:not(.home) #hMenu{display:none}
 /* 844x390: smaller world chips in the 📍 picker */
 @media (orientation:landscape) and (max-height:500px){#sitePick .spBodies{gap:4px}#sitePick .spBodies button{padding:3px 7px!important;font-size:11px!important;min-height:26px!important;border-radius:9px}}
 #home #hCard{bottom:calc(16px + env(safe-area-inset-bottom,0px))}@media (min-width:900px) and (min-height:600px){#home #hCard{bottom:28px}}@media (orientation:landscape) and (max-height:500px){#home #hCard{bottom:auto}}
 
 /* f5.5a (Aaron): sim, not a mission game: no mission / career entry points anywhere in the UI */
-#hMis,#hnMis,#hnCareer,#missionsBtn,#nextMisBtn,#opTask,#pObj{display:none!important}
+#hMis,#hnMis,#hnCareer,#nextMisBtn,#opTask,#pObj{display:none!important}
 /* f5.5c (Aaron): plain telemetry card, bottom-left, big and readable; jargon chips only in 📊 Details (engineer) */
 #plain{position:fixed;z-index:25;left:calc(14px + env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));min-width:180px;max-width:230px;padding:10px 14px 10px;border-radius:16px;background:rgba(8,14,28,.62);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 14px var(--ui,system-ui);font-variant-numeric:tabular-nums;pointer-events:none;backdrop-filter:blur(6px)}
 #plain.hidden,body.mapOn #plain,body.photo #plain{display:none}
@@ -941,7 +817,7 @@ body.touch #mleft{left:calc(12px + var(--sal))}
 #navRd #nbInc b{color:#d58cff}
 
 /* f5.6 (Aaron 7:23): rockets, flying, crashing, landing. No Missions, Career, Academy, Dailies, rewards anywhere */
-#academyBtn,#learnBtn,#firstRun,#learn,#learnTip,#hnCareer,#hnMis,#missionsBtn,#hub,#careerM,.eLine,.lockTag,.pkLock{display:none!important}
+#learnBtn,#firstRun,#learn,#learnTip,#hnCareer,#hnMis,#hub,#careerM,.eLine,.lockTag,.pkLock{display:none!important}
 /* f5.6c (Aaron video): one card per half, no duplicates; flight HUD only in flight; map shows only the map bar */
 #hud.hidden ~ #plain,#hud.hidden ~ #nav,#hud.hidden ~ #strip,#hud.hidden ~ #strip2,#hud.hidden ~ #hintS,#hud.hidden ~ #gcamBtn,#hud.hidden ~ #relBtn{display:none!important}
 body.splitOn:not(.pip) #plain,body.splitOn:not(.pip) #nav{display:none!important}
@@ -972,8 +848,8 @@ body.touch.splitOn #gcamBtn{top:auto!important;bottom:calc(10px + var(--sab))!im
 #spPane2{display:none!important}
 @media (orientation:portrait){.spBall{width:56px!important;height:56px!important}#spHud,#spHud1{font-size:11px!important}}
 /* f5.6g (QA spec): one "Fly" verb, one button shape: 12 px corners (STAGE and icon circles stay round) */
-#home button:not(#hMenuB):not(#hPick):not(#hnCareer):not(#hGear),#build button,#mMenu button,#dMenu button,#end button,#picker button,#sitePick button,.spBtns button,#gcamBtn,#relBtn,#ctl button,#mAuto,#dCtl button:not(#dStage),#hMenu button,.mcAct button{border-radius:12px!important}
-#hFly,#launchBtn{text-transform:none!important;letter-spacing:.02em}
+#home button:not(#hMenuB):not(#hPick):not(#hnCareer):not(#hGear),#mMenu button,#dMenu button,#end button,#picker button,#sitePick button,.spBtns button,#gcamBtn,#relBtn,#ctl button,#mAuto,#dCtl button:not(#dStage),#hMenu button,.mcAct button{border-radius:12px!important}
+#hFly{text-transform:none!important;letter-spacing:.02em}
 /* fx-1: one toast area. In the compact HUD #hintS already shows callout > newest toast > hint, so the old stack hides */
 body.cx #topStack{display:none!important}
 #hintS{transition:translate .2s ease}
@@ -1064,14 +940,7 @@ body.onPad #mAbort,body.onPad #dAbort{opacity:.35!important;filter:grayscale(1)!
 body.touch #nav #navThrT{display:none!important}
 #split.pipM:not(.fullB) #spCardB,#split.pipM:not(.fullB) #spCardB *{font-size:12px!important;line-height:1.25!important}
 #split.pipM:not(.fullB) #spCardB .spR{white-space:nowrap!important}
-/* f5.7k (QA f5.7i P1 screens) */
-body.touch #build .bTopRow{display:flex;gap:8px;align-items:stretch}
-body.touch #build .bTopRow > *{flex:1;margin:0!important}
-body.touch #build .bTopRow #launchBtn{position:static!important;min-width:0!important;width:auto!important;min-height:48px!important;box-shadow:none!important}
 body.touch #picker{background:#070b14!important}
-body:not(.touch) #build .colH small{display:none}
-body:not(.touch):not(.buildAdv) #palette small,body:not(.touch) #build .dropEnd{display:none}
-body:not(.touch):not(.buildAdv) #palette button,body:not(.touch):not(.buildAdv) #palette > *{min-height:0}
 #sitePick .spSub,#sitePick .spHint{display:none!important}
 body.touch #sitePick .spInfo{font-size:12px}
 /* f5.7l: split ☰ sits in the free middle, clear of the booster inset and the navball readout */
@@ -1090,26 +959,12 @@ body.touch #settings .mbox{left:0!important;right:0!important;bottom:0!important
 #picker .pkTab.on{background:#2d5fd0;border-color:#9cc3ff;color:#fff}
 #picker:not(.pkSearch) .pkR.off{display:none}
 #picker:not(.pkSearch) .pkR h4{display:none}
-/* f5.7l: phone Build = one column at a time (Rocket / Parts / Stages) */
-body.touch #build .bTabs{display:flex;gap:6px;margin:6px 0}
-body.touch #build .bTabs button{flex:1;min-height:40px;border-radius:12px;background:#14203a;border:1px solid #2a3c62;color:#cfe0ff;font:700 14px system-ui}
-body.touch #build .bTabs button.on{background:#2d5fd0;border-color:#9cc3ff;color:#fff}
-body.touch #build[data-bt="0"] .bcols > :not(:nth-child(2)),body.touch #build[data-bt="1"] .bcols > :not(:nth-child(1)),body.touch #build[data-bt="2"] .bcols > :not(:nth-child(3)){display:none!important}
-body.touch #build .bcols .colH{display:none}
-body:not(.touch) #stack small{display:none}
-/* f5.7l: Fly moved into the panel, so the 84px gap for the old floating Fly goes; the sheet sits on the bottom edge and scrolls inside */
-body.touch:not(.home) #build.builder{bottom:0!important;padding-bottom:calc(10px + var(--sab,0px))!important;overscroll-behavior:contain}
-@media (orientation:portrait){body.touch:not(.home) #build.builder{height:50dvh!important;max-height:50dvh!important}}
-@media (orientation:landscape) and (max-height:500px){body.touch:not(.home) #build.builder{bottom:8px!important;max-height:calc(100dvh - 100px)!important;overflow-y:auto!important}}
 body:not(.touch) #settings #setBody{display:block!important}body:not(.touch) #settings #setBody > *{width:auto!important;display:block}
 @media (orientation:portrait){body.touch.splitOn #mMenu .mg,body.touch.splitOn #mMenu .mg.mTop{grid-template-columns:repeat(4,1fr)!important}body.touch.splitOn #mMenu button{font-size:12px!important;padding:4px 2px!important}body.touch.splitOn #mMenu .mh{margin-bottom:4px!important}body.touch.splitOn #mMenu .mh b{display:none}body.touch.splitOn #mMenu .mh{justify-content:flex-end!important}}
 /* f5.7m (QA f5.7j P2 pad): hint under the top bar (not on the rocket); one hint everywhere; GROUND one slot (top-left) on every size */
 body.touch #ignite{top:calc(64px + var(--sat,0px))!important;transform:translateX(-50%)!important}
 body.autoOn #ignite{display:none!important}
 body:not(.touch) #gcamBtn:not([data-sp-pin]){top:calc(12px + var(--sat,0px))!important;left:12px!important;right:auto!important;bottom:auto!important}
-/* f5.7n: Build part rows show their ▲ ▼ ✕ ⓘ / ± tools only on the selected row (tap a row), or on hover (desktop) */
-body.touch #stack .prow:not(.sel) button,body.touch #stack .prow:not(.sel) .cnt{display:none!important}
-body:not(.touch) #stack .prow:not(.sel):not(:hover) button,body:not(.touch) #stack .prow:not(.sel):not(:hover) .cnt{display:none}
 /* f5.7n: settings sheet: the home screen behind steps back (dimmed, not clickable) */
 body:has(#settings:not(.hidden)) #home{visibility:hidden!important}
 #sitePick .spBodies,#sitePick .spSites{align-items:flex-start!important;align-content:flex-start!important}#sitePick .spBodies button,#sitePick .spSites button{height:auto!important;min-height:36px;flex:0 0 auto} /* f5.7q (QA f5.7n): chips wrap to rows at normal height */
@@ -1117,23 +972,13 @@ body:has(#settings:not(.hidden)) #home{visibility:hidden!important}
 #picker .pkCo[open] > summary{padding:4px 0!important;min-height:0!important}
 #picker .pkC{min-height:44px!important;padding:6px 10px!important}
 #picker .pkC small{font-size:11px}
-/* phone Build: less chrome so ≥5 rows show at 390 and ≥3 at 844 */
-body.touch #build .bTopRow .bMore{flex:0 0 44px!important}body.touch #build .bTopRow .bMore summary{min-height:44px;display:flex;align-items:center;justify-content:center}
-body.touch #build .bTopRow #homeBack,body.touch #build .bTopRow #launchBtn{min-height:44px!important}
-body.touch #build .bTabs{margin:4px 0!important}body.touch #build .bTabs button{min-height:36px!important}
-body.touch #stack .prow{min-height:40px!important;padding:4px 8px!important}body.touch #stack .prow small{display:inline;margin-left:6px}
-body.touch #stack .prow b{display:inline}
-body.touch #stack .sHd,body.touch #stack .stageH{padding:2px 6px!important;min-height:0!important}
-@media (orientation:portrait){body.touch:not(.home) #build.builder{height:56dvh!important;max-height:56dvh!important}}
-/* desktop Build: the per-stage summary duplicates the stage headers */
-body:not(.touch):not(.buildAdv) #build .bsR,body:not(.touch) #build .bcols .colH{display:none}
+
 /* phone split: minimal booster inset (speed + altitude only) */
 #split.pipM:not(.fullB) #spCardB .spBall,#split.pipM:not(.fullB) #spCardB .spR{display:none!important}
 #split.pipM:not(.fullB) #spCardB{justify-content:flex-start!important}
 @media (orientation:landscape){body.touch.splitOn #mMenu{left:calc(10px + var(--sal))!important;right:auto!important;top:calc(60px + var(--sat))!important;width:min(330px,40vw)!important}}
 body.touch #navRd,body.touch #navRd *{font-size:12px!important}
 @media (orientation:landscape) and (max-height:500px){#sitePick .spBox{align-content:start!important;grid-auto-rows:min-content!important;overflow-y:auto!important}#sitePick .spMap{grid-row:2 / span 4!important;align-self:start}#sitePick .spAct{grid-row:6!important}#sitePick .spSites button,#sitePick .spBodies button{min-height:30px!important;padding:4px 8px!important;font-size:12px!important}#sitePick .spBodies,#sitePick .spSites{margin:4px 0!important}}
-body.touch #stack .prow:not(.sel) small{display:none!important}
 /* ===== f5.8 (Aaron): ONE home screen = 3D hero + hero bar + rocket gallery ===== */
 #home .hArr,#home #hDots,#home #hNav{display:none!important}
 #hGal{position:absolute;z-index:3;overflow-y:auto;overscroll-behavior:contain;background:#070b14f0;-webkit-overflow-scrolling:touch}
@@ -1152,7 +997,7 @@ body.touch #stack .prow:not(.sel) small{display:none!important}
 #hGal #picker .pkLk > summary{font-size:12px;color:#8ea3c6;padding:4px 0}
 #home #hCard{position:absolute!important;transform:none!important;z-index:4;display:flex;flex-direction:column;gap:6px;padding:10px 12px!important}
 #home #hCard .hAct{display:flex;gap:8px;align-items:stretch}#home #hCard #hFly{flex:1;min-height:48px}
-#home #hCard #hSite,#home #hCard #hnBuild,#home #hCard #hMis{flex:0 0 auto;min-height:48px;padding:0 12px}
+#home #hCard #hSite,#home #hCard #hMis{flex:0 0 auto;min-height:48px;padding:0 12px}
 #home #hCard #hSite{max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #home #hRole{font-size:12px}
 @media (orientation:portrait){
@@ -1221,26 +1066,6 @@ body.touch.splitOn #mMenu,body.splitOn #dMenu{left:auto!important;right:calc(8px
 body.touch.splitOn #mMenu .mg.mTop{grid-template-columns:1fr 1fr!important}body.touch.splitOn #mMenu button{font-size:13px!important;padding:6px 8px!important}
 #dMenu{background:#0b1424f2!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 body.touch.splitOn #mMenu .mh b{display:inline!important}body.touch.splitOn #mMenu .mh{justify-content:space-between!important}
-/* f5.8d: ⋯ Build options = one solid popover with 4 small groups, over the parts (never pushes the layout) */
-#build .bMore{position:static}
-#build .bMore > .bmOld{display:none!important}
-body > .bmPanel.on{position:absolute;left:8px;right:8px;top:64px;z-index:20;max-height:calc(100% - 72px);overflow:auto;background:#0b1424;border:1px solid #2a3c5c;border-radius:14px;padding:10px 12px;box-shadow:0 8px 28px #000c;display:flex;flex-direction:column;gap:10px}
-body > .bmPanel .bmG h5{margin:0 0 6px;font:700 12px var(--ui,system-ui);color:#8ea3c6;letter-spacing:.4px;text-transform:uppercase}
-body > .bmPanel .bmR{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-body > .bmPanel .bmR #presets{display:flex;flex-wrap:wrap;gap:6px}
-body > .bmPanel .bmR .saved{display:flex;flex-wrap:wrap;gap:6px}
-body > .bmPanel .bmR label.chk{font-size:13px;display:inline-flex;gap:6px;align-items:center}
-body > .bmPanel .bmR button,body > .bmPanel .bmR select{min-height:40px}
-body > .bmPanel.on{position:fixed!important;z-index:97!important;left:calc(12px + env(safe-area-inset-left,0px))!important;right:auto!important;top:70px!important;width:min(460px,calc(100vw - 24px));max-height:calc(100dvh - 90px)!important}
-@media (max-width:899px) and (orientation:portrait){body > .bmPanel.on{left:8px!important;right:8px!important;width:auto;top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom,0px));max-height:70dvh!important}}
-@media (orientation:landscape) and (max-height:500px){body > .bmPanel.on{top:8px!important;max-height:calc(100dvh - 16px)!important;left:auto!important;right:8px!important;width:min(420px,52vw)}}
-body > .bmPanel:not(.on){display:none}
-body > .bmPanel.on{z-index:97!important}
-body > .bmPanel .bmR button,body > .bmPanel .bmR select{background:#16233a;border:1px solid #2c4166;color:#dfe9ff;border-radius:12px;padding:6px 12px;font:600 13px var(--ui,system-ui)}
-body > .bmPanel #presets button{flex:none!important;padding:6px 12px!important;white-space:nowrap}
-body > .bmPanel .rec{font-size:10px}
-body > .bmPanel input[type=checkbox]{width:20px;height:20px;min-height:0!important}
-body > .bmPanel #inclIn{width:64px;min-height:36px;background:#16233a;color:#fff;border:1px solid #2c4166;border-radius:8px}
 /* f5.8f (QA P1): region tabs = one folding row per company (summary 44px, open row scrolls sideways) — ~2 screens on a phone */
 #hGal #picker details.pkRow{border-top:1px solid #1c2a44!important;padding:0!important}
 #hGal #picker details.pkRow > summary{display:flex!important;align-items:center;gap:8px;min-height:44px;padding:0 4px;list-style:none;cursor:pointer;font:700 14px var(--ui,system-ui);color:#dfe9ff}
@@ -1257,18 +1082,6 @@ body > .bmPanel #inclIn{width:64px;min-height:36px;background:#16233a;color:#fff
   #hGal #picker section[data-rg="Featured"] .pkG{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))!important}
   #hGal #picker section[data-rg="Featured"] .pkC .pkT{height:clamp(200px,calc((100vh - 220px) / 2),340px)!important}}
 @media (min-width:1600px) and (orientation:landscape){#hGal{width:min(820px,46vw)!important}#home #hTop{right:calc(min(820px,46vw) + 12px)!important}}
-/* f5.8f (QA P1): Build chrome — phone sheet 44% (was 56), ⋯ popover ≤45%, the game's own toggle instead of a native checkbox */
-@media (orientation:portrait){body.touch:not(.home) #build.builder{height:52dvh!important;max-height:52dvh!important}
-  #build .bTopRow{gap:6px!important}#build .bTopRow > *{min-height:44px!important}
-  #build .bTabs button{min-height:38px!important;padding:4px!important}
-  #build .bsH,#build .stHead{padding-top:4px!important;padding-bottom:4px!important}
-  #build #stack .prow{min-height:38px!important;padding-top:4px!important;padding-bottom:4px!important}}
-body > .bmPanel.on{max-height:45dvh!important;gap:6px!important;padding:8px 10px!important}
-body > .bmPanel .bmG h5{margin:0 0 4px!important;font-size:11px!important}
-body > .bmPanel .bmR button,body > .bmPanel .bmR select,body > .bmPanel #presets button{min-height:36px!important;padding:4px 10px!important;font-size:12px!important}
-body > .bmPanel input[type=checkbox]{-webkit-appearance:none;appearance:none;position:relative;width:44px!important;height:26px!important;border-radius:13px;background:#3a4560;border:0;margin:0;cursor:pointer;transition:background .15s;flex:none}
-body > .bmPanel input[type=checkbox]::after{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
-body > .bmPanel input[type=checkbox]:checked{background:#2fb36b}body > .bmPanel input[type=checkbox]:checked::after{left:21px}
 /* f5.8f (QA P2): photo mode = a small icon pill in the corner, off the rocket */
 #photobar{left:auto!important;right:calc(12px + env(safe-area-inset-right,0px))!important;transform:none!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;padding:4px!important;gap:4px!important;border-radius:28px!important;background:#0b1424b3!important;flex-direction:column}
 #photobar button{width:48px;height:48px;min-height:0!important;padding:0!important;border-radius:50%!important;font-size:20px!important;background:transparent;border:0;color:#fff}
@@ -1279,20 +1092,6 @@ body.touch.autoOn #gcamBtn,body.touch.autoOn #navSasT,body.touch.autoOn #wDn,bod
 body.photo #nav,body.photo #navSasT,body.photo #navBall{display:none!important}
 body.photo #relBtn,body.photo #dCtl,body.photo #plain,body.photo #warpBar,body.photo #topStack,body.photo #spPane,body.photo .spCard{display:none!important}
 #hGal #picker details.pkRow > summary::marker{content:""}#hGal #picker details.pkRow > summary::before{content:none!important;display:none!important}
-/* f5.8g (QA P1): collapsed phone Build — top row + one stat line (≤35% of the screen), tap ✎ to expand to the full editor */
-#bMini{display:none}
-body.touch #bMini{display:flex;align-items:center;gap:8px;margin:6px 0 0;min-height:44px;padding:0 4px 0 10px;border-radius:12px;background:#111b30;border:1px solid #22324f;cursor:pointer}
-body.touch #bMini #bStat{flex:1;font:700 14px var(--mono,monospace);color:#dfe9ff}body.touch #bMini #bStat.low{color:#ffb35c}
-body.touch #bMini #bExp{width:44px;height:40px;min-height:0!important;padding:0!important;background:none!important;border:0!important;font-size:18px;color:#9fc3ff}
-body.touch.bCol:not(.home) #build.builder{height:auto!important;max-height:35dvh!important;min-height:0!important}
-body.touch.bCol #build.builder > :not(.bTopRow):not(#bMini){display:none!important}
-body.touch.bCol #build .bTopRow #homeBack{font-size:0!important}body.touch.bCol #build .bTopRow #homeBack::before{content:'‹';font-size:24px}
-body > .bmPanel .bmSub > summary{list-style:none;display:inline-flex;align-items:center;min-height:36px;padding:4px 12px;border-radius:12px;border:1px solid #2c4166;color:#9fc3ff;font:600 12px var(--ui,system-ui);cursor:pointer}
-body > .bmPanel .bmSub > summary::-webkit-details-marker{display:none}
-body > .bmPanel .bmSub[open] > summary{margin-bottom:6px}
-body > .bmPanel .bmG .bmR > .bmSub{flex-basis:auto}
-body > .bmPanel .bmSub[open]{flex-basis:100%}
-@media (orientation:landscape) and (max-height:500px){body > .bmPanel.on{left:calc(8px + env(safe-area-inset-left,0px))!important;right:auto!important;top:8px!important;bottom:8px!important;width:min(420px,48vw)!important;max-height:none!important;height:auto}}
 /* f5.8g (QA P1): 📍 sheet — chips wrap, Earth/Moon/Mars + More worlds…, current pad once; landscape sits over the gallery (never over Fly / the name card) */
 #sitePick .spBodies{flex-wrap:wrap!important;overflow:visible!important}
 #sitePick:not(.worlds) .spBodies .spB2{display:none!important}
@@ -1314,36 +1113,14 @@ body > .bmPanel .bmSub[open]{flex-basis:100%}
 body.touch.autoOn #wDn:not([hidden]){display:inline-flex!important;align-items:center;justify-content:center}
 /* f5.8g: phone gallery in 40% — 4 cards per row so a row of pictures is always in view */
 @media (orientation:portrait) and (max-width:600px){#hGal #picker .pkG:not(.pkStrip){grid-template-columns:repeat(4,1fr)!important;gap:6px!important}#hGal #picker .pkG:not(.pkStrip) .pkC .pkT{height:104px!important}#hGal #picker .pkC b{font-size:12px!important}#hGal #picker .pkStrip{grid-auto-columns:86px!important}#hGal #picker .pkStrip .pkC .pkT{height:104px!important}}
-/* expanded phone Build: the stat bar folds into a small ▾ button so the parts list keeps its rows */
-body.touch:not(.bCol) #bMini{position:absolute;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:5;margin:0;padding:0;width:44px;min-height:44px;justify-content:center;border-radius:22px;background:#1a2a4a}
-body.touch:not(.bCol) #bMini #bStat{display:none}
-@media (orientation:landscape) and (max-height:500px){#sitePick .spBox{width:min(330px,40vw)!important}body > .bmPanel.on{width:min(330px,39vw)!important}}
-@media (orientation:landscape) and (max-height:500px){body > .bmPanel.on{bottom:auto!important;max-height:calc(100dvh - 16px)!important}}
-/* f5.8h (QA f5.8g P1): desktop Build collapsed card */
-body:not(.touch) #bMini{display:flex;align-items:center;gap:10px;margin:8px 0 0;min-height:44px;padding:0 6px 0 12px;border-radius:12px;background:#111b30;border:1px solid #22324f;cursor:pointer}
-body:not(.touch) #bMini #bStat{flex:1;font:700 15px var(--mono,monospace);color:#dfe9ff;white-space:nowrap}body:not(.touch) #bMini #bStat.low{color:#ffb35c}
-body:not(.touch) #bMini #bExp{min-height:36px;padding:0 12px;border-radius:10px;background:#1a2a4a;border:1px solid #2c4166;color:#9fc3ff;font:600 13px var(--ui,system-ui);white-space:nowrap}
-body:not(.touch).bCol:not(.home) #build.builder{height:auto!important;max-height:none!important;min-height:0!important;width:auto!important;max-width:460px;right:auto!important;bottom:auto!important}
-body:not(.touch).bCol #build.builder > :not(.bTopRow):not(#bMini){display:none!important}
-.stageH span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.stageH em{white-space:nowrap}
+@media (orientation:landscape) and (max-height:500px){#sitePick .spBox{width:min(330px,40vw)!important}}
 /* f5.8h: photo mode = only the photo pill */
 body.photo #navRd,body.photo .navArcs,body.photo #navArcs{display:none!important}
 /* f5.8h (QA P2): flight ☰ at 844 fits whole (🏠 Home was cut off) */
 @media (orientation:landscape) and (max-height:500px){#mMenu,body.touch.splitOn #mMenu{max-height:calc(100dvh - 66px)!important;overflow:visible!important;width:min(380px,46vw)!important}#mMenu .mg.mTop,body.touch.splitOn #mMenu .mg.mTop{grid-template-columns:repeat(3,1fr)!important}#mMenu .mg.mTop button{min-height:42px!important}}
 #sitePick .spB2{display:none!important}
 #sitePick .spWSel{min-height:40px;border-radius:12px;background:#16233a;border:1px solid #2c4166;color:#dfe9ff;padding:4px 10px;font:600 13px var(--ui,system-ui);max-width:100%}#sitePick .spWSel.on{border-color:#5aa0ff;background:#1d3a66}
-#build .bMore:not([open]) .bmPanel{display:none!important}
-body:not(.touch) #build .bTopRow .bMore > summary{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:40px;border-radius:12px;border:1px solid #2c4166;background:#16233a;color:#dfe9ff;font-size:18px;cursor:pointer}
-/* f5.8h (QA P1): ⋯ with every sub-list open stays under a third of a phone screen */
-body.touch > .bmPanel .bmG h5{display:none!important}
-body.touch > .bmPanel.on{gap:6px!important;padding:8px!important}
-body.touch > .bmPanel .bmR{gap:5px!important}
-body.touch > .bmPanel .bmR button,body.touch > .bmPanel .bmR select,body.touch > .bmPanel .bmSub > summary{min-height:34px!important}
-body.touch > .bmPanel .bmSub[open] > summary{margin-bottom:4px!important}
-@media (orientation:landscape) and (max-height:500px){body > .bmPanel.on{width:min(400px,48vw)!important}#sitePick .spBox{width:min(300px,36vw)!important;bottom:auto!important;height:auto!important;max-height:calc(100dvh - 16px)!important}}
-body.touch > .bmPanel label select,body.touch > .bmPanel label input:not([type=checkbox]){min-height:34px!important;height:34px!important;padding:2px 8px!important}
-body.touch > .bmPanel .bmG:first-child .bmR,body.touch > .bmPanel .bmG:nth-child(2) .bmR{flex-wrap:nowrap!important}
-body.touch > .bmPanel .bmG:first-child{display:inline-block}
+@media (orientation:landscape) and (max-height:500px){#sitePick .spBox{width:min(300px,36vw)!important;bottom:auto!important;height:auto!important;max-height:calc(100dvh - 16px)!important}}
 @media (orientation:landscape) and (max-height:500px){#sitePick .spBox{top:8px!important;bottom:auto!important;height:auto!important;min-height:0!important}}
 @media (orientation:landscape) and (max-height:500px){#sitePick{align-items:flex-start!important}#sitePick .spBox{margin:8px 8px 0 0!important;border-radius:16px!important}}
 /* f5.8h (QA): on the pad a toast (e.g. Frame rate low) sits under the AUTO/STAGE hint, never on it */ body.touch:not(.autoOn):has(#ignite:not(.hidden)) #hintS{top:calc(134px + var(--sat,0px))!important}@media (orientation:landscape) and (max-height:500px){body.touch:not(.autoOn):has(#ignite:not(.hidden)) #hintS{top:calc(134px + var(--sat,0px))!important}}
@@ -1352,14 +1129,6 @@ body.touch > .bmPanel .bmG:first-child{display:inline-block}
 body:not(.touch) #nav{left:auto!important;right:calc(24px + env(safe-area-inset-right,0px))!important;transform:none!important;bottom:130px!important} /* f5.8i (QA): navball bottom-right above AUTO/STAGE, like phones */
 /* f5.8i (QA f5.8h P2): desktop 📍 sheet fits its content */
 @media (orientation:landscape) and (min-height:501px){#sitePick{align-items:flex-start!important}#sitePick .spBox{width:min(400px,32vw)!important;height:auto!important;max-height:calc(100dvh - 24px)!important;margin:12px 12px 0 0!important;border-radius:16px!important}}
-/* f5.8i: ⋯ never covers the Build card / Fly (844 + desktop): it opens on the right; same 11 controls, no headers */
-body > .bmPanel .bmG h5{display:none!important}
-@media (orientation:landscape){body > .bmPanel.on{left:auto!important;right:calc(12px + env(safe-area-inset-right,0px))!important;top:12px!important;bottom:auto!important}}
-@media (orientation:landscape) and (max-height:500px){body > .bmPanel.on{top:8px!important;right:calc(8px + env(safe-area-inset-right,0px))!important;width:min(400px,46vw)!important}}
-/* f5.8i (QA P2): every phone ⋯ control ≥40 px */
-body.touch > .bmPanel .bmR button,body.touch > .bmPanel .bmR select,body.touch > .bmPanel .bmSub > summary,body.touch > .bmPanel label select,body.touch > .bmPanel label input:not([type=checkbox]){min-height:40px!important;height:40px!important}
-body.touch > .bmPanel input[type=checkbox]{width:64px!important;height:40px!important;border-radius:20px!important}body.touch > .bmPanel input[type=checkbox]::after{width:32px!important;height:32px!important;left:4px!important;top:4px!important}body.touch > .bmPanel input[type=checkbox]:checked::after{left:28px!important}
-body.touch > .bmPanel.on{gap:3px!important}body.touch > .bmPanel .bmG{margin:0!important;padding:0!important}body.touch > .bmPanel .bmSub[open] > .bmR{row-gap:3px!important}
 body.autoOn #navSasT{display:none!important} /* f5.8i: SAS ring hides under AUTO on every size (phones already did) */
 body.touch #spFull,body.touch #spFullU{min-height:40px!important;padding:8px 12px!important;display:inline-flex!important;align-items:center}
 @media (orientation:landscape) and (max-height:500px){#mMenu,body.touch.splitOn #mMenu{right:calc(184px + env(safe-area-inset-right,0px))!important;width:min(340px,40vw)!important}} /* f5.8i (QA): ☰ @844 sits left of the navball */
@@ -1373,57 +1142,13 @@ body.touch #mMenu #mClose{width:44px!important;height:44px!important}
 #dCtl kbd{display:none!important}
 body.autoOn:not(.inOrbit) #dThr{display:flex!important}
 body:not(.touch) #nav{bottom:156px!important;right:calc(12px + env(safe-area-inset-right,0px))!important}
-body:not(.touch).bCol:not(.home) #build.builder{max-width:560px}
-
-/* f5.8k (QA f5.8j): one Build card on every size: "‹ Home" · ⋯ · Fly + stat line with a labelled ✎ Edit */
-body.touch.bCol #build .bTopRow #homeBack{font-size:inherit!important}body.touch.bCol #build .bTopRow #homeBack::before{content:none!important}
-#build #homeBack{white-space:nowrap}
-#build #homeBack::after{content:none}
-#bMini #bExp{white-space:nowrap}
-body.touch #bMini #bExp,body:not(.touch) #bMini #bExp{width:auto!important;min-width:72px;height:40px!important;min-height:40px!important;padding:0 12px!important;font:700 14px var(--ui,system-ui)!important;background:#1a2a4a!important;border:1px solid #2c4166!important;border-radius:10px!important;color:#cfe3ff}
-/* expanded phone sheet: the collapse bar is in flow (it used to float over the part list) */
-body.touch:not(.bCol) #bMini{position:static!important;width:auto!important;min-height:44px;margin:6px 0 0!important;padding:0 4px 0 10px!important;justify-content:space-between;border-radius:12px!important;background:#111b30!important}
-body.touch:not(.bCol) #bMini #bStat{display:block!important}
 /* ☰ in portrait split sits below the booster inset */
 @media (orientation:portrait){body.touch.pip #mMenu,body.touch.splitOn #mMenu{top:calc(76px + 31.5vw + var(--sat,0px))!important}}
-/* desktop Build: every target ≥40 px */
-body:not(.touch) #build button,body:not(.touch) #build select,body:not(.touch) #build summary,body:not(.touch) > .bmPanel button,body:not(.touch) > .bmPanel select,body:not(.touch) > .bmPanel summary{min-height:40px!important}
-body:not(.touch) #build .prow .mini,body:not(.touch) #build .prow .cnt button,body:not(.touch) #build .stageH button{min-width:40px;min-height:40px!important}
-body:not(.touch) > .bmPanel label select,body:not(.touch) > .bmPanel label input:not([type=checkbox]){min-height:40px!important;height:40px!important}
-body:not(.touch) > .bmPanel input[type=checkbox]{width:64px!important;height:40px!important;border-radius:20px!important}body:not(.touch) > .bmPanel input[type=checkbox]::after{width:32px!important;height:32px!important;left:4px!important;top:4px!important}body:not(.touch) > .bmPanel input[type=checkbox]:checked::after{left:28px!important}
-body:not(.touch) > .bmPanel .bmR button,body:not(.touch) > .bmPanel .bmR select{height:40px}
-body:not(.touch) #palette .palH{min-height:40px!important}
-/* f5.8l: Advanced = the builder's right column (one panel ≤45 % of the width, Rocket | Advanced switch) */
-body:not(.touch).buildAdv .panel.builder{width:min(560px,43.5vw)!important}
-body:not(.touch).buildAdv .bcols{grid-template-columns:190px 1fr!important}
-body:not(.touch) #bAdvP{display:none}
-body:not(.touch).buildAdv.advView .bcols>div:nth-child(3){display:flex!important;flex-direction:column;gap:8px;grid-column:2;grid-row:1;overflow:auto;max-height:calc(100vh - 230px)}
-body:not(.touch).buildAdv.advView .bcols>div:nth-child(2){display:none!important}
-#bAdvTabs{display:none}
-body:not(.touch).buildAdv:not(.bCol) #bAdvTabs{display:flex;gap:6px;margin:6px 0 0}
-#bAdvTabs button{flex:1;min-height:40px;border-radius:10px;background:#14203a;border:1px solid #2a3c62;color:#cfe0ff;font:700 13px var(--ui,system-ui);cursor:pointer}
-#bAdvTabs button.on{background:#2d5fd0;border-color:#9cc3ff;color:#fff}
-#bAdvTabs #bAdv{flex:0 0 auto;padding:0 12px;background:#16233a}
 #bAdvHeadX{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 15px var(--ui,system-ui);color:#dfe9ff}
-body:not(.touch) #bAdvHead #bAdv{height:40px;min-height:40px;padding:0 12px;border-radius:10px;background:#16233a;border:1px solid #2c4166;color:#dfe9ff;font:600 13px var(--ui,system-ui);cursor:pointer}
-.advS{border:1px solid #22324f;border-radius:10px;background:#0f1a30}
-.advS>summary{list-style:none;cursor:pointer;min-height:40px;display:flex;align-items:center;padding:0 12px;font:700 13px var(--ui,system-ui);color:#cfe3ff}
-.advS>summary::-webkit-details-marker{display:none}.advS>summary::before{content:'▸';margin-right:8px;color:#8ea3c6}.advS[open]>summary::before{content:'▾'}
-.advS>:not(summary){margin-left:10px;margin-right:10px}.advS[open]{padding-bottom:8px}
-body:not(.touch) #bAdvP .tests{display:flex;gap:6px;flex-wrap:wrap}body:not(.touch) #bAdvP .tests button{flex:1;min-height:40px}
-body:not(.touch) #hGearM #hAdv{min-height:40px}
-body:not(.touch) #build .stageH{flex-wrap:wrap;row-gap:2px}body:not(.touch) #build .stageH span{flex:1 1 100%}body:not(.touch) #build .stageH em{flex:1}
-body.touch #build .bTabs button{min-height:40px!important}
-#bAdvP .colH{display:none}#bAdvP table{width:100%;font-size:12px}#bAdvP .advS{overflow-x:auto}#bAdvP select,#bAdvP button,#bAdvP input{min-height:40px}#bAdvP #envSel{width:100%;margin-top:4px}
-/* f5.8k: the in-flow ▾ Close bar costs one row, so the expanded sheet is a little taller */
-@media (orientation:portrait){body.touch:not(.bCol):not(.home) #build.builder{height:59dvh!important;max-height:59dvh!important}}
-@media (orientation:landscape) and (max-height:500px){body.touch:not(.bCol):not(.home) #build.builder{top:8px!important;bottom:8px!important;max-height:calc(100dvh - 16px)!important;height:calc(100dvh - 16px)!important}}
 /* f5.8l (QA f5.8k P3): the inset card keeps nothing clipped: parts that don't fit the small card are collapsed to zero size inside it (not display:none, which reads as "outside the card") */
 #split.pipM:not(.fullB) #spCardB .spBall,#split.pipM:not(.fullB) #spCardB .spR,#split.pipM:not(.fullB) #spCardB .pill,body.touch #split:not(.fullB) #spCardB .pill{display:block!important;position:absolute!important;left:0;top:0;width:0!important;height:0!important;min-width:0!important;padding:0!important;margin:0!important;border:0!important;font-size:0!important;line-height:0!important;overflow:hidden!important;visibility:hidden!important;pointer-events:none}
 #split.pipM:not(.fullB) #spCardB .spR *,#split.pipM:not(.fullB) #spCardB .pill{font-size:0!important}
 
-/* f5.8l: desktop ⋯ ↶ ↷ are ≥40 px */
-body:not(.touch) > .bmPanel #undoBtn,body:not(.touch) > .bmPanel #redoBtn{min-width:40px!important;width:auto!important;height:40px!important;min-height:40px!important}
 body:not(.touch) #mMenu #mClose,body:not(.touch) #dMenu #dClose{min-width:40px!important;min-height:40px!important;width:40px!important;height:40px!important}
 
 /* f5.8m: STAGE goes calm and grey once nothing is left to stage / release (no flash, no orange) */
@@ -1438,23 +1163,7 @@ body.noStage #mStage,body.noStage #dStage{background:#3a4152!important;border-co
 #endCause{display:none}#end.lean #endCause{display:block;font:600 13px var(--ui,system-ui);color:#ffb3a8;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#end.lean #endCause:empty{display:none}
 #end.lean #contBtn{order:-1}
 
-/* f5.8u (QA f5.8r P2): sheets are ~50 % of the height: the expanded Build card (was 59 % portrait / 96 % landscape), the ⋯ panel and the 📍 sheet in landscape; the ⋯ panel opens above/beside the card, never over it */
-@media (orientation:portrait){body.touch:not(.bCol):not(.home) #build.builder{height:52dvh!important;max-height:52dvh!important;gap:4px!important}body.touch:not(.bCol):not(.home) #build.builder > #bMini,body.touch:not(.bCol):not(.home) #build.builder > .bTabs{margin:0!important}body.touch:not(.bCol):not(.home) #build.builder > .bTopRow{margin:0!important}}
 @media (orientation:landscape) and (max-height:500px){
-  body.touch:not(.bCol):not(.home) #build.builder{top:auto!important;bottom:8px!important;height:50dvh!important;max-height:50dvh!important;overflow-y:auto!important}
-  body.touch:not(.bCol):not(.home) #build.builder:not(.hidden){display:grid!important}
-  body.touch:not(.bCol):not(.home) #build.builder{width:min(600px,70vw)!important;max-width:min(600px,70vw)!important;grid-template-columns:232px minmax(0,1fr)!important;grid-template-rows:auto auto auto 1fr!important;gap:4px 8px!important;overflow:hidden!important;align-content:start!important}
-  body.touch:not(.bCol):not(.home) #build.builder > .bTopRow{grid-column:1;grid-row:1;min-width:0}
-  body.touch:not(.bCol):not(.home) #build.builder > #bMini{grid-column:1;grid-row:2;min-width:0;margin:0!important;padding:0 4px 0 8px!important}
-  body.touch:not(.bCol):not(.home) #build.builder > #bMini #bStat{font-size:11px!important;line-height:1.2;white-space:normal}
-  body.touch:not(.bCol):not(.home) #build.builder > .bTabs{grid-column:1;grid-row:3;margin:0!important}
-  body.touch:not(.bCol):not(.home) #build.builder > .bTabs button{padding:0 4px!important;font-size:12px!important}
-  body.touch:not(.bCol):not(.home) #build.builder > .bcols{grid-column:2;grid-row:1 / span 4;min-height:0;overflow-y:auto!important;margin:0!important}
-  body.touch:not(.bCol):not(.home) #build.builder > .bTopRow #homeBack{padding:0 8px!important;min-width:0}
-  body > .bmPanel.on{max-height:54dvh!important;padding:4px 10px!important}
-  body > .bmPanel .bmG{margin:0 0 1px!important}body > .bmPanel .bmG h5{margin:0 0 2px}
-  body > .bmPanel .bmR{gap:4px!important}
-  body > .bmPanel .bmSub .bmR label.chk{flex:1 1 44%;min-height:34px;font-size:12px}
   #sitePick{align-items:flex-end!important;justify-content:flex-start!important;padding:0 0 env(safe-area-inset-bottom) env(safe-area-inset-left)!important}
   #sitePick .spBox{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-areas:"h h" "b s" "a s"!important;grid-auto-rows:min-content!important;align-content:start!important;gap:6px 10px!important;position:static!important;width:min(520px,74vw)!important;max-height:50dvh!important;overflow-y:auto!important;padding:6px 10px 8px!important;border-radius:0 16px 0 0!important}
   #sitePick .spHead{grid-area:h!important;min-height:0}#sitePick .spBodies{grid-area:b!important}#sitePick .spSites{grid-area:s!important}#sitePick .spAct{grid-area:a!important}
@@ -1475,49 +1184,11 @@ body.noStage #mStage,body.noStage #dStage{background:#3a4152!important;border-co
   #end.lean.more #endTitle{grid-area:h}#end.lean.more #endCause{grid-area:c}#end.lean.more #endBody{grid-area:b;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain}
   #end.lean.more .endMain{grid-area:m;align-self:start;margin-top:0!important}#end.lean.more .endShare{grid-area:s;align-self:end;margin-top:6px!important}
 }
-/* f5.8v (QA f5.8u P2): Build panels. Desktop expanded Build <= 50 % of the height (was 71 %), its columns scroll; landscape phone (844x390): stage header on one line without ellipsis, 4 part rows fit; portrait ⋯ is a narrow panel beside the rocket */
-body:not(.touch):not(.bCol):not(.home) #build.builder:not(.hidden){max-height:50dvh!important;overflow:hidden!important}
-body:not(.touch):not(.bCol):not(.home) #build.builder .bcols{min-height:0;overflow:hidden}
-body:not(.touch):not(.bCol):not(.home) #build.builder .bcols>div{overflow-y:auto;min-height:0}
-body.touch #build .stageH{flex-wrap:nowrap;gap:4px}body.touch #build .stageH span{flex:0 1 auto;overflow:visible;text-overflow:clip;white-space:nowrap}body.touch #build .stageH em{flex:1;min-width:0;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:clip}
-@media (orientation:landscape) and (max-height:500px){
-  body.touch #build .stageH{margin:2px 0 0}body.touch #build .stageH span,body.touch #build .stageH em{font-size:10.5px}
-  body.touch #build .stageH button{min-width:30px!important;min-height:28px!important;height:28px;padding:0 5px}
-  body.touch #build #stack .prow{min-height:32px!important;padding-top:2px!important;padding-bottom:2px!important;margin:1px 0!important}
-}
-/* f5.8w (QA f5.8v P1): the portrait phone ⋯ panel is a full-width short sheet of two control rows just above the card, next to the ⋯ button (the f5.8v 156 px tower crushed 'Saved designs…' and clipped Save/Delete) */
-@media (max-width:899px) and (orientation:portrait),(orientation:landscape) and (max-height:500px){
-  body > .bmPanel.on.on{display:flex!important;flex-direction:row!important;flex-wrap:wrap;gap:4px!important;row-gap:4px!important;align-content:flex-start;padding:3px 8px!important}
-  body > .bmPanel.on .bmG,body > .bmPanel.on .bmG > .bmR{display:contents!important}body > .bmPanel.on .bmG h5{display:none!important}
-  body > .bmPanel.on #tplSel{order:1;flex:1 1 110px;min-width:0}body > .bmPanel.on #undoBtn{order:2;flex:0 0 44px;min-width:44px}body > .bmPanel.on #redoBtn{order:3;flex:0 0 44px;min-width:44px}
-  body > .bmPanel.on .bmSub{order:4;flex:0 0 auto;margin:0!important;align-self:flex-start}body > .bmPanel.on .bmSub > summary{min-height:40px;display:flex;align-items:center;padding:0 10px;white-space:nowrap}
-  body > .bmPanel.on #savedSel{order:5;flex:1 1 120px;min-width:0}body > .bmPanel.on #saveBtn{order:6;flex:0 0 auto;min-width:60px}body > .bmPanel.on #delBtn{order:7;flex:0 0 auto;min-width:60px}
-  body > .bmPanel.on .bmSub[open]{order:8;flex:1 1 100%}
-}
-/* f5.8w (QA f5.8v P1): the collapsed Build card at 844x390 is ~98 px tall (was 137) so the ⋯ panel under it is within 80 px of the ⋯ button */
-@media (orientation:landscape) and (max-height:500px){
-  body.touch.bCol:not(.home) #build.builder{padding-bottom:6px!important;bottom:auto!important}
-  body.touch.bCol:not(.home) #build.builder > .bTopRow{margin-bottom:2px!important}
-  body.touch.bCol:not(.home) #build.builder > #bMini{margin-top:0!important;min-height:40px!important;height:40px}
-}
+
 /* f5.8w (QA f5.8v P2): desktop end card after ⋯ + Flight details is <= 60 % of the height at every size, the details scroll inside */
 @media (min-width:601px) and (min-height:501px){#end.lean.more{max-height:60dvh!important;overflow:hidden!important}#end.lean.more #endBody{min-height:0;overflow-y:auto!important;flex:1 1 auto}#end.lean.more .endMain,#end.lean.more .endShare{flex:none}}
 /* f5.8w (QA f5.8v P2): the grey STAGE is instant (the .15 s button background transition left it orange on a starved frame at the crash) */
 body.noStage #mStage,body.noStage #dStage{transition:none!important}
-/* f5.8y (QA f5.8w P2): the STAGE header never clips a number ("TWR 2.02" read "TWR 2." at 390/844): label + figures never shrink or clip, the ⇧⇩ buttons wrap to a second line only when the row is too narrow */
-body.touch #build .stageH{flex-wrap:wrap;gap:2px 6px}
-body.touch #build .stageH span,body.touch #build .stageH em{flex:0 0 auto;min-width:0;overflow:visible!important;text-overflow:clip;white-space:nowrap;font-size:10.5px}
-body.touch #build .stageH button:first-of-type{margin-left:auto}
-/* f5.8y (QA f5.8w P2): Build panels stop filling the screen. Landscape phone: the Build card is ONE column 35 % of the width (min 280 px) at the left, the ⋯ sheet lives inside that column, so everything open is <= 35 % of the width and the rocket keeps the right 65 %; portrait phone: the expanded card is 45 % of the height and the ⋯ sheet sits inside it */
-@media (orientation:landscape) and (max-height:500px){
-  html body.touch:not(.home) #build.builder:not(.hidden){left:8px!important;right:auto!important;width:max(280px,35vw)!important;max-width:max(280px,35vw)!important}
-  html body.touch:not(.bCol):not(.home) #build.builder:not(.hidden){display:flex!important;flex-direction:column;top:8px!important;bottom:8px!important;height:auto!important;max-height:calc(100dvh - 16px)!important;overflow:hidden!important;gap:4px!important}
-  html body.touch:not(.bCol):not(.home) #build.builder > *{grid-column:auto!important;grid-row:auto!important}
-  html body.touch:not(.bCol):not(.home) #build.builder > .bcols{flex:1 1 auto;min-height:0;overflow-y:auto!important;margin:0!important}
-  html body.touch:not(.home) #build .bTopRow #homeBack{flex:0 0 auto;padding:0 10px!important;min-width:0!important}
-  html body.touch:not(.home) #build .bTopRow #launchBtn{flex:1 1 0;padding:0 8px!important;min-width:0}
-}
-@media (orientation:portrait){html body.touch:not(.bCol):not(.home) #build.builder{height:45dvh!important;max-height:45dvh!important}}
 /* f6.5 map burn bar: throttle / STAGE / SAS MANEUVER docked just above the map bottom bar (isolated block, easy to restyle) */
 #mapBurn{position:absolute;left:50%;bottom:calc(60px + var(--sab,0px));transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:4px 6px;pointer-events:auto;max-width:calc(100vw - 16px);background:var(--glass);border:1px solid var(--line);border-radius:var(--r);color:var(--txt,#dfe8ff);font:650 12px/1.2 system-ui}
 #mapBurn.hidden{display:none}
