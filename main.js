@@ -2,7 +2,7 @@ import * as THREE from 'three/webgpu';
 import { migrateSave } from './vehicles/id_aliases.js?v=f5.8z';
 import { uniform } from 'three/tsl';
 import * as P from './physics.js?v=f5.8z';
-import { Flight, PRESETS, planBuild, assessDesign, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, launchAzimuth, fmtDur } from './flight.js?v=f5.8z';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.8z';
 import * as C from './physics/patched.js?v=f5.8z';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
@@ -13,12 +13,12 @@ import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missi
 import { createCareerUI } from './fun/career-ui.js?v=f5.8z';
 import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.8z';
 import { createSolarMap } from './solarmap.js?v=f5.8z';
-import { PARTS, TEMPLATES, ORBIT_DV, TANK_DRY, splitStages, designStats, validate, cloneDesign, insertPart, removePart, movePart, setEngines, setSymmetry, swapStages, partMass, buildVehicle, aeroBalance, analyze } from './parts.js?v=f5.8z';
+import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.8z';
 import { FX } from './fx.js?v=f5.8z';
 import { createAcademy } from './academy-ui.js?v=f5.8z';
 import { createMobile, isTouch } from './mobile.js?v=f5.8z';
 import { localize } from './wording.js?v=f5.8z';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed, History } from './settings.js?v=f5.8z';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.8z';
 import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.8z';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
@@ -622,251 +622,14 @@ function burst(vol, dur, freq) {
 }
 function beep(f = 880) { if (!ac) return; const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.08, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.25); o.connect(g).connect(sbus || master); o.start(); o.stop(ac.currentTime + 0.3); }
 // ---------- hangar: part-based builder ----------
-const LS_KEY = 'orbitrush.designs.v1';
-let design = cloneDesign(TEMPLATES[0]), selected = -1;
-const TYPE_ORDER = [['pod', 'Command'], ['payload', 'Payload'], ['fairing', 'Payload'], ['tank', 'Fuel tanks'], ['engine', 'Engines'], ['decoupler', 'Structure'], ['fins', 'Structure'], ['rcs', 'Structure'], ['shield', 'Recovery'], ['chute', 'Recovery']];
-const TYPE_COL = { pod: '#9cc3ff', payload: '#e0b84a', fairing: '#e8e8e8', tank: '#f2f2f2', engine: '#ff9a3c', decoupler: '#888', fins: '#555', rcs: '#8a9099', shield: '#7a4a2a', chute: '#ff7a3c' };
-const partStat = (id, p) => { const d = PARTS[id];
-  if (d.radial) return `${d.m} t · ×${(p && p.n) || 2} radial symmetry`;
-  if (d.type === 'engine') return `${d.tv} kN · Isp ${d.ispSl}/${d.ispVac} s · ${d.m} t`;
-  if (d.type === 'tank') return `${d.fuel} t fuel · ${(d.fuel * TANK_DRY).toFixed(1)} t empty`;
-  if (d.type === 'shield') return `${d.m} t · max ${d.heat.Tmax.toLocaleString()} K${d.heat.abl ? ' · ablative' : ' · reusable'}`;
-  if (d.type === 'chute') return `${d.m} t · drogue + 3 mains`;
-  return `${(p ? partMass(p) : d.m).toFixed(1)} t${d.mult ? ' · ×' + d.mult : ''}`; };
-// rich part tooltip (hover on desktop, ⓘ on touch): every number from the part catalog
-function partTip(id, p) {
-  const d = PARTS[id], n = (p && p.n) || 1, L = [`<b>${d.name}</b>`, `<span class="sm">${d.desc}</span>`], kv = (k, x) => L.push(`<div class="kv"><span>${k}</span><b>${x}</b></div>`);
-  if (d.type === 'engine') { const mdot = d.tv / (d.ispVac * 9.80665); kv('Thrust', `${(d.tv * d.ispSl / d.ispVac).toFixed(0)} kN sea level · ${d.tv} kN vacuum${n > 1 ? ` (×${n})` : ''}`); kv('Isp', `${d.ispSl} s sea level · ${d.ispVac} s vacuum`); kv('Mass', `${d.m} t each`); kv('Propellant flow', `${(mdot * 1000).toFixed(0)} kg/s each`); kv('Gimbal', `${(d.gimbal * 180 / Math.PI).toFixed(0)}°`); kv('TWR alone (Earth, vac)', (d.tv / (d.m * 9.80665)).toFixed(0)); }
-  else if (d.type === 'tank') { kv('Propellant', `${d.fuel} t`); kv('Empty', `${(d.fuel * TANK_DRY).toFixed(2)} t`); kv('Size', `${d.h.toFixed(1)} m × ${d.d} m`); if (d.rho) kv('Density', `${d.rho} t/m³`); }
-  else if (d.type === 'shield') { kv('Mass', `${d.m} t`); kv('Max temperature', `${d.heat.Tmax} K`); if (d.heat.abl) kv('Ablator', `${d.heat.abl} t, holds ${d.heat.Tabl} K`); }
-  else if (d.type === 'chute') { kv('Drogues', `CdA ${d.drogue.cda} m² · < Mach ${d.drogue.machMax}, < ${d.drogue.qMax / 1000} kPa`); kv('Mains', `CdA ${d.main.cda} m² · < ${UN.dv(d.main.vMax)}, < ${d.main.qMax / 1000} kPa`); kv('Mass', `${d.m} t`); }
-  else if (d.type === 'rcs') { kv('Thrust', `${d.F} kN per axis · Isp ${d.isp} s`); kv('Monopropellant', `${d.mono} t`); kv('Mass', `${d.m} t`); }
-  else if (d.type === 'fins') { kv('Lift slope', `CNα ${d.cna} /rad`); kv('Mass', `${d.m} t`); }
-  else { kv('Mass', `${d.m} t`); if (d.mult) kv('Score', `×${d.mult}`); if (d.rw) kv('Reaction wheels', `${d.rw} kN·m`); }
-  return L.join('');
-}
-const BUILD_OPEN = {};
-{ // f4: hangar launch settings fold into one row (phones) so the rocket stays visible above the sheet
-  const tr = document.querySelector('#build .trow'), labs = tr ? [...tr.querySelectorAll(':scope > label.chk')] : [];
-  if (labs.length) { const d = document.createElement('details'); d.className = 'bset'; d.innerHTML = '<summary>⚙ Launch &amp; graphics settings</summary>'; labs.forEach(l => d.appendChild(l)); tr.insertBefore(d, tr.querySelector('.saved')); if (!(TOUCH && innerWidth < 600)) d.open = true; }
-  const lb = document.getElementById('launchBtn'), bp = document.getElementById('build'); if (lb && bp && innerWidth < 600 && innerHeight > innerWidth && !lb.closest('.bTopRow')) { lb.classList.add('stickyLaunch'); bp.appendChild(lb); } }
+let design = cloneDesign(TEMPLATES[0]);
 // f4: camera distance that fits a stack of length L into `frac` of the screen height (fov-aware, slim rockets fill the frame)
 function fitDist(L, frac) { const vf = (camera.fov || 50) * Math.PI / 180; return Math.max(18, L / frac / (2 * Math.tan(vf / 2))); }
-function buildPalette() {
-  const el = $('palette'); el.innerHTML = ''; let lastH = '';
-  const phoneB = TOUCH && innerWidth < 600; let grp = el, gi = 0; // f4: collapsible categories (phones start with only the first open)
-  for (const [type, head] of TYPE_ORDER) {
-    if (head !== lastH) { const h = document.createElement('button'); h.className = 'palH'; h.type = 'button'; h.textContent = head; el.appendChild(h); lastH = head;
-      grp = document.createElement('div'); grp.className = 'palG'; el.appendChild(grp);
-      const shut = BUILD_OPEN[head] !== undefined ? !BUILD_OPEN[head] : ((phoneB || !TOUCH) && gi > 0); gi++; /* f5.7n: desktop also starts with only the first category open */
-      h.classList.toggle('shut', shut); grp.classList.toggle('shut', shut);
-      h.onclick = (g => () => { const now = !g.classList.contains('shut'); g.classList.toggle('shut', now); h.classList.toggle('shut', now); BUILD_OPEN[head] = !now; })(grp); }
-    for (const [id, d] of Object.entries(PARTS)) if (d.type === type) {
-      const t = document.createElement('div'); t.className = 'tile'; t.draggable = true;
-      t.innerHTML = `<i style="background:${TYPE_COL[type]}"></i><b>${d.name}</b><small>${partStat(id)}</small>`; if (!TOUCH) qol.attachTip(t, () => partTip(id) + '<div class="sm">Click to add above the selected part, or drag into the stack.</div>', false); // QA f5.1c: no ⓘ on touch
-      t.onclick = () => { if (!dragEaten()) addPart(id); }; touchDrag(t, 'new:' + id); t.ondragstart = e => { e.dataTransfer.setData('text/plain', 'new:' + id); e.dataTransfer.effectAllowed = 'copy'; };
-      t.dataset.id = id; if (partLock(id)) { t.classList.add('locked'); t.title = 'Locked — earn it with contracts'; } grp.appendChild(t);
-    }
-  }
-  if (TOUCH) { // QA f5.1c: categories as one icon row (tabs), one group visible at a time
-    const ICON = { COMMAND: 'pod', PAYLOAD: 'payload', 'FUEL TANKS': 'tank', ENGINES: 'engine', STRUCTURE: 'decoupler', RECOVERY: 'chute' };
-    const row = document.createElement('div'); row.className = 'palRow'; el.prepend(row);
-    const hs = [...el.querySelectorAll(':scope > .palH')], gs = [...el.querySelectorAll(':scope > .palG')];
-    const pick = k => hs.forEach((h, j) => { h.classList.toggle('on', j === k); h.classList.remove('shut'); gs[j].classList.toggle('shut', j !== k); });
-    hs.forEach((h, k) => { const key = h.textContent.trim().toUpperCase(), ic = ICON[key];
-      h.title = h.textContent; h.setAttribute('aria-label', h.textContent); h.innerHTML = ic ? `<img src="assets/icons/part-${ic}.svg" alt="">` : h.textContent.slice(0, 2);
-      h.onclick = () => { pick(k); BUILD_TAB = k; }; row.appendChild(h); });
-    pick(Math.min(BUILD_TAB, hs.length - 1));
-  }
-}
-let BUILD_TAB = 0;
-// Touch drag in the hangar: long-press (~0.3 s) a part or a stack row, then drag it onto the stack.
-// A quick swipe still scrolls the drawer/list; a plain tap still adds/selects.
-let dragState = null, eatClick = 0;
-const dragEaten = () => performance.now() < eatClick;
-function touchDrag(elm, data) {
-  if (!TOUCH) return;
-  elm.addEventListener('pointerdown', e => {
-    if (e.target.closest('button')) return;
-    const st = { data, x: e.clientX, y: e.clientY, id: e.pointerId, on: false, ghost: null, over: null };
-    st.timer = setTimeout(() => { st.on = true; dragState = st; mobile.vibrate(15); const g = elm.cloneNode(true); g.className += ' dragGhost'; g.style.width = elm.offsetWidth + 'px'; g.style.left = st.x + 'px'; g.style.top = st.y + 'px'; document.body.appendChild(g); st.ghost = g; }, 300);
-    dragState = st;
-  });
-}
-addEventListener('touchmove', e => { if (dragState && dragState.on) e.preventDefault(); }, { passive: false });
-addEventListener('pointermove', e => {
-  const st = dragState; if (!st || e.pointerId !== st.id) return;
-  if (!st.on) { if (Math.hypot(e.clientX - st.x, e.clientY - st.y) > 10) { clearTimeout(st.timer); dragState = null; } return; }
-  st.ghost.style.left = e.clientX + 'px'; st.ghost.style.top = e.clientY + 'px';
-  const bl = $('build'), edge = 48; if (e.clientY > innerHeight - edge) bl.scrollTop += 14; else if (e.clientY < edge) bl.scrollTop -= 14; // auto-scroll while dragging
-  const t = document.elementFromPoint(e.clientX, e.clientY), tg = t && t.closest('#stack .prow, #stack .dropEnd');
-  if (st.over !== tg) { if (st.over) st.over.classList.remove('over'); if (tg) tg.classList.add('over'); st.over = tg; }
-}, { passive: true });
-const endDrag = e => {
-  const st = dragState; if (!st || e.pointerId !== st.id) return; clearTimeout(st.timer); dragState = null;
-  if (!st.on) return;
-  st.ghost.remove(); eatClick = performance.now() + 400;
-  const tg = st.over; if (!tg) return; tg.classList.remove('over');
-  dropAt(st.data, tg.classList.contains('dropEnd') ? design.parts.length : +tg.dataset.i);
-};
-addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
-function setDesign(d, keepSel) { design = d; if (!keepSel) selected = -1; selected = Math.min(selected, design.parts.length - 1); refreshBuild(); }
-// click: append at the bottom, or insert above the highlighted part (which stays highlighted)
-// f5: a part is open once either the old contract chain or the career ladder unlocked it (sandbox: all)
-function partLock(id) { return false; // f5.6 sim: no locked parts
-  return PR.partLocked(PROG, id) && (!careerUI || careerUI.locked('parts', id)); }
-function addPart(id) { if (partLock(id)) { toast('🔒 Locked — complete contracts in 🎯 Missions to unlock this part', '#ffb35c'); return; } snapAnim = 1; funAudio.ui('snap'); lastAdded = selected < 0 ? design.parts.length : selected; if (selected < 0) setDesign(insertPart(design, id, design.parts.length), true); else { const at = selected; selected = -1; design = insertPart(design, id, at); selected = at + 1; refreshBuild(); } }
-function dropAt(data, at) { if (data.startsWith('new:') && partLock(data.slice(4))) { toast('🔒 Locked part', '#ffb35c'); return; } snapAnim = 1; funAudio.ui('snap'); lastAdded = at;
-  if (data.startsWith('new:')) { design = insertPart(design, data.slice(4), at); if (selected >= at) selected++; }
-  else if (data.startsWith('move:')) { const from = +data.slice(5); const to = from < at ? at - 1 : at; design = movePart(design, from, to); selected = -1; }
-  refreshBuild();
-}
-let lastAdded = -1;
-function renderStack(stats) { setTimeout(() => { lastAdded = -1; }, 0);
-  const el = $('stack'); el.innerHTML = '';
-  const groups = splitStages(design), N = groups.length;
-  for (let gi = N - 1; gi >= 0; gi--) { // top stage first
-    const st = stats.stages[gi], hd = document.createElement('div'); hd.className = 'stageH';
-    const radK = stats.analysis.stages[gi].radial;
-    hd.innerHTML = `<span>STAGE ${gi + 1}${radK ? ` · RADIAL BOOSTERS ×${radK}` : ''}${gi === 0 ? ' · fires first' : gi === N - 1 ? ' · top' : ''}</span><em>${UN.dv(st.dv)} · TWR ${st.twr.toFixed(2)}</em>`;
-    const up = document.createElement('button'); up.textContent = '⇧'; up.title = 'Move this stage up (fires later)'; up.disabled = gi === N - 1; up.onclick = () => setDesign(swapStages(design, gi, gi + 1));
-    const dn = document.createElement('button'); dn.textContent = '⇩'; dn.title = 'Move this stage down (fires sooner)'; dn.disabled = gi === 0; dn.onclick = () => setDesign(swapStages(design, gi, gi - 1));
-    hd.append(up, dn); el.appendChild(hd);
-    for (const i of groups[gi]) {
-      const p = design.parts[i], d = PARTS[p.id], row = document.createElement('div');
-      row.className = 'prow' + (i === lastAdded ? ' snap' : '') + (i === selected ? ' sel' : '') + (d.type === 'decoupler' ? ' dec' : '') + (radK && !d.radial ? ' radial' : ''); row.draggable = true;
-      row.innerHTML = `<i style="background:${TYPE_COL[d.type]}"></i><b>${radK && !d.radial ? `<u class="sym">×${radK}</u> ` : ''}${d.name}</b><small>${partStat(p.id, p)}</small>`;
-      if (d.radial) {
-        const m = document.createElement('span'); m.className = 'cnt'; m.title = 'Radial symmetry';
-        const minus = document.createElement('button'); minus.textContent = '−'; minus.onclick = e => { e.stopPropagation(); setDesign(setSymmetry(design, i, -1), true); };
-        const plus = document.createElement('button'); plus.textContent = '+'; plus.onclick = e => { e.stopPropagation(); setDesign(setSymmetry(design, i, 1), true); };
-        const nn = document.createElement('u'); nn.textContent = `×${p.n || 2}`; m.append(minus, nn, plus); row.appendChild(m);
-      }
-      if (d.type === 'engine') {
-        const m = document.createElement('span'); m.className = 'cnt';
-        const minus = document.createElement('button'); minus.textContent = '−'; minus.onclick = e => { e.stopPropagation(); setDesign(setEngines(design, i, (p.n || 1) - 1), true); };
-        const plus = document.createElement('button'); plus.textContent = '+'; plus.onclick = e => { e.stopPropagation(); setDesign(setEngines(design, i, (p.n || 1) + 1), true); };
-        const n = document.createElement('u'); n.textContent = `×${p.n || 1}`; m.append(minus, n, plus); row.appendChild(m);
-      }
-      for (const [txt, title, fn] of [['▲', 'Move up', () => { setDesign(movePart(design, i, i - 1), true); selected = Math.max(0, i - 1); refreshBuild(); }], ['▼', 'Move down', () => { setDesign(movePart(design, i, i + 1), true); selected = Math.min(design.parts.length - 1, i + 1); refreshBuild(); }], ['✕', 'Remove', () => setDesign(removePart(design, i))]]) {
-        const b = document.createElement('button'); b.textContent = txt; b.title = title; b.className = 'mini'; b.onclick = e => { e.stopPropagation(); fn(); }; row.appendChild(b);
-      }
-      row.onclick = () => { if (dragEaten()) return; selected = selected === i ? -1 : i; refreshBuild(); }; row.dataset.i = i; touchDrag(row, 'move:' + i);
-      qol.attachTip(row, () => partTip(p.id, p), TOUCH);
-      row.ondragstart = e => { e.dataTransfer.setData('text/plain', 'move:' + i); e.dataTransfer.effectAllowed = 'move'; };
-      row.ondragover = e => { e.preventDefault(); row.classList.add('over'); }; row.ondragleave = () => row.classList.remove('over');
-      row.ondrop = e => { e.preventDefault(); dropAt(e.dataTransfer.getData('text/plain'), i); };
-      el.appendChild(row);
-    }
-  }
-  const end = document.createElement('div'); end.className = 'dropEnd'; end.textContent = selected >= 0 ? 'Click a part on the left to add it above the highlighted part · click it again to deselect' : 'Drop parts here, or click a part on the left to add it at the bottom';
-  end.ondragover = e => { e.preventDefault(); end.classList.add('over'); }; end.ondragleave = () => end.classList.remove('over');
-  end.ondrop = e => { e.preventDefault(); dropAt(e.dataTransfer.getData('text/plain'), design.parts.length); };
-  el.appendChild(end);
-}
-let planTimer = 0;
-// Aero balance: CoM (yellow) must sit ahead of (above) the CoP (cyan) or the rocket flips nose-over in the air.
-function aeroLine() {
-  const ab = aeroBalance(design, 0.5); if (!ab) return '';
-  const cls = ab.margin > 1 && ab.marginEmpty > 0.5 ? 'good' : ab.stable ? 'warn' : 'bad';
-  const why = ab.stable ? (ab.margin > 1 ? 'weathervanes into the airflow' : 'only just stable; tail fins help') : 'UNSTABLE: the CoP is ahead of the CoM, so it will tumble in the air. Add Tail Fins at the bottom or move heavy parts up';
-  return `<div class="msg aero"><span class="${cls}">Aero balance: <b class="kcom">● CoM</b> ${ab.ycom.toFixed(1)} m · <b class="kcop">● CoP</b> ${ab.ycp.toFixed(1)} m (from the bottom of ${ab.L.toFixed(1)} m) · margin ${ab.margin.toFixed(2)} cal full / ${ab.marginEmpty.toFixed(2)} cal booster empty — ${why}</span></div>`;
-}
-// builder undo / redo (Ctrl+Z, Ctrl+Y / Ctrl+Shift+Z, or the ↶ ↷ buttons): every design change is recorded
-const hist = new History(150); let histJ = null, histLock = false;
-function undo() { const d = hist.undo({ name: design.name, parts: design.parts }); if (!d) { toast('Nothing to undo', '#ffb35c'); return; } histLock = true; setDesign(cloneDesign(d)); histLock = false; }
-function redo() { const d = hist.redo({ name: design.name, parts: design.parts }); if (!d) { toast('Nothing to redo', '#ffb35c'); return; } histLock = true; setDesign(cloneDesign(d)); histLock = false; }
-// per-body stage Δv / TWR: where the stages are lit
-const ENV_BODIES = ['moon', 'mars', 'mercury', 'venus', 'io', 'europa', 'ganymede', 'callisto', 'titan', 'triton', 'pluto'];
-let envId = 'earth';
-function envOf(id) { if (id === 'earth' || id === 'vac') return id; const b = P.BODIES[id], a = P.bodyAtm(id, 0); return { g: b.mu / (b.R * b.R), p: a ? a.p / 101325 : 0, name: b.name }; }
-const advOpen = new Map(); /* f5.8k: open/closed state of the Advanced sections survives re-renders */
-function refreshBuild() {
-  { const j = JSON.stringify({ name: design.name, parts: design.parts }); if (histJ && j !== histJ && !histLock) hist.push(JSON.parse(histJ)); histJ = j;
-    if ($('undoBtn')) { $('undoBtn').disabled = !hist.canUndo; $('redoBtn').disabled = !hist.canRedo; } }
-  const stats = designStats(design, { env: envOf(envId) }), val = validate(design), statsE = envId === 'earth' ? stats : designStats(design); { const vac = designStats(design, { env: 'vac' }); for (const S of new Set([stats, statsE])) { S.stages.forEach((st, i) => { st.dv = vac.stages[i].dv; }); S.total = vac.total; } } /* f5.8h (QA): Build shows the same vacuum-Isp stage Δv as the pad/flight HUD (stageDvs), one calculation */
-  document.querySelectorAll('#presets button[data-p]').forEach(b => b.classList.toggle('on', JSON.stringify(TEMPLATES[+b.dataset.p].parts) === JSON.stringify(design.parts)));
-  renderStack(stats);
-  { const bs = $('bStat'); if (bs) { bs.textContent = `Δv ${UN.dv(statsE.total)} · ${stats.stages.length} stages`; bs.className = design.sub || statsE.total >= ORBIT_DV ? 'ok' : 'low'; } } // f5.8g: the collapsed phone sheet's one stat line
-  { let el = $('bStages'); if (!el) { const col = $('stack') && $('stack').parentElement; if (col) { el = document.createElement('div'); el.id = 'bStages'; col.insertBefore(el, $('stack')); } } // f5.4l (QA f5.4i #5): compact stage list
-    if (el) el.innerHTML = stats.stages.map((st, i) => { const a = stats.analysis.stages[i], tw = st.twr < (i ? 0.3 : 1) ? 'bad' : st.twr < (i ? 0.5 : 1.2) ? 'warn' : '';
-      return `<div class="bsR"><b>S${i + 1}</b><span>${a.engines.join(', ') || '<i class="bad">no engine</i>'}</span><em>Δv ${Math.round(UN.dvN(st.dv)).toLocaleString('en-US')}</em><em class="${tw}">TWR ${st.twr.toFixed(2)}</em></div>`; }).join('') + `<div class="bsT">Total Δv <b>${UN.dv(statsE.total)}</b> · orbit ~${UN.dv(ORBIT_DV)}</div>`; }
-  const rows = stats.stages.map((st, i) => { const a = stats.analysis.stages[i];
-    return `<tr><td>${i + 1}</td><td>${a.engines.join(', ') || '<span class="bad">none</span>'}</td><td>${st.m0.toFixed(1)}→${st.m1.toFixed(1)} t</td><td>${st.dv.toFixed(0)}</td><td class="${st.twr < (i && envId === 'earth' ? 0.3 : 1) ? 'bad' : st.twr < (i && envId === 'earth' ? 0.5 : 1.2) ? 'warn' : ''}">${st.twr.toFixed(2)}${i || envId !== 'earth' ? '' : ' SL'}</td><td>${st.burn.toFixed(0)} s</td></tr>`; }).join('');
-  const pct = Math.min(100, statsE.total / (ORBIT_DV * 2) * 100), need = ORBIT_DV / (ORBIT_DV * 2) * 100;
-  const dvC = design.sub ? 'good' : statsE.total < ORBIT_DV ? 'bad' : statsE.total < ORBIT_DV + 600 ? 'warn' : 'good';
-  const envSel = `<label class="envSel" title="Stage Δv and TWR as if each stage were lit on this body's surface (its gravity and air pressure)">Δv / TWR at <select id="envSel"><option value="earth">Earth launch (stage 1 sea level)</option><option value="vac">Vacuum (Earth g)</option>${ENV_BODIES.map(id => `<option value="${id}">${P.BODIES[id].name} surface</option>`).join('')}</select></label>`;
-  const sec = (k, t, body, open) => `<details class="advS" data-k="${k}"${(advOpen.has(k) ? advOpen.get(k) : open) ? ' open' : ''}><summary>${t}</summary>${body}</details>`; /* f5.8k (QA f5.8j): Advanced = collapsible sections */
-  $('readout').innerHTML = sec('dv', 'Δv &amp; stages', `${envSel}<table><tr><th>Stg</th><th>Engines</th><th>Mass wet→dry</th><th>Δv ${UN.dvLab()}</th><th>TWR${envId === 'earth' ? '' : ' (' + (envId === 'vac' ? 'vac' : P.BODIES[envId].name) + ')'}</th><th>Burn</th></tr>${rows}</table>
-    <div class="dvline">Total Δv <b class="${dvC}">${UN.dv(statsE.total)}</b>${envId !== 'earth' ? ` (${UN.dv(stats.total)} at ${envId === 'vac' ? 'vacuum' : P.BODIES[envId].name})` : ''} · orbit needs ~${UN.dv(ORBIT_DV)} · liftoff mass ${stats.mass.toFixed(1)} t · score ×${stats.analysis.mult} · <a href="#" id="dvMapLink">Δv map</a></div>
-    <div class="dvbar"><i class="${dvC}" style="width:${pct}%"></i><s style="left:${need}%"></s><em style="left:${need}%">orbit</em></div>
-    ${val.errors.map(e => `<div class="msg bad">✘ ${e}</div>`).join('')}${val.warnings.map(e => `<div class="msg warn">⚠ ${e}</div>`).join('')}`, true)
-    + sec('paint', '🎨 Paint &amp; name', fun ? fun.paintRow() : '', false)
-    + sec('fly', '🔮 Will it fly?', `<canvas id="ghost" width="460" height="150"></canvas>
-    <div id="verdict" class="msg">${val.ok ? 'AUTO test flight: simulating…' : ''}</div><div id="landPlan" class="msg"></div>`, true)
-    + sec('bal', '⚖ Balance &amp; notes', `${aeroLine()}
-    <div class="small">Stage 1 TWR is at sea level, upper stages in vacuum. Δv uses mean Isp for stage 1. Full-scale Earth: orbit is ~${UN.dv(7800)} plus ~${UN.dv(1500)} of gravity, drag and steering losses.</div>`, false);
-  if (fun) fun.wirePaint(ch => { Object.assign(design, ch); refreshBuild(); });
-  $('envSel').value = envId; $('envSel').onchange = e => { envId = e.target.value; refreshBuild(); };
-  $('dvMapLink').onclick = e => { e.preventDefault(); qol.openDv(); };
-  $('launchBtn').disabled = !val.ok; $('launchBtn').textContent = val.ok ? 'Fly' : 'Fix the design to fly';
-  clearTimeout(planTimer); const key = JSON.stringify(design.parts);
-  if (val.ok) planTimer = setTimeout(() => { // fly the design on AUTO headlessly (Web Worker): verdict + booster-landing advice
-    if (JSON.stringify(design.parts) !== key || !$('verdict')) return;
-    requestVerdict(design, (a, p) => {
-    if (JSON.stringify(design.parts) !== key || !$('verdict')) return;
-    $('verdict').innerHTML = design.sub && !a.orbit && a.level === 'bad' ? '<span class="good">✔ Suborbital: AUTO reaches space and comes back</span>' : `<span class="${a.level}">${a.text}</span>`; // f5.1h
-    if ($('ghost') && fun && fun.drawGhost) { fun.drawGhost.t0 = performance.now(); fun.drawGhost($('ghost'), a.track, a.level); }
-    const el = $('landPlan'); const s1 = design && stats.analysis.stages[0];
-    if (p.reason === 'single') el.innerHTML = '<span class="small">Single-stage rocket: no booster to land.</span>';
-    else if (p.reason === 'radial') el.innerHTML = '<span class="small">Radial boosters are expendable: they drop into the sea.</span>';
-    else if (p.reason) el.innerHTML = '';
-    else if (p.minReserve === null) el.innerHTML = '<span class="warn">⚠ Booster landing: this booster can\'t keep enough fuel to land. Add stage-1 fuel or use fewer engines.</span>';
-    else if (!p.orbit) el.innerHTML = `<span class="warn">⚠ Booster landing needs ~${p.minReserve.toFixed(1)} t left at staging, but then the upper stages can't reach orbit.</span>`;
-    else el.innerHTML = `<span class="good">✔ Booster can land: stage with ≥ ${p.minReserve.toFixed(1)} t left (of ${s1.fuel} t). AUTO alone stages it dry.</span>`;
-    });
-  }, 250);
-  renderSaved();
-  if (state === 'build') showPreview();
-}
-// Verdict sims run in worker.js so the hangar never stalls; only the newest request's answer is shown.
-let verdictWorker = null, verdictId = 0; const verdictCbs = new Map();
-try {
-  if (!params.has('noworker')) {
-    verdictWorker = new Worker(new URL('./worker.js?v=f5.8z', import.meta.url), { type: 'module' });
-    verdictWorker.onmessage = e => { const { id, a, p, error } = e.data, cb = verdictCbs.get(id); verdictCbs.delete(id);
-      if (error) { console.warn('[Orbit Rush] verdict worker:', error); if (cb && id === verdictId) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); return; }
-      if (cb && id === verdictId) cb(a, p); };
-    verdictWorker.onerror = e => { console.warn('[Orbit Rush] verdict worker unavailable, using the main thread', e.message || ''); verdictWorker = null; e.preventDefault && e.preventDefault();
-      const cb = verdictCbs.get(verdictId); verdictCbs.clear(); if (cb) cb(assessDesign(cb.design, { earthRot }), planBuild(cb.design, { earthRot })); };
-  }
-} catch (e) { verdictWorker = null; }
-function requestVerdict(d, cb) {
-  const id = ++verdictId, dd = cloneDesign(d);
-  if (verdictWorker) { cb.design = dd; verdictCbs.clear(); verdictCbs.set(id, cb); verdictWorker.postMessage({ id, design: dd, earthRot }); return; }
-  cb(assessDesign(dd, { earthRot }), planBuild(dd, { earthRot }));
-}
-// templates + saved designs (localStorage)
-TEMPLATES.forEach((t, i) => {
-  const b = document.createElement('button'); b.innerHTML = i === 0 ? '<span class="rec">★ RECOMMENDED</span>' : t.name; b.title = t.note; b.dataset.p = i;
-  b.onclick = () => setDesign(cloneDesign(TEMPLATES[i])); $('presets').appendChild(b);
-});
-const loadSaved = () => { try { return (JSON.parse(localStorage.getItem(LS_KEY)) || []).map(migrateSave); } catch (e) { return []; } };
-function renderSaved() {
-  const sel = $('savedSel'), list = loadSaved(), cur = sel.value; sel.innerHTML = '<option value="">Saved designs…</option>' + list.map((d, i) => `<option value="${i}">${d.name.replace(/</g, '&lt;')}</option>`).join('');
-  if (cur && +cur < list.length) sel.value = cur;
-}
-$('saveBtn').onclick = () => { const name = (prompt('Name this design:', design.name && !TEMPLATES.some(t => t.name === design.name) ? design.name : 'My rocket') || '').trim(); if (!name) return; const list = loadSaved().filter(d => d.name !== name); list.push({ name, parts: design.parts }); try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch (e) { } design.name = name; renderSaved(); toast('Saved “' + name + '”', '#9cc3ff'); };
-$('savedSel').onchange = () => { const i = $('savedSel').value; if (i === '') return; const d = loadSaved()[+i]; if (d) setDesign(cloneDesign(d)); };
-$('delBtn').onclick = () => { const i = $('savedSel').value; if (i === '') return; const list = loadSaved(); list.splice(+i, 1); try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch (e) { } $('savedSel').value = ''; renderSaved(); };
-$('clearBtn').onclick = () => setDesign({ name: 'Custom', parts: [{ id: 'probe' }] });
+function setDesign(d) { design = d; refreshBuild(); } // f5.9-0: the hangar / Build screen is gone; a rocket pick just loads its design for the pad
+function refreshBuild() { if (state === 'build') showPreview(); } // f5.9-0: was the builder refresh (stage list, Δv table, verdict worker, saved designs); only the pad preview is left
 const qol = createQoL({ settings: () => SET, onSettings: s => { SET = s; translate = makeTranslator(SET); applyAudioSettings(); if (typeof smap !== 'undefined' && smap.conic !== SET.conic) smap.setConic(SET.conic); if (state === 'build') refreshBuild(); },
   resume: () => setPause(false), quicksave: () => quicksave(), quickload: () => quickload(), revertLaunch: () => revertLaunch(), hangar: () => { setPause(false); goBuild(); }, quickInfo,
   dvTable: () => dvTableHTML(state === 'flight' ? craftDv() : designStats(design).total, state !== 'flight') });
-buildPalette();
-{ const u = document.createElement('button'); u.id = 'undoBtn'; u.textContent = '↶'; u.title = 'Undo (Ctrl+Z)'; u.onclick = () => undo();
-  const r = document.createElement('button'); r.id = 'redoBtn'; r.textContent = '↷'; r.title = 'Redo (Ctrl+Y)'; r.onclick = () => redo();
-  document.querySelector('.saved').prepend(u, r); }
 // ---------- game state ----------
 let state = 'build', F, v, booster, booster2 = null, shipVis2 = null, rocketG, SG = [], camMode, gen = 0;
 const debris = [];
@@ -1152,24 +915,20 @@ function launch() { academy.hideFirst && academy.hideFirst(); { const dm = $('dM
     academy.onLaunch(F); syncStages(); const L = stackL(); camDist = F.v.cur > 0 ? Math.max(30, Math.min(90, L * 2.6 + 20)) : Math.min(fitDist(L, 0.62), Math.max(30, L * 2.6 + 20)); camAim = 0.5; // f4 pad framing: whole stack ~62% of the screen
   }
   document.activeElement && document.activeElement.blur();
-  $('build').classList.add('hidden'); $('hud').classList.remove('hidden');
+  $('hud').classList.remove('hidden');
   mobile.show(true); $('ignite').innerHTML = TOUCH ? '<b>AUTO</b> (optional), then <b>STAGE</b>' : 'Press <b>SPACE</b> to stage &amp; go · <b>F</b> = AUTO'; $('ignite').classList.remove('hidden'); // f5.5b
 }
 function goBuild() {
   try { plain.update({ on: false }); } catch (e) { } // f5.6c: no flight HUD in the Hangar
   if (fun) fun.hideNav();
-  silenceFlight(0.3); reset(); state = 'build'; // f5.8y: nothing from the flight keeps playing in Home / Build
-  $('hud').classList.add('hidden'); mobile.show(false); $('ignite').classList.add('hidden'); $('build').classList.remove('hidden');
-  if (typeof home !== 'undefined' && home && goBuild.toHome !== false) home.show(true);
+  silenceFlight(0.3); reset(); state = 'build'; // f5.8y: nothing from the flight keeps playing in Home
+
+  $('hud').classList.add('hidden'); mobile.show(false); $('ignite').classList.add('hidden');
+  if (typeof home !== 'undefined' && home) home.show(true);
   refreshBuild();
 }
 const clampCamPitch = p => Math.max(F && F.alt < 2000 ? -0.15 : -1.2, Math.min(1.2, p)); // f5.6f (QA cam)
 let showFrame = null, showFrameT = 0, showT = 0, camUserT = -1e9, camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
-$('earthRot').checked = earthRot;
-function showAz() { $('inclIn').value = launchIncl; $('azOut').textContent = `→ heading ${(launchAzimuth(launchIncl, 0, earthRot ? P.OMEGA_E * R : 0) * DEG).toFixed(1)}°`; }
-$('inclIn').onchange = e => { launchIncl = Math.max(0, Math.min(180, +e.target.value || 0)); try { localStorage.setItem(INC_KEY, String(launchIncl)); } catch (x) { } showAz(); reset(); refreshBuild(); };
-showAz();
-$('earthRot').onchange = e => { earthRot = e.target.checked; try { localStorage.setItem(ER_KEY, earthRot ? '1' : '0'); } catch (x) { } reset(); refreshBuild(); };
 function setThrottleTouch(u) { // the touch slider takes over from AUTO like Z/X do
   if (state !== 'flight' || F.flags.dead) return;
   if (flyingBooster()) { booster.ut = u; return; }
@@ -1197,11 +956,9 @@ async function setGfx(q, reload = true) {
 }
 $('gfxSel').onchange = e => setGfx(e.target.value);
 setGfx(gfxQ, false);
-$('creditsBtn').onclick = () => $('credits').classList.remove('hidden');
 $('creditsClose').onclick = () => $('credits').classList.add('hidden');
 reset(); refreshBuild();
-$('launchBtn').onclick = e => { e.currentTarget.blur(); launch(); };
-$('againBtn').onclick = () => { goBuild(); const hb = $('homeBack'); if (hb) hb.click(); }; // f3: the result card's Home goes back to the showroom
+$('againBtn').onclick = () => goBuild(); // f3: the result card's Home goes back to the showroom
 $('relaunchBtn').onclick = () => launch();
 new MutationObserver(() => { const on = !$('end').classList.contains('hidden'); document.body.classList.toggle('endOn', on); if (on) { try { mobile.closeMenu && mobile.closeMenu(); } catch (e) { } const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); document.body.classList.remove('menuOn'); } }) /* f5.6x (QA f5.6w P1): the end card closes ☰ at every size */.observe($('end'), { attributes: true, attributeFilter: ['class'] });
 { // QA f5.1c P1: the flight HUD hides whenever any menu is up (Missions hub, Atlas, Settings, pause, career, home tabs)
@@ -1228,12 +985,12 @@ function quickInfo() { try { const s = JSON.parse(localStorage.getItem(QS_KEY));
 function quickload() {
   let s = null; try { s = migrateSave(JSON.parse(localStorage.getItem(QS_KEY))); } catch (e) { s = null; }
   if (!s) { toast('No quicksave (F5 saves)', '#ffb35c'); return false; }
-  setPause(false); startFlightAudio(); design = cloneDesign(s.design); selected = -1; reset(); state = 'flight';
+  setPause(false); startFlightAudio(); design = cloneDesign(s.design); reset(); state = 'flight';
   F.loadSnapshot(s); v = F.v; syncStages();
   for (const g of SG) for (const hp of g.userData.hot) hp.part = v.stages[g.userData.stage] && v.stages[g.userData.stage].parts[hp.pi];
   if (F.parked || P.altOf(v) > 100000) camDist = Math.max(30, Math.min(90, stackL() * 2.6 + 20));
   document.activeElement && document.activeElement.blur();
-  $('build').classList.add('hidden'); $('hud').classList.remove('hidden'); mobile.show(true); $('ignite').classList.toggle('hidden', F.ignited);
+  $('hud').classList.remove('hidden'); mobile.show(true); $('ignite').classList.toggle('hidden', F.ignited);
   toast('📂 Quickloaded', '#9cc3ff'); return true;
 }
 function revertLaunch() { setPause(false); design = cloneDesign(F.design); launch(); }
@@ -1322,7 +1079,6 @@ addEventListener('keydown', e => {
     if (!(state === 'flight' && (e.code === 'Escape' || e.code === 'Enter' || e.code === 'KeyM'))) return;
     e.target.blur(); if (e.code === 'Enter') return;
   }
-  if (state === 'build' && (e.ctrlKey || e.metaKey) && (e.code === 'KeyZ' || e.code === 'KeyY')) { e.preventDefault(); if (e.code === 'KeyY' || e.shiftKey) redo(); else undo(); return; }
   const code = translate(e.code); if (code === 'F5' || code === 'F9' || e.code === 'F5' || e.code === 'F9') e.preventDefault();
   if (code === null) return;
   if (code === 'F9' && state === 'build' && !e.repeat) { quickload(); return; }
@@ -1346,7 +1102,6 @@ $('flyBtn').onclick = e => { e.currentTarget.blur(); press('KeyY'); };
 $('sasBtn').onclick = e => { e.currentTarget.blur(); const i = P.SAS_MODES.indexOf(v.sas); F.setSAS(P.SAS_MODES[(i + 1) % P.SAS_MODES.length]); };
 $('rcsBtn').onclick = e => { e.currentTarget.blur(); press('KeyC'); };
 $('learnBtn').onclick = e => { e.currentTarget.blur(); academy.toggleLearn(); };
-$('academyBtn').onclick = e => { e.currentTarget.blur(); academy.openMenu(); };
 $('deoBtn').onclick = e => { e.currentTarget.blur(); press('KeyO'); };
 $('chuteBtn').onclick = e => { e.currentTarget.blur(); press('KeyP'); };
 const zoomLim = d => Math.min(5000, Math.max(20, d));
@@ -1818,7 +1573,7 @@ renderer.setAnimationLoop(() => {
   else for (let j = v.cur; j < SG.length; j++) SG[j].userData.plume.visible = false;
   { const lg = v.cur === 0 && SG[0] && SG[0].userData.legs; if (lg) { const on = state === 'flight' && (!!v.legs || !!F.flags.landed); if (lg.visible !== on) { lg.visible = on; lg.traverse(o => { if (o.isMesh) o.visible = on; }); } } } // fx-2: landing legs on the flying rocket (hop)
   if (state === 'flight' && !F.flags.dead && SG[v.cur] && SG[v.cur].userData.radial && SG[v.cur + 1] && parallelCore()) emit(v, SG[v.cur + 1], pdt, base, nose); // fx-1: Heavy core lights with its side boosters (Vehicle Specs: parallel stage)
-  const ovl = (state === 'build' && !(home && home.on) && document.body.classList.contains('buildAdv') /* f5.8y (QA f5.8w P2): the CoM/CoP dots and the pink thrust stalk are an Advanced overlay, not on every phone Build screen */) || (SET.overlay && state === 'flight' && !F.flags.dead && camMode !== 'map');
+  const ovl = (SET.overlay && state === 'flight' && !F.flags.dead && camMode !== 'map');
   comMark.visible = copMark.visible = ovl; cotMark.visible = ovl && !!(v.stages[v.cur] && v.stages[v.cur].eng && v.stages[v.cur].eng.tv > 0);
   if (ovl) { const yB = 0; comMark.position.set(0, tel.ycom, 0); copMark.position.set(0, P.centerOfPressure(P.stackGeom(v), state === 'build' ? 0.5 : Math.max(0.3, tel.mach || 0.5)), 0); cotMark.position.set(0, yB, 0);
     const sc = Math.max(1, stackL() / 40); comMark.scale.setScalar(sc); copMark.scale.setScalar(sc); cotMark.scale.setScalar(sc); }
@@ -1909,11 +1664,6 @@ renderer.setAnimationLoop(() => {
     if (showFrame) { const Lh = stackL() || 40, se = Math.sin(0.08); camDist = showFrame.dist * Math.hypot(1, se); camPitch = Math.atan(se); camAim = showFrame.aim[1] / Lh;
       camera.setViewOffset(innerWidth, innerHeight, showFrame.viewOffsetX * innerWidth, 0, innerWidth, innerHeight); }
     else { const Lh = v ? P.stackGeom(v).L : 40; camPitch += (0.05 - camPitch) * Math.min(1, rdt); camDist = Math.max(40, Lh * (land ? 1.6 : 1.75)); camAim = 0.5; camera.setViewOffset(innerWidth, innerHeight, land ? innerWidth * 0.2 : 0, land ? 0 : innerHeight * 0.17, innerWidth, innerHeight); } }
-  else if (state === 'build') { if (TOUCH) camYaw += rdt * 0.15; else if (padCx && padCx.isObject3D && padCx.visible && rocketG) { // f5.4l: desktop Build faces away from the tower (it never hides the rocket), with a slow sway
-      const tw = padCx.localToWorld(new THREE.Vector3(-10, 40, 0)).sub(rocketG.position), ty = Math.atan2(tw.dot(E), tw.dot(N)); showT += rdt;
-      const want = ty + Math.PI + 0.6 * Math.sin(showT * 0.15); let d = ((want - camYaw) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI; camYaw += d * Math.min(1, rdt * 2); } else camYaw += rdt * 0.15; const sheet = innerWidth < 600 && innerHeight > innerWidth; // f4: phone portrait: rocket fills the strip above the bottom sheet
-    if (sheet) { camAim = 0.5; camDist = fitDist(stackL(), 0.36); camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.29, innerWidth, innerHeight); }
-    else { camDist = Math.min(Math.max(70, stackL() * 1.9), fitDist(stackL(), 0.6)); const pb = $('build'), pr = pb && !pb.classList.contains('hidden') ? pb.getBoundingClientRect().right : 0; camera.setViewOffset(innerWidth, innerHeight, -((pr + innerWidth) / 2 - innerWidth / 2), 0, innerWidth, innerHeight); } } // f5.4l: rocket centred in the free space right of the panel
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   const mapOn = state === 'flight' && camMode === 'map';
   if (smap.state.on !== mapOn) { // f3: any modal steps aside while the map is open (the result card comes back after)
@@ -2539,16 +2289,6 @@ function savePhoto(req) {
   PROG.stats.photos++; const out = PR.record(PROG, { visited: [] }); PROG.stats.flights--; PR.save(localStorage, PROG); for (const a of out.ach) fun.call(a.icon, 'Achievement: ' + a.name, '#7dffa6', true);
   fun.call('📸', 'Photo saved', '#fff'); window.__lastPhoto = { w, h };
 }
-function testStand() { // static fire: engines lit at full throttle, held down by the clamps
-  if (!validate(design).ok) return; launch(); v.holdDown = true; F.stagePress(); v.ut = 1; v.throttle = 1; camDist = Math.max(90, stackL() * 2.6); camYaw = 1.2; camPitch = 0.05;
-  fun.call('🔥', 'TEST STAND — static fire', '#ffd23a', true);
-  let peak = 0; const g0 = gen, id = setInterval(() => { if (g0 !== gen) { clearInterval(id); return; } peak = Math.max(peak, v.thrust || 0); }, 100);
-  later(() => { v.ut = 0; v.throttle = 0; clearInterval(id); const w = buildVehicle(design), m = w.stages.reduce((a, s) => a + s.dry + s.fuel, 0);
-    toast(`Static fire done: peak thrust ${(peak / 1000).toFixed(2)} MN vs weight ${(m * 9.80665 / 1000).toFixed(2)} MN → TWR ${(peak / (m * 9.80665)).toFixed(2)}`, '#7dffa6'); }, 9000);
-  later(() => { if (state === 'flight') goBuild(); }, 13000);
-}
-function dropTest() { if (!validate(design).ok) return; launch(); F.placeState({ h: 1500, vUp: 0, vEast: 0, stage: 0, att: 'up', sas: 'stab' }); syncStages(); F.ignited = true; F.flags.liftoff = true; F.met = 20; v.ut = 0; v.throttle = 0; camDist = Math.max(120, stackL() * 3); fun.call('📦', 'DROP TEST — 1.5 km', '#ffd23a', true); }
-$('missionsBtn').onclick = () => fun.openHub(); $('atlasBtn').onclick = () => fun.openAtlas();
 // ---------- f2h: home = rocket showroom; the hangar is its own "Build" mode ----------
 const showDesign = i => ({ ...cloneDesign(SHOW[i].design), name: SHOW[i].name });
 // f5.1h: house rocket names: brand pack, then the art set's own names, then a tidy id ('saturnine-v' -> 'Saturnine V')
@@ -2578,7 +2318,6 @@ var home = createHome({ list: SHOW, hidden: i => RETIRED.has(SHOW[i].id), locked
   onSelect: i => { pickModel = null; pickStack = null; setTimeout(() => window.__galMark && window.__galMark(), 0); try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(showDesign(i)); },
   onFly: i => { if (lockedFly(i)) return; setDesign(pickDesign(i)); home.show(false); launch(); try { F.setAuto(false, true); } catch (e) { } }, // f5.5b (Aaron): load onto the pad with control; pick AUTO if wanted, STAGE to go. Was QA f5b.3: home FLY = 1 tap to liftoff on AUTO
   onMission: i => { if (lockedFly(i)) return; const w = lockWhy('missions', SHOW[i].mission); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); return; } home.show(false); startMission(SHOW[i].mission); },
-  onBuild: i => { if (lockedFly(i)) return; goBuild.toHome = false; setDesign(pickDesign(i)); home.show(false); refreshBuild(); },
   onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => $('hGearM').classList.toggle('hidden') });
 // f5.4 sandbox: 📍 launch site button on the Home card + picker
 // f5.4 (QA f5.4b C1/H): off Earth, a sounding rocket (Pip, Grasshopper) is never the default: pick the starter orbiter
@@ -2587,78 +2326,18 @@ function siteDefault() { try { if (!sbSite || sbSite.body === 'earth' || pickMod
 function siteBtn(b) { const t = siteLabel(sbSite, P.BODIES), k = t.lastIndexOf(' · '); b.title = '📍 ' + t; b.innerHTML = ''; const a = document.createElement('b'), c = document.createElement('small'); a.textContent = '📍 ' + (k > 0 ? t.slice(0, k) : t); c.textContent = k > 0 ? t.slice(k + 3) : ''; b.append(a, c); } // f5.8b: two lines (pad / body) so phones don't cut it off
 const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = s; siteDefault(); const b = $('hSite'); if (b) siteBtn(b); if (state !== 'flight') reset(); } });
 { const b = document.createElement('button'); b.id = 'hSite'; siteBtn(b); b.title = 'Launch from any planet or moon'; b.onclick = e => { e.currentTarget.blur(); sitePicker.show(true); };
-  const c = document.querySelector('#hCard .hAct'); if (c) c.insertBefore(b, $('hnBuild')); } // f5.8: 📍 on the hero bar
+  const c = document.querySelector('#hCard .hAct'); if (c) c.insertBefore(b, $('hMis')); } // f5.8: 📍 on the hero bar
 { const g = document.createElement('div'); g.id = 'hGearM'; g.className = 'hidden'; document.body.appendChild(g);
   const mk = (t, fn) => { const b = document.createElement('button'); b.textContent = t; b.onclick = () => { g.classList.add('hidden'); fn(); }; g.appendChild(b); };
   for (const id of ['gfxSel', 'fxSel']) { const l = $(id) && $(id).closest('label'); if (l) g.appendChild(l); }
   { const sb = document.createElement('button'); sb.id = 'hSound'; const lab = () => { sb.textContent = funAudio.muted ? '🔇 Sound off' : '🔊 Sound on'; const pm = $('pMute'); if (pm) pm.textContent = funAudio.muted ? '🔇' : '🔊'; };
     sb.onclick = () => { initAudio(); funAudio.toggleMute(); lab(); }; lab(); g.appendChild(sb); }
-  mk('⚙ All settings', () => qol.openSettings()); mk('🎓 Lessons (Academy)', () => academy.openMenu()); mk('Credits', () => $('creditsBtn').click());
+  mk('⚙ All settings', () => qol.openSettings()); mk('Credits', () => $('credits').classList.remove('hidden'));
   document.addEventListener('pointerdown', e => { if (!g.classList.contains('hidden') && !e.target.closest('#hGearM,#hGear')) g.classList.add('hidden'); }, true);
-  const back = document.createElement('button'); back.id = 'homeBack'; back.className = 'acad'; back.textContent = '‹ Home'; back.title = 'Back to the rocket showroom';
-  back.onclick = () => { goBuild.toHome = true; home.show(true); home.set(home.index); }; const bh = document.querySelector('#build .bhead'); if (bh) bh.prepend(back); }
-{ // QA f5b.3: on touch, everything above the parts list lives behind one ⋯ (keeps ‹ Home + the parts in view)
-  const b = $('build'), cols = b && b.querySelector('.bcols');
-  if (cols && !b.querySelector('.bMore')) { const d = document.createElement('details'); d.className = 'bMore'; d.innerHTML = '<summary aria-label="Hangar options">⋯</summary>';
-    [...b.children].filter(c => c !== cols && c.id !== 'homeBack' && cols.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_PRECEDING).forEach(c => d.appendChild(c));
-    b.insertBefore(d, cols); const hb = $('homeBack'); if (hb) b.insertBefore(hb, d); }
-  // f5.1h (QA P1): desktop keeps ROLL TO PAD above the fold (1280x800): it rides in the top row next to ‹ Home and ⋯
-  if (!TOUCH && cols) { const ab = document.createElement('button'); ab.id = 'bAdv'; ab.className = 'bAdvBtn'; const lab = () => { const on = document.body.classList.contains('buildAdv'); ab.textContent = on ? '✕ Simple view' : '⚙ Advanced'; ab.setAttribute('aria-pressed', on); };
-    try { document.body.classList.toggle('buildAdv', localStorage.getItem('orbitrush.buildAdv') === '1'); } catch (e) { }
-    ab.onclick = () => { const on = document.body.classList.toggle('buildAdv'); try { localStorage.setItem('orbitrush.buildAdv', on ? '1' : '0'); } catch (e) { } lab(); }; lab(); window.__bAdv = ab; } // f5.4l: stats, tests, paint behind one toggle
-  if (TOUCH && cols && !b.querySelector('.bTabs')) { const tb = document.createElement('div'); tb.className = 'bTabs'; tb.innerHTML = ['Rocket', 'Parts', 'Stages'].map((l, i) => `<button data-bt="${i}" class="${i ? '' : 'on'}">${l}</button>`).join(''); cols.parentNode.insertBefore(tb, cols); b.dataset.bt = '0';
-    tb.onclick = e => { const x = e.target.closest('[data-bt]'); if (!x) return; b.dataset.bt = x.dataset.bt; tb.querySelectorAll('button').forEach(q => q.classList.toggle('on', q === x)); }; } // f5.7l (QA f5.7i P1): phone Build shows one column at a time so it fits the screen
-  if (TOUCH && cols) { const lb = $('launchBtn'), hb = $('homeBack'), row = document.createElement('div'); row.className = 'bTopRow'; b.insertBefore(row, b.firstChild); if (hb) row.appendChild(hb); if (lb) { lb.classList.remove('stickyLaunch'); row.appendChild(lb); } const bm = b.querySelector('.bMore'); if (bm) row.appendChild(bm); } /* f5.7q: ⋯ joins the top row (less chrome) */ if (!$('bMini')) { const mi = document.createElement('div'); mi.id = 'bMini'; mi.innerHTML = '<span id="bStat"></span><button id="bExp" aria-label="Edit parts" aria-expanded="false">✎ Edit</button>'; const tr = b.querySelector('.bTopRow'); if (tr) tr.after(mi); else b.prepend(mi); document.body.classList.add('bCol'); const sync = () => { const on = !document.body.classList.contains('bCol'); $('bExp').textContent = on ? '▾ Close' : '✎ Edit'; $('bExp').setAttribute('aria-expanded', on); $('bExp').setAttribute('aria-label', on ? 'Collapse' : 'Edit parts'); }; mi.onclick = () => { document.body.classList.toggle('bCol'); sync(); }; sync(); } /* f5.8g (QA P1): phone Build opens collapsed — icon row + one stat line; tap to edit */ // f5.7k (QA f5.7i P1): phone Fly sits beside Home at the top of the panel, never over the parts list
-  if (!TOUCH && cols) { const lb = $('launchBtn'), row = document.createElement('div'); row.className = 'bTopRow'; const hb = $('homeBack'); b.insertBefore(row, b.querySelector('.bMore') || cols); const bm = b.querySelector('.bMore'); if (hb) row.appendChild(hb); if (lb) row.appendChild(lb); row.appendChild(bm); /* f5.8n: ⋯ sits at the card's right end so its panel opens beside the card, never over it */ if (window.__bAdv && bm) bm.insertBefore(window.__bAdv, bm.querySelector('summary').nextSibling); } /* f5.8b (QA): one control, not ⋯ + ⚙ Advanced: Advanced lives inside ⋯ */
 }
-{ // f5.8h (QA f5.8g P1): desktop Build opens collapsed too: one card with Home · ⋯ · Fly + the stat line; ✎ opens the full editor
-  const b = $('build'); if (!TOUCH && b && !$('bMini')) { const mi = document.createElement('div'); mi.id = 'bMini'; mi.innerHTML = '<span id="bStat"></span><button id="bExp" aria-label="Edit parts" aria-expanded="false">✎ Edit parts</button>'; const tr = b.querySelector('.bTopRow'); if (tr) tr.after(mi); else b.prepend(mi); document.body.classList.add('bCol'); setTimeout(() => { const t2 = b.querySelector('.bTopRow'); if (t2) t2.after(mi); }, 0);
-    const sync = () => { const on = !document.body.classList.contains('bCol'); $('bExp').textContent = on ? '▾ Close' : '✎ Edit'; $('bExp').setAttribute('aria-expanded', on); }; mi.onclick = () => { document.body.classList.toggle('bCol'); sync(); }; sync(); } }
-{ /* f5.8l (QA f5.8k P2): Advanced replaces the builder's right column (one panel ≤45 % wide, never beside it): a Rocket | Advanced switch; the toggle lives in the Home ⚙ menu + the switch bar. Desktop only: phones never mention it */
-  const col3 = document.querySelector('#build .bcols > div:nth-child(3)'), ab = window.__bAdv, mi = $('bMini'); if (!TOUCH && col3 && ab && mi) { col3.id = 'bAdvP';
-    const tabs = document.createElement('div'); tabs.id = 'bAdvTabs'; tabs.innerHTML = '<button data-v="stack">Rocket</button><button data-v="adv">Advanced</button>'; ab.classList.remove('bmOld'); tabs.appendChild(ab); mi.after(tabs);
-    const view = v => { document.body.classList.toggle('advView', v === 'adv'); tabs.querySelectorAll('button[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v)); };
-    tabs.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) view(b.dataset.v); });
-    const sync = () => view(document.body.classList.contains('buildAdv') ? 'adv' : 'stack'); sync(); new MutationObserver(() => { const v = document.body.classList.contains('advView') ? 'adv' : 'stack'; tabs.querySelectorAll('button[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v)); }).observe(document.body, { attributes: true, attributeFilter: ['class'] }); /* f5.8n: the highlighted tab always matches the view */ ab.addEventListener('click', () => { sync(); const bm = document.querySelector('#build .bMore'); if (bm) bm.open = false; });
-    { const t = col3.querySelector('.tests'); if (t) { const d = document.createElement('details'); d.className = 'advS'; d.dataset.k = 'tests'; d.innerHTML = '<summary>🧪 Tests</summary>'; t.before(d); d.appendChild(t); } const hf = [...col3.children].find(c => c.tagName === 'DETAILS' && !c.classList.contains('advS')); if (hf) { hf.classList.add('advS'); hf.dataset.k = 'how'; } }
-    col3.addEventListener('toggle', e => { const d = e.target; if (d.classList && d.classList.contains('advS')) advOpen.set(d.dataset.k, d.open); }, true);
-    const g = $('hGearM'); if (g) { const gb = document.createElement('button'); gb.id = 'hAdv'; const lb = () => { gb.textContent = '🛠 Advanced build: ' + (document.body.classList.contains('buildAdv') ? 'on' : 'off'); }; lb(); gb.onclick = () => { ab.click(); lb(); g.classList.add('hidden'); }; g.insertBefore(gb, g.querySelector('button')); $('hGear') && $('hGear').addEventListener('click', lb); } } }
-{ // f5.8d (QA f5.8c P1): ⋯ opens a few labelled groups instead of a dump: Start from · My designs · Launch · More
-  const bm = document.querySelector('#build .bMore'); if (bm && !bm.querySelector('.bmPanel')) { const pn = document.createElement('div'); pn.className = 'bmPanel';
-    const grp = (t, els) => { els = els.filter(Boolean); if (!els.length) return; const g = document.createElement('section'); g.className = 'bmG'; g.innerHTML = t ? `<h5>${t}</h5>` : ''; const row = document.createElement('div'); row.className = 'bmR'; els.forEach(e => row.appendChild(e)); g.appendChild(row); pn.appendChild(g); };
-    const lab = id => { const e = $(id); return e && e.closest('label.chk'); };
-    const sub = (t, els) => { const d = document.createElement('details'); d.className = 'bmSub'; d.innerHTML = `<summary>${t}</summary>`; const r = document.createElement('div'); r.className = 'bmR'; els.filter(Boolean).forEach(e => r.appendChild(e)); d.appendChild(r); return d; };
-    { const ts = document.createElement('select'); ts.id = 'tplSel'; ts.title = 'Start from a template'; ts.innerHTML = '<option value="">Start from…</option>' + TEMPLATES.map((t, i) => /Moon lander|Mars explorer/.test(t.name) ? '' : `<option value="${i}">${i === 0 ? '★ ' : ''}${t.name}</option>`).join('') + '<option value="new">New (empty)</option>';
-      ts.onchange = () => { const v = ts.value; ts.value = ''; if (v === 'new') $('clearBtn').click(); else if (v !== '') setDesign(cloneDesign(TEMPLATES[+v])); }; grp('Start from', [ts]); } // f5.8h (QA P1): one template picker; Moon/Mars templates hidden while missions are paused
-    { const sv = bm.querySelector('.saved'); grp('My designs', [$('undoBtn'), $('redoBtn'), $('savedSel'), $('saveBtn'), $('delBtn')]);
-      grp('', [sub('More options', [lab('earthRot'), lab('inclIn')] /* f5.8n (QA f5.8m): Effects + Graphics are settings: they stay in the Home ⚙ sheet */ /* f5.8i (QA): desktop = phone's 11 controls, no ⚙ Advanced */)]); /* f5.8h: ≤12 controls with everything open; Credits lives in ☰, New in the template picker */ if (sv && !sv.children.length) sv.remove(); } // ≤10 controls when ⋯ opens
-    [...bm.children].forEach(c => { if (c.tagName !== 'SUMMARY' && c !== pn) { c.classList.add('bmOld'); } }); bm.appendChild(pn);
-    const place = () => { /* f5.8k (QA f5.8j P1): ⋯ never covers Fly/Home: on a portrait phone it opens above the Build bar (or under the top row when the sheet is expanded) */
-      for (const k of ['top', 'bottom', 'left', 'right', 'width', 'max-height']) pn.style.removeProperty(k);
-      { /* f5.8y (QA f5.8w P2): phones, both orientations: the ⋯ sheet is as wide as the Build card and sits INSIDE the card's footprint (expanded: right under the Home / Fly / ⋯ row, over the card's own list) or directly under/above a collapsed card, so the Build panels together stay at the card's width (35 % at landscape) and height (45 % at portrait) */
-        const bdc = $('build').getBoundingClientRect(), trc = document.querySelector('#build .bTopRow'), phone = document.body.classList.contains('touch') && (innerWidth < 900 || innerHeight <= 500);
-        if (phone && trc && bdc.width > 0) { const tr0 = trc.getBoundingClientRect(), exp = !document.body.classList.contains('bCol'), land = innerWidth > innerHeight, set = (k, v) => pn.style.setProperty(k, v, 'important');
-          const w0 = Math.round(bdc.width - 12), l0 = Math.round(bdc.left + 6);
-          set('left', l0 + 'px'); set('right', 'auto'); set('width', w0 + 'px');
-          if (exp) { const t0 = Math.round(tr0.bottom + 4); set('top', t0 + 'px'); set('bottom', 'auto'); set('max-height', Math.max(96, Math.round(bdc.bottom - t0 - 6)) + 'px'); }
-          else if (land) { const t0 = Math.round(bdc.bottom + 8); set('top', t0 + 'px'); set('bottom', 'auto'); set('max-height', Math.max(96, innerHeight - t0 - 8) + 'px'); }
-          else { set('bottom', Math.round(innerHeight - bdc.top + 8) + 'px'); set('top', 'auto'); set('max-height', Math.max(96, Math.round(bdc.top - 16)) + 'px'); }
-          return; } }
-      if (innerWidth > innerHeight) { /* f5.8o (QA f5.8n): landscape + desktop: the panel opens beside or under the Build card (the side with the part list) and never over the rocket */
-        const sm = bm.querySelector('summary').getBoundingClientRect(), bd = $('build').getBoundingClientRect(), rb0 = (window.__game && window.__game.rocketBox && window.__game.rocketBox()) || null, rb = rb0 && { ...rb0, x: (bd.right + innerWidth) / 2 - rb0.w / 2 } /* f5.8p: where the build camera is taking the rocket (centred right of the card), not where it is mid-slide */, W0 = Math.min(460, innerWidth * 0.48), H = pn.offsetHeight || 160, put = (l, t, w) => { for (const [k, v] of [['left', l], ['top', t], ['width', w]]) pn.style.setProperty(k, Math.round(v) + 'px', 'important'); pn.style.setProperty('right', 'auto', 'important'); pn.style.setProperty('bottom', 'auto', 'important'); };
-        const cand = []; { const l = bd.right + 8, room = rb ? rb.x - 14 - l : W0; cand.push({ l, t: Math.max(8, Math.min(sm.top, innerHeight - H - 8)), w: Math.min(W0, room), min: 270 }); }
-        { const l = Math.max(8, bd.left), room = rb && rb.x > l ? rb.x - 14 - l : W0, t = bd.bottom + 8 <= innerHeight - H - 8 ? bd.bottom + 8 : Math.min(sm.bottom + 72, innerHeight - H - 8); cand.push({ l, t, w: Math.min(W0, room), min: 260, over: t < bd.bottom - 4 }); /* f5.8v (QA f5.8u P2): under the card means under its real bottom (sm.bottom+72 put it 15 px into the collapsed card at 844x390) */ } /* f5.8p (QA f5.8o P1 #2): 'under the card' only counts when it really is under it; on the tall ✎ Edit card it would sit on the part list */
-        const hit = c => { if (!rb) return 0; const ox = Math.max(0, Math.min(c.l + c.w, rb.x + rb.w) - Math.max(c.l, rb.x)), oy = Math.max(0, Math.min(c.t + H, rb.y + rb.h) - Math.max(c.t, rb.y)); return ox * oy / Math.max(1, rb.w * rb.h); };
-        if (document.body.classList.contains('touch') && bd.top > 60) { /* f5.8u (QA f5.8r P2): the expanded sheet is a 50 % bottom card now; above it is free */ const l = Math.max(8, bd.left), room = rb && rb.x > l ? rb.x - 14 - l : W0, w = Math.min(W0, room); const t = Math.max(8, bd.top - 8 - H); cand.unshift({ l, t, w, min: 260, over: t + H > bd.top - 4 }); /* f5.8w (QA f5.8v P1): right above the card, next to the ⋯ button (was at the top of the screen, 95 px away) */ }
-        let best = cand.find(c => c.w >= c.min && hit(c) <= 0.02 && !c.over); if (!best) best = cand.filter(c => c.w >= 200).sort((a, b) => (!!a.over - !!b.over) || (hit(a) - hit(b)))[0] || cand[1]; put(best.l, best.t, Math.max(200, best.w)); return; }
-      const tr = document.querySelector('#build .bTopRow'); if (!tr || !(innerHeight > innerWidth && innerWidth < 900)) return; const r = tr.getBoundingClientRect(), bd = $('build').getBoundingClientRect();
-            if (r.top > innerHeight * 0.45) { pn.style.setProperty('bottom', Math.round(innerHeight - bd.top + 8) + 'px', 'important'); pn.style.setProperty('max-height', Math.max(120, Math.round(bd.top - 16)) + 'px', 'important'); /* f5.8u: above the card, never over it */ } else pn.style.setProperty('top', Math.round(r.bottom + 8) + 'px', 'important'), pn.style.setProperty('bottom', 'auto', 'important'); };
-    bm.addEventListener('toggle', () => { pn.classList.toggle('on', bm.open); if (bm.open) { document.body.appendChild(pn); place(); [250, 600, 1200, 2200].forEach(ms => setTimeout(() => { if (bm.open) place(); }, ms)); /* f5.8p: re-place while the build camera settles (the rocket slides right when the card expands) */ } else bm.appendChild(pn); }); document.addEventListener('pointerdown', e => { if (bm.open && !e.target.closest('.bmPanel,.bMore')) bm.open = false; }, true); } } // the panel lives on <body> while open so it sits above the Build columns
 { // f5.1h: grouped rocket picker: Originals first, then one section per launch house; the builder lives behind Sandbox
-  const SBK = 'orbitrush.sandbox', sbOn = () => { try { return localStorage.getItem(SBK) === '1'; } catch (e) { return false; } };
   const pk = document.createElement('div'); pk.id = 'picker'; pk.className = 'gal'; ($('hGal') || document.body).appendChild(pk); // f5.8 (Aaron): the picker IS the home gallery
-  const nav = () => { const b = $('hnBuild'); if (b) b.classList.remove('hidden'); }; // f5.4l (QA f5.4i #5): Build is 1 tap from Home (was ▦ › Sandbox › Build)
-  const render = () => { pk.innerHTML = pickerHTML({ sandbox: sbOn(), sets: HOUSE_SETS, name: houseName, role: id => (CLASS_OF[baseOf(id)] || 'Super-heavy') + (specFor(id) ? ' · Payload ' + fmtPay(payloadT(id)) : ' · ' + Math.round((ART[id] && ART[id].height) || 50) + ' m'), locked: id => !!lockWhy('vehicles', SHOW[baseIdx(id)].id),
+  const render = () => { pk.innerHTML = pickerHTML({ sets: HOUSE_SETS, name: houseName, role: id => (CLASS_OF[baseOf(id)] || 'Super-heavy') + (specFor(id) ? ' · Payload ' + fmtPay(payloadT(id)) : ' · ' + Math.round((ART[id] && ART[id].height) || 50) + ' m'), locked: id => !!lockWhy('vehicles', SHOW[baseIdx(id)].id),
     originals: SHOW.map((r, i) => ({ i, name: r.name, maker: r.house ? (SHORT_HOUSE[r.house] || r.house) : 'Original', locked: !!lockWhy('vehicles', r.id), thumb: r.model || r.id })).filter(o => !RETIRED.has(SHOW[o.i].id)), pinned: {}, flat: true }); if (matchMedia('(min-width:1100px) and (min-height:501px)').matches) pk.querySelectorAll('section.pkR').forEach(sc => sc.querySelectorAll('details.pkRow').forEach((d, i) => { d.open = i < 3; })); /* f5.8g (QA): desktop opens the first 3 companies per region (≤4 screens), the rest fold */ markSel(); }; // f5.8: Featured = the curated home rockets
   const close = () => { markSel(); }; // f5.8: the gallery stays; selecting just updates the hero
   function markSel() { pk.querySelectorAll('.pkC.on').forEach(c => c.classList.remove('on')); const c = pickModel ? pk.querySelector(`.pkC[data-m="${pickModel}"]`) : home && pk.querySelector(`.pkC[data-i="${home.index}"]`); if (c) { c.classList.add('on'); const d = c.closest('details.pkRow'); if (d && !d.open) d.open = true; } }
@@ -2672,27 +2351,23 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
     if (t.closest('#pkClose')) return close();
     if (t.closest('#pkClr')) { const q = $('pkQ'); q.value = ''; pk.classList.remove('pkSearch'); filterPicker(pk, ''); q.focus(); return; }
     { const tb = t.closest('.pkTab'); if (tb) { pk.querySelectorAll('.pkTab').forEach(b => b.classList.toggle('on', b === tb)); pk.querySelectorAll('.pkR').forEach(r => r.classList.toggle('off', r.dataset.rg !== tb.dataset.rg)); return; } }
-    if (t.closest('#pkSandbox')) { try { localStorage.setItem(SBK, sbOn() ? '0' : '1'); } catch (er) { } dispatchEvent(new Event('career-change')); nav(); render(); return; }
-    if (t.closest('#pkBuild')) { close(); goBuild.toHome = true; home.show(false); refreshBuild(); return; }
     const c = t.closest('.pkC'); if (!c) return;
     if (c.dataset.i != null) { close(); home.set(+c.dataset.i); return; }
     if (c.dataset.m) { const id = c.dataset.m, i = baseIdx(id), b = baseOf(id);
       close(); home.set(i, true); pickModel = id; pickStack = EXTRA_STACKS[b] ? b : null; $('hName').textContent = houseName(id); $('hRole').textContent = (specFor(id) ? 'Real specs · ' + specStages(specFor(id)).length + ' stages · Payload ' + fmtPay(payloadT(id)) : 'Flies on the ' + (pickStack ? EXTRA_STACKS[pickStack].name : SHOW[i].name) + ' stack'); setDesign(pickDesign(i)); } });
   /* f5.8: no ▦ All rockets button: the gallery is on Home */
 
-  nav(); addEventListener('career-change', nav);
 }
 { // f5.4m (QA declutter): Home = ‹ › FLY 🔧 📍 ☰. Rockets, Missions, Atlas, Career and Settings live in the ☰ menu
   const top = document.querySelector('#hTop .hTopR'), act = document.querySelector('#hCard .hAct');
-  if (false && act && !$('hBuildB')) { const b = document.createElement('button'); b.id = 'hBuildB'; b.textContent = '🔧'; b.title = b.ariaLabel = 'Build'; b.onclick = e => { e.currentTarget.blur(); $('hnBuild').click(); }; act.appendChild(b); }
   if (top && !$('hMenuB')) { const mb = document.createElement('button'); mb.id = 'hMenuB'; mb.textContent = '⚙'; mb.title = mb.ariaLabel = 'Settings and more'; top.appendChild(mb);
     const m = document.createElement('div'); m.id = 'hMenu'; m.className = 'hidden'; document.body.appendChild(m);
     for (const [t, id] of [['🪐 Atlas', 'hnAtlas'], ['⚙ Settings', 'hGear']]) { const b = document.createElement('button'); b.textContent = t; b.onclick = () => { m.classList.add('hidden'); const t0 = $(id); if (t0) t0.click(); }; m.appendChild(b); }
     mb.onclick = e => { e.stopPropagation(); m.classList.toggle('hidden'); };
     addEventListener('pointerdown', e => { if (!m.classList.contains('hidden') && !e.target.closest('#hMenu,#hMenuB')) m.classList.add('hidden'); }); } }
 setTimeout(prewarmHeavy, 1500);
-if (!params.has('hangar')) { const d0 = Math.max(0, SHOW.findIndex(x => x.id === DEFAULT_ID)); let i0 = d0; try { const v = localStorage.getItem(HOME_KEY); if (v !== null && v !== '') i0 = +v; } catch (e) { } if (!(i0 >= 0 && i0 < SHOW.length) || RETIRED.has(SHOW[i0].id)) i0 = d0; home.set(i0); /* fleet-1: retired/unknown saves fall back to Heron-9 */ siteDefault(); home.show(true); }
-$('standBtn').onclick = () => testStand(); $('tunnelBtn').onclick = () => fun.openTunnel(); $('dropBtn').onclick = () => dropTest();
+{ // f5.9-0: ?hangar (old Build deep link) now just opens Home
+ const d0 = Math.max(0, SHOW.findIndex(x => x.id === DEFAULT_ID)); let i0 = d0; try { const v = localStorage.getItem(HOME_KEY); if (v !== null && v !== '') i0 = +v; } catch (e) { } if (!(i0 >= 0 && i0 < SHOW.length) || RETIRED.has(SHOW[i0].id)) i0 = d0; home.set(i0); /* fleet-1: retired/unknown saves fall back to Heron-9 */ siteDefault(); home.show(true); }
 addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e.preventDefault(); }, true);
 refreshBuild();
 setInterval(() => { const on = state === 'flight' && !replay; if (on !== funShown) { funShown = on; fun.show(on); } }, 200);
@@ -2721,7 +2396,7 @@ window.__game = { rocketMarks: () => [comMark.visible, copMark.visible, cotMark.
     return { id: b.id || 'A', replay: !!(i === 0 && split.replay), state: b.state, phase: b.phase, meshVsDir: +(ny.x * b.dir[0] + ny.y * b.dir[1] + ny.z * b.dir[2]).toFixed(3), dirUp: +V.dot(b.dir, up).toFixed(3), noseScreenUp: +(p1.y - p0.y).toFixed(4), onScreen: Math.abs(p0.x) < 1 && Math.abs(p0.y) < 1 && p0.z < 1, camUpRadial: +(cu.x * up[0] + cu.y * up[1] + cu.z * up[2]).toFixed(3), roll: +(crt.x * up[0] + crt.y * up[1] + crt.z * up[2]).toFixed(3), R2: S.dbg.R2 }; }), dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds, lod: earthLOD.group }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
     const va = V.sub(v.v, siteVel(v)), sp = V.len(va), vh = sp > 1 ? V.scale(va, 1 / sp) : P.noseOf(v), nz = V.sub(v.r, V.scale(P.noseOf(v), P.massProps(v).ycom)); let ahead = 0, maxA = -1e9, n = 0; const dbg = [];
     for (const sys of [fire, smoke]) for (const q of sys.d) { if (q.life <= 0 || Math.hypot(q.x, q.y, q.z) - P.R_E < 300) continue; /* ignore the pad cloud */ const a = V.dot([q.x - nz[0], q.y - nz[1], q.z - nz[2]], vh); if (V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]) > 3000) continue; n++; if (a > maxA) maxA = a; if (a > 2) { ahead++; if (dbg.length < 6) dbg.push({ sys: sys === fire ? 'fire' : 'smoke', a: +a.toFixed(0), age: +(q.max - q.life).toFixed(2), c: q.c0 && q.c0.toString(16), d: q.drag, rva: +V.dot([q.vx - v.v[0], q.vy - v.v[1], q.vz - v.v[2]], vh).toFixed(0), an: +V.dot(P.noseOf(v), vh).toFixed(3), r: +V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]).toFixed(0) }); } }
-    return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, relFrame: () => relFrame(), mapProbe: id => smap.probe(id), siteSun: () => siteArt.obj.map(L => ({ el: +(L.userData.sunEl || 0).toFixed(1), night: !!L.userData.night, lights: (() => { let n = 0; L.traverse(o => { if (o.isLight && o.visible) n++; }); return n; })() })), audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, bus: fbus ? fbus.gain.value : -1, crack: crackSrc ? 1 : 0, sfx: sbus ? sbus.gain.value : -1, dist: dbus ? dbus.gain.value : -1, mix: audioMix, music: funMusic.probe(), musicNow: musicMode(), loops: (rumbleSrc ? 1 : 0) + funAudio.liveLoops(), dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, testStand, dropTest, startReplay, get replay() { return replay; }, explode, split, setGroundCam: on => { GCAM.on = !!on; if (on && split.on) split.full = 'u'; camMode = 'chase'; }, get groundCam() { return GCAM.act; }, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, stickCmd: () => ({ ...mobile.input }), get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get camPitch() { return camPitch; }, camInfo: () => { const bR = (P.BODIES[F.body] || {}).R || R, O = shipPos ? null : null; return { pitch: camPitch, dist: camDist, up: camera.up.toArray().map(x => +x.toFixed(3)) }; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, get verdictWorker() { return !!verdictWorker; }, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, undo, redo, get hist() { return hist; }, qol, partTip, get envId() { return envId; }, setEnv: id => { envId = id; refreshBuild(); }, craftDv, sitePicker, get sbSite() { return sbSite; } };
+    return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, relFrame: () => relFrame(), mapProbe: id => smap.probe(id), siteSun: () => siteArt.obj.map(L => ({ el: +(L.userData.sunEl || 0).toFixed(1), night: !!L.userData.night, lights: (() => { let n = 0; L.traverse(o => { if (o.isLight && o.visible) n++; }); return n; })() })), audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, bus: fbus ? fbus.gain.value : -1, crack: crackSrc ? 1 : 0, sfx: sbus ? sbus.gain.value : -1, dist: dbus ? dbus.gain.value : -1, mix: audioMix, music: funMusic.probe(), musicNow: musicMode(), loops: (rumbleSrc ? 1 : 0) + funAudio.liveLoops(), dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, startReplay, get replay() { return replay; }, explode, split, setGroundCam: on => { GCAM.on = !!on; if (on && split.on) split.full = 'u'; camMode = 'chase'; }, get groundCam() { return GCAM.act; }, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, stickCmd: () => ({ ...mobile.input }), get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get camPitch() { return camPitch; }, camInfo: () => { const bR = (P.BODIES[F.body] || {}).R || R, O = shipPos ? null : null; return { pitch: camPitch, dist: camDist, up: camera.up.toArray().map(x => +x.toFixed(3)) }; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, qol, craftDv, sitePicker, get sbSite() { return sbSite; } };
 window.__game.tileStats = () => { const w = tileGeo.attributes.wat.array, c = tileGeo.attributes.color.array, h = [0, 0, 0, 0, 0]; for (const x of w) h[Math.min(4, Math.max(0, Math.floor(x * 5)))]++; return { hist: h, vis: tile.visible, c0: [c[0], c[1], c[2]], center: tileC, px: !!earthPx, mat: tile.material.type }; };
 window.__game.camSet = (y, p, d) => { camYaw = y; camPitch = p; if (d) camDist = d; camUserT = performance.now() + 1e9; }; // flight-ground-3: shot tools aim the chase camera
 window.__game.paneSlots = () => paneSlots; // f5.6x: shot tools / pane-rect checks

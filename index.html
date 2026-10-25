@@ -17,34 +17,8 @@
 <div class="row"><button id="creditsClose" class="big">Close</button></div></div></div>
 <div id="loading">Loading Orbit Rush…</div>
 <div id="ignite" class="hidden">Press <b>SPACE</b> (or tap <b>STAGE</b>) to ignite</div>
-<div id="build" class="panel builder">
-  <div class="bhead"><h1>ORBIT RUSH</h1><p class="sub">Hangar: build from parts.</p><button id="academyBtn" class="acad" title="Interactive lessons: learn real rocket science by flying">🎓 Academy</button><button id="missionsBtn" class="acad hot" title="One-tap missions, contracts, daily challenge, achievements">🎯 Missions</button><button id="atlasBtn" class="acad" title="Planetary Atlas: worlds you have visited">🪐 Atlas</button></div>
-  <div class="trow"><label>Templates</label><div id="presets" class="opts"></div>
-    <label class="chk" title="The launch site is on the equator: Earth's rotation gives you ~465 m/s eastward for free"><input type="checkbox" id="earthRot"> Earth rotation</label>
-    <label class="chk" title="Target orbit inclination to the equator. 0° = due east (cheapest). AUTO flies the matching launch azimuth; the map's transfer planner suggests the best value for a Moon or planet transfer.">Launch incl. <input type="number" id="inclIn" min="0" max="180" step="0.5" value="0">° <span id="azOut" class="sm"></span></label>
-    <label class="chk" title="Airflow particles, vapor cones, shock and plasma effects. Lowered automatically if the frame rate drops. (U in flight)">Effects <select id="fxSel"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label>
-    <label class="chk" title="Graphics quality: Low for phones and software GPUs, High adds bloom and 2K planet textures">Graphics <select id="gfxSel"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label> <button id="creditsBtn" class="ghost" title="Texture and library credits">Credits</button>
-    <span class="saved"><select id="savedSel"></select><button id="saveBtn">Save</button><button id="delBtn" title="Delete the selected saved design">Delete</button><button id="clearBtn" title="Start from just a probe core">New</button></span></div>
-  <div class="bcols">
-    <div><div class="colH">Parts</div><div id="palette"></div></div>
-    <div><div class="colH">Your rocket <small>top → bottom · separators split stages</small></div><div id="stack"></div></div>
-    <div><div class="colH">Stages <small>fire from Stage 1 upward</small></div><div id="readout"></div>
-      <button id="launchBtn" class="big">Fly</button><div class="tests"><button id="standBtn" title="Static fire on the test stand: engines lit, held down">🔥 Test stand</button><button id="tunnelBtn" title="Wind tunnel: airflow, CoM/CoP and flip tendency">🌬️ Wind tunnel</button><button id="dropBtn" title="Drop it from 1.5 km and watch what happens">📦 Drop test</button></div>
-      <details><summary>How to fly</summary><ul>
-        <li><b>Space</b> ignite, then stage &nbsp; <b>Shift/Ctrl</b> (or ↑/↓) throttle &nbsp; <b>Z/X</b> full/cut</li>
-        <li><b>W/S</b> pitch · <b>A/D</b> yaw · <b>Q/E</b> roll (gimbal, reaction wheels, RCS). SAS holds attitude: <b>1</b> stability <b>2</b> prograde <b>3</b> retrograde <b>4/5</b> radial out/in <b>6/7</b> normal/anti · <b>V</b> SAS on/off</li>
-        <li><b>C</b> RCS on/off · <b>I/K J/L H/N</b> RCS translate (with an RCS ring)</li>
-        <li><b>F</b> AUTO flies to orbit: gravity turn, Max-Q throttling, staging, coast, circularize. Steer or press F to take over.</li>
-        <li><b>T</b> / <b>,</b> warp (above 140 km while coasting = exact Kepler rails) · <b>G</b> warp to apoapsis · <b>M</b> map · <b>B</b> booster cam · <b>Y</b> fly the booster · <b>R</b> hangar</li>
-        <li>Full-scale Earth: orbit is ~7.8 km/s and costs ~9.4 km/s of Δv. Pitch over gently east after liftoff, keep the angle of attack small through Max-Q, cut at Ap ~180 km, then burn prograde at Ap until Pe &gt; 130 km.</li>
-        <li><b>Coming home:</b> build a capsule (pod + heat shield under it, parachute pack on top, a separator below; try the <i>Orbit &amp; home</i> template). In orbit press <b>O</b>: AUTO turns retrograde, burns Pe down to ~45 km, drops the service stage and flies the capsule heat-shield first. <b>P</b> deploys parachutes by hand: drogues below Mach 1.2 and 15 kPa, mains under 95 m/s — outside those limits they shred. Watch the HEAT gauges: every part has a temperature limit.</li>
-        <li><b>U</b> cycles effects quality (High/Medium/Low). <b>/</b> opens the Learn overlay: what every HUD readout means (or hover a label).</li>
-        <li>New to rockets? Open the <b>🎓 Academy</b>: twelve short lessons from a first hop to a Moon transfer.</li>
-        <li>Keep the yellow CoM above the cyan CoP (fins at the bottom) or the rocket flips. Stage with fuel left in the booster and it can land on the droneship (+1000 auto, +2500 by hand with Y).</li>
-      </ul></details>
-    </div>
-  </div>
-</div>
+<div id="setStash" hidden><label class="chk" title="Airflow particles, vapor cones, shock and plasma effects. Lowered automatically if the frame rate drops. (U in flight)">Effects <select id="fxSel"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label>
+<label class="chk" title="Graphics quality: Low for phones and software GPUs, High adds bloom and 2K planet textures">Graphics <select id="gfxSel"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label></div>
 <div id="hud" class="hidden">
   <div id="tele"></div>
   <div id="bars"></div>

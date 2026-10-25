@@ -50,6 +50,5 @@ export function pickerHTML({ originals = [], pinned = {}, sets, name, sandbox, r
       body += `<details class="pkCo" open data-h="${esc(k)}"><summary>${esc(SHORT[k] || k)} <small>${open.length + pin.length}${shut.length ? ' · 🔒' + shut.length : ''}</small></summary>${pin.length ? `<div class="pkG">${pin.map(o => card(`data-i="${o.i}"`, o.name, SHORT[k] || k, o.locked, o.thumb)).join('')}</div>` : ''}${open.length ? `<div class="pkG">${open.map(id => card(`data-m="${esc(id)}"`, name(id), SHORT[k] || k, false, id)).join('')}</div>` : ''}${lockedFold(shut.map(id => card(`data-m="${esc(id)}"`, name(id), SHORT[k] || k, true, id)))}</details>`; }
     if (body) { tabs.push(rg); h += `<section class="pkR${tabs.length > 1 ? ' off' : ''}" data-rg="${esc(rg)}"><h4>${rg}</h4>${body}</section>`; } }
   if (tabs.length > 1) h = h.replace('<!--pkTabs-->', `<div class="pkTabs">${tabs.map((r, i) => `<button class="pkTab${i ? '' : ' on'}" data-company="1" data-rg="${esc(r)}">${esc(r)}</button>`).join('')}</div>`); // f5.7l (QA f5.7i P1): one region at a time
-  if (sandbox) h += `<section><h4>Sandbox</h4><div class="pkG"><button class="pkC" id="pkBuild"><b>🔧 Build your own</b><small>Part builder</small></button></div></section>`;
   return h;
 }
