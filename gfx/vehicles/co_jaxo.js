@@ -1,7 +1,7 @@
 // co-jaxo-1: JAXO (parody Japanese aero-space organisation) — Tsubame: 4 m hydrogen core (1 engine), 4 m upper, 4 m-class fairing;
 // 'tsubame' = two big solids; 'tsubame-2024' = two big + two slim solids. White with pale-blue bands. rocketdb tsubame (GCAT) + design.md.
-import { stage, fairing, srm, PI, livery } from './co_gen.js?v=f5.9-2';
-import { group, plume } from './co_civspace.js?v=f5.9-2';
+import { stage, fairing, srm, PI, livery } from './co_gen.js?v=f5.9-3';
+import { group, plume } from './co_civspace.js?v=f5.9-3';
 const R = 2.0;
 function ht(o, four) { const d = o.detail, sky = livery(0x7fa8cf), cream = livery(0xe8e2d2);
   const a = stage(d, 's1', { r: R, h: 33.0, y0: 2.6, eng: [[1, 0, 0.95, 2.6]], key: cream, skirt: R * 1.02, bands: [[31.8, 1.2, sky], [6.0, 0.6, sky]], decalY: 20 });

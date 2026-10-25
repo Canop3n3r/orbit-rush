@@ -1,7 +1,7 @@
 // Ling-Volt Scout Co. — Scoutling: slim all-solid four-stage launcher, four base fins with tip tabs, white with black roll bands; ogive fairing.
 // 'scoutling' (late D-type, 25 m) and 'scoutling-x1' (first X-type, 21.6 m, smaller nose). rocketdb scoutling (GCAT) + design.md.
-import { stage, fairing, fin, PI, livery } from './co_gen.js?v=f5.9-2';
-import { group, plume } from './co_civspace.js?v=f5.9-2';
+import { stage, fairing, fin, PI, livery } from './co_gen.js?v=f5.9-3';
+import { group, plume } from './co_civspace.js?v=f5.9-3';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = { 'scoutling': 'Scoutling', 'scoutling-x1': 'Scoutling X-1' };
 function sc(o, x1) { const d = o.detail, s = x1 ? 0.9 : 1;

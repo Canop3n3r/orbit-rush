@@ -1,7 +1,7 @@
 // Gaulois Spatial — Diamantine: slim three-stage launcher, 1.4 m liquid s1 with four small fins, 0.8 m s2, solid s3 in ogive fairing;
 // white/black checker roll pattern. 'diamantine-a' (first type, 19 m) and 'diamantine-b' (longer/wider s1, 23.5 m). rocketdb diamantine + design.md.
-import { stage, fairing, fin, quads, PI } from './co_gen.js?v=f5.9-2';
-import { group, plume } from './co_civspace.js?v=f5.9-2';
+import { stage, fairing, fin, quads, PI } from './co_gen.js?v=f5.9-3';
+import { group, plume } from './co_civspace.js?v=f5.9-3';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = { 'diamantine-a': 'Diamantine A', 'diamantine-b': 'Diamantine B' };
 function dm(o, B) { const d = o.detail, id = B ? 'diamantine-b' : 'diamantine-a', R = B ? 0.7 : 0.67, H = B ? 14.0 : 10.0;

@@ -1,7 +1,7 @@
 // Arion Space (launch consortium era) — Europia: 3.05 m kerosene s1 (two engines, lower skirt), 2.0 m s2 (four small engines),
 // 2.0 m s3, ogive fairing; white with blue/yellow bands. rocketdb europia (GCAT) + design.md.
-import { stage, fairing, PI, livery } from './co_gen.js?v=f5.9-2';
-import { group, plume } from './co_civspace.js?v=f5.9-2';
+import { stage, fairing, PI, livery } from './co_gen.js?v=f5.9-3';
+import { group, plume } from './co_civspace.js?v=f5.9-3';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = { 'europia': 'Europia' };
 function eu(o) { const d = o.detail, bl = livery(0x2c4f9e), ye = livery(0xe0b437);

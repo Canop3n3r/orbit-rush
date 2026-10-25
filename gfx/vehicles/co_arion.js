@@ -2,10 +2,10 @@
 // grey solid boosters, cryo upper inside a long ogive fairing) and Arion 6 (62: 2 / 64: 4 solid boosters, re-ignitable upper,
 // short or long fairing). Dimensions: rocketdb arion-5 / arion-6 (GCAT) + design.md; fairing/stage splits art-fitted. No logos/names.
 import * as THREE from 'three/webgpu';
-import { Kit, xf } from './kit.js?v=f5.9-2';
-import * as PR from './profiles.js?v=f5.9-2';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-2';
-import { group, plume } from './co_civspace.js?v=f5.9-2';
+import { Kit, xf } from './kit.js?v=f5.9-3';
+import * as PR from './profiles.js?v=f5.9-3';
+import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-3';
+import { group, plume } from './co_civspace.js?v=f5.9-3';
 const PI = Math.PI, R = PR.ARION.r;
 function core(d, h, y0 = 2.6) { const k = new Kit(d); bell(k, 1.05, 3.0, 0, 0, 0, { head: 0.7, rt: 0.33 });
   lathe(k, [[0, y0], [R * 0.85, y0], [R, y0 + 0.5]], 'dark'); tube(k, R, R, h - 0.5, y0 + 0.5, 'paint:0,0', { hs: 1 }); ring(k, R, y0 + h * 0.62, 0.02); ring(k, R, y0 + h - 0.3, 0.02);
