@@ -18,7 +18,6 @@ const B = {
   first_run:    { controls: 40, words: 70, ui: [70, 62], note: '0 extra screens: must already be Home' }, // f5.8 (Aaron): Home = hero + rocket gallery (cards are the controls)
   home:         { controls: 40, words: 70, ui: [70, 62] },
   settings:     { controls: 8, words: 30, ui: [70, 70] },
-  build:        { controls: 14, words: 12, ui: [35, 25], below: 0 },
   hud_auto:     { controls: 5, words: 6, ui: [10, 6] },
   orbit_toast:  { words: 5, ui: [6, 6] },
   map:          { controls: 6, words: 10, ui: [10, 6] },
@@ -435,7 +434,7 @@ async function runVp(br, vp) {
   console.log(`${rows.length - fails - skips}/${rows.length - skips} budgets pass (${skips} skipped)`);
   if (jsonOut) require('fs').writeFileSync(jsonOut, JSON.stringify(all, null, 1));
   // f5.6h (QA ratchet): --strict fails only below the baseline pass count (43 of 74 on f5.6f); raise BASELINE as rows get fixed
-  const BASELINE = +(process.env.UI_BASELINE || 299) /* f5.8y: 299/299 */ /* f5.8u: 263/263 (+10 sheet/details rows, +3 crash STAGE rows) */ /* f5.8t: 253/253 (+6 upper-stage takeover rows) */ /* f5.8o: 247/247 */ /* f5.8n: 226/226 */ /* f5.8m: 215/215 */ /* f5.8l: 197/197 */ /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
+  const BASELINE = +(process.env.UI_BASELINE || 223) /* f5.9-0: 223 (Build removed: its ~76 budget rows are gone, every remaining row passes) */ /* f5.8y: 299/299 */ /* f5.8u: 263/263 (+10 sheet/details rows, +3 crash STAGE rows) */ /* f5.8t: 253/253 (+6 upper-stage takeover rows) */ /* f5.8o: 247/247 */ /* f5.8n: 226/226 */ /* f5.8m: 215/215 */ /* f5.8l: 197/197 */ /* f5.7j: 70/96 at 390+844 after the inset split + ascent_split rows */ /* QA f5.7c: 57/90 pass on live f5.7c (43 old + 12 orbit_split/end_card_orbit + 2 orbit_release real_tap); a 43 floor let 14 rows regress silently */, passN = rows.length - fails - skips;
   if (strict) console.log(`ratchet: ${passN} pass vs baseline ${BASELINE} → ${passN >= BASELINE ? 'OK' : 'REGRESSION'}`);
   process.exit(strict && passN < BASELINE ? 1 : 0);
 })().catch(e => { console.error('FATAL', e.message); process.exit(strict ? 1 : 0); });
