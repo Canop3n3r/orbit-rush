@@ -37,12 +37,12 @@ export function engineOut(v, p) {
 }
 // Full-throttle thrust (N) of the active stage at ambient pressure p (Pa), whatever the current throttle.
 export const maxThrust = (v, p) => engineOut({ ...v, throttle: 1 }, p).T;
-// f5.8v (QA f5.8u P1): thrust-vector authority tracks the throttle only above GIM_FLOOR of full thrust (real TVC engines can't throttle to nothing and keep a nozzle load-path); a THR drag at 60 km used to halve (or, touching the strip bottom, zero) the steering the nose needed against the air and the stage tumbled
-export const GIM_FLOOR = 0.8;
+// f5.8v (QA f5.8u P1) / f5.8w (QA f5.8v P2): thrust-vector authority is that of the full-thrust gimbal while the engine is lit (GIM_FLOOR 1.0; it was 0.8 in f5.8v and the throttle level still moved the nose: a THR drag after the AUTO takeover left the nose 11-25° from a no-input control). The lateral force can never exceed the thrust itself (clamped below). The throttle now changes thrust only.
+export const GIM_FLOOR = 1.0;
 export function gimbalThrust(v, T) { if (!(T > 0)) return 0; const f = v.throttle > 0 ? v.throttle : 0; return f > 0 && f < GIM_FLOOR ? T * GIM_FLOOR / f : T; }
 // Maximum control torque per body axis [pitch (x), roll (y), yaw (z)] in N·m from wheels, gimbal and RCS.
 export function authority(v, g, mp, T) {
-  const s = v.stages[v.cur], rw = g.rw * 1000, gim = s && s.eng && s.eng.gimbal ? gimbalThrust(v, T) * Math.sin(s.eng.gimbal) * Math.max(mp.ycom, 0.5) : 0;
+  const s = v.stages[v.cur], rw = g.rw * 1000, gim = s && s.eng && s.eng.gimbal ? Math.min(gimbalThrust(v, T) * Math.sin(s.eng.gimbal), T) * Math.max(mp.ycom, 0.5) : 0;
   const rc = v.rcsOn && g.rcs && v.rcsFuel > 0 ? g.rcs.F * 1000 * 2 : 0;
   const rcLat = rc * Math.max(Math.abs(g.rcs ? g.rcs.y - mp.ycom : 0), 1), rcRoll = rc * g.d / 2;
   return [rw + gim + rcLat, rw + rcRoll, rw + gim + rcLat];
@@ -53,7 +53,7 @@ function allocate(v, g, mp, T, cmd) {
   for (let k = 0; k < 3; k++) { tau[k] = clamp(rem[k], -rw, rw); rem[k] -= tau[k]; }
   let fx = 0, fz = 0;
   if (T > 0 && s && s.eng && s.eng.gimbal) {
-    const arm = Math.max(mp.ycom, 0.5), fmax = gimbalThrust(v, T) * Math.sin(s.eng.gimbal);
+    const arm = Math.max(mp.ycom, 0.5), fmax = Math.min(gimbalThrust(v, T) * Math.sin(s.eng.gimbal), T);
     fx = rem[2] / arm; fz = -rem[0] / arm; const f = Math.hypot(fx, fz); if (f > fmax) { fx *= fmax / f; fz *= fmax / f; }
     tau[0] += -arm * fz; tau[2] += arm * fx; rem[0] -= -arm * fz; rem[2] -= arm * fx;
   }
