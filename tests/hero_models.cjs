@@ -7,7 +7,7 @@ const U = process.env.U || 'http://localhost:8959/', ids = process.argv.slice(2)
 (async () => { const br = await pw.chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'] }); const pg = await br.newPage(); let bad = 0; const errs = [];
   pg.on('pageerror', e => errs.push(e.message)); const ok = (t, m) => { console.log((t ? 'ok   ' : 'FAIL ') + m); if (!t) bad++; };
   await pg.goto(U + 'gfx/vehicles/viewer.html?webgl'); await pg.waitForFunction(() => window.__viewer && window.__viewer.ready, null, { timeout: 240000 });
-  const R = await pg.evaluate(async ids => { const M = await import('/gfx/vehicles/vehicles.js?v=f5.8v'), T = await import('three/webgpu'), out = [], v = new T.Vector3(), bb = new T.Box3();
+  const R = await pg.evaluate(async ids => { const M = await import('/gfx/vehicles/vehicles.js?v=f5.8w'), T = await import('three/webgpu'), out = [], v = new T.Vector3(), bb = new T.Box3();
     const isExtra = m => { for (let p = m; p; p = p.parent) if (/:dress|:frost|:foam|^bay$|^sat$/.test(p.name) || /dress|frost|foam/.test(p.name)) return true; return false; };
     for (const id of ids.length ? ids : Object.keys(M.VEHICLES)) for (const detail of ['hi', 'mid', 'lo']) { const g = M.build(id, { detail, legs: 0 }); g.updateMatrixWorld(true); const H = M.VEHICLES[id].height, hull = [], extra = [];
       g.traverse(m => { if (!m.isMesh) return; for (let p = m; p; p = p.parent) if (!p.visible) return; (isExtra(m) ? extra : hull).push(m); });

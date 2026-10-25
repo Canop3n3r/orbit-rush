@@ -1,5 +1,5 @@
 // Orient Commercial Launch Collective, tier B (stage-table generator + hooks): Kite-1/3, Ballast-1, Granite-2, Lifttop-1, OneStep-M1, Parabolica-1. White bodies.
-import { buildB } from './gen_b.js?v=f5.8v';
+import { buildB } from './gen_b.js?v=f5.8w';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'kite-1': 'Kite-1', 'kite-3': 'Kite-3', 'ballast-1': 'Ballast-1', 'granite-2': 'Granite-2', 'lifttop-1': 'Lifttop-1', 'onestep-m1': 'OneStep-M1', 'parabolica-1': 'Parabolica-1'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

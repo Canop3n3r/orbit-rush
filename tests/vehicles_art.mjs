@@ -79,10 +79,10 @@ print(json.dumps(out))`;
 { const c = readFileSync(new URL('co_ssb.js', dir), 'utf8'); for (const id of ['cosmokart-1', 'cosmokart-1b', 'cosmokart-2', 'cosmokart-3m', 'whirligig-2', 'whirligig-3', 'riverbend']) ok(c.includes(`'${id}':`), 'co_ssb id ' + id); ok(!realHit(c), 'co_ssb.js: no real names'); }
 { const c = readFileSync(new URL('co_kometa.js', dir), 'utf8'); for (const id of ['kometa']) ok(c.includes(`'${id}':`), 'co_kometa id ' + id); ok(!realHit(c), 'co_kometa.js: no real names'); }
 // space-center sites (art-sites-N): every gfx/sites/site_<id>.js is pure layout data; kinds exist in the kit, coordinates valid, names clean
-{ const { readdirSync } = await import('node:fs'); const sd = new URL('../gfx/sites/', import.meta.url), G = await import('../gfx/sites/geo.js?v=f5.8v');
+{ const { readdirSync } = await import('node:fs'); const sd = new URL('../gfx/sites/', import.meta.url), G = await import('../gfx/sites/geo.js?v=f5.8w');
   const KINDS = [...readFileSync(new URL('kit.js', sd), 'utf8').matchAll(/^  ([a-z]+)\(K, o\)/gm)].map(m => m[1]), REUSE = ['cape-north', 'lz1', 'cape-heritage', 'gulf-port'];
   ok(KINDS.length >= 15, `site kit part kinds (${KINDS.length})`); for (const f of readdirSync(sd)) { const c = readFileSync(new URL(f, sd), 'utf8'); ok(!realHit(c), `gfx/sites/${f}: no real names`); if (f.endsWith('.js')) ok(!/InstancedMesh/.test(c), `gfx/sites/${f}: no InstancedMesh`); }
-  for (const f of readdirSync(sd).filter(f => /^site_[a-z0-9-]+\.js$/.test(f))) { const { SITE: S } = await import(new URL(f + '?v=f5.8v', sd)); const id = f.slice(5, -3);
+  for (const f of readdirSync(sd).filter(f => /^site_[a-z0-9-]+\.js$/.test(f))) { const { SITE: S } = await import(new URL(f + '?v=f5.8w', sd)); const id = f.slice(5, -3);
     ok(S.id === id, `${f}: id ${S.id}`); ok(['earth', 'moon', 'mars', 'generic'].includes(S.body), `${id}: body ${S.body}`); ok(Math.abs(S.lat) <= 90 && Math.abs(S.lon) <= 180, `${id}: lat/lon in range`);
     ok(!/\(/.test(S.name), `${id}: name has no parenthetical`); for (const o of [...S.layout, ...(S.stations || []).flatMap(s => s.layout)]) ok(KINDS.includes(o.k), `${id}: part kind ${o.k}`);
     const kinds = new Set(S.layout.map(o => o.k)), st = (S.stations || []).flatMap(s => s.layout.map(o => o.k));
