@@ -1,6 +1,6 @@
-// Company 'douglas' roster vehicles (data only). Units/fields: see vehicles/roster/loss.js. Engines prefixed dw-.
+// Company 'dougwing' roster vehicles (data only). Units/fields: see vehicles/roster/loss.js. Engines prefixed dw-.
 // Stage masses, thrust, Isp, burn: GCAT (J. McDowell, planet4589.org, CC BY; see CREDITS.md) via rocketdb. ESTIMATE fields in est.
-export const ENGINES_DOUGLAS = {
+export const ENGINES_DOUGWING = {
   'dw-e1': { tSl: 439.3, tVac: 499.2, ispSl: 241.1, ispVac: 274, src: 'spec:engines#dw-e1', est: ['tSl', 'ispSl'] },
   'dw-e2': { tSl: 916.8, tVac: 1085.8, ispSl: 255, ispVac: 302, src: 'spec:engines#dw-e2', est: ['tSl (vac thrust x Isp ratio)'] },
   'dw-e3': { tSl: 0, tVac: 43.7, ispSl: 0, ispVac: 319.2, src: 'spec:engines#dw-e3' },
@@ -24,8 +24,8 @@ export const ENGINES_DOUGLAS = {
   'dw-e21': { tSl: 916.8, tVac: 1085.8, ispSl: 255, ispVac: 302, src: 'spec:engines#dw-e21', est: ['tSl (vac thrust x Isp ratio)'] },
   'dw-e22': { tSl: 0, tVac: 110.0, ispSl: 0, ispVac: 465.5, src: 'spec:engines#dw-e22' },
 };
-export const ROSTER_DOUGLAS = [
-  { id: 'deltoid-2', name: "Deltoid II", company: 'douglas', src: 'spec:deltoid-2', area: 12.0, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+export const ROSTER_DOUGWING = [
+  { id: 'deltoid-2', name: "Deltoid II", company: 'dougwing', src: 'spec:deltoid-2', area: 12.0, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'dw-e1': 6}, engineCount: 6, engineName: 'dw-e1', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 7890, prop: 70710, burn: 63.3, group: 0, jettisonAt: 128.6, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'dw-e1': 3}, engineCount: 3, engineName: 'dw-e1', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 3945, prop: 35355, burn: 63.3, group: 0, igniteAt: 65.3, jettisonAt: 128.6, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
@@ -33,7 +33,7 @@ export const ROSTER_DOUGLAS = [
       { engines: {'dw-e3': 1}, engineCount: 1, engineName: 'dw-e3', propellant: 'hypergolic', nozzleLayout: { type: 'single' }, reusable: false, dry: 950, prop: 5950, burn: 431.0, group: 1, restart: true, restartSrc: 'spec:deltoid-2#restart (rocketdb per-stage restartable, cited)', recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
     ],
     modes: [{ variant: 'leo', payload: 4844, orbit: { hp: 185, ha: 185, inc: 28.7 }, src: "spec:deltoid-2#ref (payload planner's guide table 2-3: 185 km circular, 28.7 deg, 10-ft fairing)", est: [] , knownGap: "model +30 %: fairing mass unsourced (0); final stage restartable: coast-and-restart flown; SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
-  { id: 'deltoid', name: "Deltoid", company: 'douglas', src: 'spec:deltoid', area: 9.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'deltoid', name: "Deltoid", company: 'dougwing', src: 'spec:deltoid', area: 9.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'dw-e4': 6}, engineCount: 6, engineName: 'dw-e4', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 3390, prop: 20610, burn: 37.0, group: 0, jettisonAt: 76.0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'dw-e4': 3}, engineCount: 3, engineName: 'dw-e4', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 1695, prop: 10305, burn: 37.0, group: 0, igniteAt: 39.0, jettisonAt: 76.0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
@@ -42,39 +42,39 @@ export const ROSTER_DOUGLAS = [
       { engines: {'dw-e7': 1}, engineCount: 1, engineName: 'dw-e7', propellant: 'solid', nozzleLayout: { type: 'single' }, reusable: false, dry: 83, prop: 1017, burn: 42.0, group: 2, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
     ],
     modes: [{ variant: 'leo', payload: 2000, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:deltoid#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +57 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
-  { id: 'thorin-agenta', name: "Thorin-Agenta", company: 'douglas', src: 'spec:thorin-agenta', area: 6.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'thorin-agenta', name: "Thorin-Agenta", company: 'dougwing', src: 'spec:thorin-agenta', area: 6.1, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'dw-e8': 3}, engineCount: 3, engineName: 'dw-e8', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 1695, prop: 10305, burn: 37.0, group: 0, jettisonAt: 37.0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'dw-e9': 1}, engineCount: 1, engineName: 'dw-e9', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 3715, prop: 66585, burn: 215.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'dw-e10': 1}, engineCount: 1, engineName: 'dw-e10', propellant: 'hypergolic', nozzleLayout: { type: 'single' }, reusable: false, dry: 750, prop: 6250, burn: 265.0, group: 1, restart: true, restartSrc: 'spec:thorin-agenta#restart (rocketdb per-stage restartable, cited)', recovery: 'expended', src: 'masses: GCAT; engine: GCAT + rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
     ],
     modes: [{ variant: 'leo', payload: 1500, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:thorin-agenta#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +40 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); final stage restartable: coast-and-restart flown; SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
-  { id: 'thorin-toaster', name: "Thorin-Toaster", company: 'douglas', src: 'spec:thorin-toaster', area: 4.7, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'thorin-toaster', name: "Thorin-Toaster", company: 'dougwing', src: 'spec:thorin-toaster', area: 4.7, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'dw-e11': 1}, engineCount: 1, engineName: 'dw-e11', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 3125, prop: 45675, burn: 160.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'dw-e12': 1}, engineCount: 1, engineName: 'dw-e12', propellant: 'solid', nozzleLayout: { type: 'single' }, reusable: false, dry: 65, prop: 635, burn: 40.3, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)', est: ['burn'] },
     ],
     modes: [{ variant: 'leo', payload: 500, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:thorin-toaster#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] }] },
-  { id: 'thorin-capablestar', name: "Thorin-Capable Star", company: 'douglas', src: 'spec:thorin-capablestar', area: 4.7, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'thorin-capablestar', name: "Thorin-Capable Star", company: 'dougwing', src: 'spec:thorin-capablestar', area: 4.7, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'dw-e13': 1}, engineCount: 1, engineName: 'dw-e13', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 3125, prop: 44675, burn: 170.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'dw-e14': 1}, engineCount: 1, engineName: 'dw-e14', propellant: 'hypergolic', nozzleLayout: { type: 'single' }, reusable: false, dry: 599, prop: 3901, burn: 296.0, group: 1, restart: true, restartSrc: 'spec:thorin-capablestar#restart (rocketdb per-stage restartable, cited)', recovery: 'expended', src: 'masses: GCAT; engine: GCAT + rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
     ],
     modes: [{ variant: 'leo', payload: 150, orbit: { hp: 1100, ha: 1100, inc: 28.5 }, src: 'spec:thorin-capablestar#leo (rocketdb leo_kg + leo_orbit)', est: ['inclination (site latitude) ESTIMATE'] , knownGap: "model +255 %: fairing mass unsourced (0); final stage restartable: coast-and-restart flown; SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
-  { id: 'thorin-capable', name: "Thorin-Capable", company: 'douglas', src: 'spec:thorin-capable', area: 4.7, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'thorin-capable', name: "Thorin-Capable", company: 'dougwing', src: 'spec:thorin-capable', area: 4.7, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'dw-e15': 1}, engineCount: 1, engineName: 'dw-e15', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 3125, prop: 45675, burn: 160.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'dw-e16': 1}, engineCount: 1, engineName: 'dw-e16', propellant: 'hypergolic', nozzleLayout: { type: 'single' }, reusable: false, dry: 429, prop: 1471, burn: 110.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'dw-e17': 1}, engineCount: 1, engineName: 'dw-e17', propellant: 'solid', nozzleLayout: { type: 'single' }, reusable: false, dry: 94, prop: 206, burn: 39.0, group: 2, spin: true, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
     ],
     modes: [{ variant: 'leo', payload: 120, orbit: { hp: 640, ha: 640, inc: 28.5 }, src: 'spec:thorin-capable#leo (rocketdb leo_kg + leo_orbit)', est: ['inclination (site latitude) ESTIMATE'] , knownGap: "model +258 %: fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
-  { id: 'thorin', name: "Thorin", company: 'douglas', src: 'spec:thorin', area: 4.7, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'thorin', name: "Thorin", company: 'dougwing', src: 'spec:thorin', area: 4.7, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'dw-e18': 1}, engineCount: 1, engineName: 'dw-e18', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 3125, prop: 45675, burn: 160.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'dw-e19': 1}, engineCount: 1, engineName: 'dw-e19', propellant: 'solid', nozzleLayout: { type: 'single' }, reusable: false, dry: 67, prop: 833, burn: 66.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
     ],
     modes: [{ variant: 'leo', payload: 500, orbit: { hp: 185, ha: 185, inc: 28.5 }, src: 'spec:thorin#leo (GCAT LEO capacity)', est: ['orbit (GCAT gives no reference orbit: 185 km at the main site latitude)'] , knownGap: "model +21 %: GCAT LEO figure has no reference orbit (185 km at the site latitude ESTIMATE); fairing mass unsourced (0); no restart on the final stage (rocketdb: unknown or single-burn); SL thrust/Isp 0.88 x vac ESTIMATE where rocketdb has no SL value" }] },
-  { id: 'deltoid-3', name: "Deltoid III", company: 'douglas', src: 'spec:deltoid-3', area: 14.4, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
+  { id: 'deltoid-3', name: "Deltoid III", company: 'dougwing', src: 'spec:deltoid-3', area: 14.4, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
       { engines: {'dw-e20': 9}, engineCount: 9, engineName: 'dw-e20', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 18315, prop: 155385, burn: 75.2, group: 0, jettisonAt: 75.2, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
       { engines: {'dw-e21': 1}, engineCount: 1, engineName: 'dw-e21', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 6820, prop: 95580, burn: 261.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },

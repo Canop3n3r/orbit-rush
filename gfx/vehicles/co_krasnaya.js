@@ -1,4 +1,4 @@
-// co-krasnaya-1: Krasnaya Orbita Bureau (parody) R-7 family: rodnik (crew), rodnik-2 (upper block + wide fairing),
+// co-krasnaya-1: Krasnaya Orbita Bureau (parody) early-rocketry family: rodnik (crew), rodnik-2 (upper block + wide fairing),
 // lastochka (early crew ball shroud), pervy (2-stage first-orbit). Original geometry, no logos/names.
 // Dimensions: rocketdb rodnik / rodnik-2 / lastochka / pervy (GCAT) + design.md; strap-on/core profile art-fitted.
 // crossSep(g, t): the four strap-ons pivot about their lower attach point and swing their noses outward (0..1),

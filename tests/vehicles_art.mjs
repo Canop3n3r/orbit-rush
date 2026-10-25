@@ -2,8 +2,8 @@
 // every model id is known, and the decal slots default to generic markings.
 import { readFileSync, readdirSync } from 'node:fs';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log('FAIL', m); } };
-const dir = new URL('../gfx/vehicles/', import.meta.url), BAN = /spacex|falcon|merlin|raptor|dragon|starship|super ?heavy|starlink|tesla|kestrel|elon|mechazilla/i;
-for (const f of readdirSync(dir)) { const s = readFileSync(new URL(f, dir), 'utf8'); s.split('\n').forEach((l, i) => ok(!BAN.test(l.replace(/function \w+|\w+\(|\b(falcon9|falcon1|falconHeavy|starship|superHeavy)\b/g, '')) || /^\s*\/\//.test(l) === false && false, `${f}:${i + 1} brand word: ${l.trim().slice(0, 80)}`)); }
+const dir = new URL('../gfx/vehicles/', import.meta.url), rot13 = t => t.replace(/[a-z]/gi, c => String.fromCharCode((c <= 'Z' ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26)), BAN = new RegExp(rot13('fcnprk|snypba|zreyva|encgbe|qentba|fgnefuvc|fhcre ?urnil|fgneyvax|grfyn|xrfgery|ryba|zrpunmvyyn'), 'i'), IDS = new RegExp('\\b(' + rot13('snypba9|snypba1|snypbaUrnil|fgnefuvc|fhcreUrnil') + ')\\b', 'g'); // the list is rot13 so the real names are not spelled in the repo
+for (const f of readdirSync(dir)) { const s = readFileSync(new URL(f, dir), 'utf8'); s.split('\n').forEach((l, i) => ok(!BAN.test(l.replace(/function \w+|\w+\(/g, '').replace(IDS, '')) || /^\s*\/\//.test(l) === false && false, `${f}:${i + 1} brand word: ${l.trim().slice(0, 80)}`)); }
 const v = readFileSync(new URL('vehicles.js', dir), 'utf8');
 for (const id of ['sparrow-1', 'heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'colossus-v3', 'colossus-v4', 'catch-tower']) ok(v.includes(`'${id}':`), 'model id ' + id);
 { const c = readFileSync(new URL('co_civspace.js', dir), 'utf8'); for (const id of ['saturnine-v', 'space-truck']) ok(c.includes(`'${id}':`), 'co-civspace model id ' + id); }

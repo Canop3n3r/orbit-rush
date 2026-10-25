@@ -54,27 +54,27 @@ export const CONTRACTS = [
     inspiration: [
       { company: 'spacey', vehicle: 'heron-9-crew', note: 'first commercial crew flight to the station (2020-05-30, spec:heron-9-crew)' },
       { company: 'redstar', vehicle: 'rodnik', note: 'decades of crew ferry flights to stations' },
-      { company: 'rockwell', vehicle: 'space-truck', note: 'winged orbiter that assembled the station (1998-2011)' },
-      { company: 'calt', vehicle: 'jade-lantern-2f', note: 'crew launches to a national station (from 2003)' }] },
+      { company: 'rocketwell', vehicle: 'space-truck', note: 'winged orbiter that assembled the station (1998-2011)' },
+      { company: 'jade', vehicle: 'jade-lantern-2f', note: 'crew launches to a national station (from 2003)' }] },
   { id: 'lunar-landing', rung: 'moon', mission: 'lunar-landing', vehicle: 'selene', site: 'cape-heritage',
     goal: { text: 'Land on the Moon', kind: 'landed', body: 'moon' },
     cost: 200, reward: { cash: 250, sci: 60, rep: 25 }, unlock: { vehicles: ['titan', 'ares'], sites: ['gulf-port'], missions: ['mars-ship'] },
     inspiration: [
       { company: 'nosa', vehicle: 'saturnine-v', note: 'six crewed Moon landings (1969-1972)' },
-      { company: 'calt', vehicle: 'jade-lantern-5', note: 'robotic lunar sample return (2020)' },
-      { company: 'rockwell', vehicle: 'super-lift', note: 'uncrewed lunar test flight (2022)' },
+      { company: 'jade', vehicle: 'jade-lantern-5', note: 'robotic lunar sample return (2020)' },
+      { company: 'rocketwell', vehicle: 'super-lift', note: 'uncrewed lunar test flight (2022)' },
       { company: 'redstar', vehicle: 'moonhammer', note: 'the Moon rocket that never succeeded (what-if)' }] },
   { id: 'mars-ship', rung: 'mars', mission: 'mars-ship', vehicle: 'ares', site: 'gulf-port',
     goal: { text: 'Reach Mars', kind: 'visited', body: 'mars' },
     cost: 250, reward: { cash: 400, sci: 100, rep: 30 }, unlock: { missions: ['venus'] },
     inspiration: [
-      { company: 'calt', vehicle: 'jade-lantern-5', note: 'orbiter, lander and rover in one launch (2020)' },
+      { company: 'jade', vehicle: 'jade-lantern-5', note: 'orbiter, lander and rover in one launch (2020)' },
       { company: 'ulx', vehicle: 'atlantean-v', note: 'car-sized rovers landed on Mars (2011, 2020)' },
       { company: 'blueh', vehicle: 'new-glendale', note: 'twin small Mars orbiters (2025)' },
       { company: 'spacey', vehicle: 'colossus', note: 'fully reusable Mars ship (planned, never flown: ESTIMATE)' }] },
 ];
 
 // Inspiration ids above (neutral, from the studio roster plan; tier-S rows land with roster PRs #15-#25).
-export const INSPIRATION_COMPANIES = ['spacey', 'baltic', 'nosa', 'other', 'redstar', 'blueh', 'rockwell', 'calt', 'ulx'];
+export const INSPIRATION_COMPANIES = ['spacey', 'baltic', 'nosa', 'other', 'redstar', 'blueh', 'rocketwell', 'jade', 'ulx'];
 export const INSPIRATION_VEHICLES = ['hopper-h', 'baltic-hammer', 'redrock', 'featherwing-1', 'sparrow-1', 'rodnik', 'jade-lantern-2f', 'jade-lantern-5', 'moonhammer', 'heron-9', 'heron-heavy',
   'new-glendale', 'heron-9-crew', 'space-truck', 'long-stride-2f', 'saturnine-v', 'long-stride-5', 'super-lift', 'n-won', 'atlantean-v', 'colossus'];

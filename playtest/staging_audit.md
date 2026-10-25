@@ -46,7 +46,7 @@ Generated Tue Oct 20 2026 14:34 CT by the headless staging harness (browser: eve
 | selene | selene | Three-stage Moon rocket + lander | 3 | pass | pass |
 | ares | ares | Mars lander stack (also Venus) | 4 | pass | pass |
 | Colossus (Mk III) | colossus-v3 | Super-heavy · 5-engine cluster | 2 | pass | FAIL: model has 2 core stages, stack drops 1 |
-| Grasshopper | (part stack) | Test hopper · hop and land on the pad | 1 | pass | pass |
+| Sandpiper | (part stack) | Test hopper · hop and land on the pad | 1 | pass | pass |
 | Sparrow-1 Smallsat Launcher | sparrow-1 | Sparrow-1 Smallsat Launcher | 2 | pass | FAIL: model has 2 core stages, stack drops 1 |
 | Heron-9 | heron-9 | Heron-9 | 2 | pass | FAIL: model has 2 core stages, stack drops 1 |
 | Heron-9 (Mk II) | heron-9-v11 | Heron-9 | 2 | pass | FAIL: model has 2 core stages, stack drops 1 |

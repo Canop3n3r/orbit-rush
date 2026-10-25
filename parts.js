@@ -171,7 +171,7 @@ export function validate(design) {
     s.stages.forEach((st, i) => { if (i > 0 && st.twr < 0.3 && st.dv > 0) warnings.push(`Stage ${i + 1} TWR ${st.twr.toFixed(2)} is very low: it may fall back before reaching orbit. Add an engine or move fuel lower.`); });
     if (s.total < ORBIT_DV && !design.sub) warnings.push(`Total Δv ${s.total.toFixed(0)} m/s is below the ~${ORBIT_DV.toLocaleString()} m/s orbit usually needs (the AUTO test flight below has the final word). Add fuel, use a more efficient upper engine (Lark), or a lighter payload.`);
     if (a.cargo && a.fairing === 0) warnings.push('The Satellite Stack is blunt without a fairing: more drag on the way up.');
-    if (!design.sub) for (const w of recoveryWarnings(design)) warnings.push(w); // f5.1h (QA): suborbital rockets (Pip, Grasshopper) skip the orbit/reentry advice
+    if (!design.sub) for (const w of recoveryWarnings(design)) warnings.push(w); // f5.1h (QA): suborbital rockets (Pip, Sandpiper) skip the orbit/reentry advice
     const ab = aeroBalance(design);
     if (ab && !ab.stable) warnings.push(`Aerodynamically unstable: the centre of pressure is ${Math.abs(ab.margin).toFixed(1)} calibers ${ab.margin < 0 ? 'ahead of' : 'behind'} the centre of mass${ab.marginEmpty <= 0 && ab.margin > 0 ? ' at liftoff, but ahead of it once stage 1 is empty' : ''}. It relies on engine gimbal and flips if the engines stop in thick air. Add Tail Fins at the bottom.`);
   }

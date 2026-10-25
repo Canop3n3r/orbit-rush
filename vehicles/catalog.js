@@ -105,16 +105,16 @@ export const PAYLOADS = [
 
 // Roster company 'redstar' (data only, neutral ids; spec:loss-model): see vehicles/roster/redstar.js
 export { ROSTER_REDSTAR, ENGINES_REDSTAR } from './roster/redstar.js';
-// Roster company 'calt' (data only, neutral ids; spec:loss-model): see vehicles/roster/calt.js
-export { ROSTER_CALT, ENGINES_CALT } from './roster/calt.js';
+// Roster company 'jade' (data only, neutral ids; spec:loss-model): see vehicles/roster/jade.js
+export { ROSTER_JADE, ENGINES_JADE } from './roster/jade.js';
 // Roster company 'nosa' (data only, neutral ids; spec:loss-model): see vehicles/roster/nosa.js
 export { ROSTER_NOSA, ENGINES_NOSA } from './roster/nosa.js';
-// Roster company 'rockwell' (data only, neutral ids; spec:loss-model): see vehicles/roster/rockwell.js
-export { ROSTER_ROCKWELL, ENGINES_ROCKWELL } from './roster/rockwell.js';
+// Roster company 'rocketwell' (data only, neutral ids; spec:loss-model): see vehicles/roster/rocketwell.js
+export { ROSTER_ROCKETWELL, ENGINES_ROCKETWELL } from './roster/rocketwell.js';
 // Roster company 'ulx' (data only, neutral ids; spec:loss-model): see vehicles/roster/ulx.js
 export { ROSTER_ULX, ENGINES_ULX } from './roster/ulx.js';
-// Roster company 'rlab' (data only, neutral ids; spec:loss-model): see vehicles/roster/rlab.js
-export { ROSTER_RLAB, ENGINES_RLAB } from './roster/rlab.js';
+// Roster company 'bolt' (data only, neutral ids; spec:loss-model): see vehicles/roster/bolt.js
+export { ROSTER_BOLT, ENGINES_BOLT } from './roster/bolt.js';
 // Roster company 'arion' (data only, neutral ids; spec:loss-model): see vehicles/roster/arion.js
 export { ROSTER_ARION, ENGINES_ARION } from './roster/arion.js';
 // Roster company 'krunich' (data only, neutral ids; spec:loss-model): see vehicles/roster/krunich.js
@@ -123,12 +123,12 @@ export { ROSTER_KRUNICH, ENGINES_KRUNICH } from './roster/krunich.js';
 export { ROSTER_BLUEH, ENGINES_BLUEH } from './roster/blueh.js';
 // Roster company 'martell' (data only, neutral ids; spec:loss-model): see vehicles/roster/martell.js
 export { ROSTER_MARTELL, ENGINES_MARTELL } from './roster/martell.js';
-// Roster company 'convair' (data only, neutral ids; spec:loss-model): see vehicles/roster/convair.js
-export { ROSTER_CONVAIR, ENGINES_CONVAIR } from './roster/convair.js';
-// Roster company 'douglas' (data only, neutral ids; spec:loss-model): see vehicles/roster/douglas.js
-export { ROSTER_DOUGLAS, ENGINES_DOUGLAS } from './roster/douglas.js';
-// Roster company 'yuzhno' (data only, neutral ids; spec:loss-model): see vehicles/roster/yuzhno.js
-export { ROSTER_YUZHNO, ENGINES_YUZHNO } from './roster/yuzhno.js';
+// Roster company 'convex' (data only, neutral ids; spec:loss-model): see vehicles/roster/convex.js
+export { ROSTER_CONVEX, ENGINES_CONVEX } from './roster/convex.js';
+// Roster company 'dougwing' (data only, neutral ids; spec:loss-model): see vehicles/roster/dougwing.js
+export { ROSTER_DOUGWING, ENGINES_DOUGWING } from './roster/dougwing.js';
+// Roster company 'southstar' (data only, neutral ids; spec:loss-model): see vehicles/roster/southstar.js
+export { ROSTER_SOUTHSTAR, ENGINES_SOUTHSTAR } from './roster/southstar.js';
 // Roster company 'jaxo' (data only, neutral ids; spec:loss-model): see vehicles/roster/jaxo.js
 export { ROSTER_JAXO, ENGINES_JAXO } from './roster/jaxo.js';
 // Roster company 'isra' (data only, neutral ids; spec:loss-model): see vehicles/roster/isra.js
@@ -139,16 +139,16 @@ export { ROSTER_ORBITRON, ENGINES_ORBITRON } from './roster/orbitron.js';
 export { ROSTER_ALBION, ENGINES_ALBION } from './roster/albion.js';
 // Roster company 'gaulois' (data only, neutral ids; spec:loss-model): see vehicles/roster/gaulois.js
 export { ROSTER_GAULOIS, ENGINES_GAULOIS } from './roster/gaulois.js';
-// Roster company 'ltv' (data only, neutral ids; spec:loss-model): see vehicles/roster/ltv.js
-export { ROSTER_LTV, ENGINES_LTV } from './roster/ltv.js';
+// Roster company 'lingvolt' (data only, neutral ids; spec:loss-model): see vehicles/roster/lingvolt.js
+export { ROSTER_LINGVOLT, ENGINES_LINGVOLT } from './roster/lingvolt.js';
 // Roster company 'spacey': points at the hand-sourced catalog ids above (no duplicates); see vehicles/roster/spacey.js
 export { SPACEY_CATALOG_IDS } from './roster/spacey.js';
 // Roster company 'levant' (data only, neutral ids; spec:loss-model): see vehicles/roster/levant.js
 export { ROSTER_LEVANT, ENGINES_LEVANT } from './roster/levant.js';
 // Roster company 'cnfoll' (data only, neutral ids; spec:loss-model): see vehicles/roster/cnfoll.js
 export { ROSTER_CNFOLL, ENGINES_CNFOLL } from './roster/cnfoll.js';
-// Roster company 'firefly' (data only, neutral ids; spec:loss-model): see vehicles/roster/firefly.js
-export { ROSTER_FIREFLY, ENGINES_FIREFLY } from './roster/firefly.js';
+// Roster company 'glowbug' (data only, neutral ids; spec:loss-model): see vehicles/roster/glowbug.js
+export { ROSTER_GLOWBUG, ENGINES_GLOWBUG } from './roster/glowbug.js';
 // Roster company 'skyland' (data only, neutral ids; spec:loss-model): see vehicles/roster/skyland.js
 export { ROSTER_SKYLAND, ENGINES_SKYLAND } from './roster/skyland.js';
 // Roster company 'northp' (data only, neutral ids; spec:loss-model): see vehicles/roster/northp.js

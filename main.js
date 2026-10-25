@@ -2435,7 +2435,7 @@ var home = createHome({ list: SHOW, hidden: i => RETIRED.has(SHOW[i].id), locked
   onMission: i => { if (lockedFly(i)) return; const w = lockWhy('missions', SHOW[i].mission); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); return; } home.show(false); startMission(SHOW[i].mission); },
   onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => $('hGearM').classList.toggle('hidden') });
 // f5.4 sandbox: 📍 launch site button on the Home card + picker
-// f5.4 (QA f5.4b C1/H): off Earth, a sounding rocket (Pip, Grasshopper) is never the default: pick the starter orbiter
+// f5.4 (QA f5.4b C1/H): off Earth, a sounding rocket (Pip, Sandpiper) is never the default: pick the starter orbiter
 function siteDefault() { try { if (!sbSite || sbSite.body === 'earth' || pickModel || !home) return; const cur = SHOW[home.index]; if (!cur || !(cur.id === 'pip' || cur.id === 'hopper' || cur.check === 'space')) return;
   const i = SHOW.findIndex(x => x.id === 'needle'); if (i >= 0 && !rowLocked({ base: 'needle' })) home.set(i); } catch (e) { } }
 function siteBtn(b) { const t = siteLabel(sbSite, P.BODIES), k = t.lastIndexOf(' · '); b.title = '📍 ' + t; b.innerHTML = ''; const a = document.createElement('b'), c = document.createElement('small'); a.textContent = '📍 ' + (k > 0 ? t.slice(0, k) : t); c.textContent = k > 0 ? t.slice(k + 3) : ''; b.append(a, c); } // f5.8b: two lines (pad / body) so phones don't cut it off

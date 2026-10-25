@@ -10,7 +10,7 @@ export const MISSIONS = {
   orbit: { name: 'Orbit & home', icon: '🛰️', tpl: 'Orbit & home', target: null, blurb: 'Fly to orbit, then bring the capsule home under parachutes.' },
   moon: { name: 'Moon landing', icon: '🌕', tpl: 'Moon lander', target: 'moon', land: true, blurb: 'Transfer burn, capture into lunar orbit, powered landing.' },
   mars: { name: 'Mars', icon: '🔴', tpl: 'Mars explorer', target: 'mars', capture: true, blurb: 'Wait for the window, cross the Sun’s gravity well, arrive at Mars.' },
-  hop: { name: 'Hop & land', icon: '🦗', tpl: 'Grasshopper', target: null, hop: 3000, land: true, blurb: 'Straight up, engine off, fall back and hoverslam onto the pad.' },
+  hop: { name: 'Hop & land', icon: '🦗', tpl: 'Sandpiper', target: null, hop: 3000, land: true, blurb: 'Straight up, engine off, fall back and hoverslam onto the pad.' },
   venus: { name: 'Venus flyby', icon: '🟡', tpl: 'Mars explorer', target: 'venus', blurb: 'Fall inward toward the Sun and swing past Venus.' },
 };
 // phase → camera: the renderer picks chase / wide / map cams from this
@@ -21,7 +21,7 @@ export const MAX_CORR_WAIT = 400 * 86400; // s: never wait longer than this for 
 // fx-1 (QA B5): with missions hidden, plain AUTO on a test hopper flies the hop profile (up ~3 km, coast, hoverslam
 // onto the pad) instead of the orbital gravity turn that crashed it inverted. F.extAuto keeps the AUTO pill on while
 // the Flight's own ascent guidance stands aside.
-export const isHopper = d => !!d && ((d.name === 'Grasshopper' || d.name === 'Sandpiper') || d.hop === true);
+export const isHopper = d => !!d && (d.name === 'Sandpiper' || d.hop === true);
 export function hopAuto(F, opts = {}) { const D = new Director(F, 'hop', opts); D.alt0 = F.alt - F.v.tel.ycom; F.extAuto = true; D.set('hop', 'Hop! Straight up to ' + UN.dist(D.m.hop)); return D; }
 const ORDER = ['hop', 'coast', 'ascent', 'plan', 'burn', 'correct', 'cruise', 'lift', 'capture', 'brake', 'descent', 'home', 'done'];
 const WARP_BURN = () => 4;

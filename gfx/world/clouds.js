@@ -1,4 +1,4 @@
-// f5 world-1: volumetric cloud layer in the spirit of KSP EVE/Scatterer.
+// f5 world-1: volumetric cloud layer after public real-time cloud techniques.
 // A raymarched shell between CLOUD_LAYER.base and .top (km) driven by a weather-map coverage texture
 // (the licensed Earth cloud map; CC BY 4.0 Solar System Scope) eroded by 3D noise, lit by the Sun with
 // Beer-Powder extinction and a dual-lobe Henyey-Greenstein phase, ambient sky term and Earth's shadow.

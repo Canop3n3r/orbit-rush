@@ -52,7 +52,7 @@ NOSES['arion-6.srbnose'] = () => ogive(1.7, 3.2, 0, 14, 0.12);
 // ---- co-bolt (Bolt Labyrinth parody): small-launcher fairing (tip +Y)
 export const BOLT = { r: 0.6, fr: 0.6, cyl: 0.9, nose: 1.6 };
 NOSES['electrino.fairing'] = () => fairing(BOLT.fr, BOLT.cyl, BOLT.nose, 0, BOLT.r * 0.999, 18, 0.05);
-// ---- co-krasnaya (R-7 family parody): core "waisted" profile, strap-on cone, crew shroud, cargo fairing (tips +Y) ----
+// ---- co-krasnaya (early-rocketry family parody): core "waisted" profile, strap-on cone, crew shroud, cargo fairing (tips +Y) ----
 export const R7 = { coreTop: 27.8, sr: 1.34, sTip: 19.6, off: 2.45 };
 export function rkCore(y0 = 1.5) { return [[0, y0], [1.03, y0], [1.2, 10], [1.4, 17], [1.475, 21], [1.475, 25], [1.33, R7.coreTop]]; }
 export function r7Strap(y0 = 1.5) { const out = [[0, y0], [R7.sr, y0], [R7.sr, 6.0]]; for (let i = 1; i <= 8; i++) { const t = i / 8; out.push([R7.sr * (1 - t) + 0.18 * t - 0.12 * Math.sin(t * Math.PI), 6.0 + t * (R7.sTip - 6.0)]); } out.push([0.05, R7.sTip + 0.15]); return out; }

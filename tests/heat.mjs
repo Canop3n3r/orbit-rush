@@ -27,7 +27,7 @@ console.log('1. Stagnation-point heating (Sutton–Graves) and the rarefied limi
   ok(rel(P.heatFlux(1e-4, 5000, 0.5) / P.heatFlux(1e-4, 5000, 2), 2) < 1e-9, 'a 4× smaller nose radius doubles it (1/√rₙ): blunt bodies run cooler');
   // order of magnitude for orbital reentry: ~7.5 km/s at 65-75 km on a 3 m capsule shield → a few hundred kW/m²
   const q70 = P.heatFlux(P.atmosphere(70000).rho, 7400, 3);
-  ok(q70 > 1e5 && q70 < 2e6, 'LEO capsule at 70 km, 7.4 km/s, rₙ 3 m: 0.1–2 MW/m² (Apollo/Soyuz-class)', kW(q70));
+  ok(q70 > 1e5 && q70 < 2e6, 'LEO capsule at 70 km, 7.4 km/s, rₙ 3 m: 0.1–2 MW/m² (crew-capsule class)', kW(q70));
   const qSharp = P.heatFlux(P.atmosphere(70000).rho, 7400, 0.1);
   ok(qSharp > 3 * q70, 'a sharp 10 cm nose at the same point would take > 3× more', kW(qSharp));
   // free-molecular cap in the thermosphere
