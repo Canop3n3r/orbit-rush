@@ -228,6 +228,19 @@ async function UPPERTAKE(br, phone, W, H, vp, rows, perrs) {
         rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_vs_control', val: +ex.toFixed(0), max: 10, ok: ex <= 10, info: `QA path, real time: THR drag PIT ${dr.seq} (max ${dr.mx}°) vs the same takeover with no drag ${ct.seq} (max ${ct.mx}°)` });
         rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_pitch', val: dr.mx, max: 35, ok: dr.mx <= 35, info: 'QA path: the whole nose motion after the drag stays under 35° (QA saw 37-112°)' }); } catch (e) { rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_vs_control', val: 'ERR', max: 5, ok: false, info: String(e.message).slice(0, 100) }); }
 }
+/* f5.8w (QA f5.8v P2): desktop end card with Flight details open: <= 60 % of the height at every size, the body scrolls inside, no achievement/unlock wall */
+async function ENDDESK(br, W, H) { const vp = `${W}x${H}`, rows = []; const ctx = await br.newContext({ viewport: { width: W, height: H } }); const pg = await ctx.newPage(), ev = f => pg.evaluate(f), w = ms => pg.waitForTimeout(ms);
+  try { await pg.goto(base + (base.includes('?') ? '&' : '?') + 'noacademy&fx=low', { timeout: 300000 }); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await w(1500);
+    await ev(() => { document.getElementById('firstRun')?.classList.add('hidden'); document.getElementById('hFly').click(); }); await w(2500); await ev(() => { const G = window.__game; G.F.setAuto(true); if (!G.F.ignited) G.press('Space'); }); await w(500);
+    for (let k = 0; k < 150; k++) { const dn = await ev(() => { const F = window.__game.F; for (let i = 0; i < 60 * 20 && !(F.flags.orbit && F.v.guid === 'done'); i++) F.advance(1 / 60); return !!(F.flags.orbit && F.v.guid === 'done'); }); await w(100); if (dn) break; }
+    await w(1000); await ev(() => { const b = document.getElementById('relBtn'); b && /RELEASE/.test(b.textContent) && b.click(); }); await w(1500); await ev(() => { const b = document.getElementById('relBtn'); b && /End flight/i.test(b.textContent) && b.click(); }); await w(3000);
+    await ev(() => { const e = document.getElementById('end'); if (e && e.classList.contains('hidden')) window.__game.press('Escape'); }); await w(3500); await ev(() => { for (const a of document.getAnimations()) try { a.finish(); } catch (e) { } });
+    await ev(() => document.getElementById('endMoreBtn').click()); await w(700); await ev(() => { const d = document.querySelector('#end details.endMore'); d && (d.open = true); }); await w(600);
+    const m = await ev(() => { const e = document.getElementById('end'), b = document.getElementById('endBody'), r = e.getBoundingClientRect(), t = e.innerText; return { hp: Math.round(1000 * r.height / innerHeight) / 10, inside: r.top >= -1 && r.bottom <= innerHeight + 1, scrolls: b.scrollHeight > b.clientHeight + 1, ov: getComputedStyle(b).overflowY, ach: /Achievement:|unlocked/i.test(t), lines: t.split('\n').filter(x => x.trim()).length }; });
+    rows.push({ vp, screen: 'end_card_orbit', metric: 'more_open_h%', val: m.hp, max: 60, ok: m.hp <= 60 && m.inside, info: `desktop ${vp}: card with ⋯ and Flight details open, ${m.lines} text lines, body ${m.scrolls ? 'scrolls inside' : 'fits'} (QA f5.8v: 86% at 1280, 64% at 1920)` });
+    rows.push({ vp, screen: 'end_card_orbit', metric: 'no_achievement_wall', val: m.ach ? 'present' : 'none', max: 'none', ok: !m.ach, info: 'the end card carries no 📜 unlock / Achievement lines' });
+  } catch (e) { rows.push({ vp, screen: 'end_card_orbit', metric: 'more_open_h%', val: 'ERR', max: 60, ok: false, info: String(e.message).slice(0, 100) }); } finally { await ctx.close(); }
+  return { vp, rows }; }
 async function runVp(br, vp) {
   const [W, H] = vp.split('x').map(Number), phone = Math.min(W, H) < 600, tag = phone ? (W < H ? 'pp' : 'pl') : 'd' + W;
   const ctx = await br.newContext(phone ? { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : { viewport: { width: W, height: H } }); await ctx.addInitScript(SETTLE);
@@ -467,7 +480,7 @@ async function runVp(br, vp) {
   const br = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: GPU });
   if (process.env.UT_ONLY) { for (const vp of vps) { const [W, H] = vp.split('x').map(Number), rows = [], perrs = []; await UPPERTAKE(br, Math.min(W, H) < 600, W, H, vp, rows, perrs); for (const r of rows) console.log(r.ok ? 'PASS' : 'FAIL', vp, r.metric, r.val, r.info); if (perrs.length) console.log('PAGEERR', perrs); } await br.close(); process.exit(0); }
   const all = []; for (const vp of vps) all.push(await runVp(br, vp));
-  if (!process.env.NO_INSET) all.push(await insetDesktop(br)); await br.close();
+  if (!process.env.NO_INSET) { all.push(await insetDesktop(br)); for (const [W, H] of [[1280, 800], [1920, 1080]]) all.push(await ENDDESK(br, W, H)); } await br.close();
   { const bk = Object.keys(BUILDLAB); if (bk.length > 1) { const same = f => bk.filter(k => f(BUILDLAB[k]) !== f(BUILDLAB[bk[0]])).length; all.push({ vp: 'all', rows: [
       { vp: 'all', screen: 'build', metric: 'back_label_same', val: same(x => x.back), max: 0, ok: same(x => x.back) === 0, info: bk.map(k => `${k}: "${BUILDLAB[k].back}"`).join(' | ') },
       { vp: 'all', screen: 'build', metric: 'edit_label_same', val: same(x => x.edit), max: 0, ok: same(x => x.edit) === 0, info: bk.map(k => `${k}: "${BUILDLAB[k].edit}"`).join(' | ') },
