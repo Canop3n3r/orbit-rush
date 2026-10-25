@@ -922,7 +922,6 @@ function goBuild() {
   try { plain.update({ on: false }); } catch (e) { } // f5.6c: no flight HUD in the Hangar
   if (fun) fun.hideNav();
   silenceFlight(0.3); reset(); state = 'build'; // f5.8y: nothing from the flight keeps playing in Home
-
   $('hud').classList.add('hidden'); mobile.show(false); $('ignite').classList.add('hidden');
   if (typeof home !== 'undefined' && home) home.show(true);
   refreshBuild();
