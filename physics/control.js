@@ -27,13 +27,14 @@ export function sasDir(v, mode) {
 }
 // Torque that turns the nose toward world direction `dir` (rate-limited, braking with ~50% authority) and
 // damps roll. Returns [tx, ty, tz] in body N·m.
+export const CARRY = 0.14; // rad (8°): the most the nose may coast after the pilot takes over an AUTO turn in progress
 export function steerTorque(v, dir, ctx) {
   const { mp, auth } = ctx, I = [mp.Ixx, mp.Iyy, mp.Ixx];
   const b = qrot(v.q, [0, 1, 0]), ax = cross(b, dir), s = len(ax), ang = Math.atan2(s, dot(b, dir));
   const e = s > 1e-9 ? qinv(v.q, scale(ax, ang / s)) : (dot(b, dir) < 0 ? [Math.PI, 0, 0] : [0, 0, 0]);
   const wMax = v.wMax || 0.5, out = [0, 0, 0];
   for (const k of [0, 2]) {
-    const amax = auth[k] / I[k], ek = e[k], wdes = Math.sign(ek) * Math.min(wMax, Math.sqrt(2 * 0.5 * amax * Math.abs(ek)), 2.5 * Math.abs(ek));
+    const amax = auth[k] / I[k], ek = e[k], aw = ctx.g.rw * 1000 / I[k], cap = ctx.auto ? Math.max(0.05, Math.sqrt(2 * aw * CARRY)) : Infinity, wdes = Math.sign(ek) * Math.min(wMax, Math.sqrt(2 * 0.5 * amax * Math.abs(ek)), cap, 2.5 * Math.abs(ek)); /* f5.8x (QA f5.8w P2): AUTO never spins the nose faster than the reaction wheels ALONE could stop in CARRY rad. The gimbal's authority is proportional to thrust, so when the pilot takes over and drops the throttle the swing used to coast e/2 (17-30°) at the upper stage's ~0.08 rad/s²; now it coasts <= ~8° */
     out[k] = clamp(I[k] * (wdes - v.w[k]) * 4, -auth[k], auth[k]);
   }
   out[1] = clamp(I[1] * (0 - v.w[1]) * 4, -auth[1], auth[1]);
@@ -53,7 +54,7 @@ export function updateControl(v) {
   if (hold) { tau = steerTorque(v, hold.n, ctx); const I1 = mp.Iyy, a1 = auth[1] / I1, nose = qrot(v.q, [0, 1, 0]), e1 = rollError(nose, qrot(v.q, [0, 0, -1]), hold.t);
     const wd = Math.sign(e1) * Math.min(v.wMax || 0.5, Math.sqrt(2 * 0.5 * a1 * Math.abs(e1)), 2.5 * Math.abs(e1)); tau[1] = clamp(I1 * (wd - v.w[1]) * 4, -auth[1], auth[1]); }
   else if (settling) { const I = [mp.Ixx, mp.Iyy, mp.Ixx]; tau = [0, 1, 2].map(k => clamp(I[k] * (0 - v.w[k]) * 4, -auth[k], auth[k])); }
-  else if (target) tau = steerTorque(v, target, ctx);
+  else if (target) tau = steerTorque(v, target, v.steerDir && v.cur > 0 && v.cur === v.stages.length - 1 && len(v.r) - radOf(v) > 45000 ? { ...ctx, auto: true } : ctx);
   else if (v.sas === 'off') tau = [0, 0, 0];
   for (let k = 0; k < 3; k++) if (manual[k]) tau[k] = manual[k] * auth[k];
   if (manual.some(Boolean) && v.w) { const I = [mp.Ixx, mp.Iyy, mp.Ixx]; // f5.6g (QA): axes you are not commanding hold still (D yawed AND rolled −78°)
