@@ -5,8 +5,8 @@
 <script type="module">
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { VEHICLES, build, setLegs, dispose } from './vehicles.js?v=f5.8z';
-import { payloadKindFor } from './payload_kinds.js?v=f5.8z';
+import { VEHICLES, build, setLegs, dispose } from './vehicles.js?v=f5.9-0';
+import { payloadKindFor } from './payload_kinds.js?v=f5.9-0';
 const q = new URLSearchParams(location.search);
 const r = new THREE.WebGPURenderer({ antialias: true, forceWebGL: q.has('webgl') }); r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.setSize(innerWidth, innerHeight); r.toneMapping = THREE.ACESFilmicToneMapping; document.body.append(r.domElement); await r.init();
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x6f9fd8);

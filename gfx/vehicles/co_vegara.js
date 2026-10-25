@@ -1,7 +1,7 @@
 // Arion Space — Vegara: four-stage small launcher (three solids in a slim stack + small liquid upper module), ogive fairing;
 // 'vegara' (3 m first stage) and 'vegara-c' (bigger 3.4 m first stage, wider 2nd, 3.3 m fairing). rocketdb vegara (GCAT) + design.md.
-import { stage, fairing, PI, livery } from './co_gen.js?v=f5.8z';
-import { group, plume } from './co_civspace.js?v=f5.8z';
+import { stage, fairing, PI, livery } from './co_gen.js?v=f5.9-0';
+import { group, plume } from './co_civspace.js?v=f5.9-0';
 function vg(o, c) { const d = o.detail, R1 = c ? 1.7 : 1.5, R2 = c ? 1.2 : 0.95, grey = livery(0x9a9da0);
   const a = stage(d, 's1', { r: R1, h: c ? 13.4 : 11.7, y0: 1.8, eng: [[1, 0, R1 * 0.55, 1.7]], key: 'paint:0,0', skirt: R1 * 1.04, bands: [[0.4, 0.5], [c ? 12.8 : 11.1, 0.6, grey]], decalY: 6 });
   const b = stage(d, 's2', { r: R2, h: 7.5, y0: a.userData.top, eng: [[1, 0, R2 * 0.55, 1.1]], drop: 0.9, key: 'paint:0,0', skirt: R1, bands: [[0, 0.8, grey]] });

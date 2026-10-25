@@ -1,5 +1,5 @@
 // Martell Aerospace, tier B (stage-table generator + hooks): Titanus III with its twin solid boosters, Athenix solid stack.
-import { buildB } from './gen_b.js?v=f5.8z';
+import { buildB } from './gen_b.js?v=f5.9-0';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'titanus-3': 'Titanus III', 'athenix': 'Athenix'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length
