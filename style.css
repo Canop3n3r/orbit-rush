@@ -1504,3 +1504,7 @@ body.touch #build .stageH{flex-wrap:nowrap;gap:4px}body.touch #build .stageH spa
 @media (min-width:601px) and (min-height:501px){#end.lean.more{max-height:60dvh!important;overflow:hidden!important}#end.lean.more #endBody{min-height:0;overflow-y:auto!important;flex:1 1 auto}#end.lean.more .endMain,#end.lean.more .endShare{flex:none}}
 /* f5.8w (QA f5.8v P2): the grey STAGE is instant (the .15 s button background transition left it orange on a starved frame at the crash) */
 body.noStage #mStage,body.noStage #dStage{transition:none!important}
+/* f5.8x (QA f5.8w P2): the STAGE header never clips a number ("TWR 2.02" read "TWR 2." at 390/844): label + figures never shrink or clip, the ⇧⇩ buttons wrap to a second line only when the row is too narrow */
+body.touch #build .stageH{flex-wrap:wrap;gap:2px 6px}
+body.touch #build .stageH span,body.touch #build .stageH em{flex:0 0 auto;min-width:0;overflow:visible!important;text-overflow:clip;white-space:nowrap;font-size:10.5px}
+body.touch #build .stageH button:first-of-type{margin-left:auto}
