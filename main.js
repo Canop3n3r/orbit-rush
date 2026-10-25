@@ -1451,7 +1451,7 @@ function showEnd() {
   const noStars = isHopper(design); if (noStars) stars = 0; // fx-3: hops are free flight, no star rating
   if (!stars) extra.medal = ''; // f5.1h (QA): the ⋯ sheet never shows a medal the card's stars do not
   $('endBody').innerHTML = /* f5.8m (Aaron): no stars in the sim */ head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` 
-    + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}${extra.more ? '<br>' + extra.more : ''}</details>`;
+    + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}</details>`; /* f5.8w (QA f5.8v P2): no achievement / unlock wall on the end card (86% of the height at 1280) */
   $('replayBtn').classList.toggle('hidden', !(flags.dead && recBuf.length > 30));
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
   $('shareBtn').textContent = 'Share score';
