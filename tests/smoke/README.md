@@ -30,3 +30,9 @@ Screens: first_run (must already be Home; no welcome), home, settings, missions_
 Rev 2 spec-gap checks (ideal path rev 2): `end_card hud_hidden` (no flight-HUD control visible, touch HUD `#mtop/#mleft/#mright/#mThr` included; a control counts when the hit point is itself, a child, or its own container) + `over_rocket` (card bbox must not contain the rocket's screen centre; viewport centre until `__game.rocketScreen()` exists), `home launch_h` (≥64 px) + `thumb_zone` (bottom 25% portrait / bottom-right quadrant landscape), `picker group_words` (company chips `[data-company]`/`.co-chip` ≤2 words), `home builder_gated` (builder hidden unless Sandbox on). Checks whose UI doesn't exist yet print SKIP with a note and never fail.
 
 f5.1c note: the welcome's `#frSb` became "🚀 Fly now" (it launches), so the screen pass now closes `#firstRun` without tapping it before measuring Home/Build/Settings; `taps_to_liftoff` still taps `#frSb` for real. Without this, f5.1c measured the flight HUD as "home"/"build" and read 26/70. Same 18/72 on f5.1b (local ca31428).
+
+# Far-planet smoke (f6.4)
+
+    U=http://localhost:8964/ OUT=dir [BODIES=earth,moon,mars,venus,jupiter] [ALTS=1000,10000,...] node tests/smoke/planet_far.cjs
+
+Parks the craft on the Sun side of a body at each altitude (km above the surface), points the camera at the body centre (tele fov so a far disc is ~60 px) and reads back three frames with the UI hidden: normal, planet+clouds hidden, sky sphere hidden. Inside the disc: ≥90% of pixels must change when the planet is hidden (it is drawn), ≤2% may change when the sky is hidden and are not drifting clouds (no sky painted over it), mean luminance ≥25. Bug it guards: the sky sphere was a fixed 1e8 m, so any planet whose surface was further than 100,000 km from the camera was drawn behind it. One slow software-GL page, ~40 s per case.

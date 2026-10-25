@@ -335,6 +335,19 @@ const ATMO_R = R + 110000, atmoMat = GX.atmoMaterial({ R, Ra: ATMO_R });
 const atmo = new THREE.Mesh(new THREE.SphereGeometry(ATMO_R, 128, 64), atmoMat); atmo.frustumCulled = false; scene.add(atmo); // scene-level: placed at the Earth centre each frame
 const mwTex = GX.tex('milkyway', gfxQ); const stars = new THREE.Mesh(new THREE.SphereGeometry(1e8, 48, 24), new THREE.MeshBasicMaterial({ map: mwTex, color: new THREE.Color(1.3, 1.3, 1.4), side: THREE.BackSide, transparent: true, depthWrite: false })); stars.rotation.set(1.1, 0.4, 0.2); stars.renderOrder = -10; // f1: sky first, so it never paints over the plume and other transparent effects
 scene.add(stars);
+// f6.4: the far plane and the sky sphere follow the farthest drawn body. The sky sphere was a fixed 1e8 m (100,000 km): once a
+// planet's surface was further than that from the camera (an escape or lunar trajectory) the sphere was NEARER than the planet,
+// the depth test passed, and the Milky Way painted over it (dark, see-through globe) while the later-drawn clouds still showed.
+// Now far = 2e9 m, or 1.6x the farthest body edge rounded up to a power of two (so it rarely changes), and the sky sits at 0.9*far.
+const FAR_MIN = 2e9, STARS_R = 1e8, _fw = new THREE.Vector3();
+function fitFar() {
+  let need = 0; const id = (F && F.body) || 'earth';
+  if (earth.visible) { earth.getWorldPosition(_fw); need = Math.max(need, _fw.distanceTo(camera.position) + R); }
+  if (bodyG.visible && id !== 'earth') { const b = P.BODIES[id]; need = Math.max(need, camera.position.distanceTo(bodyG.position) + (b ? b.R : 0)); }
+  const far = FAR_MIN * Math.pow(2, Math.max(0, Math.ceil(Math.log2(need * 1.6 / FAR_MIN))));
+  if (far !== camera.far) { camera.far = far; camera.updateProjectionMatrix(); }
+  stars.scale.setScalar(far * 0.9 / STARS_R);
+}
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 // Put a local (y-up) object on the surface at Earth-fixed direction ef, `lift` metres up. Its local +Z points east.
 function onSurface(obj, ef, lift = 0) {
@@ -1643,7 +1656,8 @@ renderer.setAnimationLoop(() => {
     updateOrbitLine(O); setRel(marker, v.r, O); marker.scale.setScalar(R * mapZoom * 0.006);
     if (booster && booster.state === 'flying') { setRel(bMarker, booster.r, O); bMarker.scale.setScalar(R * mapZoom * 0.005); } else bMarker.visible = false;
   }
-  stars.position.copy(camera.position);
+  if (window.__camHook) window.__camHook(camera); // shot/test tools aim the camera after the chase camera is placed
+  fitFar(); stars.position.copy(camera.position);
   // f1u2: O / v.r are relative to the current SOI body, but the sky, fog and Earth atmosphere assume Earth. Away from
   // Earth, |O| − R_earth went negative in low lunar orbit → daytime sky + fog density e^(−h/8000) ≫ 1: a flat colour wash.
   const hs = skyAlt(h), k = Math.min(1, Math.max(0, hs / 70000));
@@ -1853,7 +1867,7 @@ function renderPane(b, O, R2, i) {
   const now = performance.now(), dt = Math.min(0.1, Math.max(0, (now - (S.t || now)) / 1000)); S.t = now; const kE = 1 - Math.exp(-dt * 4); // same 4/s easing as the chase camera
   const lk = landed ? [0, 0, 0] : V.scale(bd, 15); S.look = S.look ? V.add(S.look, V.scale(V.sub(lk, S.look), kE)) : lk; S.up = S.up ? V.norm(V.add(S.up, V.scale(V.sub(up, S.up), kE))) : up;
   cam.position.set(tx + off[0], ty + off[1], tz + off[2]); cam.up.set(S.up[0], S.up[1], S.up[2]); cam.lookAt(tx + S.look[0], ty + S.look[1], tz + S.look[2]);
-  cam.aspect = R2.w / R2.h; cam.updateProjectionMatrix();
+  cam.aspect = R2.w / R2.h; cam.far = camera.far; cam.updateProjectionMatrix();
   const fxV = fx.root ? fx.root.visible : null; if (fx.root) fx.root.visible = false; // Low look in the pane: no flow particles
   const sc = TOUCH ? 0.5 : Math.min(1, renderer.getPixelRatio()), tw = Math.max(16, Math.round(R2.w * sc)), th2 = Math.max(16, Math.round(R2.h * sc));
   if (!S.rt) { S.rt = new THREE.RenderTarget(tw, th2, { samples: TOUCH ? 0 : 4 }); S.qm = new THREE.MeshBasicMaterial({ map: S.rt.texture, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
@@ -2419,4 +2433,5 @@ window.__game = { goHome: () => goBuild(), rocketMarks: () => [comMark.visible, 
 window.__game.tileStats = () => { const w = tileGeo.attributes.wat.array, c = tileGeo.attributes.color.array, h = [0, 0, 0, 0, 0]; for (const x of w) h[Math.min(4, Math.max(0, Math.floor(x * 5)))]++; return { hist: h, vis: tile.visible, c0: [c[0], c[1], c[2]], center: tileC, px: !!earthPx, mat: tile.material.type }; };
 window.__game.camSet = (y, p, d, a) => { camYaw = y; camPitch = p; if (d) camDist = d; if (a != null) camAim = a; camUserT = performance.now() + 1e9; }; // flight-ground-3: shot tools aim the chase camera
 window.__game.tileOff = b => { tileForceOff = !!b; }; window.__game.tileFadeInfo = () => { const h = F ? Math.max(0, F.alt) : 0; return { h, alt: GX.tileAltAlpha(h), rim: GX.tileRimAlpha(h), vis: tile.visible || tileF.visible, fade: tileF.visible }; }; // f5.9 terrain: render A/B + fade numbers for tests/smoke/terrain_blend.cjs
+window.__game.scn = { scene, camera, earth, bodyG, stars, get W1() { return W1; }, sunDirV, get bodyCur() { return bodyCur; } }; // f6.4: far-planet smoke hooks
 window.__game.paneSlots = () => paneSlots; // f5.6x: shot tools / pane-rect checks
