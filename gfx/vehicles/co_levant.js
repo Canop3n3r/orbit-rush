@@ -1,5 +1,5 @@
 // Levant Aerospace, tier B (stage-table generator + hooks): Negev Dart three-stage solid launcher. White.
-import { buildB } from './gen_b.js?v=f5.9-0';
+import { buildB } from './gen_b.js?v=f5.9-1';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'negev-dart': 'Negev Dart'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

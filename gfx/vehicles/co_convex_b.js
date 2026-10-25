@@ -1,5 +1,5 @@
 // Convex Astronautics, tier B (stage-table generator + hooks): Atlantean-Centaurus, stage-and-a-half balloon-tank core under a high-energy upper stage. Steel silver, white upper.
-import { buildB } from './gen_b.js?v=f5.9-0';
+import { buildB } from './gen_b.js?v=f5.9-1';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'atlantean-centaurus': 'Atlantean-Centaurus'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

@@ -1,10 +1,10 @@
 // United Lift Alliance (ULX) — Vulcanis: 5.4 m methane core (2 engines, tan foam), 2/4/6 slim solids, 5.4 m hydrogen upper
 // (2 engines), 5.4 m fairing standard/long. rocketdb vulcanis (GCAT) + design.md; dims art-fitted. No logos/names.
 import * as THREE from 'three/webgpu';
-import { xf } from './kit.js?v=f5.9-0';
-import { regNozzle } from './parts.js?v=f5.9-0';
-import { stage, fairing, PI, livery, ringPos, Kit, tube, lathe, PR, kb, isHi } from './co_gen.js?v=f5.9-0';
-import { group, plume } from './co_civspace.js?v=f5.9-0';
+import { xf } from './kit.js?v=f5.9-1';
+import { regNozzle } from './parts.js?v=f5.9-1';
+import { stage, fairing, PI, livery, ringPos, Kit, tube, lathe, PR, kb, isHi } from './co_gen.js?v=f5.9-1';
+import { group, plume } from './co_civspace.js?v=f5.9-1';
 const R = 2.7, RS = 0.8, OFF = R + RS + 0.08;
 function solids(d, name, ang) { const k = new Kit(d), seg = isHi(k) ? 16 : k.mid ? 10 : 6, L = 21.9, nL = 2.6;
   for (const a of ang) { const x = Math.cos(a) * OFF, z = Math.sin(a) * OFF; k.add(new THREE.LatheGeometry([[0.35, 1.4], [0.5, 0.8], [0.6, 0]].map(([r, y]) => new THREE.Vector2(r, y)), seg), 'bell', xf([x, 0, z])); regNozzle(k, x, 0, z, 0.6);

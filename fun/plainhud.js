@@ -1,7 +1,7 @@
 // f5.5c (Aaron): plain telemetry for non-nerds. One bottom-left card: a big speedometer in mph, altitude,
 // Ap and Pe heights each with a T−/T+ clock, and Δv left per stage (replaces the fuel bars). The jargon chips
 // (ALT km / SRF m/s / AP·T−AP / PE / FUEL / STAGE) move behind the 📊 Details toggle (engineer view).
-import * as U from './units.js?v=f5.9-0';
+import * as U from './units.js?v=f5.9-1';
 export const MPH = 2.236936, MI = 1609.344, FT = 0.3048;
 const c0 = (x, d = 0) => (Math.round(x * 10 ** d) / 10 ** d).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 export function fmtHeight(m) { if (!isFinite(m)) return '—'; if (!U.imp()) return U.dist(m); if (Math.abs(m) < MI) return c0(m / FT) + ' ft'; const mi = m / MI; return (Math.abs(mi) < 100 ? c0(mi, 1) : c0(mi)) + ' mi'; } // f5.7q: follows the Units setting
