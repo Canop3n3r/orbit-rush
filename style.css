@@ -1439,20 +1439,30 @@ body.noStage #mStage,body.noStage #dStage{background:#3a4152!important;border-co
 #end.lean #contBtn{order:-1}
 
 /* f5.8u (QA f5.8r P2): sheets are ~50 % of the height: the expanded Build card (was 59 % portrait / 96 % landscape), the ⋯ panel and the 📍 sheet in landscape; the ⋯ panel opens above/beside the card, never over it */
-@media (orientation:portrait){body.touch:not(.bCol):not(.home) #build.builder{height:50dvh!important;max-height:50dvh!important}}
+@media (orientation:portrait){body.touch:not(.bCol):not(.home) #build.builder{height:52dvh!important;max-height:52dvh!important;gap:4px!important}body.touch:not(.bCol):not(.home) #build.builder > #bMini,body.touch:not(.bCol):not(.home) #build.builder > .bTabs{margin:0!important}body.touch:not(.bCol):not(.home) #build.builder > .bTopRow{margin:0!important}}
 @media (orientation:landscape) and (max-height:500px){
   body.touch:not(.bCol):not(.home) #build.builder{top:auto!important;bottom:8px!important;height:50dvh!important;max-height:50dvh!important;overflow-y:auto!important}
-  body.touch:not(.bCol):not(.home) #build.builder{width:min(560px,64vw)!important;max-width:min(560px,64vw)!important;display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-content:flex-start!important;gap:4px 8px!important}
-  body.touch:not(.bCol):not(.home) #build.builder > .bTopRow{flex:1 1 56%!important;min-width:0}
-  body.touch:not(.bCol):not(.home) #build.builder > #bMini{flex:1 1 36%!important;min-width:0;margin:0!important}
-  body.touch:not(.bCol):not(.home) #build.builder > .bTabs{flex:1 1 100%!important;margin:0!important}
+  body.touch:not(.bCol):not(.home) #build.builder:not(.hidden){display:grid!important}
+  body.touch:not(.bCol):not(.home) #build.builder{width:min(600px,70vw)!important;max-width:min(600px,70vw)!important;grid-template-columns:232px minmax(0,1fr)!important;grid-template-rows:auto auto auto 1fr!important;gap:4px 8px!important;overflow:hidden!important;align-content:start!important}
+  body.touch:not(.bCol):not(.home) #build.builder > .bTopRow{grid-column:1;grid-row:1;min-width:0}
+  body.touch:not(.bCol):not(.home) #build.builder > #bMini{grid-column:1;grid-row:2;min-width:0;margin:0!important;padding:0 4px 0 8px!important}
   body.touch:not(.bCol):not(.home) #build.builder > #bMini #bStat{font-size:11px!important;line-height:1.2;white-space:normal}
-  body.touch:not(.bCol):not(.home) #build.builder > #bMini{flex:1 1 40%!important;padding:0 4px 0 8px!important}
-  body.touch:not(.bCol):not(.home) #build.builder > .bcols{flex:1 1 100%!important;min-height:0}
-  body > .bmPanel.on{max-height:50dvh!important}
+  body.touch:not(.bCol):not(.home) #build.builder > .bTabs{grid-column:1;grid-row:3;margin:0!important}
+  body.touch:not(.bCol):not(.home) #build.builder > .bTabs button{padding:0 4px!important;font-size:12px!important}
+  body.touch:not(.bCol):not(.home) #build.builder > .bcols{grid-column:2;grid-row:1 / span 4;min-height:0;overflow-y:auto!important;margin:0!important}
+  body.touch:not(.bCol):not(.home) #build.builder > .bTopRow #homeBack{padding:0 8px!important;min-width:0}
+  body > .bmPanel.on{max-height:54dvh!important;padding:4px 10px!important}
+  body > .bmPanel .bmG{margin:0 0 1px!important}body > .bmPanel .bmG h5{margin:0 0 2px}
+  body > .bmPanel .bmR{gap:4px!important}
+  body > .bmPanel .bmSub .bmR label.chk{flex:1 1 44%;min-height:34px;font-size:12px}
   #sitePick{align-items:flex-end!important;justify-content:flex-start!important;padding:0 0 env(safe-area-inset-bottom) env(safe-area-inset-left)!important}
-  #sitePick .spBox{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-areas:"h h" "b s" "a s"!important;grid-auto-rows:min-content!important;align-content:start!important;gap:6px 10px!important;position:static!important;width:min(620px,84vw)!important;max-height:50dvh!important;overflow-y:auto!important;padding:6px 10px 8px!important;border-radius:0 16px 0 0!important}
+  #sitePick .spBox{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-areas:"h h" "b s" "a s"!important;grid-auto-rows:min-content!important;align-content:start!important;gap:6px 10px!important;position:static!important;width:min(520px,74vw)!important;max-height:50dvh!important;overflow-y:auto!important;padding:6px 10px 8px!important;border-radius:0 16px 0 0!important}
   #sitePick .spHead{grid-area:h!important;min-height:0}#sitePick .spBodies{grid-area:b!important}#sitePick .spSites{grid-area:s!important}#sitePick .spAct{grid-area:a!important}
   #sitePick .spBodies{flex-wrap:wrap!important;overflow:visible!important}#sitePick .spBodies button,#sitePick .spSites button,#sitePick .spAct button{min-height:34px!important;padding:3px 10px!important}
   #sitePick .spX{width:36px!important;height:36px!important}
 }
+/* f5.8u (QA f5.8r P2): Flight details is the first thing in the ⋯ sheet, so the squeezed landscape body (844x390) never clips its summary; an opened list scrolls inside the body */
+#end.lean.more #endBody{display:flex!important;flex-direction:column}
+#end.lean.more #endBody > details.endMore{order:-1;flex:none}
+#end.lean.more #endBody > details.endMore > summary{min-height:44px;display:flex;align-items:center}
+@media (orientation:landscape) and (max-height:500px){#end.lean.more{overflow-y:auto!important}#end.lean.more #endBody{min-height:96px;overflow-y:auto!important}}
