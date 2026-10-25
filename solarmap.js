@@ -20,7 +20,7 @@ const mv = (F, x) => [F[0] * x[0] + F[1] * x[1] + F[2] * x[2], F[3] * x[0] + F[4
 const PATCH_COL = [0x7dffa6, 0xffb35c, 0xc89cff, 0x6ad8ff, 0xff7ab0];
 
 export function createSolarMap(opts) {
-  const { renderer, getF, toast, touch, earthMap, onChange, dvTable, settings, gfxQ = 'med', getSats = () => [] } = opts;
+  const { renderer, getF, toast, touch, earthMap, onChange, dvTable, settings, gfxQ = 'med', getSats = () => [], burn = null } = opts;
   const sunPosU = uniform(new THREE.Vector3());
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x01020a);
   const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 1, 1e15);
@@ -76,9 +76,24 @@ export function createSolarMap(opts) {
     <button data-a="conic" title="Patched conics drawing: each patch relative to its own body, or a moon's patches as seen from its planet">⊙ ${(settings && settings.conic) === 'parent' ? 'Parent' : 'Body'}</button>
   </div>
   <div id="mapPanel" class="hidden"></div>
+  <div id="mapBurn" class="hidden"><span id="mapBurnT"></span><button data-b="sas" title="Point the nose at the maneuver (SAS MANEUVER)">SAS ◆</button><button data-b="cut" title="Engines off (X)">CUT</button><input id="mapThr" type="range" min="0" max="100" step="1" value="0" title="Throttle"><u id="mapThrV">0%</u><button data-b="full" title="Full throttle (Z)">BURN</button><button data-b="stage" title="Stage / ignite (Space)">STAGE</button></div>
   <div id="mapInfo"></div><div id="mapTrack" class="hidden"></div>`;
   document.body.appendChild(ui);
   const labels = ui.querySelector('#mapLabels'), panel = ui.querySelector('#mapPanel'), info = ui.querySelector('#mapInfo');
+  // f6.5: burn bar — the throttle, STAGE and SAS MANEUVER stay in reach while the map is open (touch hides the flight controls here), so a planned node can be burned by hand
+  const burnBar = ui.querySelector('#mapBurn'), burnT = ui.querySelector('#mapBurnT'), thrIn = ui.querySelector('#mapThr'), thrV = ui.querySelector('#mapThrV'); let thrDrag = false;
+  thrIn.addEventListener('input', () => { thrDrag = true; burn && burn.throttle(+thrIn.value / 100); });
+  thrIn.addEventListener('change', () => { thrDrag = false; });
+  burnBar.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (!b || !burn) return; const a = b.dataset.b;
+    if (a === 'full') { burn.throttle(1); thrIn.value = 100; } else if (a === 'cut') { burn.throttle(0); thrIn.value = 0; } else if (a === 'stage') burn.stage(); else if (a === 'sas') burn.sas(); });
+  function updateBurnBar(F, v) {
+    const show = !!burn && F.ignited && !F.flags.dead && !F.ended && (F.nodes.length > 0 || v.thrust > 0 || v.ut > 0); burnBar.classList.toggle('hidden', !show); if (!show) return;
+    const u = Math.round(100 * (v.thrust > 0 ? v.throttle : v.ut)); if (!thrDrag && +thrIn.value !== u) thrIn.value = u; thrV.textContent = u + '%';
+    const n = F.nodes[0]; let txt = '';
+    if (n) { const rem = F.nodeRemaining(n), dv = rem ? V.len(rem) : null, bt = F.nodeBurnTime(n), dt = n.t - F.tAbs - bt / 2; txt = (dv == null ? 'Node ahead' : 'Δv left ' + fmtV(dv)) + (n.started ? ' · BURNING' : dt > 0 ? ' · burn in ' + fmtDur(dt) : ' · BURN NOW') + (F.exec ? ' · AUTO' : ''); }
+    if (burnT.textContent !== txt) burnT.textContent = txt; burnT.style.display = txt ? '' : 'none';
+    burnBar.querySelector('[data-b=sas]').style.display = n ? '' : 'none';
+  }
   for (const id of IDS) labels.appendChild(bodies[id].lab);
   const craftLab = document.createElement('div'); craftLab.className = 'mlab craft'; craftLab.textContent = '▲ craft'; craftLab.dataset.id = 'craft'; labels.appendChild(craftLab);
   const markerPool = []; let markerN = 0;
@@ -424,6 +439,7 @@ export function createSolarMap(opts) {
       if (hdrag && !hdrag.scr) { const hd = handles.find(h => h.dataset.h === hdrag.h); hdrag.scr = hd._u; }
     }
     // info strip
+    updateBurnBar(F, v);
     const o = P.orbitOf(v), rb = B[F.body].R, ca = S.ca;
     { const ap = isFinite(o.ra) ? 'Ap ' + fmtD(o.ra - rb) : 'escape', pe = o.rp - rb > 0 ? 'Pe ' + fmtD(o.rp - rb) : 'Pe —';
       const imp = F._imp && F._imp.t > t ? ', impact ' + fmtDur(F._imp.t - t) : '', tg = F.target && ca ? (ca.inside ? ` · ${B[F.target].name} Pe ${fmtD(ca.alt)}` : ` · ${B[F.target].name} ${fmtD(ca.d)}`) : '';

@@ -1157,6 +1157,7 @@ const academy = createAcademy({ setDesign: d => setDesign(cloneDesign(d)), launc
 let mapPost = null;
 const smap = createSolarMap({ renderer, getF: () => F, getSats: () => { const now = Date.now(); if (!smapSats.c || now - smapSats.t > 2000) { smapSats.c = WORLD.sats(WORLD.load(localStorage)); smapSats.t = now; } return smapSats.c; }, toast: (m, c) => toast(m, c), touch: TOUCH, gfxQ, settings: SET,
   dvTable: () => dvTableHTML(craftDv(), false),
+  burn: { throttle: u => setThrottleTouch(u), stage: () => press('Space'), sas: () => { if (state === 'flight') { if (v.auto) F.takeOverUpper(); F.setSAS('node'); } } },
   onChange: (k, x) => { if (k === 'conic') { SET.conic = x; saveSettings(localStorage, SET); } if (k === 'close') exitMap(); if (k === 'exec') $('tProg').classList.remove('on'); } });
 mapPost = GX.makePost(renderer, smap.scene, smap.camera);
 // graphics quality (gx1): Low keeps phones and software GPUs smooth; High adds bloom + 2K textures. Saved; a change reloads textures.

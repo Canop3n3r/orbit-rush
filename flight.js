@@ -292,11 +292,13 @@ export class Flight {
   // AUTO-execute the next node: point (SAS maneuver), warp to the burn start, burn with throttle-down at the end.
   setExec(on) {
     if (on && !this.nodes.length) { this.toast('No maneuver node — add one on the map', '#ffb35c'); return false; }
-    this.exec = !!on; if (on) { this.v.sas = 'node'; this.v.sasHold = null; this.autoOn = false; this.v.auto = false; this.warpToNode(true); this.toast('Executing the maneuver: SAS MANEUVER, warp to the burn, burn', '#9cc3ff'); }
+    this.exec = !!on; this._execUt = on ? this.v.ut : undefined; if (on) { this.v.sas = 'node'; this.v.sasHold = null; this.autoOn = false; this.v.auto = false; this.warpToNode(true); this.toast('Executing the maneuver: SAS MANEUVER, warp to the burn, burn', '#9cc3ff'); }
     else this.v.ut = 0; return true;
   }
   updateExec() {
-    const n = this.nodes[0], v = this.v; if (!this.exec || !n) return;
+    const n = this.nodes[0], v = this.v; if (!this.exec || !n) { this._execUt = undefined; return; }
+    // f6.5: the pilot always wins — touching the throttle (Z/X, Shift/Ctrl, the slider) while AUTO flies the maneuver hands the burn back
+    if (this._execUt !== undefined && Math.abs(v.ut - this._execUt) > 1e-6) { this.exec = false; this._execUt = undefined; if (this.warpTarget && this.warpTarget.kind === 'node') this.warpTarget = null; this.toast('Manual burn: you have the throttle (AUTO maneuver off)', '#9cc3ff'); return; }
     const L = this.nodeLeft(n), dv = n.cl && n.vgLeft != null ? n.vgLeft : Math.hypot(L.pro, L.nrm, L.rad), bt = 0, a = P.thrustAccel(v);
     const ang = v.nodeDir ? Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), v.nodeDir)))) : 1;
     const go = this.tAbs >= n.t - (n.started ? 1e9 : this.nodeBurnTime(n) / 2);
@@ -305,6 +307,7 @@ export class Flight {
     v.ut = ang < 0.05 || (n.started && ang < 0.3) ? (a > 0 ? Math.max(0.05, Math.min(1, dv / (a * 2))) : 1) : 0;
     if (!v.ut && this.rails && this.warpI > 0) this.setWarp(0, true); // f5a.2 (QA P1): on rails the attitude is frozen, so SAS could never line up and the burn never started (Venus correction stall)
     if (a <= 0 && v.stages[v.cur].fuel <= 0) { if (v.cur < this.lastPow && this.canStage()) this.stage(); else { this.toast('Out of fuel during the burn', '#ff6262'); this.exec = false; v.ut = 0; } }
+    this._execUt = v.ut;
     void bt;
   }
   // ---------- warp to a time (node, SOI change, Ap, Pe, alarm). The warp stops there; rails bound every jump. ----------
@@ -494,7 +497,7 @@ export class Flight {
     if (!on && this.ret) { if (this.ret.auto && !quiet) this.toast('You have the capsule — parachutes stay armed (F hands it back)', '#9cc3ff'); this.ret.auto = false; this.v.steerDir = null; this.autoOn = false; if (this.v.auto) this.v.auto = false; return; }
     if (this.v.auto && !on) this.v.auto = false;
     this.autoOn = on; if (!on) { this.v.steerDir = null; this.v.sasHold = null; this.v.holdAtt = null; }
-    if (on) { this.v.guid = null; this.v.holdAtt = null; this.v.sasHold = null; if (this.flyingBooster()) this.v.auto = true; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; } // f5.6u: AUTO re-entry re-plans from the current state (drops the navball hold)
+    if (on) { if (this.flags.cutoff && this.flags.orbit) this.v.ut = 0; this.v.guid = null; this.v.holdAtt = null; this.v.sasHold = null; if (this.flyingBooster()) this.v.auto = true; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; } // f5.6u: AUTO re-entry re-plans from the current state (drops the navball hold)
     if (!quiet) this.toast(on ? 'AUTO on: gravity turn, Max-Q throttling, coast, circularize' : 'Manual flight (SAS ' + P.SAS_LABEL[this.v.sas] + ')', '#9cc3ff');
   }
   setSAS(mode) { const v = this.v; v.sas = mode; v.sasHold = null; v.holdAtt = null; if (this.autoOn && mode !== 'stab') this.setAuto(false, true); if (this.ret && this.ret.auto) this.setAuto(false); this.toast('SAS: ' + P.SAS_LABEL[mode], '#9cc3ff'); }
@@ -759,6 +762,9 @@ export class Flight {
     if (this.ret) this.updateReturn(dt);
     if (this.exec && !f.dead) this.updateExec();
     if (!f.dead) {
+      // f6.5: AUTO has cut off in orbit (guidance 'done') and the pilot asks for thrust (Z, Shift, the slider): the throttle is theirs, AUTO steps aside.
+      // Before, AUTO zeroed the throttle every step, so a planned maneuver could never be burned by hand until AUTO was switched off.
+      if (this.autoOn && !this.extAuto && !this.ret && !v.clamped && f.cutoff && v.guid === 'done' && v.ut > 0 && !this.exec) { this.setAuto(false, true); this.toast('Manual burn: AUTO off, you have the throttle', '#9cc3ff'); }
       if (!this.ignited) { v.throttle = 0; v.steerDir = null; }
       else if (this.ret) { v.throttle = v.cur <= this.lastPow ? v.ut : 0; if (!this.ret.auto) v.steerDir = null; }
       else if (this.autoOn && !v.clamped && !this.extAuto) { // fx-1: extAuto = a director (hop) flies the AUTO

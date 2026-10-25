@@ -1518,3 +1518,15 @@ body.touch #build .stageH button:first-of-type{margin-left:auto}
   html body.touch:not(.home) #build .bTopRow #launchBtn{flex:1 1 0;padding:0 8px!important;min-width:0}
 }
 @media (orientation:portrait){html body.touch:not(.bCol):not(.home) #build.builder{height:45dvh!important;max-height:45dvh!important}}
+/* f6.5 map burn bar: throttle / STAGE / SAS MANEUVER docked just above the map bottom bar (isolated block, easy to restyle) */
+#mapBurn{position:absolute;left:50%;bottom:calc(60px + var(--sab,0px));transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:4px 6px;pointer-events:auto;max-width:calc(100vw - 16px);background:var(--glass);border:1px solid var(--line);border-radius:var(--r);color:var(--txt,#dfe8ff);font:650 12px/1.2 system-ui}
+#mapBurn.hidden{display:none}
+#mapBurn button{background:var(--glass-hi,#1c2638);border:1px solid var(--line,#3a4c6c);color:var(--txt,#dfe8ff);border-radius:var(--r-s,8px);padding:4px 9px;font:650 12px/1 system-ui;min-height:32px;cursor:pointer}
+#mapBurn button[data-b=full]{border-color:#ff9b3c;color:#ffb35c}
+#mapBurn input[type=range]{width:min(150px,24vw);accent-color:#ff9b3c;touch-action:none}
+#mapBurn u{text-decoration:none;min-width:34px;font-family:monospace;text-align:right}
+#mapBurnT{max-width:190px;white-space:normal;color:#ffd23a}
+body.touch #mapBurn button{min-height:40px;min-width:40px;padding:2px 8px}
+body.touch #mapBurn input[type=range]{height:34px}
+body.touch.mapPanelOn #mapBurn{left:calc(8px + env(safe-area-inset-left));transform:none;max-width:calc(100vw - min(360px,44vw) - 30px)}
+@media (orientation:portrait){body.touch #mapBurn{flex-wrap:wrap;justify-content:center;bottom:calc(66px + var(--sab,0px))}body.touch.mapPanelOn #mapBurn{top:calc(112px + env(safe-area-inset-top));bottom:auto;left:8px;right:8px;transform:none;max-width:none}}
