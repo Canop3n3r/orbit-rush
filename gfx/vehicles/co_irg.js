@@ -1,8 +1,8 @@
 // Independent Rocketeers Guild — plain white. 'flock-hopper': stubby 3.0 m suborbital booster (4 engines), ring fin near the top,
 // four wedge base fins, capsule on top. 'featherwing-1': small air-launched spaceplane (round fuselage, stub wings, twin feathering
 // tail booms) slung under a twin-boom carrier plane; built lying flat. rocketdb flock-hopper / featherwing-1 + design.md.
-import { stage, capsule, fin, Kit, kb, tube, lathe, bell, PR, PI, isHi, xf } from './co_gen.js?v=f5.8u';
-import { group, plume } from './co_civspace.js?v=f5.8u';
+import { stage, capsule, fin, Kit, kb, tube, lathe, bell, PR, PI, isHi, xf } from './co_gen.js?v=f5.8v';
+import { group, plume } from './co_civspace.js?v=f5.8v';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = { 'flock-hopper': 'Flock Hopper', 'featherwing-1': 'Featherwing I' };
 function ns(o) { const d = o.detail, R = 1.5;

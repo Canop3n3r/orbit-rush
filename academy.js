@@ -2,11 +2,11 @@
 // No DOM: main.js / academy-ui.js render it, and tests/academy.mjs drives the same lessons headlessly.
 // Every number shown in a lesson comes from the physics modules (single source of truth): the constants and
 // functions are imported, never re-typed here.
-import * as P from './physics.js?v=f5.8u';
-import { TEMPLATES, PARTS, designStats, aeroBalance, ORBIT_DV } from './parts.js?v=f5.8u';
-import * as C from './physics/patched.js?v=f5.8u';
-import { BODIES } from './physics/solar.js?v=f5.8u';
-import { chuteLimits, SAFE_TOUCHDOWN, SAFE_LANDING, DEORBIT_PE } from './flight.js?v=f5.8u';
+import * as P from './physics.js?v=f5.8v';
+import { TEMPLATES, PARTS, designStats, aeroBalance, ORBIT_DV } from './parts.js?v=f5.8v';
+import * as C from './physics/patched.js?v=f5.8v';
+import { BODIES } from './physics/solar.js?v=f5.8v';
+import { chuteLimits, SAFE_TOUCHDOWN, SAFE_LANDING, DEORBIT_PE } from './flight.js?v=f5.8v';
 const { V, G0, MU, R } = P;
 
 // ---------- formulas (what the concept cards display) ----------

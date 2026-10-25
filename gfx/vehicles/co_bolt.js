@@ -2,10 +2,10 @@
 // single vacuum engine upper stage, kick stage inside a short clamshell. Dimensions: rocketdb electrino (GCAT): 18 m, 1.2 m.
 // Variant electrino-recovery: booster with a heat-shield base + parachute bay band (recovery attempts). No logos/names.
 import * as THREE from 'three/webgpu';
-import { Kit, xf } from './kit.js?v=f5.8u';
-import * as PR from './profiles.js?v=f5.8u';
-import { lathe, tube, bell, ringPos, ring, decal } from './parts.js?v=f5.8u';
-import { group, plume } from './co_civspace.js?v=f5.8u';
+import { Kit, xf } from './kit.js?v=f5.8v';
+import * as PR from './profiles.js?v=f5.8v';
+import { lathe, tube, bell, ringPos, ring, decal } from './parts.js?v=f5.8v';
+import { group, plume } from './co_civspace.js?v=f5.8v';
 const PI = Math.PI, B = PR.BOLT, H1 = 12.1;
 function booster(d, rec) { const k = new Kit(d), r = B.r;
   for (const [x, z] of ringPos([[8, 0.4, PI / 8], [1, 0]])) bell(k, 0.13, 0.42, x, 0, z, { head: k.hi && !k.mid ? 0.12 : 0, rt: 0.05 });

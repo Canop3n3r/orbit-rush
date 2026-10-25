@@ -3,10 +3,10 @@
 <style>html,body{margin:0;background:#000;overflow:hidden}</style></head><body><script type="module">
 // site hero viewer: ?id=<site>&view=hero|top|phone&detail=hi|mid|lo&w=&h=   (sets window.__ready after 3 frames)
 import * as THREE from 'three/webgpu';
-import { buildSite, setSiteNight } from './kit.js?v=f5.8u';
+import { buildSite, setSiteNight } from './kit.js?v=f5.8v';
 const q = new URLSearchParams(location.search), id = q.get('id'), view = q.get('view') || 'hero', detail = q.get('detail') || (view === 'phone' ? 'mid' : 'hi');
 const W = +q.get('w') || (view === 'phone' ? 390 : 1280), H = +q.get('h') || (view === 'phone' ? 844 : 720);
-const S = (await import('./site_' + id + '.js?v=f5.8u')).SITE, V = (S.views || {})[view] || S.views?.hero || { eye: [400, 200, 600], at: [0, 20, 0] };
+const S = (await import('./site_' + id + '.js?v=f5.8v')).SITE, V = (S.views || {})[view] || S.views?.hero || { eye: [400, 200, 600], at: [0, 20, 0] };
 const renderer = new THREE.WebGPURenderer({ forceWebGL: true, antialias: true }); renderer.setSize(W, H); renderer.toneMapping = THREE.ACESFilmicToneMapping; document.body.appendChild(renderer.domElement); await renderer.init();
 const scene = new THREE.Scene(), sky = S.sky ?? (S.body === 'earth' ? 0x8fb4d8 : S.body === 'mars' ? 0xc49a7a : 0x020306); scene.background = new THREE.Color(sky);
 if (V.night) scene.background = new THREE.Color(0x04060c);

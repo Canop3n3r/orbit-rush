@@ -2,10 +2,10 @@
 // trapezoid fins, single engine, nose payload; classic black/white roll-quadrant test paint (generic, no insignia). Baltic Hammer Tandem:
 // shortened nose carrying a slim finned second stage. Dimensions: rocketdb baltic-hammer (GCAT) + design.md; art-fitted. No logos/names.
 import * as THREE from 'three/webgpu';
-import { Kit, xf } from './kit.js?v=f5.8u';
-import * as PR from './profiles.js?v=f5.8u';
-import { lathe, tube, bell, ringPos, decal } from './parts.js?v=f5.8u';
-import { group, plume } from './co_civspace.js?v=f5.8u';
+import { Kit, xf } from './kit.js?v=f5.8v';
+import * as PR from './profiles.js?v=f5.8v';
+import { lathe, tube, bell, ringPos, decal } from './parts.js?v=f5.8v';
+import { group, plume } from './co_civspace.js?v=f5.8v';
 const PI = Math.PI, R = 0.825, BODY = [[0, 0.35], [0.56, 0.35], [0.7, 1.2], [0.8, 2.6], [R, 3.6], [R, 6.6], [0.79, 8.0], [0.72, 9.4]];
 function quads(k, y, h, r) { for (let i = 0; i < 2; i++) tube(k, r * 1.006, r * 1.006, h, y, 'dark', { open: true, t0: i * PI, tl: PI / 2, seg: k.hi ? 10 : 4 }); }
 function fin(k, a) { const s = new THREE.Shape([[0.55, 0], [1.78, -0.05], [1.78, 0.55], [0.78, 3.4]].map(([x, y]) => new THREE.Vector2(x, y)));
