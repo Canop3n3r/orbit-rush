@@ -119,5 +119,5 @@ export const vacAlt = h => smooth(40000, 120000, h);
 export const vacWidth = (altK, thrustK = 1) => (1 + 1.2 * altK) * Math.min(1.4, Math.max(0.8, thrustK));
 export const vacOpacity = (altK, bright = 1, k = 1) => Math.min(0.8, 0.62 * bright * Math.min(1.2, k) * (1 - 0.6 * altK));
 // Exhaust smoke caps (Heron Heavy S2 filled the screen): particle width and growth are bounded and the smoke thins out with height. h in metres.
-export const smokeWidthCap = h => (h < 1500 ? 1e9 : 10 + 30 * (1 - smooth(4000, 30000, h)));
+export const smokeWidthCap = h => (h < 1500 ? 1e9 : 8 + 22 * (1 - smooth(3000, 25000, h)));
 export const smokeFade = h => 1 - smooth(14000, 40000, h);
