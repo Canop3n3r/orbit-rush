@@ -1000,9 +1000,10 @@ function alignCorePlumes() {
     if (!L || !old) continue;
     const inf = vehicleOf(design.model) ? coreInfo(design.model, ci0, keys.length) : null, prop = inf ? inf.prop : old.userData.prop, vac = inf ? inf.vacuumOnly : old.userData.vac, ts = inf ? thrustScale(inf.tKN || 1000) : old.userData.ts, vis = old.visible; // roster data when the model has it, else keep the part-based guess
     for (const e of [...(old.userData.extra || []), old]) g.remove(e); // (geometries are shared between plumes: not disposed)
-    let plume; if (L.n > 1) { plume = makePlume(L.rn, prop); plume.userData.env = Math.max(1, L.ext / L.rn); plume.userData.noCore = L.cen < 0; g.add(plume);
-      plume.userData.extra = L.pts.filter((p, i) => i !== L.cen).map(p => { const e = makePlume(L.rn, prop, true); e.position.set(p[0], 0, p[1]); g.add(e); return e; }); }
-    else { plume = makePlume(Math.max(0.8, L.rn * 1.1), prop); g.add(plume); }
+    const ey = (NZ[key] && NZ[key].length ? L.y * hero.scale.y - g.position.y : 0); // plume-soft-1: the plume starts at the bell exit (stage-local height), not at the stage's base
+    let plume; if (L.n > 1) { plume = makePlume(L.rn, prop); plume.userData.env = Math.max(1, L.ext / L.rn); plume.userData.noCore = L.cen < 0; plume.position.y = ey; g.add(plume);
+      plume.userData.extra = L.pts.filter((p, i) => i !== L.cen).map(p => { const e = makePlume(L.rn, prop, true); e.position.set(p[0], ey, p[1]); g.add(e); return e; }); }
+    else { plume = makePlume(Math.max(0.8, L.rn * 1.1), prop); plume.position.y = ey; g.add(plume); }
     Object.assign(plume.userData, { prop, vac: vac || L.vac, ts, nEng: L.n }); plume.visible = vis; g.userData.plume = plume; }
 }
 function parallelCore() { const vv = vehicleOf(design.model); return !!(vv && vv.stages && vv.stages.some(x => x.parallel)); }
