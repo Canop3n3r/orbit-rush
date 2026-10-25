@@ -1,9 +1,9 @@
 // co-krasnaya-2: Krasnaya Orbita Bureau — Mogutny: 7.75 m hydrogen core with 4 engines, four 3.9 m kerosene strap-ons (one
 // 4-chamber engine each, cone noses), side-mounted cargo pod (no orbiter; the glider option is planned).
 // rocketdb mogutny (GCAT) + design.md; dims art-fitted. No logos/names.
-import { stage, nose, kb, Kit, tube, lathe, PR, ring, PI, isHi, livery, xf } from './co_gen.js?v=f5.9-1';
+import { stage, nose, kb, Kit, tube, lathe, PR, ring, PI, isHi, livery, xf } from './co_gen.js?v=f5.9-2';
 import * as THREE from 'three/webgpu';
-import { group, plume } from './co_civspace.js?v=f5.9-1';
+import { group, plume } from './co_civspace.js?v=f5.9-2';
 const R = 3.9, RS = 1.95, OFF = R + RS + 0.15, ANG = [PI / 4, 3 * PI / 4, 5 * PI / 4, 7 * PI / 4], PX = R + 2.05 + 0.25;
 function core(d) { const g = stage(d, 'core', { r: R, h: 50.5, y0: 2.6, eng: [[4, 1.6, 0.85, 2.4, PI / 4]], skirt: R * 1.02, key: livery(0xd8a259), bands: [[0, 1.2], [49.0, 1.5, 'paint:0,0']], decalY: 30,
   extra: k => lathe(k, PR.ogive(R, 5.6, 53.1, k.hi ? 16 : 6, 0.3), livery(0xd8a259)) }); g.userData.top = 58.7; return g; }

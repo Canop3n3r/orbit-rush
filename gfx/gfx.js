@@ -3,16 +3,16 @@
 // PBR environment, quality presets (low keeps phones and software GPUs working). No physics here.
 import * as THREE from 'three/webgpu';
 import { texture, uniform, float, vec3, vec4, normalWorld, positionWorld, cameraPosition, normalize, dot, cross, length, mix, smoothstep, pow, saturate, max, min, exp, select, uv, vertexColor, mx_noise_float, positionLocal, pass, attribute, normalView, positionView, sign } from 'three/tsl';
-import { oceanLook, oceanDisplace, oceanTime } from './ocean.js?v=f5.9-1';
+import { oceanLook, oceanDisplace, oceanTime } from './ocean.js?v=f5.9-2';
 export { oceanTime };
-import { TILE_FADE } from './tilefade.js?v=f5.9-1';
-export { TILE_FADE, tileAlpha, tileAltAlpha, tileRimAlpha } from './tilefade.js?v=f5.9-1';
+import { TILE_FADE } from './tilefade.js?v=f5.9-2';
+export { TILE_FADE, tileAlpha, tileAltAlpha, tileRimAlpha } from './tilefade.js?v=f5.9-2';
 export const TILE_LAND_GAIN = 2.4; // mean of (0.8+0.4 fbm)*2.4 in main.js updateTile
 export const padLandU = uniform(new THREE.Vector3(0.03, 0.043, 0.02)); // linear rgb of the inland ground around the pad (main.js sets it once the map is read)
 export const tileFadeU = uniform(new THREE.Vector4(0, 0, 1, 0)); // x: camera altitude (m), y: altitude alpha (main.js sets both every frame)
-export { GFX, GFX_ORDER } from './presets.js?v=f5.9-1';
-import { GFX } from './presets.js?v=f5.9-1';
-import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5.9-1';
+export { GFX, GFX_ORDER } from './presets.js?v=f5.9-2';
+import { GFX } from './presets.js?v=f5.9-2';
+import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5.9-2';
 export { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth };
 export const earthTexMatrix = () => new THREE.Matrix4().fromArray(EARTH_TEX_M4);
 export function softwareGPU() {

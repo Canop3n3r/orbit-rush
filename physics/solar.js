@@ -8,7 +8,7 @@
 // Frames: ECL = heliocentric J2000 ecliptic (the map/world frame). Each body has an inertial
 // "equatorial" frame (z = its spin pole); a craft's state is always kept in its SOI body's frame, so the
 // Earth frame is the same ECI frame the rest of physics/ has always used (z = Earth's pole, spin about z).
-import { R_E, MU_E, OMEGA_E } from './constants.js?v=f5.9-1';
+import { R_E, MU_E, OMEGA_E } from './constants.js?v=f5.9-2';
 const D2R = Math.PI / 180, DAY = 86400, CENT = 36525 * DAY, AU = 1.495978707e11, OBL = 23.43928 * D2R;
 export const J2000_MS = Date.UTC(2000, 0, 1, 12, 0, 0); // J2000.0 = 2000-01-01 12:00 TT (≈ UTC + 64 s; ignored)
 export { AU };
