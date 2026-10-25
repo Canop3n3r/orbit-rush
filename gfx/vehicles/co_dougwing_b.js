@@ -1,5 +1,5 @@
 // Doug-Wing Aerospace, tier B (stage-table generator + hooks): Thorin family and early Deltoid. Teal first stage, white uppers.
-import { buildB } from './gen_b.js?v=f5.8x';
+import { buildB } from './gen_b.js?v=f5.8y';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'thorin': 'Thorin', 'thorin-agenta': 'Thorin-Agenta', 'thorin-capable': 'Thorin-Capable', 'thorin-capablestar': 'Thorin-Capable Star', 'thorin-toaster': 'Thorin-Toaster', 'deltoid': 'Deltoid', 'deltoid-3': 'Deltoid III'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

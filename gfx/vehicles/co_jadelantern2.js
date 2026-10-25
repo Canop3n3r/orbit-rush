@@ -1,8 +1,8 @@
 // Jade Sky Academy — Jade Lantern 2F (crew: 3.35 m core with 4 engines, four 2.25 m liquid boosters with cone noses, 2nd stage,
 // 3.8 m crew fairing + escape tower) and Jade Lantern 3B (same lower stack + hydrogen 3rd stage, 4 m fairing). White.
 // rocketdb jade-lantern-2f / jade-lantern-3 (GCAT) + design.md; dims art-fitted. No logos/names.
-import { stage, fairing, tower, PI, livery, Kit, tube, kb } from './co_gen.js?v=f5.8x';
-import { group, plume } from './co_civspace.js?v=f5.8x';
+import { stage, fairing, tower, PI, livery, Kit, tube, kb } from './co_gen.js?v=f5.8y';
+import { group, plume } from './co_civspace.js?v=f5.8y';
 const R = 1.675, RB = 1.125, OFF = R + RB + 0.1, ANG = [0, PI / 2, PI, 3 * PI / 2];
 function side(d, i) { const a = ANG[i], g = stage(d, 'side' + i, { r: RB, h: 13.0, y0: 2.0, eng: [[1, 0, 0.55, 1.8]], bands: [[0, 0.6], [12.2, 0.4]], extra: k => tube(k, RB, 0.12, 2.8, 15.0, 'paint:0,0') });
   g.position.set(Math.cos(a) * OFF, 0.3, Math.sin(a) * OFF); g.rotation.y = -a; g.userData.top = 17.8; return g; }

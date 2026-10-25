@@ -1,8 +1,8 @@
 // co-southstar-1: Southstar Design Bureau (parody) — Steppe Arrow: 3.9 m kerosene two-stager (one 4-chamber first-stage engine,
 // single-engine second stage with vernier), 3.9 m fairing; '-3' adds a kick stage inside a longer fairing. Olive-grey finish.
 // rocketdb steppe-arrow (GCAT) + design.md; dims art-fitted. No logos/names.
-import { stage, fairing, PI, livery, Kit, tube, bell, kb, isHi } from './co_gen.js?v=f5.8x';
-import { group, plume } from './co_civspace.js?v=f5.8x';
+import { stage, fairing, PI, livery, Kit, tube, bell, kb, isHi } from './co_gen.js?v=f5.8y';
+import { group, plume } from './co_civspace.js?v=f5.8y';
 const R = 1.95;
 function sp(o, three) { const d = o.detail, ol = livery(0x8c8f7a);
   const a = stage(d, 's1', { r: R, h: 30.8, y0: 2.4, eng: [[4, 0.75, 0.5, 2.2, PI / 4]], key: ol, skirt: R * 1.02, bands: [[30.0, 0.8, 'paint:0,0'], [14.5, 0.3]], decalY: 18 });

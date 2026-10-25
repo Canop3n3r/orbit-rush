@@ -1,5 +1,5 @@
 // ISRA, tier B (stage-table generator + hooks): Geo Sat-Slinger, Sat-Slinger Mini, Sat-Slinger Mk3. White core, brown strap-ons.
-import { buildB } from './gen_b.js?v=f5.8x';
+import { buildB } from './gen_b.js?v=f5.8y';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'geo-slinger': 'Geo Sat-Slinger', 'slinger-mini': 'Sat-Slinger Mini', 'slinger-mk3': 'Sat-Slinger Mk3'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

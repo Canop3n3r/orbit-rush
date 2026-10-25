@@ -4,10 +4,10 @@
 // crossSep(g, t): the four strap-ons pivot about their lower attach point and swing their noses outward (0..1),
 // the classic "cross" separation; t = 0 attached.
 import * as THREE from 'three/webgpu';
-import { Kit, xf } from './kit.js?v=f5.8x';
-import * as PR from './profiles.js?v=f5.8x';
-import { regNozzle, lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.8x';
-import { group, lmat, plume } from './co_civspace.js?v=f5.8x';
+import { Kit, xf } from './kit.js?v=f5.8y';
+import * as PR from './profiles.js?v=f5.8y';
+import { regNozzle, lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.8y';
+import { group, lmat, plume } from './co_civspace.js?v=f5.8y';
 const PI = Math.PI, R = PR.R7;
 const darkBells = g => { for (const m of g.children) if (m.name.endsWith(':bell')) m.material = lmat('x-bellblack'); return g; };
 function bands(k, prof, ys, key = 'grey') { for (const y of ys) { let r = 0; for (let i = 1; i < prof.length; i++) if (prof[i][1] >= y) { const [r0, y0] = prof[i - 1], [r1, y1] = prof[i]; r = r0 + (r1 - r0) * (y - y0) / (y1 - y0); break; } tube(k, r * 1.008, r * 1.008, 0.35, y, key, { open: true }); } }
