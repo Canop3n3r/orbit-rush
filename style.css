@@ -1475,3 +1475,14 @@ body.noStage #mStage,body.noStage #dStage{background:#3a4152!important;border-co
   #end.lean.more #endTitle{grid-area:h}#end.lean.more #endCause{grid-area:c}#end.lean.more #endBody{grid-area:b;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain}
   #end.lean.more .endMain{grid-area:m;align-self:start;margin-top:0!important}#end.lean.more .endShare{grid-area:s;align-self:end;margin-top:6px!important}
 }
+/* f5.8v (QA f5.8u P2): Build panels. Desktop expanded Build <= 50 % of the height (was 71 %), its columns scroll; landscape phone (844x390): stage header on one line without ellipsis, 4 part rows fit; portrait ⋯ is a narrow panel beside the rocket */
+body:not(.touch):not(.bCol):not(.home) #build.builder:not(.hidden){max-height:50dvh!important;overflow:hidden!important}
+body:not(.touch):not(.bCol):not(.home) #build.builder .bcols{min-height:0;overflow:hidden}
+body:not(.touch):not(.bCol):not(.home) #build.builder .bcols>div{overflow-y:auto;min-height:0}
+body > .bmPanel.on.bmSide{padding:6px 8px!important}body > .bmPanel.bmSide .bmR select{max-width:100%}body > .bmPanel.bmSide .bmR button{min-width:40px}
+body.touch #build .stageH{flex-wrap:nowrap;gap:4px}body.touch #build .stageH span{flex:0 1 auto;overflow:visible;text-overflow:clip;white-space:nowrap}body.touch #build .stageH em{flex:1;min-width:0;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:clip}
+@media (orientation:landscape) and (max-height:500px){
+  body.touch #build .stageH{margin:2px 0 0}body.touch #build .stageH span,body.touch #build .stageH em{font-size:10.5px}
+  body.touch #build .stageH button{min-width:30px!important;min-height:28px!important;height:28px;padding:0 5px}
+  body.touch #build #stack .prow{min-height:32px!important;padding-top:2px!important;padding-bottom:2px!important;margin:1px 0!important}
+}
