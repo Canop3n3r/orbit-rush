@@ -177,6 +177,21 @@ async function insetDesktop(br) { const vp = '1280x800', rows = []; const ctx = 
   } catch (e) { rows.push({ vp, screen: 'split', metric: 'inset_area%', val: 'SKIP', max: '-', ok: null, info: String(e.message).slice(0, 60) }); }
   await UPPERTAKE(br, false, 1280, 800, vp, rows, []); // f5.8t
   await ctx.close(); return { vp, rows }; }
+/* f5.8v (QA f5.8u P1): QA's EXACT path, in real time: AUTO to 60 km on the upper stage, a REAL tap on AUTO, 1.2 s later a real pointer drag from the bottom of the THR strip to its middle (mouse / CDP touch), then the NAV readout (PIT) every 0.7 s for 3.5 s.
+   Returns the largest |PIT change| from the first reading. drag=false is QA's no-input control (same takeover, no drag): the nose keeps turning by the AUTO pitch-over's own momentum, that carry is not the drag's fault. */
+async function QAFLOW(br, phone, W, H, drag) {
+  const c = await browser2(br, phone, W, H), p = await c.newPage(), ev = (f, a) => p.evaluate(f, a), w = ms => p.waitForTimeout(ms);
+  try { await p.goto(base + (base.includes('?') ? '&' : '?') + 'noacademy&fx=low', { timeout: 300000 }); await p.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await w(1500);
+    await ev(() => { document.getElementById('firstRun')?.classList.add('hidden'); document.getElementById('hFly').click(); }); await w(2500); await ev(() => { const G = window.__game; G.F.setAuto(true); if (!G.F.ignited) G.press('Space'); });
+    let at = 0; for (let k = 0; k < 500 && !at; k++) { at = await ev(() => { const F = window.__game.F; for (let i = 0; i < 120 && !(F.alt > 60000 && F.v.cur === F.last) && !F.flags.dead; i++) F.advance(1 / 60); return F.alt > 60000 && F.v.cur === F.last ? 1 : F.flags.dead ? -1 : 0; }); if (at < 0) throw new Error('crashed before 60 km'); await w(40); }
+    await w(1200); const nav = async () => { const t = await ev(() => { const e = [...document.querySelectorAll('[id*=navRd],[class*=navRd]')].find(e => e.getBoundingClientRect().width > 1); return e ? e.innerText.replace(/\s+/g, ' ') : ''; }); const m = /PIT ([+\-−]\d+)/.exec(t); return m ? +m[1].replace('−', '-') : null; };
+    const ab = await ev(() => { const e = ['mAuto', 'dAuto'].map(id => document.getElementById(id)).find(e => e && e.getBoundingClientRect().width > 1); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    if (!ab) throw new Error('no AUTO button'); if (phone) await p.touchscreen.tap(ab.x, ab.y); else await p.mouse.click(ab.x, ab.y); await w(1200);
+    const p0 = await nav(), r = await ev(() => { const e = ['mThr', 'dThr'].map(id => document.getElementById(id)).find(e => e && e.getBoundingClientRect().width > 1); const q = e.getBoundingClientRect(); return { x: q.left + q.width / 2, top: q.top, bot: q.bottom }; });
+    if (drag) { const y0 = r.bot - 4, y1 = r.top + (r.bot - r.top) * 0.5; if (phone) { const cdp = await c.newCDPSession(p), tp = (t, y) => cdp.send('Input.dispatchTouchEvent', { type: t, touchPoints: t === 'touchEnd' ? [] : [{ x: r.x, y }] }); await tp('touchStart', y0); for (let k = 1; k <= 8; k++) { await tp('touchMove', y0 + (y1 - y0) * k / 8); await w(50); } await tp('touchEnd'); await cdp.detach(); } else { await p.mouse.move(r.x, y0); await p.mouse.down(); for (let k = 1; k <= 8; k++) { await p.mouse.move(r.x, y0 + (y1 - y0) * k / 8); await w(50); } await p.mouse.up(); } }
+    else { await ev(() => { window.__game.F.v.ut = 0.5; }); await w(450); /* the drag takes ~0.45 s: the control samples after the same time */ }
+    const seq = [p0]; for (let k = 0; k < 5; k++) { await w(700); seq.push(await nav()); } const mx = Math.max(...seq.map(x => Math.abs(x - p0))); return { mx, seq: seq.join(' ') };
+  } finally { await c.close(); } }
 async function UPPERTAKE(br, phone, W, H, vp, rows, perrs) {
   /* f5.8t (QA f5.8r P1): upper-stage takeover at ~60 km (AUTO is still pitching over at ~0.3 rad/s), real tap on AUTO, then a real THR drag from the bottom of the strip. Pitch of the nose is read from the sim (nose · local up). */
   { const c4 = await browser2(br, phone, W, H), p4 = await c4.newPage(); p4.on('pageerror', e => perrs.push(e.message.split('\n')[0])); const ev4 = (f, a) => p4.evaluate(f, a), w4 = ms => p4.waitForTimeout(ms);
@@ -198,6 +213,12 @@ async function UPPERTAKE(br, phone, W, H, vp, rows, perrs) {
       else { await p4.mouse.move(r.x, y0); await p4.mouse.down(); await adv(0.05); await thr(); for (let i = 1; i <= 8; i++) { await p4.mouse.move(r.x, y0 + (y1 - y0) * i / 8); await adv(0.05); await thr(); } await p4.mouse.up(); }
       let mx = 0; for (let k = 0; k < 6; k++) { await adv(0.5); const u = await thr(); mx = Math.max(mx, Math.abs(u.p - base1)); } const fin = await ev4(UP);
       rows.push({ vp, screen: 'flight', metric: 'upper_thr_drag_pitch', val: +mx.toFixed(1), max: 5, ok: mx <= 5 && fin.thr > 0.3 && !fin.auto, info: `real ${phone ? 'touch' : 'mouse'} drag from the bottom of the THR strip after the upper-stage takeover at ${at} m; throttle dipped to ${minThr.toFixed(2)} → ${fin.thr.toFixed(2)}; nose ${base1.toFixed(1)}° → ${fin.p.toFixed(1)}°` });
+      try { const dr = await QAFLOW(br, phone, W, H, true), ct = await QAFLOW(br, phone, W, H, false), ex = Math.max(0, dr.mx - ct.mx);
+        rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_vs_control', val: +ex.toFixed(0), max: 10, ok: ex <= 10, info: `QA path, real time: THR drag PIT ${dr.seq} (max ${dr.mx}°) vs the same takeover with no drag ${ct.seq} (max ${ct.mx}°)` });
+        rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_pitch', val: dr.mx, max: 35, ok: dr.mx <= 35, info: 'QA path: the whole nose motion after the drag stays under 35° (QA saw 37-112°)' }); } catch (e) { rows.push({ vp, screen: 'flight', metric: 'upper_qa_drag_vs_control', val: 'ERR', max: 5, ok: false, info: String(e.message).slice(0, 100) }); }
+      /* f5.8u (QA f5.8r P3): the crash frame: STAGE must not be lit (nothing to stage) */
+      await ev4(() => { const F = window.__game.F; F.fail('Hit the ground at 128 m/s', 'impact'); }); await w4(900); const sgc = await ev4(STAGEINFO);
+      rows.push({ vp, screen: 'crash_frame', metric: 'stage_lit_on_crash', val: sgc ? (sgc.lit ? 'lit' : 'grey') : 'hidden', max: 'grey', ok: !sgc || !sgc.lit, info: sgc ? `bg ${sgc.bg}; flash ${sgc.flash}; op ${sgc.op}` : 'STAGE not on screen' });
     } catch (e) { rows.push({ vp, screen: 'flight', metric: 'upper_thr_drag_pitch', val: 'ERR', max: 5, ok: false, info: String(e.message).slice(0, 120) }); } finally { await c4.close(); } }
 }
 async function runVp(br, vp) {
