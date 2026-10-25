@@ -1,7 +1,7 @@
 // NOSA — Vantguard: slim finless three-stage launcher (liquid s1, liquid s2, small spherical-ish solid s3 under a long ogive nose),
 // white with black roll bands. rocketdb vantguard (GCAT) + design.md.
-import { stage, fairing, PI, livery } from './co_gen.js?v=f5.9-3';
-import { group, plume } from './co_civspace.js?v=f5.9-3';
+import { stage, fairing, PI, livery } from './co_gen.js?v=f5.9-4';
+import { group, plume } from './co_civspace.js?v=f5.9-4';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = { 'vantguard': 'Vantguard' };
 function vg(o) { const d = o.detail, blk = 'dark';

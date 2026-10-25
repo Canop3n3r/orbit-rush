@@ -2,7 +2,7 @@
 // stage count, dry/propellant mass, engine thrust and Isp, booster stage, payload and fairing mass. The part list only
 // gives the stack its shape; the physics numbers are overridden from the roster (flight.js applies design.spec).
 // Rockets with any unsourced engine are UNMODELLED and keep the matched showroom stack.
-import * as CAT from '../vehicles/catalog.js?v=f5.9-3';
+import * as CAT from '../vehicles/catalog.js?v=f5.9-4';
 const ROSTER = [], ENG = {};
 for (const k in CAT) { if (k.startsWith('ROSTER_')) ROSTER.push(...CAT[k]); if (k.startsWith('ENGINES')) Object.assign(ENG, CAT[k]); }
 // art id -> roster [id, variant prefix]

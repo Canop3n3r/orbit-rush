@@ -4,10 +4,10 @@
 // site budget probe (tests/vehicles_budget.cjs, sites block): tris + meshes per site/LOD, phone LOD, placement, dispose leak check.
 // Sites are discovered from the directory listing (python http.server), so each art-sites-N branch only adds its site_<id>.js.
 import * as THREE from 'three/webgpu';
-import { buildSite, buildSiteLOD, placeSite, disposeSite } from './kit.js?v=f5.9-3';
-import { upDir } from './geo.js?v=f5.9-3';
+import { buildSite, buildSiteLOD, placeSite, disposeSite } from './kit.js?v=f5.9-4';
+import { upDir } from './geo.js?v=f5.9-4';
 const ids = [...new Set([...(await (await fetch('./')).text()).matchAll(/site_([a-z0-9-]+)\.js/g)].map(m => m[1]))].sort();
-const SITES = {}; for (const id of ids) SITES[id] = (await import('./site_' + id + '.js?v=f5.9-3')).SITE;
+const SITES = {}; for (const id of ids) SITES[id] = (await import('./site_' + id + '.js?v=f5.9-4')).SITE;
 const renderer = new THREE.WebGPURenderer({ forceWebGL: true }); renderer.setSize(64, 64); document.body.appendChild(renderer.domElement); await renderer.init();
 const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 1, 1e5); cam.position.set(300, 200, 600); cam.lookAt(0, 0, 0); scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
 const count = g => { let n = 0, inst = 0; g.traverse(m => { if (m.isInstancedMesh) inst++; if (!m.isMesh) return; for (let p = m; p; p = p.parent) if (!p.visible) return; n++; }); return [n, inst]; };
