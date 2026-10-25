@@ -1466,3 +1466,12 @@ body.noStage #mStage,body.noStage #dStage{background:#3a4152!important;border-co
 #end.lean.more #endBody > details.endMore{order:-1;flex:none}
 #end.lean.more #endBody > details.endMore > summary{min-height:44px;display:flex;align-items:center}
 @media (orientation:landscape) and (max-height:500px){#end.lean.more{overflow-y:auto!important}#end.lean.more #endBody{min-height:96px;overflow-y:auto!important}}
+/* f5.8v (QA f5.8u P2): end card after ⋯. One details font at every size, ⌂ Home (and every end button) centred, and on a short landscape screen (844x390) the card is a 2-column sheet <= 60 % of the height: title + details (scrolls inside) on the left, the buttons on the right */
+#end.lean.more #endBody,#end.lean.more #endBody details.endMore,#end.lean.more #endBody details.endMore *{font:500 12.5px/1.45 var(--ui,system-ui)!important}
+#end.lean.more #endBody details.endMore > summary{font:600 13px/1.2 var(--ui,system-ui)!important}
+#end .endMain button,#end .endShare button{align-items:center;justify-content:center;text-align:center;line-height:1.1}
+@media (orientation:landscape) and (max-height:500px){
+  #end.lean.more{width:min(640px,74vw)!important;max-height:58dvh!important;overflow:hidden!important;display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"h m" "c m" "b m" "b s";column-gap:12px}
+  #end.lean.more #endTitle{grid-area:h}#end.lean.more #endCause{grid-area:c}#end.lean.more #endBody{grid-area:b;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain}
+  #end.lean.more .endMain{grid-area:m;align-self:start;margin-top:0!important}#end.lean.more .endShare{grid-area:s;align-self:end;margin-top:6px!important}
+}
