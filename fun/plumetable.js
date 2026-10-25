@@ -5,9 +5,9 @@
 //   trail: what the smoke column looks like ('soot' dirty grey, 'steam' white, 'solid' thick grey-white, 'none')
 export const PLUME_TABLE = {
   kerolox:    { plume: 0xffa23a, glow: 0xff6410, core: 0xffe49a, bell: 0xffc07a, sprite: [6, 3.4, 1.1], k: 1.15, smoke: 1.0, soot: 1, dia: 1.0, trail: 'soot',  label: 'orange-yellow, Mach diamonds, sooty trail' },
-  methalox:   { plume: 0x74b0ff, glow: 0x4380ff, core: 0xcfe4ff, bell: 0x9cc6ff, sprite: [2.4, 3.6, 6], k: 1.0, smoke: 0.4, soot: 0, dia: 0.9, trail: 'steam', label: 'pale blue, clean, faint steam' },
-  hydrolox:   { plume: 0xd8e8ff, glow: 0xa8c4ff, core: 0xf2f8ff, bell: 0xc4d8ff, sprite: [2.2, 2.7, 4.4], k: 0.3, smoke: 0.2, soot: 0, dia: 1.6, trail: 'steam', label: 'nearly transparent blue-white' },
-  hypergolic: { plume: 0xffd6a8, glow: 0xffb27a, core: 0xfff4e4, bell: 0xffd8b0, sprite: [3.2, 2.6, 2.0], k: 0.45, smoke: 0.25, soot: 0, dia: 0.3, trail: 'none',  label: 'faint, pale peach' },
+  methalox:   { plume: 0x74b0ff, glow: 0x4380ff, core: 0xcfe4ff, bell: 0x9cc6ff, sprite: [2.4, 3.6, 6], k: 0.75, smoke: 0.4, soot: 0, dia: 0.9, trail: 'steam', label: 'pale blue, clean, faint steam' },
+  hydrolox:   { plume: 0xbcd4ff, glow: 0x9cb8ff, core: 0xd2e4ff, bell: 0xb4cdff, sprite: [1.6, 2.2, 3.8], k: 0.2, smoke: 0.2, soot: 0, dia: 1.6, trail: 'steam', label: 'nearly transparent blue-white' },
+  hypergolic: { plume: 0xffd6a8, glow: 0xffb27a, core: 0xfff4e4, bell: 0xffd8b0, sprite: [3.2, 2.6, 2.0], k: 0.3, smoke: 0.25, soot: 0, dia: 0.3, trail: 'none',  label: 'faint, pale peach' },
   solid:      { plume: 0xffc45c, glow: 0xff8a1e, core: 0xffffff, bell: 0xffe2a8, sprite: [7, 5.2, 3.0], k: 1.3, smoke: 2.4, soot: 0, dia: 0.3, trail: 'solid', label: 'bright orange-white, thick smoke trail' },
 };
 export const PROPS = Object.keys(PLUME_TABLE);

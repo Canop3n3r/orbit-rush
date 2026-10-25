@@ -40,6 +40,7 @@ import { createCompact } from './fun/compact.js?v=f5.9-2';
 import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-2';
 import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.9-2';
 import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.9-2';
+import { plumeDims, styleFor, vacFactors } from './gfx/plume_style.js?v=f5.9-2'; // QA plume pass: exhaust style per propellant + size from the engine
 import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.9-2';
 import * as UN from './fun/units.js?v=f5.9-2';
 import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.9-2';
@@ -422,7 +423,7 @@ function addFins(g, y, chord, r) {
 // f5.3 exhaust: one material set per propellant (fun/exhaust.js LOOK): kerolox orange + soot, methalox blue-violet,
 // hydrolox near-clear with Mach diamonds, hypergolic pale orange, solid bright with heavy smoke
 const PLUME_MATS = {};
-function plumeMats(prop = 'kerolox') { if (PLUME_MATS[prop]) return PLUME_MATS[prop]; const L = PLOOK[prop] || PLOOK.kerolox, c = m => { const x = m.clone(); x.userData = { ...m.userData, cached: true }; return x; };
+function plumeMats(prop = 'kerolox') { if (PLUME_MATS[prop]) return PLUME_MATS[prop]; const L = styleFor(prop), c = m => { const x = m.clone(); x.userData = { ...m.userData, cached: true }; return x; };
   const o = { plume: c(M.plume), plumeGlow: c(M.plumeGlow), plumeCore: c(M.plumeCore), plumeBell: c(M.plumeBell), plumeSprite: c(M.plumeSprite), plumeVac: c(M.plumeVac), diamond: c(M.diamond), look: L, prop };
   o.plume.color.setHex(L.plume); o.plumeGlow.color.setHex(L.glow); o.plumeCore.color.setHex(L.core); o.plumeBell.color.setHex(L.bell); o.plumeSprite.color.setRGB(...L.sprite); o.plumeVac.color.setHex(L.bell); if (prop === 'hydrolox') o.diamond.color.setHex(0xe8f0ff);
   return (PLUME_MATS[prop] = o); }
@@ -487,12 +488,12 @@ function makeRocketGroups(design) {
     }
     // f5.3: one plume per engine at its nozzle (engines-1 count/layout/propellant); the centre plume carries the merged glow/bell
     const ei = stageEngines(design.model, out.filter(x => !x.userData.radial).length, s.parts), nz = ei.n > 1 ? nozzles(ei, rMax) : [];
-    let plume;
+    let plume; const pd = plumeDims({ prop: ei.prop, tKN: ei.tKN, n: Math.max(1, ei.n), vacuumOnly: ei.vacuumOnly, stageD: 2 * rMax }); // plume size from the engine (gfx/plume_style.js), not from the stage radius
     if (nz.length > 1) { const rn = nozzleR(ei.n, rMax), cen = nz.findIndex(p => Math.hypot(p[0], p[1]) < 0.05 * rMax);
       plume = makePlume(rn, ei.prop); plume.userData.env = rMax / rn; plume.userData.noCore = cen < 0; g.add(plume);
       plume.userData.extra = nz.filter((p, i) => i !== cen).map(p => { const e = makePlume(rn, ei.prop, true); e.position.set(p[0], 0, p[1]); g.add(e); return e; });
-    } else { plume = makePlume(Math.max(0.8, nEng > 1 ? rMax * 0.95 : bellW * 1.1), ei.prop); g.add(plume); }
-    plume.userData.prop = ei.prop; plume.userData.nEng = Math.max(1, nz.length); plume.userData.vac = !!ei.vacuumOnly; plume.userData.ts = thrustScale(ei.tKN || 1000); // unit 3: vacuum-nozzle + thrust-scaled plume (fun/plumetable.js)
+    } else { plume = makePlume(Math.max(0.15, nEng > 1 ? rMax * 0.95 : pd.rn * 1.1), ei.prop); g.add(plume); }
+    plume.userData.lenM = pd.len; plume.userData.prop = ei.prop; plume.userData.nEng = Math.max(1, nz.length); plume.userData.vac = !!ei.vacuumOnly; plume.userData.ts = thrustScale(ei.tKN || 1000); // unit 3: vacuum-nozzle + thrust-scaled plume (fun/plumetable.js)
     let legs = null;
     if (si === 0) {
       legs = new THREE.Group();
@@ -522,10 +523,10 @@ function makeRadialGroup(s, si, coreR = 1.25) {
     const R0 = coreR + rB + 0.08; c.position.set(Math.cos(a) * R0, 0, Math.sin(a) * R0); c.rotation.y = -a; g.add(c); cols.push(c);
   }
   // fx-1 (QA: no flame on the Heavy side boosters): one plume per engine of each side booster (engines-1 count / k), at the column
-  const ei = stageEngines(rgModel, 0, s.parts, true, k), rp = ei.prop, nz = ei.n > 1 ? nozzles(ei, rB) : [[0, 0]], rn = ei.n > 1 ? nozzleR(ei.n, rB) : Math.max(0.8, rB * 0.9);
+  const ei = stageEngines(rgModel, 0, s.parts, true, k), rp = ei.prop, nz = ei.n > 1 ? nozzles(ei, rB) : [[0, 0]], rn = ei.n > 1 ? nozzleR(ei.n, rB) : Math.max(0.3, rB * 0.9), pdR = plumeDims({ prop: rp, tKN: ei.tKN, n: Math.max(1, ei.n), vacuumOnly: ei.vacuumOnly, stageD: 2 * rB });
   let plume = null; const extra = [], colP = [];
   cols.forEach((c, ci) => { const list = []; nz.forEach((q, qi) => { const full = !plume, pl = makePlume(rn, rp, !full); pl.position.set(c.position.x + q[0], 0, c.position.z + q[1]); g.add(pl); if (full) { plume = pl; plume.userData.env = ei.n > 1 ? rB / rn : 1; } else extra.push(pl); list.push({ pl, q }); }); colP.push(list); });
-  plume.userData.prop = rp; plume.userData.extra = extra; plume.userData.nEng = nz.length * k;
+  plume.userData.lenM = pdR.len; plume.userData.prop = rp; plume.userData.extra = extra; plume.userData.nEng = nz.length * k;
   g.userData = { h: 0, plume, legs: null, fair: null, fairH: 0, hot: [], stage: si, radial: k }; RADCOLS.set(g, colP); RADCOLS.rB.set(g, rB); // WeakMap: clone() JSON-copies userData
   return g;
 }
@@ -796,11 +797,12 @@ function alignCorePlumes() {
     if (!L || !old) continue;
     const inf = vehicleOf(design.model) ? coreInfo(design.model, ci0, keys.length) : null, prop = inf ? inf.prop : old.userData.prop, vac = inf ? inf.vacuumOnly : old.userData.vac, ts = inf ? thrustScale(inf.tKN || 1000) : old.userData.ts, vis = old.visible; // roster data when the model has it, else keep the part-based guess
     for (const e of [...(old.userData.extra || []), old]) g.remove(e); // (geometries are shared between plumes: not disposed)
+    const pd = plumeDims({ prop, tKN: inf && inf.tKN > 0 ? inf.tKN * Math.max(1, inf.n) / Math.max(1, L.n) : 0, n: L.n, exitR: L.rn, vacuumOnly: vac || L.vac, stageD: 2 * L.ext }); // per-bell thrust when the roster lists fewer engines than the model has bells
     const ey = (NZ[key] && NZ[key].length ? L.y * hero.scale.y - g.position.y : 0); // plume-soft-1: the plume starts at the bell exit (stage-local height), not at the stage's base
     let plume; if (L.n > 1) { plume = makePlume(L.rn, prop); plume.userData.env = Math.max(1, L.ext / L.rn); plume.userData.noCore = L.cen < 0; plume.position.y = ey; g.add(plume);
       plume.userData.extra = L.pts.filter((p, i) => i !== L.cen).map(p => { const e = makePlume(L.rn, prop, true); e.position.set(p[0], ey, p[1]); g.add(e); return e; }); }
-    else { plume = makePlume(Math.max(0.8, L.rn * 1.1), prop); plume.position.y = ey; g.add(plume); }
-    Object.assign(plume.userData, { prop, vac: vac || L.vac, ts, nEng: L.n }); plume.visible = vis; g.userData.plume = plume; }
+    else { plume = makePlume(Math.max(0.15, L.rn * 1.1), prop); plume.position.y = ey; g.add(plume); }
+    Object.assign(plume.userData, { prop, vac: vac || L.vac, ts, nEng: L.n, lenM: pd.len }); plume.visible = vis; g.userData.plume = plume; }
 }
 function parallelCore() { const vv = vehicleOf(design.model); return !!(vv && vv.stages && vv.stages.some(x => x.parallel)); }
 function isPlumeChild(o, g) { const pl = g.userData.plume, ex = (pl && pl.userData.extra) || []; for (let p = o; p && p !== g; p = p.parent) if (p === pl || ex.includes(p)) return true; return false; }
@@ -1291,18 +1293,19 @@ function emit(veh, group, dt, bottom, dir) {
   const h = V.len(veh.r) - R, p = P.pressureRatio(h), thr = veh.throttle;
   // underexpanded jet (fxmap.plumeShape): the plume widens ~sqrt(pe/pa) as the ambient pressure drops
   const ps = plumeShape(p * 101325, thr), pl = plumeLook(p * 101325, thr), ud = plume.userData, w0 = ud.w, fl = plumeFlicker(performance.now() / 1000, group.id || 0); // fx-1: smooth flicker (no per-frame random strobe)
-  let len = pl.len * w0 * fl * Math.sqrt(ud.env || 1) * Math.sqrt(ud.ts || 1); const len0 = len;
+  const PM = ud.mats || plumeMats('kerolox'), LK = PM.look, env = ud.env || 1, vf = vacFactors(LK, pl.vac); // QA plume pass: length from the engine (ud.lenM, gfx/plume_style.js), shortened and dimmed per propellant in vacuum
+  let len = ud.lenM ? ud.lenM * (pl.len / 24) * vf.len * fl : pl.len * w0 * fl * Math.sqrt(env) * Math.sqrt(ud.ts || 1); const len0 = len, szK = ud.lenM ? Math.min(2, Math.max(0.45, Math.sqrt(ud.lenM / 30))) : 1;
   if (veh === v && booster && booster.state === 'flying' && performance.now() - WV.pulse < 6000) { const gap = V.len(V.sub(v.r, booster.r)) * 0.55; if (gap < len) len = Math.max(1.5, gap); } // f5.6c (Aaron video): the upper-stage plume never pokes through the booster just after separation
   plume.scale.set(1, 1, 1); const gk = glowScaleK(len, len0); // fx-1: the nozzle glow sprite fades with a clamped flame (no lone flat 2D sprite) // f5.3: the engines' jets merge into one column as long as the whole base would make
   const setL = (m, wk, lk = 1) => { m.scale.set(wk, len * lk, wk); m.position.y = -len * lk / 2; };
-  const PM = ud.mats || plumeMats('kerolox'), LK = PM.look, env = ud.env || 1;
-  const applyTo = P0 => { const u = P0.userData; if (u.lite) { setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.05 * fl); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk); return; }
-    setL(u.glow, pl.glowW * 1.15 * fl * Math.sqrt(env), 0.85); setL(u.outer, 1.7 + 0.4 * pl.vac, 1); setL(u.core, pl.coreW, 0.45 + 0.05 * fl);
+  const wd = LK.wid || 1, applyTo = P0 => { const u = P0.userData; if (u.lite) { setL(u.outer, (1.7 + 0.4 * pl.vac) * wd, 1); setL(u.core, pl.coreW * Math.sqrt(wd), 0.45 + 0.05 * fl); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk * LK.glow); return; }
+    setL(u.glow, pl.glowW * 1.15 * fl * Math.sqrt(env) * wd, 0.85); setL(u.outer, (1.7 + 0.4 * pl.vac) * wd, 1); setL(u.core, pl.coreW * Math.sqrt(wd), 0.45 + 0.05 * fl);
     u.outer.visible = u.core.visible = !u.noCore;
-    u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW * env * (ud.vac ? 1.35 : 1), len * 0.45 * Math.sqrt(env), pl.bellW * env * (ud.vac ? 1.35 : 1)); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk * (u.noCore ? 0 : 1)); };
+    u.bell.visible = pl.bell > 0.02; u.bell.scale.set(pl.bellW * env * (ud.vac ? 1.35 : 1) * vf.bellW, len * 0.45 * Math.sqrt(env), pl.bellW * env * (ud.vac ? 1.35 : 1) * vf.bellW); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk * LK.glow * (u.noCore ? 0 : 1)); };
   applyTo(plume); if (ex) for (const e of ex) applyTo(e);
   const hiF = 1 - 0.92 * Math.min(1, Math.max(0, (h - 25000) / 15000)); // f4: above ~40 km the vacuum plume is just a faint glow
-  const kk = LK.k; PM.plume.opacity = Math.min(1, 0.72 * fl * pl.bright * (1 - 0.45 * pl.vac) * hiF * kk); PM.plumeGlow.opacity = Math.min(1, 0.42 * pl.bright * fl * hiF * kk * (1 - 0.9 * pl.vac)); PM.plume.opacity *= 1 - 0.8 * pl.vac; // fx-1: no dark-red/maroon cone in vacuum: a clean core + soft bell PM.plumeCore.opacity = Math.min(1, 0.87 * fl * (0.35 + 0.65 * hiF) * Math.max(0.5, kk));
+  const kk = LK.k * vf.k; PM.plume.opacity = Math.min(1, 0.72 * fl * pl.bright * (1 - 0.45 * pl.vac) * hiF * kk); PM.plumeGlow.opacity = Math.min(1, 0.42 * pl.bright * fl * hiF * kk * (1 - 0.9 * pl.vac)); PM.plume.opacity *= 1 - 0.8 * pl.vac; // fx-1: no dark-red/maroon cone in vacuum: a clean core + soft bell PM.plumeCore.opacity = Math.min(1, 0.87 * fl * (0.35 + 0.65 * hiF) * Math.max(0.5, kk));
+  PM.plumeCore.opacity = 0.9 * fl * Math.min(1, Math.max(0.15, LK.k * vf.k ** 0.5)); // the hot core follows the propellant (a hydrolox core is a faint pale-blue thread, a solid's is white-hot)
   PM.plumeBell.opacity = 0.5 * pl.bell * fl * Math.max(0.3, hiF) * Math.max(0.6, kk) * (LK.k < 0.5 ? 1 : 0.6); PM.plumeSprite.opacity = Math.min(1, 0.9 * pl.bright * (0.4 + 0.6 * hiF) * Math.max(0.6, kk));
   { const vk = vacBlend(pl.vac), ck = 1 - vk, altK = vacAlt(h), vm = ud.vacm; // plume-soft-1: in thin air the cones hand over to one soft flaring shell that starts at the bell exit, widens and fades with altitude
     PM.plume.opacity *= ck; PM.plumeGlow.opacity *= ck; PM.plumeCore.opacity *= ck; PM.plumeBell.opacity *= ck; PM.plumeSprite.opacity *= 1 - 0.55 * vk;
@@ -1323,7 +1326,7 @@ function emit(veh, group, dt, bottom, dir) {
   if (sm > 0.03 && h < 40000 && !vacW) { // f4.1: no smoke/condensation above 40 km
     const vAir = V.sub(veh.v, siteVel(veh)), sp0 = V.len(vAir), back = sp0 > 30 ? V.scale(vAir, -1 / sp0) : V.scale(dir, -1);
     const at = V.addS(bottom, back, len * 0.5), lw = tr.last && V.addS(tr.last, siteVel(veh), dt), last = lw && V.len(V.sub(at, lw)) < 400 ? lw : V.addS(at, vAir, -dt); // the previous point rode the rotating air for dt (else: a sawtooth/corkscrew)
-    const seg = V.sub(at, last), dist = V.len(seg), wid = Math.min(wCap, (3 + 5 * sm) * (1 + h / 9000) * (1 + 0.6 * cond) * (LK.smoke > 2 ? 1.6 : 1) * Math.min(2, Math.sqrt(env))), N = Math.min(TOUCH ? 10 : 18, Math.ceil(dist / Math.max(1.5, wid * 0.45)) + 1), sz = Math.min(wCap * 1.5, Math.max(wid, dist / N * 1.6)); // plume-soft-1: bounded size, so one stage's smoke cannot fill the screen
+    const seg = V.sub(at, last), dist = V.len(seg), wid = Math.min(wCap, (3 + 5 * sm) * (1 + h / 9000) * (1 + 0.6 * cond) * (LK.smoke > 2 ? 1.6 : 1) * Math.min(2, Math.sqrt(env)) * szK), N = Math.min(TOUCH ? 10 : 18, Math.ceil(dist / Math.max(1.5, wid * 0.45)) + 1), sz = Math.min(wCap * 1.5, Math.max(wid, dist / N * 1.6)); // plume-soft-1: bounded size, so one stage's smoke cannot fill the screen
     tr.rate = (tr.rate || 60) * 0.9 + 0.1 * N / Math.max(dt / SIM_SPEED, 1e-3); const lifeK = Math.min(1, smoke.n * 0.85 / (tr.rate * 9));
     const wind = siteVel(veh), ground = h < 60 ? 1 : 0, soot = LK.soot && cond <= 0.3, cA = cond > 0.3 ? 0xf6f8fb : soot ? 0x9a9690 : 0xe4e6ea, cB = cond > 0.3 ? 0xdfe6ee : soot ? 0x6e6a66 : 0xb9bfc8; // kerolox: sooty grey
     for (let i = 0; i < N; i++) { const pos = V.addS(V.addS(last, seg, (i + 0.5) / N), wind, -dt); // pre-step: update() moves it by vel·dt this same frame
@@ -1331,10 +1334,10 @@ function emit(veh, group, dt, bottom, dir) {
       smoke.spawn(pos, vel, Math.max(1.5, (4 + 3 * cond) * (0.6 + 0.4 * sm) * lifeK * (1 - Math.min(0.6, h / 60000))), sz, wid * (2.6 + 1.4 * cond) * (ground ? groundSmokeK(h) : 1), cond > 0.3 ? cA : 0xffe4c4, cB, 0.35 * (0.45 + 0.55 * smokeFade(h))); }
   }
   tr.last = sm > 0.03 && h < 40000 && !vacW ? (() => { const va = V.sub(veh.v, siteVel(veh)), s0 = V.len(va); return V.addS(bottom, s0 > 30 ? V.scale(va, -1 / s0) : V.scale(dir, -1), len * 0.5); })() : null;
-  const n = h < 40000 && !(F && F.body !== 'earth' && !P.BODIES[F.body].atm) ? Math.round(Math.min(6, Math.ceil(dt * 120)) * flamePuffs(p)) : 0; /* fx-1: no flame puffs in thin air / vacuum (the white puffs) */ /* f5.4d: airless worlds: the plume mesh is the glow, no flame puffs */ // f4.1: in vacuum the plume mesh is the glow; no flame particles (they read as dotted puffs)
+  const n = h < 40000 && !(F && F.body !== 'earth' && !P.BODIES[F.body].atm) ? Math.round(Math.min(6, Math.ceil(dt * 120)) * flamePuffs(p) * (LK.puff ?? 1)) : 0; /* fx-1: no flame puffs in thin air / vacuum (the white puffs) */ /* f5.4d: airless worlds: the plume mesh is the glow, no flame puffs */ // f4.1: in vacuum the plume mesh is the glow; no flame particles (they read as dotted puffs)
   for (let i = 0; i < n; i++) {
     const sp = 60 + Math.random() * 40, spread = 6 + (1 - p) * 30;
-    const fv = jit(V.addS(veh.v, dir, -sp), spread); fire.spawn(V.addS(V.addS(V.addS(bottom, dir, -2), fv, -dt), dir, -sp * dt * i / n), fv, /* f4.1: fully pre-step (update() moves it fv·dt this frame) — else it leads the nozzle by up to v·dt */ 0.25 + Math.random() * 0.25, 2.5, 6 + (1 - p) * 10, 0xffd9a0, 0x200800, 2);
+    const fv = jit(V.addS(veh.v, dir, -sp), spread); fire.spawn(V.addS(V.addS(V.addS(bottom, dir, -2), fv, -dt), dir, -sp * dt * i / n), fv, /* f4.1: fully pre-step (update() moves it fv·dt this frame) — else it leads the nozzle by up to v·dt */ 0.25 + Math.random() * 0.25, 2.5 * szK, 6 + (1 - p) * 10, 0xffd9a0, 0x200800, 2);
     if (false) {
       const gk = h < 60 ? 1 : 0, up = V.norm(veh.r), wind = siteVel(veh);
       const base = V.add(wind, V.scale(V.sub(veh.v, wind), 0.15));
@@ -2414,6 +2417,6 @@ window.__game = { goHome: () => goBuild(), rocketMarks: () => [comMark.visible, 
     for (const sys of [fire, smoke]) for (const q of sys.d) { if (q.life <= 0 || Math.hypot(q.x, q.y, q.z) - P.R_E < 300) continue; /* ignore the pad cloud */ const a = V.dot([q.x - nz[0], q.y - nz[1], q.z - nz[2]], vh); if (V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]) > 3000) continue; n++; if (a > maxA) maxA = a; if (a > 2) { ahead++; if (dbg.length < 6) dbg.push({ sys: sys === fire ? 'fire' : 'smoke', a: +a.toFixed(0), age: +(q.max - q.life).toFixed(2), c: q.c0 && q.c0.toString(16), d: q.drag, rva: +V.dot([q.vx - v.v[0], q.vy - v.v[1], q.vz - v.v[2]], vh).toFixed(0), an: +V.dot(P.noseOf(v), vh).toFixed(3), r: +V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]).toFixed(0) }); } }
     return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, relFrame: () => relFrame(), mapProbe: id => smap.probe(id), siteSun: () => siteArt.obj.map(L => ({ el: +(L.userData.sunEl || 0).toFixed(1), night: !!L.userData.night, lights: (() => { let n = 0; L.traverse(o => { if (o.isLight && o.visible) n++; }); return n; })() })), audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, bus: fbus ? fbus.gain.value : -1, crack: crackSrc ? 1 : 0, sfx: sbus ? sbus.gain.value : -1, dist: dbus ? dbus.gain.value : -1, mix: audioMix, music: funMusic.probe(), musicNow: musicMode(), loops: (rumbleSrc ? 1 : 0) + funAudio.liveLoops(), dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, startReplay, get replay() { return replay; }, explode, split, setGroundCam: on => { GCAM.on = !!on; if (on && split.on) split.full = 'u'; camMode = 'chase'; }, get groundCam() { return GCAM.act; }, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, stickCmd: () => ({ ...mobile.input }), get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get camPitch() { return camPitch; }, camInfo: () => { const bR = (P.BODIES[F.body] || {}).R || R, O = shipPos ? null : null; return { pitch: camPitch, dist: camDist, up: camera.up.toArray().map(x => +x.toFixed(3)) }; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, qol, craftDv, sitePicker, get sbSite() { return sbSite; } };
 window.__game.tileStats = () => { const w = tileGeo.attributes.wat.array, c = tileGeo.attributes.color.array, h = [0, 0, 0, 0, 0]; for (const x of w) h[Math.min(4, Math.max(0, Math.floor(x * 5)))]++; return { hist: h, vis: tile.visible, c0: [c[0], c[1], c[2]], center: tileC, px: !!earthPx, mat: tile.material.type }; };
-window.__game.camSet = (y, p, d) => { camYaw = y; camPitch = p; if (d) camDist = d; camUserT = performance.now() + 1e9; }; // flight-ground-3: shot tools aim the chase camera
+window.__game.camSet = (y, p, d, a) => { camYaw = y; camPitch = p; if (d) camDist = d; if (a != null) camAim = a; camUserT = performance.now() + 1e9; }; // flight-ground-3: shot tools aim the chase camera
 window.__game.tileOff = b => { tileForceOff = !!b; }; window.__game.tileFadeInfo = () => { const h = F ? Math.max(0, F.alt) : 0; return { h, alt: GX.tileAltAlpha(h), rim: GX.tileRimAlpha(h), vis: tile.visible || tileF.visible, fade: tileF.visible }; }; // f5.9 terrain: render A/B + fade numbers for tests/smoke/terrain_blend.cjs
 window.__game.paneSlots = () => paneSlots; // f5.6x: shot tools / pane-rect checks
