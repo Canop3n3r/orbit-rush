@@ -416,3 +416,7 @@ body.noStage #botBar :is(#mStage,#dStage){display:none!important}
 #botBar #relBtn{height:40px}
 #botBar #relBtn.done{width:auto;min-width:var(--tap);max-width:120px;padding:0 10px!important;height:var(--tap);font-size:var(--t-xs)!important;color:var(--txt)!important;background:var(--btn)!important;border-color:var(--bc)!important;align-self:flex-end}
 @media (max-width:380px){:root{--bnb:56px}#botBar :is(#mAuto,#dAuto){min-width:50px}#botBar :is(#mStage,#dStage){min-width:56px}}
+body.u59:not(.lifted) #bbT{display:none!important}
+@media (orientation:landscape) and (max-height:520px){body.u59 #botBar #dvStages{display:none!important}body.u59 #botBar #plain{grid-template-columns:auto auto;column-gap:14px}#botBar #apPe{grid-column:2;grid-row:1 / span 2;align-self:center}}
+@media (max-width:420px){#botBar :is(#mAuto,#dAuto,#mStage,#dStage){font-size:var(--t-s)!important;padding:0 2px!important}}
+@media (max-width:340px){:root{--bnb:52px}#botBar :is(#mAuto,#dAuto,#mStage,#dStage){font-size:10px!important;padding:0 1px!important;min-width:44px!important;letter-spacing:-.02em}#botBar :is(#mright,#dCtl){gap:3px}#botBar :is(#mThr,#dThr){width:26px!important}#botBar #spd .spV{font-size:20px!important}}
