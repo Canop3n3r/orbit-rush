@@ -394,7 +394,7 @@ body.u59 #settings .mbox>h2{justify-content:space-between;gap:8px}
 body.u59 #settings .mbox>h2 .hx{flex:none;min-width:var(--tap);height:var(--tap);padding:0 12px!important;margin:0!important}
 
 /* ===== f5.9f: ONE compact bottom row (~72px): speed / altitude / Ap-Pe | navball | AUTO STAGE THR ===== */
-:root{--bnb:clamp(60px,17vw,72px);--ctlH:54px}
+:root{--bnb:clamp(60px,15vw,72px);--ctlH:54px}
 @media (orientation:landscape) and (max-height:520px){:root{--bnb:58px;--ctlH:46px}}
 body.u59 #botBar{gap:2px 8px;padding:4px calc(8px + max(var(--sar),var(--sal))) calc(4px + var(--sab));align-items:center}
 body.autoOn #bbT,body.autoOn #botBar #dvStages{display:none!important}
@@ -485,3 +485,29 @@ body.u59 #sitePick{align-items:flex-end!important;padding-top:calc(58px + var(--
 body.u59 #sitePick .spBox{max-height:var(--spMax,calc(100dvh - 58px - 150px))!important}
 
 body.u59 #home #hGal #picker section.pkR.off{display:none!important}
+
+/* ===== f5.9g: navball stays bottom centre (symmetric columns), speedometer stays big, Δv per stage stays reachable ===== */
+#botBar{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important}
+#botBar :is(#mAuto,#dAuto){width:52px!important;min-width:52px!important}
+#botBar :is(#mStage,#dStage){width:60px!important;min-width:60px!important;max-width:60px}
+#botBar :is(#mThr,#dThr){width:28px!important}
+#botBar :is(#mright,#dCtl){grid-template-columns:auto auto 28px!important;gap:4px!important}
+#botBar :is(#mAuto,#dAuto,#mStage,#dStage){font-size:var(--t-xs)!important;padding:0 2px!important}
+@media (orientation:landscape) and (max-height:520px){
+  #botBar #spd .spV{font-size:28px!important}
+  body.u59 #botBar #dvStages{display:flex!important;grid-column:2;grid-row:1 / span 2;align-self:end;margin:0;padding:0;border:0;flex-wrap:nowrap;gap:6px;font-size:var(--t-xs)}
+  body.u59 #botBar #apPe{grid-row:1}
+}
+@media (min-width:900px) and (min-height:600px){body.u59 #botBar #dvStages{display:flex!important}}
+@media (max-width:340px){
+  #botBar :is(#mAuto,#dAuto){width:44px!important;min-width:44px!important}
+  #botBar :is(#mStage,#dStage){width:50px!important;min-width:50px!important;max-width:50px}
+  #botBar :is(#mThr,#dThr){width:24px!important}
+  #botBar :is(#mright,#dCtl){grid-template-columns:auto auto 24px!important;gap:3px!important}
+}
+@media (max-width:340px){
+  #botBar #bars .bar{gap:3px!important}
+  #botBar #bars .bar span{min-width:0!important;width:auto!important}
+  #botBar #bars .bar b{min-width:0!important;width:auto!important;font-size:10px!important;letter-spacing:0!important}
+}
+@media (max-width:340px){#botBar :is(#mThr,#dThr) u{font-size:8px!important;letter-spacing:0!important}}

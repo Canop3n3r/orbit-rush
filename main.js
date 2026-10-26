@@ -1102,7 +1102,7 @@ function craftDv() { // Δv left in the stages still attached (vacuum Isp)
 // ---------- input ----------
 // Throttle Shift/Ctrl (or ↑/↓), Z/X full/cut · W/S pitch, A/D yaw, Q/E roll · C RCS · I/K J/L H/N RCS translate
 // 1–7 SAS mode (V toggles SAS) · F AUTO · Space stage · T/, warp · G warp to Ap · M map · B booster cam · Y fly booster · R hangar
-const SAS_KEYS = { Digit8: 'node', Digit1: 'stab', Digit2: 'prograde', Digit3: 'retrograde', Digit4: 'radial', Digit5: 'antiradial', Digit6: 'normal', Digit7: 'antinormal', Digit0: 'off' };
+const SAS_KEYS = { Digit8: 'node', Digit1: 'stab', Digit2: 'prograde', Digit3: 'retrograde', Digit4: 'radial', Digit5: 'antiradial', Digit6: 'normal', Digit7: 'antinormal' };
 const flyingBooster = () => F.flyingBooster();
 // hx: on-screen warp arrows (◀◀ ×N ▶▶) share these with T / , ; levels above the current physics/rails limit are refused
 function warpMaxI() { const lim = F.warpLimit()[0]; let i = 0; while (i + 1 < WARPS.length && WARPS[i + 1] <= lim) i++; return i; }
