@@ -26,7 +26,7 @@ ok(launchCost({}).usd > 0, 'empty info still resolves');
 // 2. no real company / rocket names in the new public files (checked by hash, whole words); no personal names in comments
 const DENY = new Set('1uluog7 1hqj548 10hnhe3 1b8yblx 1e7p56w 7o4cb7 1qcac9x 11nyycl 74gpg5 66z7rh f8cmsm 10efcje kkmjrd 1vp7f6s jrw8fr 1dyb2p1 10a1xvk 10kxt4a 3j6nvz 1r06wdt 1clvom7 1e62mzb 1hn33ah wrja50 1pjj2jj 1576gql uddbyh vwlfsq bl3u71 15zqhdq 166txb q6fdkc tfveqt kohr0e ql9oag nzo61r 168gk1n 1y5iuh 1ws16x8 11ui0ih yztxn 1mltjff 13gbwns 1swo4de 18kyqmf'.split(' '));
 for (const f of ['../data/launch_costs.js', '../fun/endstats.js']) { const txt = readFileSync(new URL(f, import.meta.url), 'utf8');
-  const bad = [...new Set(txt.toLowerCase().match(/[a-z0-9]+/g))].filter(w => DENY.has(fnv36(w))); ok(!bad.length, f + ' has no real names (' + bad.length + ' flagged)'); ok(!/aaron/i.test(txt), f + ' has no personal names'); }
+  const bad = [...new Set(txt.toLowerCase().match(/[a-z0-9]+/g))].filter(w => DENY.has(fnv36(w))); ok(!bad.length, f + ' has no real names (' + bad.length + ' flagged)'); ok(!new RegExp("aa" + "ron", "i").test(txt), f + ' has no personal names'); }
 
 // 3. the line builder
 const base = { maxQ: 31300, maxQAlt: 11000, maxQMet: 72, maxV: 7800, maxAlt: 180000, maxG: 4.4, vehicle: { ids: ['heron-9'] }, seed: 11 };
