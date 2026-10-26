@@ -77,7 +77,7 @@ export function createMobile(api) {
     $('mAlt').textContent = d.alt; $('mSpd').textContent = d.spd; $('mAp').textContent = d.ap; $('mPe').textContent = d.pe;
     $('mMqL').textContent = d.mqL; $('mMq').textContent = d.mq; $('mMq').className = d.mqC || ''; $('mFuel').textContent = d.fuel; $('mScore').textContent = d.score;
     thr.querySelector('i').style.height = d.thr * 100 + '%'; thr.querySelector('u').textContent = Math.round(d.thr * 100) + '%';
-    $('mAuto').classList.toggle('on', d.auto); { const t = 'AUTO'; /* f5.6u (QA P1 budgets): the lit button + dot says ON; one word */ if ($('mAuto').textContent !== t) $('mAuto').textContent = t; } $('mChute').classList.toggle('hidden', !d.chute); menuUpdate($('mMenu'), { booster: !!d.booster, ret: /CANCEL/.test(d.home || ''), chute: d.hasChute, canHome: d.canHome });
+    $('mAuto').classList.toggle('on', d.auto); { const t = 'AUTO'; /* f5.6u (QA P1 budgets): the lit button + dot says ON; one word */ if ($('mAuto').textContent !== t) $('mAuto').textContent = t; } $('mChute').classList.toggle('hidden', !d.chute); menuUpdate($('mMenu'), { fleet: !!d.fleet, booster: !!d.booster, ret: /CANCEL/.test(d.home || ''), chute: d.hasChute, canHome: d.canHome });
     $('mRcs').classList.toggle('on', d.rcs); $('mFx').textContent = 'FX ' + d.fx; $('mWarp').textContent = d.warp;
     root.querySelectorAll('#mMenu [data-sas]').forEach(b => b.classList.toggle('on', b.dataset.sas === d.sas));
     $('mStage').classList.toggle('ready', d.stageReady);

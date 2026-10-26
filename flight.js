@@ -5,6 +5,7 @@ import * as P from './physics.js?v=f5.9-4';
 import * as C from './physics/patched.js?v=f5.9-4';
 import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.9-4';
 import { designReusable } from './vehicles/reusable.js?v=f5.9-4';
+import { installVessels } from './fun/vessels.js?v=f5.9-4'; // f6.2: switching between vessels left in space, craft power, deployed payloads
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -195,6 +196,7 @@ export class Flight {
     this.t0 = opts.t0 ?? P.tFromDate(opts.epoch ?? Date.now()); epochPhase(this.t0);
     this.nodes = []; this.alarms = []; this.target = opts.target || null; this.goals = {}; this.warpTarget = null; this.exec = false; this.deep = !!(design.goal || opts.deep);
     if (opts.incl) v.incl = +opts.incl;
+    this.initFleet(design); // f6.2: the rocket is vessel 1; payloads it leaves join the fleet
   }
   get tAbs() { return this.t0 + (this.v.clock || 0); }
   get body() { return this.v.body || 'earth'; }
@@ -348,16 +350,16 @@ export class Flight {
   // ---------- quicksave / quickload: the whole flight state as plain JSON (a flying booster is not kept) ----------
   snapshot() {
     const strip = (k, x) => (k === '_g' || k === '_rel' || k === '_scr' ? undefined : x);
-    const keep = ['met', 'ignited', 'maxQ', 'maxQEntry', 'maxG', 'autoThrottle', 'ascent', 'dvUsed', 'flags', 'lastPow', 'orbitSnap', 'maxHeat', 'maxTskin', 'maxGret', 'parked', 't0', 'nodes', 'alarms', 'target', 'goals', 'deep', 'ship'];
+    const keep = ['met', 'ignited', 'maxQ', 'maxQEntry', 'maxG', 'autoThrottle', 'ascent', 'dvUsed', 'flags', 'lastPow', 'orbitSnap', 'maxHeat', 'maxTskin', 'maxGret', 'parked', 'rec', 't0', 'nodes', 'alarms', 'target', 'goals', 'deep', 'ship'];
     const f = {}; for (const k of keep) f[k] = this[k];
-    return JSON.parse(JSON.stringify({ v: 1, design: this.design, at: Date.now(), body: this.body, tAbs: this.tAbs, veh: this.v, f }, strip));
+    return JSON.parse(JSON.stringify({ v: 1, design: this.design, at: Date.now(), body: this.body, tAbs: this.tAbs, veh: this.v, f, fleet: this.fleetSnapshot() }, strip));
   }
   loadSnapshot(s) {
     const v = JSON.parse(JSON.stringify(s.veh)); v._g = null; v.auto = false;
     this.v = v; Object.assign(this, JSON.parse(JSON.stringify(s.f)));
     this.booster = null; this.boosters = []; this.ret = null; this.autoOn = false; this.exec = false; this.warpTarget = null; this.warpI = 0; this.autoWarp = false; this.rails = false; this.ended = false; this.finalScore = null; this._soiC = null;
     for (const n of this.nodes) { n.started = false; delete n.done; }
-    epochPhase(this.t0); P.stepVehicle(v, 0); return this;
+    this.restoreFleet(s.fleet); epochPhase(this.t0); P.stepVehicle(v, 0); return this;
   }
   // Ballistic impact prediction with drag (no thrust): { t (game time), r (body frame), speed, lat, lon } or null.
   // Coasts on rails to the top of the atmosphere, then integrates a point mass with this craft's drag.
@@ -380,6 +382,7 @@ export class Flight {
   stagePress() {
     const v = this.v, f = this.flags;
     if (f.dead) return 'dead';
+    { const cs = this.craftStage(); if (cs) return cs; } // f6.2: a carrier lets its craft go
     if (this.v.auto) this.takeOverUpper();
     if (!this.ignited) { this.ignited = true; v.ut = 1; this.call('sound', 'ignite'); this.toast('IGNITION', '#ffb35c'); return 'ignite'; }
     const next = v.cur < this.last ? 'stage' : v.fairing > 0 && this.alt > 60000 ? 'fairing' : this.canRelease() ? 'release' : null;
@@ -470,7 +473,7 @@ export class Flight {
   payloadParts() { const top = this.v.stages[this.last]; if (!top || !(top.eng && top.eng.tv > 0)) return [];
     return top.parts.filter(p => p.kind === 'payload' || (p.kind === 'pod' && p.id !== 'crew' && !(p.mult > 1))); }
   payloadPart() { return this.payloadParts()[0] || null; }
-  canRelease() { const v = this.v; return !this.released && this.ignited && !this.flags.dead && v.cur === this.last && !!this.payloadPart() && this.alt > 100000 && !(this.ret && this.ret.sepAt) && this.inOrbit(); }
+  canRelease() { const v = this.v; return !this.released && this.ignited && !this.flags.dead && v.cur === this.last && !v.craft && !!this.payloadPart() && this.alt > 100000 && !(this.ret && this.ret.sepAt) && this.inOrbit(); }
   inOrbit() { const v = this.v; try { return P.orbitOf(v).pe > 100000; } catch (e) { return false; } } // f5.4 (QA D4): RELEASE only once the stage coasts in orbit (not mid-ascent at 101 km)
   releasePayload() {
     if (!this.canRelease()) { if (!this.released && this.payloadPart() && (this.alt <= 100000 || !this.inOrbit())) this.toast('Release the payload once in orbit (periapsis above 100 km)', '#ffb35c'); return null; }
@@ -486,13 +489,14 @@ export class Flight {
     const rec = { r: r0, v: V.addS(v.v, nrm, 2.0), t: this.tAbs, m, body: this.body };
     V.addS(v.v, nrm, -2.0 * m / Math.max(0.5, P.massOf(v))).forEach((x, i) => { v.v[i] = x; });
     const o = P.orbitOf({ ...v, r: rec.r, v: rec.v }); rec.ap = o.ap; rec.pe = o.pe;
-    this.released = rec; this.flags.released = rec;
+    this.released = rec; this.flags.released = rec; this.onPayloadReleased(rec); // f6.2: the payload becomes a vessel you can fly
     this.call('release', rec); this.call('sound', 'stage');
     this.toast(o.pe > 140000 ? `🛰 PAYLOAD RELEASED — Ap ${(o.ap / 1000).toFixed(0)} km / Pe ${(o.pe / 1000).toFixed(0)} km. Deorbit the stage: burn retrograde` : `🛰 PAYLOAD RELEASED — Pe ${(o.pe / 1000).toFixed(0)} km: too low, it will re-enter`, o.pe > 140000 ? '#7dffb0' : '#ffb35c');
     return rec;
   }
   jettison() { const v = this.v; if (v.fairing <= 0) return; v.fairing = 0; this.flags.fairing = 1; this.call('jettison'); this.toast('Fairing separation', '#9cc3ff'); }
   setAuto(on, quiet) {
+    if (on && this.v.craft) { if (!quiet) this.toast('AUTO flies rockets. Point with SAS, burn with Z/X, plan burns on the map (M)', '#9cc3ff'); return; } // f6.2
     if (on && this.ret) { this.ret.auto = true; if (!quiet) this.toast('AUTO is flying the return (deorbit, reentry, parachutes)', '#9cc3ff'); return; }
     if (!on && this.ret) { if (this.ret.auto && !quiet) this.toast('You have the capsule — parachutes stay armed (F hands it back)', '#9cc3ff'); this.ret.auto = false; this.v.steerDir = null; this.autoOn = false; if (this.v.auto) this.v.auto = false; return; }
     if (this.v.auto && !on) this.v.auto = false;
@@ -713,7 +717,7 @@ export class Flight {
     } else { const left = (tAp - lead) / SIM_SPEED; this.setWarp(left > 200 ? 6 : left > 60 ? 5 : left > 25 ? 4 : left > 8 ? 3 : 2, true); }
   }
   advance(rdt) {
-    this.realT += rdt; this.updateAutoWarp(); this.updateExec();
+    this.realT += rdt; this.updateAutoWarp(); this.updateExec(); this.fleetTick();
     const wt = this.warpTarget;
     if (wt && this.tAbs >= wt.t - 1e-3) { this.warpTarget = null; this.setWarp(0, true); this.toast(`Arrived: ${wt.label}`, '#ffd23a'); this.call('sound', 'beep', 1000); }
     const W = this.effWarp(); let simDt = rdt * SIM_SPEED * W;
@@ -738,6 +742,7 @@ export class Flight {
     const al = this.alarms.filter(a => a.t > this.tAbs + 0.5);
     const ev = C.nextEvent(body, v.r, v.v, this.tAbs, simDt, { nodes: [...lead, ...al], stopAlt: C.railsAltOf(body) - (body === 'earth' ? 3000 : 0) });
     const dt = ev ? Math.max(0, ev.dt) : simDt;
+    if (v.craft) this.craftRails(dt);
     P.railsStep(v, dt); this.met += dt; this.postStep(); this.updateReturn(dt); this.updateNode(0, 1);
     if (ev) {
       if (ev.type === 'soi-exit' || ev.type === 'soi-enter') { this.switchBody(ev.to); }
@@ -793,7 +798,9 @@ export class Flight {
         if (k && h0 < (k === 'drogue' ? CHUTE_AUTO.drogueAlt : CHUTE_AUTO.mainAlt) && chuteLimits(this.chuteSpec(), v.tel, k).ok) this.deployChute();
       }
       this.updateChute(dt);
+      const craftOn = v.craft ? this.craftTick(dt) : true; // f6.2: battery, solid motor, power switch
       P.updateControl(v);
+      if (!craftOn) { v.cmdTorque = [0, 0, 0]; v.trans = [0, 0, 0]; }
       const st = v.stages[v.cur], m0 = P.massOf(v);
       const e = P.stepVehicle(v, dt), h = this.alt, tel = v.tel;
       if (this.ret && tel.gload > this.maxGret) this.maxGret = tel.gload;
@@ -908,6 +915,7 @@ export class Flight {
   }
   fail(reason, cause) {
     const f = this.flags; if (f.dead || f.deorbited) return;
+    if (this.loseVessel(reason)) return; // f6.2: a piloted payload that comes down is lost, the flight goes on with the other vessels
     if (this.released && this.body === 'earth' && this.alt < 130000) { // f5.2.3: after release the spent stage burning up or hitting the sea is the planned end
       f.deorbited = reason; this.v.throttle = this.v.ut = 0; this.autoWarp = false; this.warpI = 0; this.call('deorbited', reason);
       this.toast('✔ Spent stage de-orbited — ' + reason, '#7dffb0'); this.call('end', 2800, () => true); return; }
@@ -949,6 +957,7 @@ export class Flight {
   finish() { if (!this.ended) { this.finalScore = this.score(); this.ended = true; this.autoWarp = false; this.warpI = 0; } return this.finalScore; }
   unfinish() { this.ended = false; this.finalScore = null; this.endQueued = false; }
   hint() {
+    if (this.v.craft && !this.flags.dead && !this.ret) return this.craftHintText(); // f6.2
     const v = this.v, f = this.flags, b = this.booster, h = this.alt, sp = V.len(v.v), vr = V.dot(v.v, V.norm(v.r)), tel = v.tel || {};
     const o = P.orbitOf(v), engineOn = v.thrust > 0, s1 = v.stages[0], cs = v.stages[v.cur], fuelLeft = v.stages.slice(v.cur).reduce((t, x) => t + x.fuel, 0);
     if (f.dead) return 'Press R to go back to the hangar';
@@ -995,3 +1004,4 @@ export class Flight {
     return '';
   }
 }
+installVessels(Flight);

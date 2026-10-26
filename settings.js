@@ -13,6 +13,7 @@ export const ACTIONS = [
   ['deorbit', 'Deorbit & home', 'KeyO'], ['chute', 'Parachutes', 'KeyP'], ['flyBooster', 'Fly the booster', 'KeyY'], ['boosterCam', 'Booster camera', 'KeyB'],
   ['camMode', 'Camera: free / locked', 'Backquote'], ['overlay', 'CoM / CoP / CoT overlay', 'Backslash'],
   ['quicksave', 'Quicksave', 'F5'], ['quickload', 'Quickload', 'F9'], ['pause', 'Pause menu', 'Escape'],
+  ['vesselNext', 'Next craft in space', 'BracketRight'], ['vesselPrev', 'Previous craft in space', 'BracketLeft'], ['power', 'Craft power on / off', 'Minus'], ['craftList', 'Craft list', 'Equal'],
   ['hangar', 'Back to hangar', 'KeyR'], ['fx', 'Effects quality', 'KeyU'], ['learn', 'Learn overlay', 'Slash'],
 ];
 export const DEFAULT_KEYS = Object.fromEntries(ACTIONS.map(a => [a[0], a[2]]));

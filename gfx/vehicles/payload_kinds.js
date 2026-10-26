@@ -1,6 +1,6 @@
 // Which payload a flight carries (pure: no three import, tested in tests/payload_kinds.mjs).
 // The model shows this payload under the fairing from t=0 and releases that same mesh on RELEASE.
-export const KINDS = ['comsat', 'eo', 'nav', 'probe', 'cargo', 'flatpack', 'rideshare', 'roadster'];
+export const KINDS = ['comsat', 'eo', 'nav', 'probe', 'cargo', 'flatpack', 'rideshare', 'roadster', 'cubesat', 'geosat', 'crew', 'station', 'lander', 'tug', 'kick']; // the last seven are craft shapes (gfx/vehicles/craft_models.js)
 // mission id -> payload look (missions/<id>.js)
 export const BY_MISSION = { 'constellation-batch': 'flatpack', 'gto-comsat': 'comsat', rideshare: 'rideshare', 'sso-rideshare': 'rideshare', 'first-orbit': 'probe',
   'roadster-helio': 'roadster', 'station-rendezvous': 'cargo', refuel: 'cargo' };

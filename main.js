@@ -50,6 +50,9 @@ import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-4';
 import { createFunUI } from './fun/ui.js?v=f5.9-4';
 import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload } from './gfx/vehicles/vehicles.js?v=f5.9-4';
 import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-4';
+import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-4'; // f6.2: craft types, switching between vessels
+import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-4';
+import { createVesselUI } from './fun/vesselui.js?v=f5.9-4';
 import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.9-4';
 import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.9-4';
 import { dimsOf } from './vehicles/dims.js?v=f5.9-4';
@@ -513,10 +516,22 @@ function makeRocketGroups(design) {
       for (let i = 0; i < 4; i++) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.35, 9, 0.35), M.black); const a = i * Math.PI / 2 + 0.78; l.position.set(Math.cos(a) * (rMax + 2), 2.2, Math.sin(a) * (rMax + 2)); l.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); legs.add(l); }
       legs.visible = false; g.add(legs);
     }
-    g.userData = { h: y, plume, legs, fair, fairH: fair ? 1.6 * fp.d : 0, hot, stage: si };
+    g.userData = { h: y, plume, legs, fair, fairH: fair ? 1.6 * fp.d : 0, hot, stage: si, payY: payloadY };
     g.traverse(o => { if (o.geometry) o.geometry.userData.own = true; }); // f5.2.2: created for this stack only (materials stay shared M.*)
     out.push(g);
   });
+  return out;
+}
+// f6.2: the stage groups of a piloted craft (same contract as makeRocketGroups: h, plume, hot, stage), from its own physics vehicle
+function makeCraftGroups(vv) {
+  const T0 = craftTypeOf(vv.craft.type), stg = buildCraftStages(vv, buildPayload, 'hi'), out = [], prop = PLUME_OF[T0.prop] || 'hypergolic';
+  vv.stages.forEach((s, si) => {
+    const g = new THREE.Group(), m = stg[Math.min(si, stg.length - 1)], eng = s.parts.find(q => q.kind === 'engine'), rN = Math.max(0.08, (eng ? eng.d : T0.d * 0.3) * 0.32);
+    g.add(m.group); const plume = makePlume(rN, prop); g.add(plume);
+    Object.assign(plume.userData, { prop, nEng: 1, vac: true, ts: T0.prop === 'ion' ? 0.25 : T0.prop === 'coldgas' ? 0.2 : T0.prop === 'monoprop' ? 0.35 : 0.6 });
+    g.userData = { h: s.parts.reduce((t, q) => t + q.h, 0), plume, legs: null, fair: null, fairH: 0, hot: [], stage: si, payY: null };
+    g.traverse(o => { if (o.geometry && !o.geometry.userData.shared) o.geometry.userData.own = true; });
+    out.push(g); });
   return out;
 }
 // Radial boosters: k copies of the booster column around the core, from the core's bottom up (no stack height)
@@ -656,6 +671,7 @@ const qol = createQoL({ settings: () => SET, onSettings: s => { SET = s; transla
   dvTable: () => dvTableHTML(state === 'flight' ? craftDv() : designStats(design).total, state !== 'flight') });
 // ---------- game state ----------
 let state = 'build', F, v, booster, booster2 = null, shipVis2 = null, rocketG, SG = [], camMode, gen = 0;
+let viewId = null, vesselUI = null; const fleetVis = new Map(); // f6.2: the craft being looked at (VIEW), the craft list, the art of every craft you are not flying
 const debris = [];
 // fx-1 (QA D2): the fairing splits into two visible half shells that hinge open and fall away (fun/fairing.js)
 const fairHalves = [];
@@ -708,6 +724,8 @@ const hooks = {
   boosterLanded: b => { b.mesh.userData.plume.visible = false; if (camMode === 'booster') later(() => { if (camMode === 'booster') camMode = 'chase'; }, 3000); },
   fail: () => { explode(v.r, v.v, true, true); rocketG.visible = false; slowMo = 2.5; },
   release: rec => onRelease(rec), // f5.2.3 payload lifecycle
+  vesselSwitched: () => onVesselSwitched(), vesselParked: o => onVesselParked(o), // f6.2: the craft you fly changed
+  vesselLost: o => { explode(v.r, v.v, false, true); onVesselRemoved(o); }, vesselGone: o => onVesselRemoved(o), vesselDeployed: () => { smapSats.c = null; vesselUI && vesselUI.draw(); },
   payloadAt: () => heroPayloadAt(), // rockets-pass-1: the model's own payload is the one that leaves, from where it sits
   deorbited: () => { explode(v.r, v.v, false, true); rocketG.visible = false; },
   soi: (from, to) => { if (!PROG.visited.includes(to)) { PROG.visited.push(to); PR.save(localStorage, PROG); fun.reveal(to); } else fun.call('🪐', 'Entering ' + P.BODIES[to].name + ' space', '#9cc3ff'); },
@@ -761,6 +779,7 @@ function showPreview() {
   let y = 0; for (const g of SG) { g.position.y = y; y += g.userData.h; rocketG.add(g); } scene.add(rocketG);
   F = new Flight(validate(design).ok ? design : TEMPLATES[0], hooks, { padZ: PAD_Z, earthRot, incl: launchIncl, epoch: EPOCH, ...(opFlightOpts || {}), ...(!opFlightOpts && sbSite && !(typeof academy !== 'undefined' && academy.active) ? siteOpts(sbSite, GX.latLonToGame) : {}) }); v = F.v;
   try { F.alt0 = Math.max(0, P.altOf(F.v)); } catch (e) { F.alt0 = 0; } // f5.8f (QA P1): the HUD reads altitude above the launch base (≈0 on the pad), not the stack's centre above sea level
+  F.craftHint = craftHintNow(); try { F.seedFleet(WORLD.sats(WORLD.load(localStorage)), w => w.craft || kindTypeOf(w)); } catch (e) { console.warn('[Orbit Rush] fleet', e); }
   syncSiteArt(); // f5.4: the picked site's space center
   rocketG.add(comMark, copMark, cotMark);
   fx.attach(rocketG); chuteVis = makeChutes(); rocketG.add(chuteVis);
@@ -830,8 +849,12 @@ function heroFairing(on) { if (!hero) return; heroBay(!on); heroSyncPayload(); f
 // rockets-pass-1: the payload is a real mesh on the model from t=0 (under the shell, or in a ship's bay) and the one RELEASE sends away
 const heroLevels = () => hero ? (hero.levels || [{ object: hero }]).map(l => l.object) : [];
 let heroKind = null, bayK = 0, bayTarget = 0; // heroKind: the payload look built into the hero; bayK: ship bay opening 0..1
-function payloadKind() { try { return payloadKindFor({ missionId: opSess && opSess.m && opSess.m.id, partIds: (design.parts || []).map(p => p.id), hasSpec: !!design.spec, model: design.model || design.name, constellation: isConstellation() }); } catch (e) { return 'comsat'; } }
+const craftInfo = () => ({ missionId: opSess && opSess.m && opSess.m.id, partIds: (design.parts || []).map(p => p.id), hasSpec: !!design.spec, model: design.model || design.name, constellation: isConstellation() });
+// f6.2: the launcher decides the craft it deploys (data/craft_types.js); the model under the fairing is that craft's model
+function payloadKind() { try { const info = craftInfo(), k = payloadKindFor(info); return k ? kindOfType(craftTypeFor({ ...info, kind: k })) : k; } catch (e) { return 'comsat'; } }
+function craftHintNow() { try { const info = craftInfo(); return { ...info, kind: payloadKindFor(info), house: design.model || design.name }; } catch (e) { return {}; } }
 function heroSyncPayload() { // the mission (and so the payload look) may only be known after the hero was built: rebuild it while the shell still hides it
+  if (F && F.fleet) F.craftHint = craftHintNow();
   if (!hero) return; const k = payloadKind(); if (k === heroKind) return; heroKind = k;
   for (const o of heroLevels()) { try { heroSetPayload(o, o.userData.id || design.model, k, o.userData.detail || 'hi'); } catch (e) { console.warn('[Orbit Rush] hero payload', e); } } }
 function heroBay(open) { bayTarget = open ? 1 : 0; if (!open) bayK = 0; heroBayApply(); }
@@ -876,6 +899,56 @@ function syncStages() {
   let y = 0; for (let j = v.cur; j < SG.length; j++) { SG[j].position.y = y; y += SG[j].userData.h; }
   const f = SG.length && SG[SG.length - 1].userData.fair; if (f && v.fairing <= 0) f.visible = false; if (v.fairing <= 0) heroFairing2(false); if (v.fairing <= 0) heroFairing(false);
 }
+
+// ---- f6.2 craft in space: switching the vessel you fly, and drawing the others where they are -----------------------------------
+const kindTypeOf = w => craftTypeFor({ model: w.model, constellation: w.group === 'constellation', house: w.model });
+function viewPos() { if (!viewId || !F || !F.fleet || camMode !== 'chase' || state !== 'flight') return null; const o = F.fleet.get(viewId); if (!o || o.id === F.fleet.activeId) { viewId = null; return null; }
+  try { return F.fleet.stateAt(o, F.tAbs).r; } catch (e) { viewId = null; return null; } }
+function setView(id) { const o = id && F.fleet.get(id); if (o && o.id !== F.fleet.activeId) { viewId = id; const T = craftTypeOf(o.type); camDist = Math.max(4, Math.min(120, (o.type === 'stage' ? 30 : T.h * 3.2 + 4))); camUserT = -1e9; camMode = 'chase'; toast('Viewing ' + o.name + '. Tap VIEW again to look back at your craft', '#9cc3ff'); }
+  else { if (viewId) camDist = v && v.craft ? Math.max(4, v.tel.L * 3.2 + 4) : Math.max(30, Math.min(160, stackL() * 2.6 + 20)); viewId = null; } if (vesselUI) vesselUI.draw(); }
+function clearFleetVis() { for (const e of fleetVis.values()) { scene.remove(e.g); e.g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } fleetVis.clear(); }
+function fleetModel(o) {
+  const T = craftTypeOf(o.type); let inner;
+  if (o.type === 'stage' || T.special) { const veh = o.veh && o.veh.stages ? o.veh : { stages: [{ parts: [{ kind: 'tank', h: 8, d: 2.4 }, { kind: 'engine', h: 1.5, d: 1.4 }] }] }; const m = buildStageModel(veh, Math.min(veh.cur || 0, veh.stages.length - 1)); inner = m.group; inner.position.y = -m.h / 2; }
+  else { inner = buildPayload(T.gfx, { detail: 'lo', r: T.d / 2 * 1.25, h: T.h }); inner.position.y = -inner.userData.cy * inner.scale.y; }
+  const g = new THREE.Group(); g.add(inner); return g; }
+const _fq = new THREE.Quaternion(), _fa = new THREE.Vector3();
+function updateFleetVis(O) {
+  if (!F || !F.fleet || state !== 'flight') return; const t = F.tAbs, live = new Set();
+  for (const o of F.fleet.others()) {
+    if (satVis && satVis.rec.vesselId === o.id) continue; if ((o.body || 'earth') !== F.body) continue;
+    let st; try { st = F.fleet.stateAt(o, t); } catch (e) { continue; } live.add(o.id);
+    let e = fleetVis.get(o.id); const d = Math.hypot(st.r[0] - O[0], st.r[1] - O[1], st.r[2] - O[2]);
+    if (d > 4e5) { if (e) e.g.visible = false; continue; }
+    if (!e || e.type !== o.type) { if (e) scene.remove(e.g); try { e = { g: fleetModel(o), type: o.type }; } catch (err) { console.warn('[Orbit Rush] craft model', err); continue; } fleetVis.set(o.id, e); scene.add(e.g); }
+    e.g.visible = true; setRel(e.g, st.r, O);
+    if (o.q) toQ(o.q, e.g.quaternion); else { const n = V.norm(st.v); _fa.set(n[0], n[1], n[2]); e.g.quaternion.setFromUnitVectors(Y_AXIS, _fa); }
+    if (o.w && V.len(o.w) > 1e-6 && o.power === false) { const a = V.len(o.w) * (t - o.t); _fa.set(o.w[0], o.w[1], o.w[2]).normalize(); _fq.setFromAxisAngle(_fa, a); e.g.quaternion.multiply(_fq); } }
+  for (const [id, e] of fleetVis) if (!live.has(id)) { scene.remove(e.g); e.g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); fleetVis.delete(id); } }
+function hideReleasedPayloadArt() { // a custom stack with no model: the payload part's box would reappear on the rocket once the payload has left
+  if (!F.released || hero || !SG.length) return; const g = SG[SG.length - 1], y0 = g.userData.payY; if (y0 == null) return;
+  for (const c of g.children) if (c.isMesh && !isPlumeChild(c, g) && c.position.y >= y0) c.visible = false; if (g.userData.fair) g.userData.fair.visible = false; }
+function rebuildVesselArt() { // the vessel you fly changed: draw it (the rocket from its design, or the craft from its own vehicle)
+  if (rocketG) { scene.remove(rocketG); freeGroup(rocketG); }
+  if (v.craft && hero) { const old = hero; hero = null; heroRelease(old, renderer, scene, camera).catch(() => heroDispose(old)); }
+  rocketG = new THREE.Group(); SG = v.craft ? makeCraftGroups(v) : (design.parts.length ? makeRocketGroups(design) : []);
+  for (const g of SG) g.traverse(o => { if (o.geometry) o.geometry.userData.own = true; });
+  let y = 0; for (const g of SG) { g.position.y = y; y += g.userData.h; rocketG.add(g); } scene.add(rocketG);
+  rocketG.add(comMark, copMark, cotMark); fx.attach(rocketG); chuteVis = makeChutes(); rocketG.add(chuteVis);
+  for (const g of SG) for (const hp of g.userData.hot) hp.part = v.stages[g.userData.stage] && v.stages[g.userData.stage].parts[hp.pi];
+  if (!v.craft) { applyPaint(design); if (SG[0]) addDecal(SG[0], design); attachHero(); syncStages(); if (F.released) { heroFairing(false); heroFairing2(false); hideReleasedPayloadArt(); } }
+  else for (let j = 0; j < v.cur && j < SG.length; j++) SG[j].visible = false; }
+function onVesselSwitched() {
+  v = F.v; viewId = null; smapSats.c = null; for (const k in keys) keys[k] = false;
+  try { rebuildVesselArt(); } catch (e) { console.warn('[Orbit Rush] vessel art', e); }
+  camMode = camMode === 'map' ? 'map' : 'chase'; camUserT = -1e9; camDist = v.craft ? Math.max(4, Math.min(60, stackL() * 3.2 + 4)) : Math.max(30, Math.min(160, stackL() * 2.6 + 20)); camYaw = 0.5; camPitch = 0.12;
+  $('tProg').classList.toggle('on', F.autoOn); updateEndFlightBtn(); if (vesselUI) vesselUI.draw(); syncCraftBtn(); }
+function onVesselParked(o) { // the craft you left keeps its orbit in the saved world, so it is still there next flight
+  smapSats.c = null; if (!o || !o.worldId) return;
+  try { const w = WORLD.load(localStorage), a = w.objs.find(x => x.id === o.worldId); if (a) { a.r = o.r.slice(); a.v = o.v.slice(); a.t = o.t; a.craft = o.type; WORLD.save(localStorage, w); } } catch (e) { } }
+function onVesselRemoved(o) { smapSats.c = null; const e = fleetVis.get(o.id); if (e) { scene.remove(e.g); fleetVis.delete(o.id); } if (viewId === o.id) viewId = null;
+  if (o.worldId) try { const w = WORLD.load(localStorage); w.objs = w.objs.filter(x => x.id !== o.worldId); WORLD.save(localStorage, w); } catch (e2) { } if (vesselUI) vesselUI.draw(); syncCraftBtn(); }
+function syncCraftBtn() { const b = $('craftBtn'); if (!b) return; const n = F && F.fleet ? F.fleet.list.length : 0, on = state === 'flight' && !!F && F.ignited && n > 1; b.classList.toggle('hidden', !on); if (on) { const c = v.craft; b.textContent = `CRAFT ${n} ([ ])`; b.title = c ? `You fly ${c.name}. Switch craft, view it, or power it on or off` : 'Switch to a craft left in space'; } }
 let chuteVis = null;
 // f5.2.3 payload lifecycle: the released payload is its own object (saved to the world list, drawn here until the flight ends)
 let satVis = null; const smapSats = { c: null, t: 0 };
@@ -886,7 +959,7 @@ const isConstellation = () => /^heron|^swift/.test(design.model || design.name |
 function payloadName() { const W0 = WORLD.load(localStorage), c = isConstellation(), n = (c ? WORLD.count(W0, 'constellation') : W0.objs.length) + 1, of = opSess && opSess.m && opSess.m.id === 'constellation-batch' ? ' of ' + CONSTELLATION_SATS : ''; return (c ? 'Constellation sat' : (design.name || 'Payload')) + ' #' + n + of; } // f5.4 (QA A4): '#n of 21' on the batch contract
 function onRelease(rec) {
   const o = WORLD.add(localStorage, { ...rec, name: payloadName(), group: isConstellation() ? 'constellation' : 'other', model: design.model || null, mission: director ? director.id : null });
-  rec.saved = o; if (o) fun.call('🛰', `${o.name} deployed · ${WORLD.count(WORLD.load(localStorage))} in orbit`, '#7dffb0');
+  rec.saved = o; try { F.linkReleased(rec); } catch (e) { } if (o) fun.call('🛰', `${o.name} deployed · ${WORLD.count(WORLD.load(localStorage))} in orbit`, '#7dffb0');
   if (satVis) freeSat(); heroSyncPayload(); const tk = heroTakePayload(); let g, sat, q0 = null;
   if (tk) { g = tk.outer; sat = tk.src; q0 = tk.q0; } else { sat = buildPayload(payloadKind() || 'comsat', { detail: 'hi', r: 1.0, h: 3.0 }); g = new THREE.Group(); sat.position.y = -sat.userData.cy * sat.scale.y; g.add(sat); } // no hero model (custom design): the same payload builder
   scene.add(g); satVis = { g, sat, rec, t: 0, q0 }; updateEndFlightBtn(); }
@@ -907,7 +980,7 @@ function relFrame() { if (!satVis) return null; const W = innerWidth, H = innerH
   return { sat, stage, under, sep: +satVis.g.position.length().toFixed(1), dist: +camDist.toFixed(1), btn: br && { l: Math.round(br.left), t: Math.round(br.top), r: Math.round(br.right), b: Math.round(br.bottom) } }; }
 function freeSat() { if (!satVis) return; scene.remove(satVis.g); satVis.g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); satVis = null; } // payload / kit materials are shared and cached: never disposed here
 const _satQ = new THREE.Quaternion();
-function updateSat(O, pdt) { if (!satVis) return; const s = WORLD.stateAt(satVis.rec, F.tAbs); setRel(satVis.g, s.r, O); satVis.t += pdt;
+function updateSat(O, pdt) { if (!satVis) return; if (F.fleet && satVis.rec.vesselId && F.fleet.activeId === satVis.rec.vesselId) { freeSat(); return; } /* f6.2: you now fly that payload */ const s = WORLD.stateAt(satVis.rec, F.tAbs); setRel(satVis.g, s.r, O); satVis.t += pdt;
   if (satVis.q0) { const k = Math.min(1, satVis.t / 10), e = k * k * (3 - 2 * k), n = V.norm(s.r); _satQ.setFromUnitVectors(Y_AXIS, dv3.set(n[0], n[1], n[2])); satVis.g.quaternion.copy(satVis.q0).slerp(_satQ, e); } else dirQ(satVis.g, V.norm(s.r)); // keeps the stage's attitude at release, then eases to nadir
   const d = satVis.sat && satVis.sat.userData.deploy; if (d) d.call(satVis.sat.userData, (satVis.t - 1.2) / 4); } // arrays unfold after the springs have pushed it clear
 function updateEndFlightBtn() { let b = $('relBtn'); if (!b) { b = document.createElement('button'); b.id = 'relBtn'; document.body.appendChild(b);
@@ -915,6 +988,7 @@ function updateEndFlightBtn() { let b = $('relBtn'); if (!b) { b = document.crea
   const on = state === 'flight' && !F.ended && !F.flags.dead && (F.canRelease() || !!F.released);
   b.classList.toggle('hidden', !on); if (on) { b.textContent = F.released ? '■ End flight' : '🛰 RELEASE'; b.title = F.released ? 'End the flight: everything deployed stays in orbit' : 'Release the payload (or press STAGE)'; b.classList.toggle('rel', !F.released); b.classList.toggle('done', !!F.released); } }
 function reset() {
+  try { if (F && F.fleet && F.v && F.v.craft) F.parkActive(); } catch (e) { } clearFleetVis(); viewId = null; // f6.2: leaving a flight parks the craft you fly (its orbit is saved)
   gen++; freeSat();
   if (booster && booster.mesh) scene.remove(booster.mesh);
   for (const d of debris) scene.remove(d.mesh); debris.length = 0; for (const f of fairHalves) scene.remove(f.g); fairHalves.length = 0;
@@ -966,7 +1040,7 @@ const mobile = createMobile({ press, setSAS: m => { if (state === 'flight') { if
 const academy = createAcademy({ setDesign: d => setDesign(cloneDesign(d)), launch, goBuild, toast: (m, c) => toast(m, c),
   ctx: () => ({ state, F: state === 'flight' ? F : null, design, ui: { camMode, mapPanel: typeof smap !== 'undefined' ? smap.panelMode : null, plan: typeof smap !== 'undefined' ? smap.plan : null } }) });
 let mapPost = null;
-const smap = createSolarMap({ renderer, getF: () => F, getSats: () => { const now = Date.now(); if (!smapSats.c || now - smapSats.t > 2000) { smapSats.c = WORLD.sats(WORLD.load(localStorage)); smapSats.t = now; } return smapSats.c; }, toast: (m, c) => toast(m, c), touch: TOUCH, gfxQ, settings: SET,
+const smap = createSolarMap({ renderer, getF: () => F, getSats: () => { const now = Date.now(); if (!smapSats.c || now - smapSats.t > 2000) { smapSats.c = F && F.fleet && F.fleet.list.length > 1 ? F.fleet.others().map(o => ({ id: o.id, name: o.name, r: o.r, v: o.v, t: o.t, body: o.body || 'earth' })) : WORLD.sats(WORLD.load(localStorage)); smapSats.t = now; } return smapSats.c; }, // f6.2: every craft in the fleet (the one you fly is drawn as the craft) toast: (m, c) => toast(m, c), touch: TOUCH, gfxQ, settings: SET,
   dvTable: () => dvTableHTML(craftDv(), false),
   burn: { throttle: u => setThrottleTouch(u), stage: () => press('Space'), sas: () => { if (state === 'flight') { if (v.auto) F.takeOverUpper(); F.setSAS('node'); } } },
   onChange: (k, x) => { if (k === 'conic') { SET.conic = x; saveSettings(localStorage, SET); } if (k === 'close') exitMap(); if (k === 'exec') $('tProg').classList.remove('on'); } });
@@ -1080,6 +1154,9 @@ function press(code) {
     if (code === 'KeyF') { b.retro = !b.retro; toast(b.retro ? 'Holding retrograde' : 'Manual tilt', '#9cc3ff'); }
     return;
   }
+  if (code === 'BracketRight' || code === 'BracketLeft') { F.cycleVessel(code === 'BracketRight' ? 1 : -1); return; } // f6.2: switch the craft you fly
+  if (code === 'Minus') { F.togglePower(); return; }
+  if (code === 'Equal') { if (vesselUI) { if (!vesselUI.isOpen() && F.fleet.list.length < 2) toast('Only one craft in space: release a payload first', '#ffb35c'); else vesselUI.toggle(); } return; }
   if (code === 'KeyO') { if (F.ret) F.cancelReturn(); else F.deorbit(); return; }
   if (code === 'KeyP') { F.deployChute(); return; }
   if (code === 'Backspace') { abortFlight(); return; }
@@ -1129,7 +1206,10 @@ $('rcsBtn').onclick = e => { e.currentTarget.blur(); press('KeyC'); };
 $('learnBtn').onclick = e => { e.currentTarget.blur(); academy.toggleLearn(); };
 $('deoBtn').onclick = e => { e.currentTarget.blur(); press('KeyO'); };
 $('chuteBtn').onclick = e => { e.currentTarget.blur(); press('KeyP'); };
-const zoomLim = d => Math.min(5000, Math.max(20, d));
+vesselUI = createVesselUI({ getF: () => F, UN, onView: id => setView(id), getView: () => viewId }); // f6.2: the craft list
+$('craftBtn').onclick = e => { e.currentTarget.blur(); vesselUI.toggle(); };
+{ const mb = document.getElementById('mapMore'); if (mb) { const b = document.createElement('button'); b.dataset.a = 'vessels'; b.textContent = 'Craft list'; b.title = 'Switch to, view or power any craft in space (=)'; b.addEventListener('click', () => vesselUI.toggle()); mb.appendChild(b); } }
+const zoomLim = d => Math.min(5000, Math.max(v && v.craft ? 2 : 20, d)); // a cubesat is a third of a metre long: let the camera come close
 renderer.domElement.addEventListener('wheel', e => { if (camMode === 'map') return; camUserT = performance.now(); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * (1 + e.deltaY * 0.001))); else camDist = zoomLim(camDist * (1 + e.deltaY * 0.001 * SET.sens.zoom)); }, { passive: true });
 const pts = new Map();
 renderer.domElement.addEventListener('pointerdown', e => { pts.set(e.pointerId, [e.clientX, e.clientY]); });
@@ -1300,7 +1380,7 @@ function makeShip(s) {
 }
 // Exhaust: plume mesh scaled by ambient pressure (it balloons in vacuum) plus fire/smoke particles.
 function emit(veh, group, dt, bottom, dir) {
-  const plume = group.userData.plume; const on = veh.thrust > 0.01;
+  const plume = group.userData.plume; const on = veh.thrust > (veh.craft ? 1e-7 : 0.01); // a cold-gas or ion craft pushes with milli-newtons
   plume.visible = on; const ex = plume.userData.extra; if (ex) for (const e of ex) e.visible = on;
   if (!on || dt <= 0) return;
   const h = V.len(veh.r) - R, p = P.pressureRatio(h), thr = veh.throttle;
@@ -1460,7 +1540,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
     mobile.render({ hasChute: hasChutes(), canHome: !!(F && F.ignited && F.alt < 1000) /* f5.7k: Return to pad only below ~1 km */, alt: fmtD(hudAlt(v)), spd: fmtS(V.len(v.v)), ap: apS0(), pe: peS0(), mqL: dense ? 'MACH·Q' : hot ? 'HEAT' : 'V/S',
       mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : UN.vs(V.dot(v.v, V.norm(v.r))),
       mqC: tel.q > 30000 || tel.heat > 3e5 ? 'warn' : '', fuel: fu, score: F.score().toLocaleString(), thr: mobile.thrDragging() ? (cv.ut ?? cv.throttle ?? 0) : (cv.throttle || cv.ut || 0),
-      auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME', booster: !!(F.booster && F.booster.state === 'flying') || !!(booster2 && booster2.state === 'flying'),
+      fleet: !!(F.fleet && F.fleet.list.length > 1 && F.ignited), auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME', booster: !!(F.booster && F.booster.state === 'flying') || !!(booster2 && booster2.state === 'flying'),
       rcs: v.rcsOn, fx: fx.q.toUpperCase(), warp: `${isGPU ? 'WebGPU' : 'WebGL2'} · warp ×${F.effWarp()}`, sas: v.sas, stageReady: false });
     if (F.flags.dead && !mobile.buzzed) { mobile.buzzed = true; mobile.vibrate([120, 60, 220]); }
   }
@@ -1473,6 +1553,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
   $('deoBtn').textContent = F.ret ? (F.ret.auto ? 'RETURN: AUTO (O cancels)' : 'RETURN: MANUAL (F = auto)') : 'DEORBIT & RETURN (O)';
   const cst = v.chute && v.chute.state; $('chuteBtn').classList.toggle('hidden', !F.hasChute() || !F.ignited || cst === 'main' || cst === 'failed' || F.flags.recovered);
   $('chuteBtn').textContent = cst === 'drogue' ? 'MAIN CHUTES (P)' : 'DROGUES (P)';
+  syncCraftBtn();
   $('sasBtn').textContent = 'SAS ' + P.SAS_LABEL[v.sas]; $('rcsBtn').textContent = 'RCS ' + (v.rcsOn ? 'ON' : 'OFF');
   const hint = (h => director && director.active && /AUTO|stage/i.test(h) ? "" : h)(F.hint()); // f3: no "tap AUTO / stage" coaching while the director flies
   const hintL = localize(hint, TOUCH); $('hint').textContent = hintL; $('hint').style.display = hint ? '' : 'none';
@@ -1591,7 +1672,8 @@ renderer.setAnimationLoop(() => {
   // floating origin: the focused craft is at the scene origin
   const focus = (camMode === 'booster' && booster && booster.mesh && booster.mesh.visible) ? booster : v;
   const tel = v.tel, nose = P.noseOf(v), base = V.sub(v.r, V.scale(nose, tel.ycom));
-  const O = focus === v ? v.r : booster.r;
+  const vwR = viewPos(); // f6.2: VIEW another craft: the camera looks at it, the one you fly stays in control
+  const O = vwR || (focus === v ? v.r : booster.r);
   if (!placeBodies(O, th)) { earth.position.set(-O[0], -O[1], -O[2]); earth.rotation.z = th; }
   if (W1) { earth.updateMatrixWorld(); W1.frame(rdt > 0 && pdt > rdt * 4.01 ? 0 : pdt, camera); } // clouds drift on sim time, frozen above 4x warp
   const tilesOn = !!(window.__tiles && window.__tiles.stats && window.__tiles.stats.on); // private Google tiles own the ground while they show (the LOD globe hid them)
@@ -1615,7 +1697,7 @@ renderer.setAnimationLoop(() => {
     setRel(d.mesh, d.r, O); dirQ(d.mesh, d.dir);
     if (d.gone || d.t > 120) { scene.remove(d.mesh); debris.splice(k, 1); }
   }
-  fairTick(pdt, O); updateSat(O, pdt); if ((F.met | 0) !== (updateEndFlightBtn.k | 0)) { updateEndFlightBtn.k = F.met; updateEndFlightBtn(); }
+  fairTick(pdt, O); updateSat(O, pdt); updateFleetVis(O); if ((F.met | 0) !== (updateEndFlightBtn.k | 0)) { updateEndFlightBtn.k = F.met; updateEndFlightBtn(); }
   for (const bq of [booster, booster2]) if (bq && bq.mesh && bq.mesh.visible) { // f4.2: each side booster
     setRel(bq.mesh, bq.r, O); dirQ(bq.mesh, bq.dir);
     const bh = V.len(bq.r) - R, legs = bq.mesh.userData.legs; if (legs) legs.visible = bq.state === 'landed' || (bq.state === 'flying' && (bq.legs || bh < 600));
@@ -1632,11 +1714,11 @@ renderer.setAnimationLoop(() => {
     const cu = new THREE.Vector3(U.x, U.y, 0); if (cu.lengthSq() < 1e-6) cu.set(0, 1, 0);
     camera.position.set(-O[0], -O[1], -O[2] + R * mapZoom); camera.up.set(0, 1, 0); camera.lookAt(-O[0], -O[1], -O[2]); // f5.6f (QA cam): map up = fixed ecliptic north, no roll as you orbit
   } else {
-    if (focus === v) tgtV.set(nose[0], nose[1], nose[2]).multiplyScalar(stackL() * camAim - tel.ycom);
+    if (vwR) tgtV.set(0, 0, 0); else if (focus === v) tgtV.set(nose[0], nose[1], nose[2]).multiplyScalar(stackL() * camAim - tel.ycom);
     else tgtV.set(booster.dir[0], booster.dir[1], booster.dir[2]).multiplyScalar(15);
     if (focus !== v && camDist > 400) camDist = 400; // f5.6f (QA cam): booster cam never frames from km away
-    if (focus === v && state === 'flight' && camMode === 'chase') { // f4.1: chase distance follows the rocket's size (never a dot); eases back after a user zoom
-      const Ls = stackL(), want = Math.max(30, Math.min(160, Ls * 2.6 + 20)), maxD = Math.max(80, Ls * 9 + 60);
+    if (focus === v && !vwR && state === 'flight' && camMode === 'chase') { // f4.1: chase distance follows the rocket's size (never a dot); eases back after a user zoom
+      const Ls = stackL(), cr = !!v.craft, want = cr ? Math.max(4, Math.min(60, Ls * 3.2 + 4)) : Math.max(30, Math.min(160, Ls * 2.6 + 20)), maxD = cr ? Math.max(60, Ls * 30 + 40) : Math.max(80, Ls * 9 + 60);
       if (camDist > maxD) camDist += (maxD - camDist) * Math.min(1, rdt * 1.5); // f5.6f: ease (no ~70 m jump at staging) if (performance.now() - camUserT > 8000) camDist += (want - camDist) * Math.min(1, rdt * 0.8);
     }
     relFrameCam(rdt, focus);
@@ -2005,7 +2087,7 @@ fun = createFunUI({
   tunnelGeom: mach => { const ab = aeroBalance(design, mach); if (!ab) return null; const vv = buildVehicle(design), g = P.stackGeom(vv); const COL = { engine: '#ff9a3c', tank: '#e8e8e8', pod: '#9cc3ff', payload: '#e0b84a', fins: '#555', decoupler: '#333', fairing: '#f4f4f4', shield: '#7a4a2a', chute: '#ff7a3c', rcs: '#8a9099' };
     return { parts: g.list.map(e => ({ y: e.y, h: e.h, d: e.kind === 'fins' ? (e.d || 2) * 1.8 : e.d, col: COL[e.kind] || '#ccc' })), L: g.L, ycom: ab.ycom, ycp: ab.ycp, stable: ab.stable, margin: ab.margin }; },
 });
-const cx = createCompact({ touch: TOUCH, press: k => press(k), menuState: () => ({ booster: !!(F && F.booster && F.booster.state === 'flying'), ret: !!(F && F.ret), chute: hasChutes(), canHome: !!(F && F.ignited && F.alt < 1000) /* f5.7k: Return to pad only below ~1 km */ }), onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on), onEngTap: () => { mobile.sheet = !document.body.classList.contains('sheet'); document.body.classList.toggle('sheet', mobile.sheet); } });
+const cx = createCompact({ touch: TOUCH, press: k => press(k), menuState: () => ({ fleet: !!(F && F.fleet && F.fleet.list.length > 1 && F.ignited), booster: !!(F && F.booster && F.booster.state === 'flying'), ret: !!(F && F.ret), chute: hasChutes(), canHome: !!(F && F.ignited && F.alt < 1000) /* f5.7k: Return to pad only below ~1 km */ }), onSpeedTap: () => fun.cycleSpeed(), onMarkers: on => setMarkers(on), onEngTap: () => { mobile.sheet = !document.body.classList.contains('sheet'); document.body.classList.toggle('sheet', mobile.sheet); } });
 { const dm = document.getElementById('dMap'); if (dm) dm.onclick = e => { e.currentTarget.blur(); press('KeyM'); }; }
 { // top-centre stack: callout, hint, toasts never overlap each other
   const st = document.createElement('div'); st.id = 'topStack'; document.body.appendChild(st);
@@ -2423,7 +2505,8 @@ function plumeAudit() {
   for (const p of smoke.d) { if (p.life <= 0) continue; const d = [p.x - base[0], p.y - base[1], p.z - base[2]], along = V.dot(d, vh); if (along > 60 || along < -400) continue; const lat = V.len(V.addS(d, vh, -along)); if (p.max - p.life > 2.5) continue; n++; s2 += lat * lat; mx = Math.max(mx, lat); }
   out.smoke = { samp: smoke.d.filter(p => { if (p.life <= 0 || p.max - p.life > 2.5) return false; const al = V.dot([p.x - base[0], p.y - base[1], p.z - base[2]], vh); return al < 60 && al > -400; }).slice(0, 10).map(p => { const d = [p.x - base[0], p.y - base[1], p.z - base[2]], al = V.dot(d, vh); return [+(p.max - p.life).toFixed(1), Math.round(al), Math.round(V.len(V.addS(d, vh, -al)))]; }), n, rms: n ? +Math.sqrt(s2 / n).toFixed(1) : 0, max: +mx.toFixed(1) }; return out;
 }
-window.__game = { goHome: () => goBuild(), rocketMarks: () => [comMark.visible, copMark.visible, cotMark.visible], get rocketG() { return rocketG; }, get pad() { return padCx; }, get fairHalves() { return fairHalves; }, get satVis() { return satVis; }, get hero() { return hero; }, flight: () => F, mem: () => { const m = renderer.info.memory || {}; let meshes = 0, geo = new Set(); scene.traverse(o => { if (o.isMesh) { meshes++; geo.add(o.geometry); } }); return { geometries: m.geometries, textures: m.textures, programs: renderer.info.programs ? renderer.info.programs.length : null, meshes, sceneGeo: geo.size, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }; }, stageDbg: c => { if (!hero) return { model: design.model || null, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0) }; heroStage(c); const lv = (hero.levels || [{ object: hero }])[0].object, st = (lv.userData && lv.userData.stages) || {}; const r = { model: design.model, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0), hidden: Object.keys(st).filter(k => !st[k].visible), shown: Object.keys(st).filter(k => st[k].visible) }; heroStage(v.cur); return r; }, opDbg: () => ({ on: !!opSess, id: opSess && opSess.m.id, done: opSess && opSess.done, failed: opSess && opSess.failed, task: opSess && opSess.task && opSess.task.kind, lastOp, ended: F.ended, state }), get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
+window.__craft = { CRAFT_TYPES };
+window.__game = { get SG() { return SG; }, get viewId() { return viewId; }, fleetVis, goHome: () => goBuild(), rocketMarks: () => [comMark.visible, copMark.visible, cotMark.visible], get rocketG() { return rocketG; }, get pad() { return padCx; }, get fairHalves() { return fairHalves; }, get satVis() { return satVis; }, get hero() { return hero; }, flight: () => F, mem: () => { const m = renderer.info.memory || {}; let meshes = 0, geo = new Set(); scene.traverse(o => { if (o.isMesh) { meshes++; geo.add(o.geometry); } }); return { geometries: m.geometries, textures: m.textures, programs: renderer.info.programs ? renderer.info.programs.length : null, meshes, sceneGeo: geo.size, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }; }, stageDbg: c => { if (!hero) return { model: design.model || null, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0) }; heroStage(c); const lv = (hero.levels || [{ object: hero }])[0].object, st = (lv.userData && lv.userData.stages) || {}; const r = { model: design.model, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0), hidden: Object.keys(st).filter(k => !st[k].visible), shown: Object.keys(st).filter(k => st[k].visible) }; heroStage(v.cur); return r; }, opDbg: () => ({ on: !!opSess, id: opSess && opSess.m.id, done: opSess && opSess.done, failed: opSess && opSess.failed, task: opSess && opSess.task && opSess.task.kind, lastOp, ended: F.ended, state }), get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
     const c0 = b.mesh.getWorldPosition(new THREE.Vector3()), p0 = c0.clone().project(cam), p1 = c0.clone().add(ny.clone().multiplyScalar(10)).project(cam), up = V.norm(b.r);
     const cu = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion), crt = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
     return { id: b.id || 'A', replay: !!(i === 0 && split.replay), state: b.state, phase: b.phase, meshVsDir: +(ny.x * b.dir[0] + ny.y * b.dir[1] + ny.z * b.dir[2]).toFixed(3), dirUp: +V.dot(b.dir, up).toFixed(3), noseScreenUp: +(p1.y - p0.y).toFixed(4), onScreen: Math.abs(p0.x) < 1 && Math.abs(p0.y) < 1 && p0.z < 1, camUpRadial: +(cu.x * up[0] + cu.y * up[1] + cu.z * up[2]).toFixed(3), roll: +(crt.x * up[0] + crt.y * up[1] + crt.z * up[2]).toFixed(3), R2: S.dbg.R2 }; }), dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds, lod: earthLOD.group }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)

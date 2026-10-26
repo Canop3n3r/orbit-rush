@@ -16,6 +16,7 @@ import { buildPayload, registerPayload } from './payloads.js?v=f5.9-4';
 import { CRYO } from './cryo.js?v=f5.9-4';
 import { dressStages } from './dress.js?v=f5.9-4';
 import { OWN_PAYLOAD } from './payload_kinds.js?v=f5.9-4';
+import './craft_models.js?v=f5.9-4'; // f6.2: registers the craft shapes (cubesat, geosat, crew, station, lander, tug, kick) as payload kinds
 export { buildPayload };
 import { CO_CIVSPACE } from './co_civspace.js?v=f5.9-4'; // co-civspace-1: NOSA heritage vehicles
 import { CO_SOUTHSTAR_B } from './co_ssb.js?v=f5.9-4';
