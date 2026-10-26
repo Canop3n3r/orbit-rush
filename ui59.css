@@ -431,9 +431,9 @@ body.u59 #end>#endBody{max-height:max(60px,calc(58dvh - 190px))}
   body.u59 #end:not(.hidden):not(.q1):not(.q2):not(.q3):not(.q4){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(260px,46%);grid-template-areas:"t m" "c m" "b b" "s s";align-items:center}
   body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>#endTitle{grid-area:t!important;align-self:end!important}
   body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>#endCause{grid-area:c!important;align-self:start!important;padding-bottom:6px!important}
-  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endMain{grid-area:m!important;align-self:center!important;padding:6px calc(12px + var(--sar)) 6px 0!important}
+  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endMain:not(#_){grid-area:m!important;align-self:center!important;padding:6px calc(12px + var(--sar)) 6px 0!important}
   body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>#endBody{grid-area:b!important}
-  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endShare{grid-area:s!important}
+  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endShare:not(#_){grid-area:s!important}
 }
 
 /* ===== f5.9f: Home = live view + ONE bottom panel (name / Fly / site / All rockets, then one scrolling card row) ===== */
@@ -479,3 +479,4 @@ body.splitOn:not(:has(#split.fullB)) #topBar #spFull{display:none!important}
 }
 :root{--ctlH:46px}
 @media (orientation:landscape) and (max-height:520px){:root{--bnb:54px}#botBar #spd .spV{font-size:clamp(22px,6vh,26px)!important}}
+#botBar #relBtn{width:auto!important;min-width:96px;max-width:100%;padding:0 12px!important;align-self:flex-end}
