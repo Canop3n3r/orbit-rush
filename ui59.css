@@ -511,3 +511,4 @@ body.u59 #home #hGal #picker section.pkR.off{display:none!important}
   #botBar #bars .bar b{min-width:0!important;width:auto!important;font-size:10px!important;letter-spacing:0!important}
 }
 @media (max-width:340px){#botBar :is(#mThr,#dThr) u{font-size:8px!important;letter-spacing:0!important}}
+@media (max-width:340px){#pause .col button{min-width:0!important;padding-inline:4px!important;font-size:var(--t-xs)!important;letter-spacing:0!important;white-space:normal;line-height:1.1}}
