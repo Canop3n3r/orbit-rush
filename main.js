@@ -43,6 +43,7 @@ import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.9-7';
 import { plumeDims, styleFor, vacFactors } from './gfx/plume_style.js?v=f5.9-7'; // QA plume pass: exhaust style per propellant + size from the engine
 import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.9-7';
 import * as UN from './fun/units.js?v=f5.9-7';
+import { buildEndStats } from './fun/endstats.js?v=f5.9-7';
 import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.9-7';
 import { createHome } from './fun/home.js?v=f5.9-7';
 import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-7';
@@ -1315,6 +1316,12 @@ function updateChunks(dt, O) {
     if (c.smk && Math.random() < 0.5) smoke.spawn(c.r, c.v, 1.5, 1, 5, 0x333333, null, 1); }
 }
 let endMin = false, stageWant = false, stageWantAt = 0;
+function endStats() { // data -> lines for the end card (fun/endstats.js); neutral ids only
+  const st = F.fstats || {}, slug = x => String(x || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''), sh = SHOW.find(x => x.name === design.name);
+  return buildEndStats({ maxQ: st.q || 0, maxQAlt: st.qAlt || 0, maxQMet: st.qMet || 0, maxV: st.v || 0, maxAlt: Math.max(F.flags.maxAlt || 0, st.alt || 0), maxG: F.maxG || 0, dead: !!F.flags.dead, recovered: !!F.flags.recovered,
+    vehicle: { ids: [design.model, pickModel, sh && sh.id, slug(design.name)], massT: F.stats && F.stats.mass, crewed: (design.parts || []).some(p => p.id === 'crew'), hop: isHopper(design), deepSpace: !!(F.homeBody && F.homeBody !== 'earth') || !!(director && /moon|mars|venus/.test(director.id || '')) },
+    imperial: UN.imp(), seed: F.endSeed || (F.endSeed = (Math.random() * 1e9) | 0) });
+}
 function showEnd() {
   if (F.ended) return; for (const id of ['mMenu', 'dMenu', 'engS', 'heat', 'learn', 'lesson', 'opTask']) { const e = $(id); if (e) e.classList.add('hidden'); } { const nv = $('nav'); if (nv) nv.classList.remove('fan'); } try { mobile.closeMenu(); } catch (e) { } // f5.9: no popup survives onto the end card
  const score = F.finish();
@@ -1362,6 +1369,9 @@ function showEnd() {
       const d = String(flags.dead || ''), c = flags.cause, m = d.match(/([\d.]+) m\/s/), sp = m ? UN.spd(+m[1]) : null, tilt = (d.match(/(\d+)° from upright/) || [])[1];
       cl.textContent = !d ? '' : c === 'impact' || c === 'ground' ? (/never cleared/.test(d) ? 'Never cleared the tower' : sp ? `Hit the ground at ${sp}${/no parachutes/.test(d) ? ', no parachutes' : /failed/.test(d) ? ', parachutes failed' : tilt ? `, ${tilt}° off upright` : ''}` : 'Hit the ground') : c === 'tumble' ? 'Out of control' : c === 'breakup' ? 'Broke up under aero load' : c === 'burnup' || /burn|overheat/i.test(d) ? 'Burned up from heat' : d.charAt(0).toUpperCase() + d.slice(1, 48); }
     let mb = $('endMoreBtn'); if (!mb) { mb = document.createElement('button'); mb.id = 'endMoreBtn'; mb.textContent = '⋯'; mb.title = 'Details: score, Share, Retry'; mb.setAttribute('aria-label', 'Flight details'); $('contBtn').after(mb); mb.onclick = () => $('end').classList.toggle('more'); }
+    { /* f6.7: ONE compact line (max Q · top speed · cost) under the cause line; the funny long lines are its tooltip */
+      let ef = $('endFun'); if (!ef) { ef = document.createElement('div'); ef.id = 'endFun'; ($('endCause') || $('endTitle')).after(ef); }
+      const es = endStats(); ef.textContent = es.line; ef.title = es.tip; }
     $('relaunchBtn').textContent = '↻ Retry'; $('end').classList.add('lean'); $('end').classList.remove('more'); }
   document.body.classList.add('endOn');
   $('end').classList.remove('hidden');

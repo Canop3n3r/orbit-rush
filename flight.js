@@ -5,6 +5,7 @@ import * as P from './physics.js?v=f5.9-7';
 import * as C from './physics/patched.js?v=f5.9-7';
 import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.9-7';
 import { designReusable } from './vehicles/reusable.js?v=f5.9-7';
+import { newStats, trackStats } from './fun/endstats.js?v=f5.9-7';
 import { installVessels } from './fun/vessels.js?v=f5.9-7'; // f6.2: switching between vessels left in space, craft power, deployed payloads
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
@@ -182,7 +183,7 @@ export class Flight {
     v.site = { ef: siteEf, lift: (opts.padZ ?? 0.4) + P.massProps(v).ycom, q0: P.padAttitude(siteEf) }; // r is the centre of mass
     const s0 = P.siteAt(v, 0); v.r = s0.r; v.v = s0.v; v.q = s0.q; v.clock = 0; v.ut = 0; v.auto = false; v.sas = 'stab';
     this.v = v; this.booster = null; this.boosters = []; this.ship = null; this.dvUsed = 0;
-    this.met = 0; this.ignited = false; this.maxQ = 0; this.maxQEntry = 0; this.maxG = 0; this.autoThrottle = true; this.ascent = true; this.autoOn = false; this.warpI = 0; this.autoWarp = false;
+    this.met = 0; this.ignited = false; this.maxQ = 0; this.maxQEntry = 0; this.maxG = 0; this.fstats = newStats(); this.autoThrottle = true; this.ascent = true; this.autoOn = false; this.warpI = 0; this.autoWarp = false;
     this.ended = false; this.finalScore = null; this.stageArm = -1; this.realT = 0; this.rails = false;
     P.stepVehicle(v, 0); // fill telemetry
     this.flags = { liftoff: 0, maxq: 0, space: 0, orbit: 0, booster: '', boosterBonus: 0, dead: '', fairing: 0, maxAlt: 0, mach1: 0,
@@ -350,7 +351,7 @@ export class Flight {
   // ---------- quicksave / quickload: the whole flight state as plain JSON (a flying booster is not kept) ----------
   snapshot() {
     const strip = (k, x) => (k === '_g' || k === '_rel' || k === '_scr' ? undefined : x);
-    const keep = ['met', 'ignited', 'maxQ', 'maxQEntry', 'maxG', 'autoThrottle', 'ascent', 'dvUsed', 'flags', 'lastPow', 'orbitSnap', 'maxHeat', 'maxTskin', 'maxGret', 'parked', 'rec', 't0', 'nodes', 'alarms', 'target', 'goals', 'deep', 'ship'];
+    const keep = ['met', 'ignited', 'maxQ', 'maxQEntry', 'maxG', 'fstats', 'autoThrottle', 'ascent', 'dvUsed', 'flags', 'lastPow', 'orbitSnap', 'maxHeat', 'maxTskin', 'maxGret', 'parked', 'rec', 't0', 'nodes', 'alarms', 'target', 'goals', 'deep', 'ship'];
     const f = {}; for (const k of keep) f[k] = this[k];
     return JSON.parse(JSON.stringify({ v: 1, design: this.design, at: Date.now(), body: this.body, tAbs: this.tAbs, veh: this.v, f, fleet: this.fleetSnapshot() }, strip));
   }
@@ -811,6 +812,7 @@ export class Flight {
       if (this.ascent && (this.ret || (f.space && V.dot(v.v, V.norm(v.r)) < 0) || f.orbit)) this.ascent = false;
       if (this.ascent) { if (tel.q > this.maxQ) this.maxQ = tel.q; } else if (tel.q > this.maxQEntry) this.maxQEntry = tel.q;
       if (!v.clamped && tel.gload > this.maxG) this.maxG = tel.gload;
+      if (!v.clamped) trackStats(this.fstats || (this.fstats = newStats()), tel, h, P.V.len(P.airVel(v)), this.met); // end-card stats: peak q (where, when), top surface speed, peak altitude
       if (!v.clamped && !f.liftoff) { f.liftoff = 1; this.met = 0; this.toast('LIFTOFF!', '#fff'); }
       if (f.liftoff) this.met += dt;
       const capsule = v.cur > this.lastPow || !(v.stages[v.cur].eng && v.stages[v.cur].eng.tv > 0);
