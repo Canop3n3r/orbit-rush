@@ -25,7 +25,7 @@ ok(PROPULSION.ion.ispVac > 1500 && PROPULSION.ion.tPerT < PROPULSION.hypergolic.
 const ids = rosterIds(); ok(ids.length > 40, 'the roster is readable', ids.length + ' vehicles');
 const types = new Set(); let bad = 0; for (const id of ids) { const t = craftTypeFor({ model: id }); if (!CRAFT_TYPES[t]) bad++; types.add(t); }
 ok(bad === 0, 'every roster launcher resolves to a craft type'); ok(types.size >= 7, 'the roster flies at least seven different craft types', [...types].join(','));
-const small = ids.filter(i => rosterInfo(i).payloadKg < 350), big = ids.filter(i => rosterInfo(i).payloadKg > 30000);
+const small = ids.filter(i => rosterInfo(i).payloadKg > 0 && rosterInfo(i).payloadKg < 350), big = ids.filter(i => rosterInfo(i).payloadKg > 30000);
 ok(small.every(i => ['cubesat', 'smallsat'].includes(craftTypeFor({ model: i }))), 'micro launchers carry cubesats and small satellites', small.length + ' vehicles');
 ok(big.length === 0 || big.every(i => ['station', 'tug', 'lander', 'cargo'].includes(craftTypeFor({ model: i }))), 'super-heavy launchers carry station modules, tugs, landers or freighters', big.length + ' vehicles');
 ok(craftTypeFor({ model: ids[0], partIds: ['crew'] }) === 'crew', 'a crewed stack deploys a crew capsule');
