@@ -155,7 +155,7 @@ export function createFunUI(ctx) {
   const pbar = el('div', { id: 'photobar', className: 'hidden' }, `<button id="phFx" aria-label="Filter" title="Filter (tap to change)">🎨</button><button id="phSnap" class="big" aria-label="Snap a photo" title="Snap">⦿</button><button id="phExit" aria-label="Exit photo mode" title="Exit photo mode">✕</button>`); // f5.8f (QA P2): 3 icon buttons, no text, never over the rocket
   document.body.appendChild(pbar);
   const photo = { on: false, filter: 'none',
-    toggle() { this.on = !this.on; { const mm = document.getElementById('mMenu'); if (mm) mm.classList.add('hidden'); } // f5.1h (QA): photo mode closes the ☰ menu
+    toggle() { this.on = !this.on; for (const id of ['mMenu', 'dMenu']) { const mm = document.getElementById(id); if (mm) mm.classList.add('hidden'); } document.body.classList.remove('menuOn'); // f5.1h (QA): photo mode closes the ☰ menu
       document.body.classList.toggle('photo', this.on); pbar.classList.toggle('hidden', !this.on); ctx.setPhoto(this.on); if (!this.on) this.set('none'); },
     set(f) { this.filter = f; ctx.canvas.style.filter = FILTERS[f]; pbar.querySelectorAll('[data-f]').forEach(b => b.classList.toggle('on', b.dataset.f === f)); } };
   $('phFx').onclick = () => { const ks = Object.keys(FILTERS), k = ks[(ks.indexOf(photo.filter) + 1) % ks.length]; photo.set(k); $('phFx').title = 'Filter: ' + k; };

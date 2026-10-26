@@ -11,11 +11,11 @@ require('fs').mkdirSync(OUT, { recursive: true });
   await pg.goto(URL + '?noacademy'); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 240000 }); await pg.waitForTimeout(2000);
   const n = await pg.evaluate(() => [...document.querySelectorAll('#home button')].filter(b => b.offsetParent && !b.closest('#hGearM,#picker')).map(b => b.id || b.textContent.trim()));
   await pg.screenshot({ path: `${OUT}/${tag}_home.png` }); ok(n.length <= 7, `${tag}: Home shows ${n.length} controls (${n.join(' ')})`);
-  await pg.click('#hGear'); await pg.waitForTimeout(300); await pg.screenshot({ path: `${OUT}/${tag}_menu.png` }); ok(await pg.evaluate(() => !document.getElementById('hGearM').classList.contains('hidden')), `${tag}: ☰ opens`);
-  await pg.evaluate(() => document.getElementById('hGearM').classList.add('hidden')); await pg.waitForTimeout(300); // Home is one screen: the picker is always visible
+  await pg.click('#hGear'); await pg.waitForTimeout(300); await pg.screenshot({ path: `${OUT}/${tag}_menu.png` }); ok(await pg.evaluate(() => !document.getElementById('settings').classList.contains('hidden')), `${tag}: ⚙ opens the Settings sheet directly`);
+  await pg.click('#settings .hx'); await pg.waitForTimeout(300); // Home is one screen: the picker is always visible
   const pk = await pg.evaluate(() => ({ regions: [...document.querySelectorAll('#picker section h4')].map(h => h.textContent), vis: [...document.querySelectorAll('#picker .pkC')].filter(c => c.offsetParent).length }));
   await pg.screenshot({ path: `${OUT}/${tag}_picker.png` }); ok(pk.regions.length <= 6, `${tag}: picker ${pk.regions.join(', ')} (${pk.vis} cards showing)`);
-  await pg.fill('#pkQ', 'heron'); await pg.waitForTimeout(300); const hits = await pg.evaluate(() => [...document.querySelectorAll('#picker .pkC')].filter(c => c.offsetParent).map(c => c.querySelector('b').textContent));
+  if (!(await pg.isVisible('#pkQ'))) { await pg.click('#hAll'); await pg.waitForTimeout(300); } await pg.fill('#pkQ', 'heron'); await pg.waitForTimeout(300); const hits = await pg.evaluate(() => [...document.querySelectorAll('#picker .pkC')].filter(c => c.offsetParent).map(c => c.querySelector('b').textContent));
   await pg.screenshot({ path: `${OUT}/${tag}_search.png` }); ok(hits.length > 0 && hits.every(h => /heron/i.test(h) || true), `${tag}: search "heron" shows ${hits.length}: ${hits.slice(0, 4).join(', ')}`);
   await pg.fill('#pkQ', ''); if (tag === '844') { await pg.click('#hSite'); await pg.waitForTimeout(500); const r = await pg.evaluate(() => { const m = document.querySelector('#sitePick .spAct').getBoundingClientRect(); return m.bottom <= innerHeight; }); await pg.screenshot({ path: `${OUT}/844_sites.png` }); ok(r, '844: Back to Earth on screen'); }
   ok(!errs.length, `${tag}: no page errors ${errs.slice(0, 2).join(' | ')}`); await pg.close(); }

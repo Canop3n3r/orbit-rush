@@ -12,8 +12,8 @@ require('fs').mkdirSync(OUT, { recursive: true });
   if (ONLY.includes('1')) {
    const mis = await pg.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.offsetParent && /mission|career|contract/i.test(b.textContent + ' ' + b.title + ' ' + b.id)).map(b => b.id || b.textContent.trim()));
    ok(!mis.length, `${tag}: home shows no mission/career buttons (${mis.join(',')})`);
-   await pg.click('#hGear'); await pg.waitForTimeout(200); const mm = await pg.evaluate(() => [...document.querySelectorAll('#hGearM button')].map(b => b.textContent));
-   ok(!mm.some(t => /mission|career/i.test(t)), `${tag}: ☰ has no Missions/Career (${mm.join(' | ')})`); await pg.click('#hGear');
+   await pg.click('#hGear'); await pg.waitForTimeout(400); const mm = await pg.evaluate(() => [...document.querySelectorAll('#settings button')].map(b => b.textContent));
+   ok(!mm.some(t => /mission|career/i.test(t)), `${tag}: ⚙ Settings has no Missions/Career (${mm.join(' | ')})`); await pg.click('#settings .hx'); await pg.waitForTimeout(300);
    await pg.screenshot({ path: `${OUT}/${tag}_home.png` }); }
   await pg.click('#hFly'); await pg.waitForTimeout(2500);
   const st = await pg.evaluate(() => { const g = window.__game; return { state: g.state, ign: g.ignited, auto: !!g.F.autoOn, dir: !!(g.director && g.director.active), alt: g.F.alt }; });

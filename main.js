@@ -668,7 +668,7 @@ let design = cloneDesign(TEMPLATES[0]);
 function fitDist(L, frac) { const vf = (camera.fov || 50) * Math.PI / 180; return Math.max(18, L / frac / (2 * Math.tan(vf / 2))); }
 function setDesign(d) { design = d; refreshBuild(); } // f5.9-0: the hangar / Build screen is gone; a rocket pick just loads its design for the pad
 function refreshBuild() { if (state === 'build') showPreview(); } // f5.9-0: was the builder refresh (stage list, Δv table, verdict worker, saved designs); only the pad preview is left
-const qol = createQoL({ settings: () => SET, onSettings: s => { SET = s; translate = makeTranslator(SET); applyAudioSettings(); if (typeof smap !== 'undefined' && smap.conic !== SET.conic) smap.setConic(SET.conic); if (state === 'build') refreshBuild(); },
+const qol = createQoL({ fillExtras: x => { const g = $('hGearM'); if (g) for (const el of [...g.children]) x.appendChild(el); }, settings: () => SET, onSettings: s => { SET = s; translate = makeTranslator(SET); applyAudioSettings(); if (typeof smap !== 'undefined' && smap.conic !== SET.conic) smap.setConic(SET.conic); if (state === 'build') refreshBuild(); },
   resume: () => setPause(false), quicksave: () => quicksave(), quickload: () => quickload(), revertLaunch: () => revertLaunch(), hangar: () => { setPause(false); goBuild(); }, quickInfo,
   dvTable: () => dvTableHTML(state === 'flight' ? craftDv() : designStats(design).total, state !== 'flight') });
 // ---------- game state ----------
@@ -994,9 +994,10 @@ function updateSat(O, pdt) { if (!satVis) return; if (F.fleet && satVis.rec.vess
   if (satVis.q0) { const k = Math.min(1, satVis.t / 10), e = k * k * (3 - 2 * k), n = V.norm(s.r); _satQ.setFromUnitVectors(Y_AXIS, dv3.set(n[0], n[1], n[2])); satVis.g.quaternion.copy(satVis.q0).slerp(_satQ, e); } else dirQ(satVis.g, V.norm(s.r)); // keeps the stage's attitude at release, then eases to nadir
   const d = satVis.sat && satVis.sat.userData.deploy; if (d) d.call(satVis.sat.userData, (satVis.t - 1.2) / 4); } // arrays unfold after the springs have pushed it clear
 function updateEndFlightBtn() { let b = $('relBtn'); if (!b) { b = document.createElement('button'); b.id = 'relBtn'; document.body.appendChild(b);
-    b.onclick = e => { e.currentTarget.blur(); if (F.canRelease()) F.releasePayload(); else if (F.released && !F.ended) showEnd(); updateEndFlightBtn(); }; }
-  const on = state === 'flight' && !F.ended && !F.flags.dead && (F.canRelease() || !!F.released);
-  b.classList.toggle('hidden', !on); if (on) { const more = F.canRelease(); /* f5.9: END FLIGHT never takes the RELEASE button while a payload is still aboard */ b.textContent = more ? '🛰 RELEASE' : '■ End flight'; b.title = more ? 'Release the payload (or press STAGE)' : 'End the flight: everything deployed stays in orbit'; b.classList.toggle('rel', more); b.classList.toggle('done', !more); } }
+    b.onclick = e => { e.currentTarget.blur(); if (F.canRelease()) F.releasePayload(); updateEndFlightBtn(); }; } /* f5.9i (QA P2): this button is RELEASE only; ■ End flight lives in ☰ and asks twice, so a double tap on RELEASE can never end the flight */
+  const endable = state === 'flight' && !F.ended && !F.flags.dead && !!F.released; document.querySelectorAll('[data-endf]').forEach(e => { if (e.hidden === endable) { e.hidden = !endable; if (!endable) { e.textContent = '■ End flight'; delete e.dataset.arm; } } });
+  const on = state === 'flight' && !F.ended && !F.flags.dead && F.canRelease();
+  b.classList.toggle('hidden', !on); if (on) { const more = F.canRelease(); /* f5.9: END FLIGHT never takes the RELEASE button while a payload is still aboard */ b.textContent = '🛰 RELEASE'; b.title = 'Release the payload (or press STAGE)'; b.classList.add('rel'); b.classList.remove('done'); } }
 function reset() {
   try { if (F && F.fleet && F.v && F.v.craft) F.parkActive(); } catch (e) { } clearFleetVis(); viewId = null; // f6.2: leaving a flight parks the craft you fly (its orbit is saved)
   gen++; freeSat();
@@ -1199,6 +1200,7 @@ addEventListener('keydown', e => {
   if (code === null) return;
   if (code === 'F9' && state === 'build' && !e.repeat) { quickload(); return; }
   if (state === 'flight' && camMode === 'map' && smap.key(e.code, e)) return;
+  if (code === 'Escape' && state === 'flight' && photoOn) { fun.photo.toggle(); return; } /* f5.9i (QA P2): Esc leaves photo mode instead of opening Pause under the photo bar */
   if (code === 'Escape' && state === 'flight') { if (qol.busy) return; if (!paused && camMode === 'map') { exitMap(); return; } setPause(!paused); return; }
   if (code === 'KeyM' && state === 'flight' && paused && camMode === 'map') { setPause(false); exitMap(); return; }
   if (paused) return;
@@ -1331,7 +1333,7 @@ function endStats() { // data -> lines for the end card (fun/endstats.js); neutr
     imperial: UN.imp(), seed: F.endSeed || (F.endSeed = (Math.random() * 1e9) | 0) });
 }
 function showEnd() {
-  if (F.ended) return; for (const id of ['mMenu', 'dMenu', 'engS', 'heat', 'learn', 'lesson', 'opTask']) { const e = $(id); if (e) e.classList.add('hidden'); } { const nv = $('nav'); if (nv) nv.classList.remove('fan'); } try { mobile.closeMenu(); } catch (e) { } // f5.9: no popup survives onto the end card
+  if (F.ended) return; try { if (vesselUI && vesselUI.isOpen()) vesselUI.close(); } catch (e) { } /* f5.9i (QA P2): one sheet at a time: the end card closes the craft list */ for (const id of ['mMenu', 'dMenu', 'engS', 'heat', 'learn', 'lesson', 'opTask']) { const e = $(id); if (e) e.classList.add('hidden'); } { const nv = $('nav'); if (nv) nv.classList.remove('fan'); } try { mobile.closeMenu(); } catch (e) { } // f5.9: no popup survives onto the end card
  const score = F.finish();
   const flags = F.flags, o = F.orbitSnap ? F.orbitSnap.o : P.orbitOf(v), ok = (flags.orbit || !!(F.homeBody && F.homeBody !== 'earth' && (F.goals[F.homeBody] || {}).orbit)) && !flags.dead;
   const out = recordFlight(score);
@@ -2033,6 +2035,7 @@ function groundCam(O, th, base, nose, rdt) {
   const fov = Math.max(0.05, Math.min(80, 2 * Math.atan(L * 1.6 * GCAM.zoom / dist) * 180 / Math.PI)); // rocket ≈ 1/3 of the view height at zoom 1; zooming out widens to the horizon
   camera.fov = fov; camera.updateProjectionMatrix(); // no easing: slow frames must not leave the rocket a dot
 }
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-endf]'); if (!b) return; if (!b.dataset.arm) { b.dataset.arm = '1'; b.textContent = 'Tap again to end the flight'; setTimeout(() => { if (b.dataset.arm) { delete b.dataset.arm; b.textContent = '■ End flight'; } }, 3500); return; } delete b.dataset.arm; b.textContent = '■ End flight'; if (F.released && !F.ended) showEnd(); }); // f5.9i: ■ End flight from ☰ (two taps)
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-gcam]'); if (!b) return; const g = $('gcamBtn'); if (g) g.click(); const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); try { mobile.closeMenu(); } catch (er) { } }); // f5.8i: 🎥 Ground cam from ☰
 { const gb = document.createElement('button'); gb.id = 'gcamBtn'; gb.className = 'hidden'; gb.title = 'Camera view (V): ground, horizon, vehicle, free'; gb.textContent = '🎥 VEHICLE';
   gb.onclick = e => { e.stopPropagation(); e.currentTarget.blur(); cycleCam(); };
@@ -2485,7 +2488,7 @@ var home = createHome({ list: SHOW, hidden: i => RETIRED.has(SHOW[i].id), locked
   onSelect: i => { pickModel = null; pickStack = null; setTimeout(() => window.__galMark && window.__galMark(), 0); try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(showDesign(i)); },
   onFly: i => { if (lockedFly(i)) return; setDesign(pickDesign(i)); home.show(false); launch(); try { F.setAuto(false, true); } catch (e) { } }, // f5.5b (owner): load onto the pad with control; pick AUTO if wanted, STAGE to go. Was QA f5b.3: home FLY = 1 tap to liftoff on AUTO
   onMission: i => { if (lockedFly(i)) return; const w = lockWhy('missions', SHOW[i].mission); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); return; } home.show(false); startMission(SHOW[i].mission); },
-  onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => $('hGearM').classList.toggle('hidden') });
+  onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => qol.openSettings() });
 // f5.4 sandbox: 📍 launch site button on the Home card + picker
 // f5.4 (QA f5.4b C1/H): off Earth, a sounding rocket (Pip, Sandpiper) is never the default: pick the starter orbiter
 function siteDefault() { try { if (!sbSite || sbSite.body === 'earth' || pickModel || !home) return; const cur = SHOW[home.index]; if (!cur || !(cur.id === 'pip' || cur.id === 'hopper' || cur.check === 'space')) return;
@@ -2499,7 +2502,7 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
   for (const id of ['gfxSel', 'fxSel']) { const l = $(id) && $(id).closest('label'); if (l) g.appendChild(l); }
   { const sb = document.createElement('button'); sb.id = 'hSound'; const lab = () => { sb.textContent = funAudio.muted ? '🔇 Sound off' : '🔊 Sound on'; const pm = $('pMute'); if (pm) pm.textContent = funAudio.muted ? '🔇' : '🔊'; };
     sb.onclick = () => { initAudio(); funAudio.toggleMute(); lab(); }; lab(); g.appendChild(sb); }
-  mk('⚙ All settings', () => qol.openSettings()); mk('Credits', () => $('credits').classList.remove('hidden'));
+  mk('Credits', () => $('credits').classList.remove('hidden')); // f5.9i: the sheet's extras (graphics, effects, sound, credits) move into Settings; ⚙ opens Settings directly
   document.addEventListener('pointerdown', e => { if (!g.classList.contains('hidden') && !e.target.closest('#hGearM,#hGear')) g.classList.add('hidden'); }, true);
 }
 { // f5.1h: grouped rocket picker: Originals first, then one section per launch house; the builder lives behind Sandbox

@@ -512,3 +512,43 @@ body.u59 #home #hGal #picker section.pkR.off{display:none!important}
 }
 @media (max-width:340px){#botBar :is(#mThr,#dThr) u{font-size:8px!important;letter-spacing:0!important}}
 @media (max-width:340px){#pause .col button{min-width:0!important;padding-inline:4px!important;font-size:var(--t-xs)!important;letter-spacing:0!important;white-space:normal;line-height:1.1}}
+
+/* ===== f5.9i (QA f5.9-7b P1): the compact one-row bottom bar applies in orbit, with AUTO off and after a craft switch; bars ≤25% in short landscape ===== */
+@media (orientation:landscape) and (max-height:520px){
+  :root{--bnb:48px}
+  body.u59 #topBar{padding-top:calc(1px + var(--sat))!important;padding-bottom:1px!important}
+  body.u59 #topBar button{height:40px!important;min-height:0!important}
+  body.u59 #botBar{grid-template-areas:"l c r"!important;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;padding-top:1px!important;padding-bottom:calc(1px + var(--sab))!important;gap:0 8px!important;align-items:center!important}
+  body.u59.lifted:not(.autoOn) #bbT{display:contents!important}
+  body.u59 #bbT #navRd{display:none!important}
+  body.u59 #bbT #navSasT{position:absolute!important;left:calc(50% - var(--bnb)/2 - 52px);bottom:calc(3px + var(--sab));width:44px;min-width:44px;height:40px;order:0}
+  body.u59 #bbR{flex-direction:row!important;align-items:center!important;justify-content:flex-end;gap:6px!important;flex-wrap:nowrap}
+  body.u59 #botBar :is(#relBtn,#craftBtn){height:var(--ctlH)!important;width:auto!important;min-width:0;max-width:none;padding:0 10px!important;white-space:nowrap}
+  body.u59 #botBar #relBtn.done{height:var(--ctlH)!important}
+  body.u59 #botBar #spd .spV{line-height:1!important}
+  body.u59 #botBar #plain{line-height:1.1!important}
+  body.u59 #botBar #plAlt{line-height:1.1!important;margin:0!important}
+  body.u59 #botBar :is(#mright,#dCtl){grid-template-rows:var(--ctlH)!important;row-gap:0!important;grid-auto-rows:0!important;height:var(--ctlH)!important}
+}
+#dMenu [data-photo]{display:none!important}
+
+/* ===== f5.9i (QA P1): the craft list is a bounded sheet between the bars; header and ✕ always reachable ===== */
+body.u59 #vsl{top:auto!important;bottom:calc(var(--botH,60px) + 8px)!important;max-height:calc(100dvh - var(--topH,52px) - var(--botH,60px) - 16px)!important;width:min(640px,calc(100vw - 16px))!important;border:var(--bw) solid var(--bc)!important;border-radius:var(--rad)!important;background:var(--panel)!important;overflow:hidden}
+body.u59 #vsl .vh{flex:none;padding:6px 10px}
+body.u59 #vsl .vl{min-height:0;flex:1 1 auto}
+body.u59 #vsl button{min-height:40px}
+body.u59 #vsl .vx{min-width:44px;min-height:40px}
+@media (orientation:landscape) and (max-height:520px){body.u59 #vsl .vr{flex-wrap:nowrap;padding:4px 8px;gap:8px}body.u59 #vsl .vb{width:auto;flex-wrap:nowrap}body.u59 #vsl .vb button{flex:none}}
+
+/* ===== f5.9i (QA P2): Settings is ONE sheet, wide enough on desktop: two real columns, no nested grids, ✕ in the header ===== */
+body.u59 #settings section:not(.qKeys){display:block!important}
+body.u59 #settings #qExtra{display:flex;flex-direction:column;gap:2px;margin:6px 0}
+body.u59 #settings #qExtra>button{min-height:var(--tap);align-self:stretch}
+body.u59 #settings #qExtra label{margin:0}
+@media (min-width:900px){
+  body.u59 #settings .mbox>:not(h2):not(.row):not(.col){width:min(100% - 32px,980px)!important}
+  body.u59 #settings .setGrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:4px 32px}
+  body.u59 #settings label>select{max-width:70%}
+}
+body.u59 #settings #setBody>.setGrid{width:100%!important;box-sizing:border-box}
+body.u59 #settings #setBody{padding-left:16px!important;padding-right:16px!important;box-sizing:border-box}
