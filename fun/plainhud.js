@@ -51,7 +51,7 @@ export function createPlainHud() {
     const la = d.land || null; $('plLand').classList.toggle('hidden', !la); document.body.classList.toggle('plLandOn', !!la); if (la) { set('plVs', 'V/S ' + la.vs + ' ' + U.spdLab()); set('plImp', 'Impact ' + la.tImp.toFixed(1) + ' s');
       set('plBurn', la.state === 'low' ? 'TWR too low' : la.state === 'now' ? '🔥 BURN NOW' : 'Burn in ' + la.burnIn.toFixed(1) + ' s'); $('plLand').className = 'on ' + la.state; }
     const key = d.dv.map(s => s.n + ':' + Math.round(s.dv) + (s.on ? '*' : '')).join(',');
-    if (last.dv !== key) { last.dv = key; $('dvStages').innerHTML = '<b class="dvH">Δv left</b>' + d.dv.map(s => `<div class="dvS${s.on ? ' on' : ''}"><span>Stage ${s.n}</span><em>${U.dv(s.dv)}</em></div>`).join(''); }
+    if (last.dv !== key) { last.dv = key; $('dvStages').innerHTML = '<b class="dvH">Δv left</b>' + d.dv.map(s => `<div class="dvS${s.on ? ' on' : ''}"><span><i class="lg">Stage </i><i class="sh">S</i>${s.n}</span><em>${U.dv(s.dv)}</em></div>`).join(''); }
   }
   return { el, update };
 }

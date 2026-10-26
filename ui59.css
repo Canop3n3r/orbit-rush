@@ -1,0 +1,382 @@
+/* f5.9a: ONE design system (owner: one simple font, the same borders, nothing overlapping at any size, navball bottom centre, every button in a top or bottom border).
+   Loaded after style.css; everything here is the final word on fonts, borders, radii, colours and where controls live. */
+:root{
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --ui:var(--font);--mono:var(--font);
+  --t-xs:11px;--t-s:13px;--t-m:15px;--t-l:19px;--t-xl:26px;--fs-xs:11px;--fs-s:13px;--fs-m:15px;--fs-l:19px;--fs-xl:26px;
+  --bw:2px;--bc:rgba(140,185,255,.42);--bc-hi:#7cc8ff;--rad:12px;--r-s:12px;--r:12px;--r-l:12px;
+  --panel:rgba(9,16,30,.94);--panel-hi:rgba(20,32,56,.97);--btn:#1b2a44;--btn-on:#1d5fae;--go:#e8642a;--gap:8px;--tap:44px;
+  --line:var(--bc);--line-hi:var(--bc-hi);--glass:var(--panel);--glass-hi:var(--panel-hi);
+  --bnb:clamp(84px,min(24vw,22vh),180px);
+  --topH:52px;--botH:150px;
+}
+*,*::before,*::after{font-family:var(--font)!important;font-variant-numeric:tabular-nums}
+/* one border + one radius on every control and panel */
+body.u59 :is(button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]),summary,.panel,.mbox,.glass,#end,#mMenu,#dMenu,#settings,#pause,#mapPanel,#mapBar,#mapInfo,#dvModal,#credits .mbox){border:var(--bw) solid var(--bc)!important;border-radius:var(--rad)!important}
+body.u59 :is(button,select){color:var(--txt);background:var(--btn);font-weight:700;font-size:var(--t-s);cursor:pointer}
+body.u59 :is(button,select):active{background:var(--btn-on)}
+/* ---------- the two bars ---------- */
+#topBar,#botBar{position:fixed;left:0;right:0;z-index:60;box-sizing:border-box;display:none;background:var(--panel);pointer-events:none}
+body.u59:has(#hud:not(.hidden)):not(.endOn):not(.menuOn):not(.photo) :is(#topBar,#botBar){display:grid}
+#topBar{top:0;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"l c r";align-items:center;gap:var(--gap);padding:calc(6px + var(--sat)) calc(8px + var(--sar)) 6px calc(8px + var(--sal));border-bottom:var(--bw) solid var(--bc)}
+#tbL{grid-area:l}#tbC{grid-area:c;justify-content:center;min-width:0}#tbR{grid-area:r;justify-content:flex-end}
+#tbL,#tbC,#tbR{display:flex;align-items:center;gap:6px}
+#botBar{bottom:0;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-areas:"t t t" "l c r";align-items:end;gap:4px 8px;padding:4px calc(8px + max(var(--sar),var(--sal))) calc(6px + var(--sab));border-top:var(--bw) solid var(--bc)}
+#bbT{grid-area:t;width:100%;overflow:hidden;display:flex;justify-content:center;align-items:center;gap:8px;min-width:0}
+#bbL{grid-area:l;min-width:0;display:flex;justify-content:flex-start;align-items:flex-end}
+#bbC{grid-area:c;display:flex;justify-content:center;align-items:flex-end}
+#bbR{grid-area:r;min-width:0;display:flex;justify-content:flex-end;align-items:flex-end}
+/* buttons inside the bars: one size, one look */
+:is(#topBar,#botBar) button{pointer-events:auto;position:static!important;transform:none!important;margin:0!important;box-sizing:border-box;min-width:var(--tap);min-height:0!important;height:var(--tap);padding:0 10px!important;flex:none;font:700 var(--t-s)/1 var(--font)!important;color:var(--txt)!important;background:var(--btn)!important;border:var(--bw) solid var(--bc)!important;border-radius:var(--rad)!important;display:inline-flex;align-items:center;justify-content:center;text-shadow:none;box-shadow:none}
+:is(#topBar,#botBar) button.hidden{display:none!important}
+#topBar #wVal{min-width:52px}
+#bbT #navSasT{height:40px;min-width:44px;order:-1}
+#bbT::after{content:'';width:40px;flex:none;order:2}
+#bbT{min-height:32px}
+#bbT{position:relative}
+#topBar #pTake{background:#b8322a!important;border-color:#ff8a7a!important}
+#tbC #pTake{height:34px}
+#topBar :is(#dAbort,#mAbort){color:#ff9b9b!important;border-color:var(--bad)!important;background:transparent!important}
+#topBar .mAbT{display:none}
+/* top centre: the one text line (hint, toast, ignite prompt) */
+#topBar #hintS{position:static!important;transform:none!important;width:auto!important;max-width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;padding:0 4px!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;text-align:center;font:600 var(--t-s)/1.25 var(--font)!important;white-space:normal!important;color:var(--txt);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#topBar #hintS:not(.on){display:none!important}
+#topBar #ignite{position:static!important;transform:none!important;animation:none!important;background:none!important;border:0!important;padding:0!important;max-width:100%!important;font:700 var(--t-s)/1.25 var(--font)!important;text-shadow:none!important;text-align:center;color:#ffd7a8}
+#topBar #ignite.hidden{display:none!important}
+#tbC:has(#ignite:not(.hidden)) #hintS{display:none!important}
+@media (max-width:560px){ /* narrow: the text line drops to its own row so the buttons never squeeze it */
+  #topBar{grid-template-columns:auto 1fr auto;grid-template-areas:"l . r" "c c c"}
+  body:not(.splitOn):not(.mapOn) #topBar:not(:has(#hintS.on)):not(:has(#ignite:not(.hidden))){row-gap:0}
+  body:not(.splitOn):not(.mapOn) #tbC:not(:has(#hintS.on)):not(:has(#ignite:not(.hidden))){display:none}
+}
+/* ---------- bottom bar: attitude row, telemetry | navball | controls ---------- */
+#botBar #nav{--nb:var(--bnb);position:static!important;left:auto!important;bottom:auto!important;transform:none!important;margin:0!important;display:flex;flex-direction:column;align-items:center;gap:0;pointer-events:none;z-index:auto;width:var(--bnb);height:var(--bnb);flex:none}
+#botBar #nav.hidden{display:none}
+#botBar .navWrap{width:var(--nb)!important;height:var(--nb)!important;margin:0!important;position:relative}
+#botBar #navBall{width:var(--nb)!important;height:var(--nb)!important;margin:0!important;border-radius:50%!important;border:0!important;box-shadow:0 0 0 var(--bw) var(--bc)!important;pointer-events:auto}
+#botBar :is(.navArcs,.navLab,#navMode,#navCue){display:none!important}
+#botBar #nav #navSas{display:none}
+/* SAS modes open as a drawer docked on top of the bottom bar */
+#botBar #nav.fan #navSas{transform:none!important;translate:none!important;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;position:fixed!important;left:0!important;right:0!important;top:auto!important;bottom:var(--botH)!important;width:auto!important;height:auto!important;margin:0!important;padding:8px calc(8px + var(--sar)) 8px calc(8px + var(--sal));background:var(--panel);border-top:var(--bw) solid var(--bc);z-index:59;pointer-events:auto}
+#botBar #nav.fan #navSas button{position:static!important;transform:none!important;margin:0!important;width:auto!important;min-width:var(--tap);height:var(--tap)!important;padding:0 8px!important;display:inline-flex;flex-direction:column;gap:0;font-size:var(--t-m)!important;border:var(--bw) solid var(--bc)!important;border-radius:var(--rad)!important;background:var(--btn)!important}
+#botBar #nav.fan #navSas button small{font-size:9px;line-height:1}
+#bbT #navRd{position:static!important;display:flex!important;flex-direction:row!important;grid-template-columns:none!important;max-width:100%!important;gap:10px!important;padding:0 6px!important;border:0!important;border-radius:0!important;background:none!important;font:700 var(--t-xs)/1.2 var(--font)!important;color:var(--dim);white-space:nowrap}
+#bbT #navRd *{font-size:var(--t-xs)!important}
+#bbT #navRd.hidden{display:none!important}
+#bbT #navRd span{white-space:nowrap}
+/* telemetry card: flat, inside the bar */
+#botBar #plain{position:static!important;min-width:0!important;max-width:100%!important;padding:0 2px!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;font-size:var(--t-s)!important;color:var(--txt);text-shadow:none;pointer-events:none}
+#botBar #plain.hidden{display:none}
+#botBar #spd .spV{font-size:clamp(26px,5.2vh,40px);letter-spacing:0;text-shadow:none}
+#botBar #spd small{font-size:var(--t-s)}
+#botBar #plAlt{margin:2px 0 3px;font-size:var(--t-s)}
+#botBar #apPe div{font-size:var(--t-s);gap:4px;flex-wrap:wrap}
+#botBar #dvStages{margin-top:3px;padding-top:3px;border-top:1px solid var(--bc)}
+#botBar #dvStages .dvH{font-size:var(--t-xs);letter-spacing:0}
+#botBar #dvStages .dvS{font-size:var(--t-xs);gap:6px}
+#botBar #plLand{margin:3px 0;padding:3px 6px;font-size:var(--t-s);border-radius:var(--rad)}
+#botBar #plLand b{font-size:var(--t-m)}
+/* controls cluster: AUTO / CHUTE over STAGE, throttle gauge on the right */
+#botBar :is(#mright,#dCtl){grid-template-columns:76px auto 36px!important;position:static!important;translate:none!important;left:auto!important;right:auto!important;bottom:auto!important;transform:none!important;display:grid!important;grid-auto-rows:auto;gap:6px;align-items:end;justify-items:stretch;pointer-events:none;width:auto}
+#botBar :is(#mright,#dCtl).hidden{display:none!important}
+#botBar :is(#mAuto,#dAuto){grid-column:1;grid-row:1;height:40px;min-width:76px}
+#botBar #mChute{grid-column:2;grid-row:1;height:40px}
+#botBar :is(#mStage,#dStage){grid-column:1 / span 2;grid-row:2;width:100%!important;min-width:76px;height:52px!important;background:var(--go)!important;border-color:#ffd2a8!important;font-size:var(--t-m)!important}
+#botBar :is(#mThr,#dThr){grid-column:3;grid-row:1 / span 2;width:36px!important;height:98px!important;min-height:0!important;align-self:end;pointer-events:auto;border:var(--bw) solid var(--bc)!important;border-radius:var(--rad)!important;background:#0b1424!important}
+#botBar :is(#mAuto,#dAuto).on{background:var(--btn-on)!important;border-color:var(--bc-hi)!important}
+#botBar :is(#mright,#dCtl) kbd{display:none!important}
+/* the old floating placements are gone; these never show over the view any more */
+body.u59 :is(#strip,#strip2):not(:has(button)){display:none!important}
+body.u59 #badge{display:none!important}
+
+/* release button joins the controls cluster; ground-cam / camera button lives in the top bar */
+#botBar #relBtn{grid-column:2;grid-row:1;height:38px;color:#9dffc8!important}
+#botBar #relBtn.rel{background:#1f7a4a!important}
+/* telemetry card on short wide screens: two columns so the bar stays low */
+@media (max-height:520px) and (min-aspect-ratio:1/1){
+  #botBar #plain{display:grid;grid-template-columns:auto auto;column-gap:14px;align-items:start}
+  #botBar #plain.hidden{display:none}
+  #botBar #spd{grid-column:1;grid-row:1}#botBar #plAlt{grid-column:1;grid-row:2;margin:2px 0 0}
+  #botBar #apPe{grid-column:2;grid-row:1 / span 2;align-self:center}
+  #botBar #plLand{grid-column:1 / -1}
+  #botBar #dvStages{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:2px;padding-top:2px}
+  #botBar #dvStages .dvH{display:none}
+}
+/* drawers: ☰ menu opens under the top bar, between the bars, never over the middle */
+body.u59 :is(#mMenu,#dMenu){position:fixed!important;top:var(--topH)!important;right:0!important;left:auto!important;bottom:auto!important;width:min(340px,100%)!important;max-height:calc(100dvh - var(--topH) - var(--botH))!important;overflow:auto;box-sizing:border-box;margin:0!important;border-top:0!important;border-right:0!important;border-radius:0 0 0 var(--rad)!important;background:var(--panel)!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;z-index:58!important;padding:8px!important}
+body.u59 :is(#mMenu,#dMenu).hidden{display:none!important}
+body.u59 :is(#mMenu,#dMenu) button{min-height:var(--tap)!important;font-size:var(--t-s)!important;border:var(--bw) solid var(--bc)!important;border-radius:var(--rad)!important;background:var(--btn)!important}
+body.u59 :is(#mMenu,#dMenu) :is(#mClose,#dClose){width:var(--tap)!important;height:var(--tap)!important;min-height:var(--tap)!important}
+
+@media (max-width:420px){
+  #bbT::after{display:none}
+  #bbT #navRd{gap:6px!important;min-width:0;overflow:hidden}
+  #bbT #navRd,#bbT #navRd *{font-size:10px!important}
+  #botBar #dvStages .lg{display:none}
+  #botBar #dvStages .sh{display:inline}
+}
+#dvStages :is(.lg,.sh){font-style:normal}#dvStages .sh{display:none}
+@media (max-width:420px){#botBar #dvStages .sh{display:inline}}
+
+/* ---------- other flight overlays become drawers on the bars ---------- */
+:root{--drawer-top:var(--topH);--drawer-max:calc(100dvh - var(--topH) - var(--botH))}
+body.u59 :is(#engS,#heat,#learn,#opTask){position:fixed!important;top:var(--topH)!important;bottom:auto!important;transform:none!important;margin:0!important;max-height:var(--drawer-max)!important;overflow:auto;box-sizing:border-box;background:var(--panel)!important;border:var(--bw) solid var(--bc)!important;border-top:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;z-index:58;animation:none!important}
+body.u59 #engS{left:0!important;right:auto!important;border-left:0!important;border-radius:0 0 var(--rad) 0!important;padding:4px 6px!important;gap:4px!important;display:grid;grid-template-columns:repeat(4,auto)!important}
+body.u59 #engS.hidden{display:none!important}
+body.u59 #engS .c{width:auto!important;min-width:60px;height:38px!important;border:0!important;background:none!important}
+body.u59 #heat{right:0!important;left:auto!important;width:min(250px,100%)!important;border-right:0!important;border-radius:0 0 0 var(--rad)!important;font:var(--t-s)/1.35 var(--font)!important}
+body.u59 #heat.hidden{display:none!important}
+body.u59 #learn{left:0!important;right:auto!important;width:min(420px,100%)!important;border-left:0!important;border-radius:0 0 var(--rad) 0!important}
+body.u59 #opTask{left:0!important;right:0!important;width:auto!important;border-left:0!important;border-right:0!important;border-radius:0!important;justify-content:center}
+body.u59 #lesson{position:fixed!important;left:0!important;right:0!important;bottom:var(--botH)!important;top:auto!important;transform:none!important;width:auto!important;max-height:var(--drawer-max);overflow:auto;border:var(--bw) solid var(--bc)!important;border-width:var(--bw) 0 0!important;border-radius:0!important;background:var(--panel)!important;box-shadow:none!important;z-index:58}
+body.u59 #lesson.hidden{display:none!important}
+body.u59 #topBar #craftTag{position:static!important;width:auto;max-width:150px;padding:0 6px;border:0!important;border-left:var(--bw) solid var(--bc-hi)!important;border-radius:0!important;background:none!important;font:700 var(--t-xs)/1.25 var(--font)!important;text-shadow:none;overflow:hidden}
+@media (max-width:560px){body.u59 #topBar #craftTag{display:none!important}}
+/* photo mode: the bar is the photo controls */
+body.u59 #photobar{position:fixed!important;left:0!important;right:0!important;bottom:0!important;transform:none!important;max-width:none!important;width:auto!important;box-sizing:border-box;padding:6px calc(8px + var(--sar)) calc(6px + var(--sab)) calc(8px + var(--sal))!important;border:0!important;border-top:var(--bw) solid var(--bc)!important;border-radius:0!important;background:var(--panel)!important;flex-direction:row!important;gap:6px!important;z-index:60}
+body.u59 #photobar.hidden{display:none!important}
+body.u59 #photobar button{min-width:var(--tap);height:var(--tap);border-radius:var(--rad)!important}
+body.u59 #photobar button.on{background:var(--btn-on)!important}
+/* the compact flight chips and the old floating callout are replaced by the bar text line */
+body.u59 #callout{display:none!important}
+
+body.u59.noStage #botBar :is(#mStage,#dStage){background:#3a4152!important;border-color:#5a6378!important;color:#9aa5b8!important;opacity:.55!important;filter:grayscale(1)!important;box-shadow:none!important;animation:none!important}
+:is(#botBar #navBall,#botBar #nav button){pointer-events:auto}
+#botBar #navBall{touch-action:none}
+/* short landscape: the attitude row tucks under the telemetry so the bar stays low */
+@media (max-height:520px) and (min-aspect-ratio:1/1){
+  #botBar{grid-template-areas:"l c r" "t c r";align-items:end}
+  #bbT{justify-content:flex-start;padding-left:2px;min-height:0}
+  #bbT::after{display:none}
+  #bbL{align-self:end}
+}
+/* map: the toolbar replaces the flight top bar; no bottom bar */
+body.mapOn.u59 :is(#tbL,#tbR,#tbC>:not(#mapBar)){display:none!important}
+body.mapOn.u59 #botBar{display:none!important}
+body.mapOn.u59 #topBar{grid-template-columns:1fr;grid-template-areas:"c"}
+/* map toolbar lives in the top bar; its sheets are drawers under it */
+body.u59:not(.mapOn) #mapBar{display:none!important}
+body.u59.mapOn #topBar #mapBar{position:static!important;transform:none!important;display:flex!important;width:100%;max-width:none!important;flex-wrap:nowrap!important;justify-content:center;align-items:center;gap:6px;padding:0!important;margin:0;border:0!important;border-radius:0!important;background:none!important;overflow:hidden;pointer-events:none}
+body.u59.mapOn #topBar #mapBar #mapFocus{min-width:0!important;max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 var(--t-s) var(--font);color:var(--txt);text-align:center}
+body.u59 :is(#mapMore,#mapPanel,#mapTrack){position:fixed!important;top:var(--topH)!important;bottom:auto!important;transform:none!important;margin:0!important;max-height:var(--drawer-max)!important;overflow:auto;box-sizing:border-box;background:var(--panel)!important;border:var(--bw) solid var(--bc)!important;border-top:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;z-index:58;pointer-events:auto}
+body.u59 :is(#mapMore,#mapPanel){right:0!important;left:auto!important;width:min(400px,100%)!important;border-right:0!important;border-radius:0 0 0 var(--rad)!important}
+body.u59 #mapMore:not(.hidden){display:grid!important;grid-template-columns:repeat(2,1fr)}
+body.u59 #mapTrack{left:0!important;right:auto!important;border-left:0!important;border-radius:0 0 var(--rad) 0!important}
+body.u59 :is(#mapMore,#mapPanel,#mapTrack).hidden{display:none!important}
+body.u59 :is(#mapMore,#mapPanel) button{min-height:var(--tap)!important;border:var(--bw) solid var(--bc)!important;border-radius:var(--rad)!important;background:var(--btn)!important;color:var(--txt)!important;font:700 var(--t-s) var(--font)!important}
+body.u59 #mapPanel input{height:var(--tap);border:var(--bw) solid var(--bc);border-radius:var(--rad);background:#06101e;color:#fff}
+body.u59 #mapInfo{position:fixed!important;top:var(--topH)!important;left:0!important;right:0!important;transform:none!important;max-width:none!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;text-align:center;font:600 var(--t-xs)/1.3 var(--font)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;text-shadow:0 1px 3px #000}
+/* P1 (QA f5.9-2): the throttle gauge is always in the bottom bar while the flight HUD is up, also in orbit with AUTO on; touching it hands control to the player */
+body.u59 #botBar #mThr{display:block!important}
+body.u59 #botBar #dThr{display:flex!important}
+
+/* ---------- map: the burn bar is the map's bottom bar; drawers sit between the two bars ---------- */
+:root{--mapBotH:0px}
+body.mapOn.u59{--botH:var(--mapBotH)}
+body.u59 #mapBurn{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;transform:none!important;width:auto!important;max-width:none!important;box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 6px;padding:6px calc(8px + var(--sar)) calc(6px + var(--sab)) calc(8px + var(--sal))!important;margin:0;background:var(--panel)!important;border:0!important;border-top:var(--bw) solid var(--bc)!important;border-radius:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;z-index:60;font:700 var(--t-s)/1.25 var(--font)}
+body.u59 #mapBurn.hidden{display:none!important}
+body.u59 #mapBurnT{flex:1 0 100%;max-width:none!important;text-align:center;font:700 var(--t-s)/1.25 var(--font)!important;color:#ffd23a}
+body.u59 #mapBurn button{height:var(--tap);min-height:0!important;min-width:var(--tap)!important;padding:0 10px!important;flex:none}
+body.u59 #mapBurn input[type=range]{flex:1 1 90px;min-width:70px;max-width:260px;width:auto;height:var(--tap);margin:0}
+body.u59 #mapBurn u{min-width:38px;text-align:right;font:700 var(--t-s) var(--font)!important}
+@media (max-height:520px) and (min-aspect-ratio:1/1){body.u59 #mapBurnT{flex:0 1 auto;text-align:left;max-width:30%!important;font-size:var(--t-xs)!important}}
+body.u59 #mapPanel{--mp-b:var(--mapBotH)}
+body.u59 :is(#mapMore,#mapPanel,#mapTrack){max-height:calc(100dvh - var(--topH) - var(--mapBotH) - 5px)!important}
+/* node editor: rows never wrap; landscape = two columns so the whole editor fits between the bars */
+body.u59 #mapPanel .nrow{flex-wrap:nowrap!important;gap:4px!important;margin:4px 0}
+body.u59 #mapPanel .nrow>button{flex:1 1 0;min-width:0;padding:0 4px!important}
+body.u59 #mapPanel .nrow>.nk{flex:none;width:62px;font-size:var(--t-xs)}
+body.u59 #mapPanel .nrow>input{flex:1.3 1 0;min-width:0;width:auto;height:var(--tap)}
+body.u59 #mapPanel[data-mode=plan] .nrow:first-of-type{overflow-x:auto;scrollbar-width:none}
+body.u59 #mapPanel[data-mode=plan] .nrow:first-of-type>button{flex:none;padding:0 10px!important}
+body.u59 #mapPanel h4{margin:2px 0 4px;font:700 var(--t-m) var(--font)}
+@media (max-height:520px) and (min-aspect-ratio:1/1){
+  body.u59 #mapPanel[data-mode=node]{width:min(780px,100%)!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;align-content:start;padding:6px 8px!important}
+  body.u59 #mapPanel[data-mode=node]>h4{grid-column:1 / -1;margin:0}
+  body.u59 #mapPanel[data-mode=node] button,body.u59 #mapPanel[data-mode=node] input{height:36px;min-height:0!important}
+  body.u59 #mapPanel[data-mode=node] .nrow{margin:2px 0}
+  body.u59 #mapPanel[data-mode=node]>#nSum{font-size:var(--t-xs)}
+  body.u59 #mapPanel[data-mode=node]>div:nth-of-type(-n+3){grid-column:1}
+  body.u59 #mapPanel[data-mode=node]>div:nth-of-type(n+4){grid-column:2}
+  body.u59 #mapPanel[data-mode=node] .nrow>.nk{width:50px}
+}
+@media (max-width:620px){body.u59 #mapPanel[data-mode=node] .nrow>button{font-size:12px!important;padding:0 1px!important}body.u59 #mapPanel[data-mode=node] .nrow>.nk{width:44px}}
+body.u59 #mapPanel .nrow>button{min-width:0!important}
+/* narrow phones (<=380): smaller controls cluster + navball, map toolbar fits */
+@media (max-width:380px){
+  :root{--bnb:clamp(76px,24vw,100px)}
+  #botBar{grid-template-columns:minmax(98px,1fr) auto minmax(98px,1fr)}
+  #botBar :is(#mright,#dCtl){grid-template-columns:60px auto 30px!important;gap:4px!important}
+  #botBar :is(#mThr,#dThr){width:30px!important}
+  #botBar :is(#mright,#dCtl) button{padding:0 4px!important;min-width:0!important}
+  body.u59.mapOn #topBar #mapBar{gap:4px}
+  body.u59.mapOn #topBar #mapBar button{min-width:38px!important;padding:0 6px!important}
+  body.u59 #topBar #mapBar #mapFocus{max-width:22vw}
+}
+body.u59 #mapTrack:empty{display:none!important}
+body.u59 #mapBurn input[type=range]{flex:1 1 60px;min-width:60px}
+/* RELEASE sits on its own row above the AUTO/STAGE/THR cluster (never beside it, so the cluster keeps its width) */
+#bbR{flex-direction:column;align-items:flex-end;gap:4px}
+#botBar #relBtn{grid-column:auto;grid-row:auto;width:100%;max-width:100%;height:38px}
+#botBar #spd{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:4px;max-width:100%}
+#botBar #spd .spV{font-size:clamp(22px,min(5.2vh,8vw),40px)}
+
+/* =====================================================================================================
+   f5.9c: every screen outside the flight HUD uses the same two borders.
+   Top bar = title (and the close/back control); bottom bar = the actions; the middle is content or the live view.
+   ===================================================================================================== */
+:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);--pad-x:max(12px,calc((100% - 900px) / 2))}
+/* ---- modal screens: Settings, Pause, Δv map, Credits, Missions hub, Atlas ---- */
+body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas){background:rgba(2,6,14,.5)!important;display:block!important;padding:0!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;pointer-events:auto!important;animation:none!important}
+body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas).hidden{display:none!important}
+body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas) .mbox{position:fixed!important;inset:0!important;width:auto!important;max-width:none!important;max-height:none!important;height:auto!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;transform:none!important;animation:none!important;display:flex!important;flex-direction:column;overflow:auto;overscroll-behavior:contain;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;pointer-events:auto!important}
+body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas) .mbox>h2{position:sticky;top:0;z-index:3;flex:none;margin:0!important;min-height:var(--tap);box-sizing:border-box;padding:calc(8px + var(--sat)) calc(var(--pad-x) + var(--sar)) 8px calc(var(--pad-x) + var(--sal))!important;display:flex;align-items:center;background:var(--panel);border-bottom:var(--bw) solid var(--bc);font:700 var(--t-l)/1.2 var(--font)!important;letter-spacing:0!important}
+body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas) .mbox>:not(h2):not(.row):not(.col){flex:none;background:var(--panel);box-sizing:border-box;margin:0!important;padding:10px calc(var(--pad-x) + var(--sar)) 10px calc(var(--pad-x) + var(--sal))!important;font:var(--t-s)/1.45 var(--font)!important;color:var(--txt)}
+body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas) .mbox>.row,body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas) .mbox>.col{position:sticky;bottom:0;z-index:3;flex:none;margin:auto 0 0!important;box-sizing:border-box;padding:8px calc(var(--pad-x) + var(--sar)) calc(8px + var(--sab)) calc(var(--pad-x) + var(--sal))!important;background:var(--panel);border-top:var(--bw) solid var(--bc);display:flex!important;flex-direction:row!important;gap:8px;justify-content:center}
+body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas) .mbox>.row button,body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas) .mbox>.col button{flex:1 1 0;min-width:0;height:var(--tap);min-height:var(--tap)!important;padding:0 8px!important;margin:0!important}
+body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas) .mbox>.row .big{flex:1.4 1 0;background:var(--btn-on)!important;border-color:var(--bc-hi)!important}
+body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas) kbd{display:none}
+/* the content area fills the space between the bars with the panel colour so the page never shows gaps */
+body.u59 :is(.modal,#settings,#pause,#dvModal,#credits,#hub,#atlas) .mbox>:not(h2):not(.row):not(.col):last-of-type{flex:1 0 auto}
+/* Pause: the five actions are the bottom bar; the middle stays the live view */
+body.u59 #pause .mbox{background:transparent!important}
+body.u59 #pause .mbox>.col{flex-wrap:nowrap}
+body.u59 #pause .mbox>.col button{white-space:normal;line-height:1.1;font-size:var(--t-xs)!important;height:auto;min-height:var(--tap)!important;padding:4px 2px!important}
+body.u59 #pause .mbox>#qsInfo{background:none!important;align-self:center;margin:auto 0 8px!important;padding:6px 12px!important;border:var(--bw) solid var(--bc);border-radius:var(--rad);background:var(--panel)!important;flex:none!important}
+/* Settings / Δv: panel content scrolls, controls are the same size as everywhere else */
+body.u59 :is(#settings,#dvModal,#atlas,#hub) .mbox>:is(#setBody,#dvBody,#atlasBody,#hubBody){flex:1 0 auto}
+body.u59 #settings #setBody{display:block!important}
+body.u59 #settings #setBody>*{width:auto!important}
+body.u59 #settings #setBody .setGrid{display:grid!important}
+body.u59{color-scheme:dark}
+body.u59 .setGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:4px 24px}
+body.u59 #settings section>h4{margin:12px 0 4px;font:700 var(--t-m) var(--font)}
+body.u59 #settings label{display:flex;align-items:center;gap:10px;min-height:var(--tap);font:600 var(--t-s) var(--font);flex-wrap:nowrap}
+body.u59 #settings label>input[type=range]{flex:1 1 90px;min-width:70px;height:var(--tap);margin:0}
+body.u59 #settings label>b{flex:none;min-width:3.4em;text-align:right}
+body.u59 #settings label>select{margin-left:auto;height:var(--tap);min-width:0;max-width:60%}
+body.u59 :is(input[type=checkbox],input[type=radio]){width:28px;height:28px;flex:none;margin:0;accent-color:#4aa0ff}
+body.u59 #settings summary{display:block;line-height:var(--tap);min-height:var(--tap);padding:0 12px;background:var(--btn);cursor:pointer;border:var(--bw) solid var(--bc);border-radius:var(--rad)}
+body.u59 #settings .keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 12px}
+body.u59 #settings .krow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:var(--tap)}
+body.u59 #settings .krow button,body.u59 #settings .ghost{min-height:var(--tap);min-width:var(--tap);padding:0 12px}
+/* credits / text screens */
+body.u59 #credits a{color:#9cc3ff;display:inline-block;min-height:24px}
+body.u59 :is(#settings,#dvModal,#credits,#hub,#atlas){background:var(--panel)!important}
+body.u59 #settings section:not(.qKeys){display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));column-gap:24px;align-content:start}
+body.u59 #settings section>:is(h4,details,p){grid-column:1 / -1}
+
+/* ---- Home: top bar (logo, menu) | live rocket view | bottom bar (rocket + Fly, then search / chips / one strip of rocket pictures) ---- */
+:root{--hTopH:calc(52px + var(--sat))}
+body.u59 #home:not(.hidden){display:grid!important;pointer-events:none!important;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;grid-template-areas:"top" "." "card" "gal";touch-action:auto}
+body.u59 #home #hTop{position:static!important;grid-area:top;pointer-events:auto!important;display:flex;align-items:center;justify-content:space-between;box-sizing:border-box;min-height:52px;padding:calc(4px + var(--sat)) calc(10px + var(--sar)) 4px calc(10px + var(--sal))!important;background:var(--panel);border-bottom:var(--bw) solid var(--bc);right:auto!important}
+body.u59 #home #hTop .hLogo{font:800 var(--t-l)/1 var(--font);letter-spacing:.14em;text-shadow:none}
+body.u59 #home #hTop .hTopR{display:flex;gap:8px}
+body.u59 #home #hTop button{pointer-events:auto;width:var(--tap);height:var(--tap);padding:0;border-radius:var(--rad)!important;font-size:20px;background:var(--btn)}
+body.u59 #home #hCard{position:static!important;grid-area:card;pointer-events:auto!important;transform:none!important;box-sizing:border-box;width:auto!important;max-width:none!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 10px;padding:8px calc(10px + var(--sar)) 8px calc(10px + var(--sal))!important;background:var(--panel)!important;border:0!important;border-top:var(--bw) solid var(--bc)!important;border-radius:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.u59 #home #hCard>.hRow:first-child{min-width:0}
+body.u59 #home #hCard #hName{font:800 var(--t-l)/1.15 var(--font)!important;letter-spacing:0;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;height:auto!important}
+body.u59 #home #hCard #hRole{display:block!important;font:600 var(--t-xs)/1.3 var(--font);height:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dim)}
+body.u59 #home #hCard .hAct{display:flex;gap:8px;align-items:stretch;margin:0}
+body.u59 #home #hCard #hFly{flex:none;min-width:96px;height:var(--tap)!important;min-height:var(--tap)!important;font:800 var(--t-m) var(--font)!important;letter-spacing:.02em;border-radius:var(--rad)!important;box-shadow:none;padding:0 14px}
+body.u59 #home #hCard #hSite{flex:0 1 auto;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;height:var(--tap);min-height:var(--tap)!important;max-width:42vw;padding:0 10px!important;margin:0;border-radius:var(--rad)!important;background:var(--btn)!important;overflow:hidden}
+body.u59 #home #hCard #hSite b{font:700 var(--t-xs)/1.2 var(--font);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.u59 #home #hCard #hSite small{font-size:10px;opacity:.75;white-space:nowrap}
+body.u59 #home #hCard #hMis{display:none!important}
+body.u59 #home #hGal{position:static!important;grid-area:gal;pointer-events:auto!important;width:auto!important;height:auto!important;max-height:calc(var(--gal-h,36) * 1dvh);overflow:auto;border:0!important;border-top:var(--bw) solid var(--bc)!important;border-radius:0!important;background:var(--panel)!important;padding-bottom:var(--sab)}
+body.u59 #home #hGal #picker{padding:0 calc(10px + var(--sar)) 6px calc(10px + var(--sal))!important}
+body.u59 #home #hGal #picker .pkH{position:sticky;top:0;z-index:2;background:var(--panel)!important;display:flex;gap:8px;align-items:center;padding:6px 0 4px;margin:0}
+body.u59 #home #hGal #picker #pkQ{height:var(--tap);min-height:var(--tap);border:var(--bw) solid var(--bc)!important;border-radius:var(--rad)!important;font:600 var(--t-s) var(--font);padding:0 40px 0 12px;background:#0d1626}
+body.u59 #home #hGal #picker .pkSw{flex:none;height:var(--tap);min-height:var(--tap);padding:0 10px;border-radius:var(--rad)!important;display:inline-flex;align-items:center;gap:8px;font:700 var(--t-xs) var(--font)}
+body.u59 #home #hGal #picker .pkTabs{position:sticky;top:calc(var(--tap) + 10px);z-index:2;background:var(--panel)!important;display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;margin:0;scrollbar-width:none}
+body.u59 #home #hGal #picker .pkTabs .pkTab{flex:0 0 auto!important;min-width:max-content!important;height:var(--tap);min-height:var(--tap);padding:0 14px!important;border:var(--bw) solid var(--bc)!important;border-radius:var(--rad)!important;font:700 var(--t-s) var(--font)}
+body.u59 #home #hGal #picker .pkTab.on{background:var(--btn-on);border-color:var(--bc-hi)!important}
+body.u59 #home #hGal #picker h4{display:none}
+/* every rocket group is ONE horizontal strip of pictures */
+body.u59 #home #hGal #picker .pkG{display:flex!important;grid-template-columns:none!important;overflow-x:auto;gap:8px;margin:0 0 6px;padding-bottom:2px;scroll-snap-type:x proximity;scrollbar-width:none}
+body.u59 #home #hGal #picker .pkG .pkC{flex:none;width:clamp(88px,26vw,120px);scroll-snap-align:start;border:var(--bw) solid var(--bc)!important;border-radius:var(--rad)!important;background:var(--btn)!important}
+body.u59 #home #hGal #picker .pkC .pkT{height:clamp(64px,13dvh,110px)!important;object-fit:cover;object-position:50% 0}
+body.u59 #home #hGal #picker .pkC b{font:700 var(--t-xs)/1.15 var(--font);min-height:2.3em}
+body.u59 #home #hGal #picker .pkC small{font-size:10px}
+body.u59 #home #hGal #picker .pkC.on{border-color:var(--bc-hi)!important;box-shadow:none;background:var(--btn-on)!important}
+body.u59 #home #hGal #picker details.pkCo>summary{display:flex!important;align-items:center;min-height:32px;padding:0 2px;font:700 var(--t-xs) var(--font);color:var(--dim)}
+body.u59 #home #hGal #picker details.pkCo>summary::before{content:'▸ '}
+body.u59 #home #hGal #picker details.pkCo[open]>summary::before{content:'▾ '}
+body.u59 #home #hGal #picker .pkR.off{display:none}
+@media (orientation:landscape){
+  body.u59 #home:not(.hidden){grid-template-columns:minmax(220px,32%) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"top top" ". ." "card gal"}
+  body.u59 #home #hCard{grid-template-columns:minmax(0,1fr);align-content:end;border-right:var(--bw) solid var(--bc)!important;gap:6px}
+  body.u59 #home #hCard #hSite{max-width:none}
+  body.u59 #home #hGal{--gal-h:46}
+  body.u59 #home #hGal #picker .pkH{display:contents}
+  body.u59 #home #hGal #picker{display:flex!important;flex-wrap:wrap;align-items:center;column-gap:8px}
+  body.u59 #home #hGal #picker .pkH{display:flex;flex:1 1 280px;position:static}
+  body.u59 #home #hGal #picker .pkTabs{position:static;flex:1 1 300px;min-width:0}
+  body.u59 #home #hGal #picker>:not(.pkH):not(.pkTabs){flex:1 1 100%;min-width:0}
+}
+@media (orientation:landscape) and (max-height:520px){
+  body.u59 #home #hGal #picker .pkC .pkT{height:clamp(52px,17dvh,80px)!important}
+  body.u59 #home #hCard #hRole{display:none!important}
+}
+@media (min-width:900px) and (min-height:600px){
+  body.u59 #home #hGal #picker .pkG .pkC{width:clamp(110px,10vw,150px)}
+  body.u59 #home #hGal #picker .pkC .pkT{height:clamp(90px,16dvh,140px)!important}
+}
+/* the home ⚙ menus are drawers under the top bar, like the flight ☰ */
+body.u59 :is(#hMenu,#hGearM){position:fixed!important;top:calc(52px + var(--sat))!important;right:0!important;left:auto!important;bottom:auto!important;width:min(340px,100%)!important;max-height:calc(100dvh - 52px - var(--sat) - 20px);overflow:auto;box-sizing:border-box;margin:0!important;padding:8px!important;display:grid;gap:8px;background:var(--panel)!important;border:var(--bw) solid var(--bc)!important;border-top:0!important;border-right:0!important;border-radius:0 0 0 var(--rad)!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;z-index:58}
+body.u59 :is(#hMenu,#hGearM).hidden{display:none!important}
+body.u59 :is(#hMenu,#hGearM) button{min-height:var(--tap)!important;width:100%;border-radius:var(--rad)!important}
+body.u59 #hGearM label{display:flex;align-items:center;justify-content:space-between;min-height:var(--tap);font:600 var(--t-s) var(--font)}
+body.u59 #hGearM select{height:var(--tap);min-height:var(--tap)!important;min-width:120px}
+@media (orientation:landscape){
+  body.u59 #home #hGal #picker .pkH{flex:0 1 270px;min-width:0}
+  body.u59 #home #hGal #picker .pkTabs{flex:1 1 0;min-width:0}
+  body.u59 #home #hCard{align-content:center}
+}
+@media (orientation:landscape) and (max-height:520px){
+  body.u59 #home #hGal #picker :is(#pkQ,.pkSw,.pkTab){height:40px;min-height:40px}
+  body.u59 #home #hGal #picker .pkH{padding:4px 0 2px}
+  body.u59 #home #hGal #picker .pkTabs{padding:4px 0 2px}
+  body.u59 #home #hGal #picker .pkC small{display:none}
+  body.u59 #home #hGal #picker .pkC b{min-height:0;-webkit-line-clamp:1}
+  body.u59 #home #hGal #picker .pkC .pkT{height:clamp(52px,20dvh,84px)!important}
+  body.u59 #home #hGal{--gal-h:48}
+}
+
+/* ---- end-of-flight card: title (+ cause) in the top border, actions in the bottom border; the crash stays in view between ---- */
+body.u59 #end:not(.hidden){position:fixed!important;inset:0!important;left:0!important;top:0!important;right:0!important;bottom:0!important;transform:none!important;width:auto!important;max-width:none!important;max-height:none!important;height:auto!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;animation:none!important;display:flex!important;flex-direction:column;overflow:hidden;pointer-events:none;z-index:70}
+body.u59 #end>*{pointer-events:auto}
+body.u59 #end>h2{flex:none;margin:0!important;box-sizing:border-box;min-height:52px;padding:calc(8px + var(--sat)) calc(12px + var(--sar)) 8px calc(12px + var(--sal))!important;background:var(--panel);border-bottom:var(--bw) solid var(--bc);font:700 var(--t-l)/1.25 var(--font)!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+body.u59 #end>#endBody{flex:0 1 auto;max-height:36dvh;overflow:auto;box-sizing:border-box;padding:8px calc(12px + var(--sar)) 8px calc(12px + var(--sal))!important;background:var(--panel);border-bottom:var(--bw) solid var(--bc);font:600 var(--t-s)/1.45 var(--font)!important}
+body.u59 #end>#endBody *{font-family:var(--font)!important}
+body.u59 #end>:is(.endMain,.endShare){flex:none;box-sizing:border-box;display:flex;flex-wrap:nowrap!important;gap:8px!important;margin:0!important;padding:8px calc(12px + var(--sar)) 8px calc(12px + var(--sal))!important;background:var(--panel);opacity:1!important}
+body.u59 #end>.endMain{margin-top:auto!important;border-top:var(--bw) solid var(--bc);padding-bottom:calc(8px + var(--sab))!important}
+body.u59 #end>.endShare{order:3;border-top:0;padding-top:0!important}
+body.u59 #end>.endShare{margin-top:0!important}
+body.u59 #end>:is(.endMain,.endShare) button{flex:1 1 0!important;min-width:0;height:var(--tap);min-height:var(--tap)!important;padding:0 8px!important;margin:0!important}
+body.u59 #end .endMain .big{flex:1.4 1 0!important;background:var(--btn-on)!important;border-color:var(--bc-hi)!important}
+body.u59 #end.lean:not(.more)>.endShare{display:none!important}
+body.u59 #end.lean.more>.endShare{display:flex!important}
+body.u59 #end.lean>h2{white-space:normal!important}
+
+/* beat the legacy grid-area / align-self / margin rules of #end.lean.more (landscape) */
+body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>:is(.endMain,.endShare,#endTitle,#endCause,#endBody){grid-area:auto!important;align-self:stretch!important;width:auto!important}
+body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endMain{margin-top:auto!important;margin-bottom:0!important}
+body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endShare{margin:0!important}
+body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endMain button,body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endShare button{flex:1 1 0!important}
+body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endMain>#endMoreBtn{flex:0 0 var(--tap)!important}
+body.u59 #end>#endCause{flex:none;box-sizing:border-box;margin:0!important;padding:4px calc(12px + var(--sar)) 6px calc(12px + var(--sal))!important;background:var(--panel);border-bottom:var(--bw) solid var(--bc);font:600 var(--t-s)/1.3 var(--font)!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+body.u59 #end>#endTitle{border-bottom:0}
+body.u59 #end>#endCause:empty{display:none!important}
+/* Pause: the action bar is always the bottom bar, the saved-state note sits above it */
+body.u59 #pause .mbox>.col{order:5;margin-top:0!important}
+body.u59 #pause .mbox>#qsInfo{order:4;margin-top:auto!important}
+body.u59 #pause .mbox>h2{order:0}
+/* booster landing view: ⟲ FOLLOW shows only after the camera was dragged / zoomed in the expanded view */
+#topBar .spBtns{display:none;gap:var(--gap);align-items:center;justify-content:center;position:static!important;padding:0!important}
+body.splitOn:not(.mapOn) #topBar .spBtns{display:flex}
+#topBar .spBtns :is(#spCtl,#spClose){display:none!important}
+#topBar #spReset{display:none!important}
+body.splitOn:has(#split.fullB.camMan) #topBar #spReset{display:inline-flex!important}
+/* f5.9e: END FLIGHT / RELEASE live in the bottom bar even after the payload is out (legacy fixed pin loses) */
+body.u59 #botBar #relBtn,body.u59 #botBar #relBtn.done,body.u59.splitOn #botBar #relBtn{position:static!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:auto!important}

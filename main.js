@@ -68,6 +68,7 @@ import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-6';
 import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-6';
 import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-6';
 import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-6';
+import { createDock } from './fun/dock.js?v=f5.9-6'; // f5.9a: top bar + bottom bar
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -993,7 +994,7 @@ function reset() {
   if (booster && booster.mesh) scene.remove(booster.mesh);
   for (const d of debris) scene.remove(d.mesh); debris.length = 0; for (const f of fairHalves) scene.remove(f.g); fairHalves.length = 0;
   if (shipVis) earth.remove(shipVis); if (shipVis2) earth.remove(shipVis2); shipVis2 = null; if (booster2 && booster2.mesh) scene.remove(booster2.mesh); booster2 = null;
-  shipVis = null; booster = null; camMode = 'chase'; try { director = null; replay = null; slowMo = 0; recBuf.length = 0; for (const k in seen) delete seen[k]; dirPhase = ''; } catch (e) { }
+  shipVis = null; booster = null; camMode = 'chase'; CAMV.view = 'vehicle'; CAMV.open = 0; CAMV.seen = false; GCAM.on = false; GCAM.zoom = 1; try { director = null; replay = null; slowMo = 0; recBuf.length = 0; for (const k in seen) delete seen[k]; dirPhase = ''; } catch (e) { }
   try { split.rec.length = 0; split.done = 0; split.closed = false; split.replay = null; split.full = null; } catch (e) { } if (typeof smap !== 'undefined') smap.reset();
   camDist = Math.min(fitDist(stackL(), 0.6), 420); /* f5.8f (QA P1): real sizes — a 120 m super-heavy needs ~210 m to fit (the old 140 m cap cut the nose off) */ camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8; camAim = 0.5; // f4 pad framing
   fire.clear(); smoke.clear(); for (const k in keys) keys[k] = false;
@@ -1027,6 +1028,8 @@ function goBuild() {
   refreshBuild();
 }
 const clampCamPitch = p => Math.max(F && F.alt < 2000 ? -0.15 : -1.2, Math.min(1.2, p)); // f5.6f (QA cam)
+const GCAM = { on: false, fov0: 55, zoom: 1 };
+const CAMV = { list: ['ground', 'horizon', 'vehicle', 'free'], view: 'vehicle', open: 0, openT: 0, seen: false };
 let showFrame = null, showFrameT = 0, showT = 0, camUserT = -1e9, camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
 function setThrottleTouch(u) { // the touch slider takes over from AUTO like Z/X do
   if (state !== 'flight' || F.flags.dead) return;
@@ -1109,7 +1112,7 @@ function warpReset() { if (state !== 'flight' || !F) return; F.autoWarp = false;
 function warpBarUpdate() { const b = $('warpBar'); if (!b || !F) return; const mi = warpMaxI(), W = F.effWarp(), [m, why] = F.warpLimit();
   const cur = Math.min(F.warpI, mi); $('wDn').disabled = cur <= 0 && !F.autoWarp; $('wUp').disabled = false; $('wUp').classList.toggle('atMax', cur >= mi); /* QA f5.8p: at the cap ▶▶ stays tappable so warpStep shows the 'Max warp ×N: why' toast (disabled = silent on touch) */
   { const pad = !F.ignited || (F.v && F.v.clamped), slow = cur > 0 || !!F.autoWarp; $('wDn').hidden = pad || !slow; $('wUp').hidden = pad; $('wVal').hidden = pad || !(W > 1 || F.autoWarp); const x = W > 1 ? '×' + W : ''; if ($('wUp').dataset.x !== x) $('wUp').dataset.x = x; } // f5.8g (QA P2): one warp rule at every size — ▶▶ (with ×N), ◀◀ only while warping, none on the pad
-  $('wDn').title = `Slower (,) · now ×${W}`; $('wUp').title = cur >= mi ? `Max warp ×${m}${why ? ' — ' + why : ''}` : `Faster (T) → ×${WARPS[cur + 1]} · now ×${W}`;
+  $('wDn').title = `Slower (<) · now ×${W} · / cancels`; $('wUp').title = cur >= mi ? `Max warp ×${m}${why ? ' — ' + why : ''}` : `Faster (>) → ×${WARPS[cur + 1]} · now ×${W}`;
   const t = $('wVal'); const txt = (F.autoWarp ? '⏩ ' : '') + '×' + W; if (t.textContent !== txt) t.textContent = txt; document.body.classList.toggle('warp1', W === 1 && !F.autoWarp); t.title = `Time warp ×${W}${W > 1 ? ' — tap for ×1' : ''}`; t.classList.toggle('on', W > 1); }
 $('wDn').onclick = e => { e.currentTarget.blur(); initAudio(); warpStep(-1); };
 $('wUp').onclick = e => { e.currentTarget.blur(); initAudio(); warpStep(1); };
@@ -1134,16 +1137,19 @@ function press(code) {
   if (code === 'Quote') { fun.photo.toggle(); return; }
   if (code === 'F5') { quicksave(); return; }
   if (code === 'F9') { quickload(); return; }
-  if (code === 'Backquote') { SET.camStyle = 'free'; saveSettings(localStorage, SET); toast('Camera: horizon up (the locked style is retired)', '#9cc3ff'); return; } // f5.6n (QA): no LOCKED toast after LOCKED was retired
+  if (code === 'Backquote') { if (!F.flags.dead) F.setSAS(v.sas === 'off' ? 'stab' : 'off'); return; } // f5.9: SAS on/off moved off V
+  if (code === 'KeyV') { cycleCam(); return; } // f5.9: V cycles the camera: ground, horizon, vehicle, free
   if (code === 'Backslash') { SET.overlay = !SET.overlay; saveSettings(localStorage, SET); toast(SET.overlay ? 'CoM / CoP / CoT markers on' : 'Markers off', '#9cc3ff'); return; }
   if (code === 'KeyR') { goBuild(); return; }
   if (code === 'KeyU') { cycleFx(); return; }
-  if (code === 'Slash') { academy.toggleLearn(); return; }
+  if (code === 'Semicolon') { academy.toggleLearn(); return; }
+  if (code === 'Slash') { warpReset(); return; } // f5.9: / cancels time warp
   if (code === 'KeyM') { if (camMode === 'map') exitMap(); else camMode = 'map'; return; }
   if (code === 'KeyT') { warpStep(1); return; }
   if (code === 'Comma') { warpStep(-1); return; }
   if (code === 'KeyG') { if (F.canWarpToAp() || !F.flags.orbit && F.body === 'earth') F.startAutoWarp(); else smap.warpNext(); return; }
-  if (code === 'Period') { smap.warpNext(); return; }
+  if (code === 'Period') { warpStep(1); return; } // f5.9: < and > step the warp
+  if (code === 'Digit0') { smap.warpNext(); return; }
   if (code === 'Digit9') { if (F.exec && opSess) { toast('AUTO is flying the contract burns', '#9cc3ff'); return; } if (F.exec) { F.setExec(false); toast('Maneuver execution off', '#9cc3ff'); } else F.setExec(true); return; }
   if (code === 'KeyY') { F.toggleBooster(); return; }
   if (code === 'KeyB') { if (booster && booster.state === 'flying') { camMode = camMode === 'booster' ? 'chase' : 'booster'; if (camMode === 'booster') { camDist = 160; camUserT = -1e9; } } else toast('No booster in flight', '#ffb35c'); return; }
@@ -1168,7 +1174,6 @@ function press(code) {
   if (code === 'KeyX') { v.ut = 0; F.autoWarp = false; }
   if (code === 'KeyF') F.setAuto(!F.autoOn);
   if (code === 'KeyC') F.toggleRCS();
-  if (code === 'KeyV') F.setSAS(v.sas === 'off' ? 'stab' : 'off');
   if (SAS_KEYS[code]) F.setSAS(SAS_KEYS[code]);
   $('tProg').classList.toggle('on', F.autoOn);
   return res;
@@ -1210,7 +1215,7 @@ vesselUI = createVesselUI({ getF: () => F, UN, onView: id => setView(id), getVie
 $('craftBtn').onclick = e => { e.currentTarget.blur(); vesselUI.toggle(); };
 { const mb = document.getElementById('mapMore'); if (mb) { const b = document.createElement('button'); b.dataset.a = 'vessels'; b.textContent = 'Craft list'; b.title = 'Switch to, view or power any craft in space (=)'; b.addEventListener('click', () => vesselUI.toggle()); mb.appendChild(b); } }
 const zoomLim = d => Math.min(5000, Math.max(v && v.craft ? 2 : 20, d)); // a cubesat is a third of a metre long: let the camera come close
-renderer.domElement.addEventListener('wheel', e => { if (camMode === 'map') return; camUserT = performance.now(); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * (1 + e.deltaY * 0.001))); else camDist = zoomLim(camDist * (1 + e.deltaY * 0.001 * SET.sens.zoom)); }, { passive: true });
+renderer.domElement.addEventListener('wheel', e => { if (camMode === 'map') return; camUserT = performance.now(); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * (1 + e.deltaY * 0.001))); else if (GCAM.act) GCAM.zoom = Math.max(0.2, Math.min(14, GCAM.zoom * (1 + e.deltaY * 0.001 * SET.sens.zoom))); else camDist = zoomLim(camDist * (1 + e.deltaY * 0.001 * SET.sens.zoom)); }, { passive: true });
 const pts = new Map();
 renderer.domElement.addEventListener('pointerdown', e => { pts.set(e.pointerId, [e.clientX, e.clientY]); });
 addEventListener('pointerup', e => pts.delete(e.pointerId));
@@ -1218,7 +1223,7 @@ addEventListener('pointercancel', e => pts.delete(e.pointerId));
 addEventListener('pointermove', e => {
   if (!pts.has(e.pointerId) || camMode === 'map') return; const [px, py] = pts.get(e.pointerId);
   if (pts.size === 1) { camUserT = performance.now(); const k = SET.sens.cam; camYaw -= (e.clientX - px) * 0.006 * k; camPitch = clampCamPitch(camPitch + (e.clientY - py) * 0.004 * k); }
-  else if (pts.size === 2) { let o; for (const [id, q] of pts) if (id !== e.pointerId) o = q; const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); const f = d0 / Math.max(d1, 1); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * f)); else camDist = zoomLim(camDist * f); }
+  else if (pts.size === 2) { let o; for (const [id, q] of pts) if (id !== e.pointerId) o = q; const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); const f = d0 / Math.max(d1, 1); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * f)); else if (GCAM.act) GCAM.zoom = Math.max(0.2, Math.min(14, GCAM.zoom * f)); else camDist = zoomLim(camDist * f); }
   pts.set(e.pointerId, [e.clientX, e.clientY]);
 });
 const k1 = (a, b) => (keys[a] ? 1 : 0) - (keys[b] ? 1 : 0);
@@ -1717,9 +1722,14 @@ renderer.setAnimationLoop(() => {
     if (vwR) tgtV.set(0, 0, 0); else if (focus === v) tgtV.set(nose[0], nose[1], nose[2]).multiplyScalar(stackL() * camAim - tel.ycom);
     else tgtV.set(booster.dir[0], booster.dir[1], booster.dir[2]).multiplyScalar(15);
     if (focus !== v && camDist > 400) camDist = 400; // f5.6f (QA cam): booster cam never frames from km away
-    if (focus === v && !vwR && state === 'flight' && camMode === 'chase') { // f4.1: chase distance follows the rocket's size (never a dot); eases back after a user zoom
+    if (focus === v && !vwR && state === 'flight' && camMode === 'chase' && CAMV.view !== 'free' && !CAMV.open) { // f4.1: chase distance follows the rocket's size (never a dot); eases back after a user zoom
       const Ls = stackL(), cr = !!v.craft, want = cr ? Math.max(4, Math.min(60, Ls * 3.2 + 4)) : Math.max(30, Math.min(160, Ls * 2.6 + 20)), maxD = cr ? Math.max(60, Ls * 30 + 40) : Math.max(80, Ls * 9 + 60);
       if (camDist > maxD) camDist += (maxD - camDist) * Math.min(1, rdt * 1.5); // f5.6f: ease (no ~70 m jump at staging) if (performance.now() - camUserT > 8000) camDist += (want - camDist) * Math.min(1, rdt * 0.8);
+    }
+    if (focus === v && state === 'flight' && camMode === 'chase') {
+      camOpening(rdt);
+      if (CAMV.view === 'free') camUserT = performance.now(); // free: nothing eases the camera back
+      else if (CAMV.view === 'horizon' && !CAMV.open) { const idle = performance.now() - camUserT; if (idle > 2500) camPitch += (0.03 - camPitch) * Math.min(1, rdt * 1.2); if (idle > 5000) camDist += (Math.max(60, Math.min(420, (stackL() || 40) * 4 + 40)) - camDist) * Math.min(1, rdt * 0.8); }
     }
     relFrameCam(rdt, focus);
     if (false && SET.camStyle === 'locked' && focus === v && state === 'flight') { // f5.6f (QA cam): LOCKED retired (it rolled the horizon) // locked: the camera turns with the craft (its axes, nose up on screen)
@@ -1801,21 +1811,23 @@ renderer.setAnimationLoop(() => {
 const cam2 = new THREE.PerspectiveCamera(55, 1, 0.5, 2e9), SPLIT_KEY = 'orbitrush.split';
 const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: localStorage.getItem(SPLIT_KEY) !== '0', yaw: 1.35, pitch: 0.25, dist: 90, userT: -1e9, frame: 0 };
 { const d = document.createElement('div'); d.id = 'split'; d.className = 'hidden';
-  d.innerHTML = '<div id="spPane"><div class="spCard spStrip" id="spCardB"><div class="spL" id="spHud"></div><canvas class="spBall" id="spBallB" width="96" height="96"></canvas><div class="spR" id="spHudR"></div></div><div class="spBtns"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div class="spBtns" id="spBtnsU"><button id="spCtlU" title="Switch control">⇄ CONTROL</button><button id="spFullU" title="Focus the upper stage">⤢</button><button id="spCloseU" title="Close the split view">✕</button></div><div class="spCard spStrip" id="spCardU"><div class="spL" id="spHud1"></div><canvas class="spBall" id="spBallU" width="96" height="96"></canvas><div class="spR" id="spHud1R"></div></div></div>';
+  d.innerHTML = '<div id="spPane"><div class="spCard spStrip" id="spCardB"><div class="spL" id="spHud"></div><canvas class="spBall" id="spBallB" width="96" height="96"></canvas><div class="spR" id="spHudR"></div></div><div class="spBtns" data-dock="top-center"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spReset" title="Back to the follow view">⟲ FOLLOW</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div class="spBtns" id="spBtnsU"><button id="spCtlU" title="Switch control">⇄ CONTROL</button><button id="spFullU" title="Focus the upper stage">⤢</button><button id="spCloseU" title="Close the split view">✕</button></div><div class="spCard spStrip" id="spCardU"><div class="spL" id="spHud1"></div><canvas class="spBall" id="spBallU" width="96" height="96"></canvas><div class="spR" id="spHud1R"></div></div></div>';
   document.body.appendChild(d);
   { const p2 = document.createElement('div'); p2.id = 'spPane2'; p2.className = 'hidden'; p2.innerHTML = '<div class="spCard spStrip" id="spCardB2"><div class="spL" id="spHud2"></div><canvas class="spBall" id="spBallB2" width="96" height="96"></canvas><div class="spR" id="spHud2R"></div></div>'; d.appendChild(p2); } // f4.2: booster B pane
   $('spFull').onclick = e => { e.stopPropagation(); split.full = split.full === 'b' ? null : 'b'; camMode = split.full === 'b' ? 'booster' : 'chase'; if (split.full === 'b') camDist = 90; }; // f5.3: frame the whole booster
   // f4: the booster pane has its own camera: drag orbits, pinch / wheel zooms, a tap (no drag) toggles full screen
   const pp = $('spPane'), pts = new Map(); let moved = 0, pinch0 = 0, d0 = 90;
+  const manual = () => { split.manual = true; $('split').classList.add('camMan'); }; // f5.9: the expanded booster view can be dragged / pinched / zoomed; ⟲ FOLLOW goes back
+  $('spReset').onclick = e => { e.stopPropagation(); split.yaw = 1.35; split.pitch = 0.25; split.dist = 90; split.manual = false; split.userT = -1e9; $('split').classList.remove('camMan'); toast('Booster camera: following', '#9cc3ff'); };
   pp.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; pp.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0;
     if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); d0 = split.dist; } e.stopPropagation(); });
   pp.addEventListener('pointermove', e => { const p = pts.get(e.pointerId); if (!p) return; const dx = e.clientX - p[0], dy = e.clientY - p[1]; pts.set(e.pointerId, [e.clientX, e.clientY]);
-    if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) split.dist = Math.max(25, Math.min(1500, d0 * pinch0 / Math.max(d, 1))); moved = 99; }
-    else { moved += Math.abs(dx) + Math.abs(dy); split.yaw -= dx * 0.008; split.pitch = Math.max(-0.4, Math.min(1.3, split.pitch + dy * 0.006)); split.userT = performance.now(); } e.stopPropagation(); });
+    if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) split.dist = Math.max(25, Math.min(1500, d0 * pinch0 / Math.max(d, 1))); moved = 99; manual(); }
+    else { moved += Math.abs(dx) + Math.abs(dy); split.yaw -= dx * 0.008; split.pitch = Math.max(-0.4, Math.min(1.3, split.pitch + dy * 0.006)); split.userT = performance.now(); manual(); } e.stopPropagation(); });
   const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0;
     if (!pts.size && moved < 8) { if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; camDist = 90; } } e.stopPropagation(); };
   pp.addEventListener('pointerup', up); pp.addEventListener('pointercancel', up);
-  pp.addEventListener('wheel', e => { split.dist = Math.max(25, Math.min(1500, split.dist * Math.exp(e.deltaY * 0.001))); e.preventDefault(); e.stopPropagation(); }, { passive: false });
+  pp.addEventListener('wheel', e => { split.dist = Math.max(25, Math.min(1500, split.dist * Math.exp(e.deltaY * 0.001))); manual(); e.preventDefault(); e.stopPropagation(); }, { passive: false });
   $('spMain').onclick = () => { if (split.full) { split.full = null; camMode = 'chase'; } };
   $('spFullU').onclick = e => { e.stopPropagation(); split.full = split.full === 'u' ? null : 'u'; camMode = 'chase'; }; // f5.3: focus the upper stage (keeps its own card)
   $('spCtl').onclick = e => { e.stopPropagation(); if (booster && booster.state === 'flying' && F.ship && booster.stages[0].fuel > 0) F.toggleBooster(); else toast('The booster is on autopilot', '#9cc3ff'); };
@@ -1893,8 +1905,8 @@ function placeIn(el, r, corner) { if (!el) return; const s = el.style, sat = par
 function layoutSplitCards(nb, fb) {
   const full = { x: 0, y: 0, w: innerWidth, h: innerHeight }, rb = fb ? full : paneRect(0, nb);
   placeIn($('spCardU'), upperRect(nb), 'strip'); placeIn($('spBtnsU'), upperRect(nb), 'btns');
-  placeIn($('spCardB'), rb, 'strip'); const pb = document.querySelector('#spPane .spBtns'); placeIn(pb, rb, 'btns');
-  if (fb && splitPortrait() && pb) { const cb = $('spCardB').getBoundingClientRect(); pb.style.setProperty('right', 'auto', 'important'); pb.style.setProperty('left', '10px', 'important'); pb.style.setProperty('top', Math.round(cb.bottom + 8) + 'px', 'important'); } // f5.3: focused on a phone, the pane buttons sit under the card, clear of the top bar's ☰
+  placeIn($('spCardB'), rb, 'strip'); const pb = document.querySelector('.spBtns:not(#spBtnsU)'); if (pb && pb.closest('#topBar')) { for (const k of ['position', 'top', 'bottom', 'left', 'right']) pb.style.removeProperty(k); } else placeIn(pb, rb, 'btns'); // f5.9: the booster buttons live in the top bar
+  if (fb && splitPortrait() && pb && !pb.closest('#topBar')) { const cb = $('spCardB').getBoundingClientRect(); pb.style.setProperty('right', 'auto', 'important'); pb.style.setProperty('left', '10px', 'important'); pb.style.setProperty('top', Math.round(cb.bottom + 8) + 'px', 'important'); } // f5.3: focused on a phone, the pane buttons sit under the card, clear of the top bar's ☰
   // f5.3: in portrait split, RELEASE (worker A) and GROUND sit at the bottom of the upper half, clear of the booster pane and its card
   const ur = upperRect(nb), pinBottom = (el, side) => { if (!el) return; const st = el.style; if (!(!fb && split.full !== 'u')) { /* f5.6h (QA P2): landscape too: RELEASE / GROUND belong to the upper pane */ if (el.dataset.spPin) { for (const k of ['top', 'bottom', 'left', 'right']) st.removeProperty(k); delete el.dataset.spPin; } return; }
     el.dataset.spPin = '1'; st.setProperty('top', Math.round(ur.y + ur.h - el.offsetHeight - 10 - (($('spCardU') || {}).offsetHeight || 0)) + 'px', 'important'); /* f5.6h: above the upper strip */ st.setProperty('bottom', 'auto', 'important');
@@ -1965,12 +1977,35 @@ function renderPane(b, O, R2, i) {
 function boosterFrameDist(b, R2) { let L = 40; try { L = Math.max(10, P.stackGeom(b).L || 40); } catch (e) { } return L * 2.14 * R2.h / Math.max(60, Math.min(R2.w, R2.h)); }
 // f5.3 (owner): ground spectator camera in AUTO: a fixed tripod ~2 km south-west of the pad, a few metres up, that tracks
 // the climbing rocket and zooms (narrows the field of view) so the rocket stays ~1/4 of the screen tall.
-const GCAM = { on: false, fov0: 55 };
+// f5.9 camera views (V): ground (tripod beside the pad), horizon (low chase with the horizon level), vehicle (chase that follows the stack), free (stays where you put it).
+const camLow = () => !!F && F.alt < 150000 && !F.flags.orbit && F.body === 'earth';
+function setCamView(w, quiet) {
+  if (w === 'ground' && !camLow()) w = 'horizon';
+  CAMV.view = w; GCAM.on = w === 'ground'; CAMV.open = 0; if (w === 'ground') GCAM.zoom = 1;
+  if (state === 'flight' && camMode !== 'map' && camMode !== 'booster') { camMode = 'chase'; if (w === 'ground' && split.on) split.full = 'u'; }
+  if (!quiet) toast({ ground: 'Camera: ground, beside the pad (pinch / wheel to zoom out to the horizon)', horizon: 'Camera: horizon, level with the horizon', vehicle: 'Camera: vehicle, follows the rocket', free: 'Camera: free, stays where you put it' }[w], '#9cc3ff');
+}
+function cycleCam() {
+  if (state !== 'flight' || !F || camMode === 'map') return false;
+  const L = CAMV.list.filter(w => w !== 'ground' || camLow()), i = L.indexOf(CAMV.view); setCamView(L[(i + 1) % L.length]); return true;
+}
+const camViewLabel = () => '🎥 ' + CAMV.view.toUpperCase();
+// launch opening shot: at ignition the camera starts close, pulls out slowly so the pad and the horizon show, then settles into following the rocket (any drag / zoom cancels it)
+function camOpening(rdt) {
+  if (!F || state !== 'flight') return;
+  if (F.ignited && !CAMV.seen) { CAMV.seen = true; if (CAMV.view === 'vehicle' && camMode === 'chase' && F.alt < 200 && !F.flags.orbit) { CAMV.open = 1; CAMV.openT = 0; CAMV.d0 = camDist; CAMV.p0 = camPitch; CAMV.a0 = camAim; CAMV.start = performance.now(); } }
+  if (!CAMV.open) return;
+  if (camUserT > CAMV.start + 50 || CAMV.view !== 'vehicle' || camMode !== 'chase') { CAMV.open = 0; return; }
+  CAMV.openT += rdt; const t = CAMV.openT, Ls = stackL() || 40, far = Math.max(150, Math.min(420, Ls * 5 + 60)), near = Math.max(30, Math.min(160, Ls * 2.6 + 20)), ss = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+  const a = ss(t / 9), b = ss((t - 9) / 7); // 0-9 s pull back, 9-16 s settle into the follow framing
+  camDist = (CAMV.d0 + (far - CAMV.d0) * a) * (1 - b) + near * b; camPitch = (CAMV.p0 + (0.05 - CAMV.p0) * a) * (1 - b) + 0.12 * b; camAim = (CAMV.a0 + (0.32 - CAMV.a0) * a) * (1 - b) + 0.45 * b;
+  if (t > 16) CAMV.open = 0;
+}
 function groundCam(O, th, base, nose, rdt) {
   const low = !!F && F.alt < 150000 && !F.flags.orbit; // f5.4 (QA G/#8): a tripod can't follow a rocket into orbit (empty sky): off above 150 km
-  if (GCAM.on && F && !low) GCAM.on = false;
-  const want = GCAM.on && state === 'flight' && !!F && F.autoOn && camMode === 'chase' && F.body === 'earth' && !photoOn && low;
-  const b = $('gcamBtn'); if (b) { b.classList.toggle('hidden', !(state === 'flight' && F && F.autoOn && F.body === 'earth' && low)); b.classList.toggle('on', want); }
+  if (GCAM.on && F && !low) { GCAM.on = false; if (CAMV.view === 'ground') { CAMV.view = 'horizon'; toast('Camera: horizon (the ground camera ends at orbit)', '#9cc3ff'); } }
+  const want = GCAM.on && state === 'flight' && !!F && camMode === 'chase' && F.body === 'earth' && !photoOn && low;
+  const b = $('gcamBtn'); if (b) { b.classList.toggle('hidden', !(state === 'flight' && F && camMode !== 'map' && !photoOn)); b.classList.toggle('on', want); const lb = camViewLabel(); if (b.textContent !== lb) b.textContent = lb; }
   if (!want) { if (GCAM.act) { GCAM.act = false; camera.fov = GCAM.fov0; camera.updateProjectionMatrix(); } return; }
   if (!GCAM.act) { GCAM.act = true; GCAM.fov0 = camera.fov; }
   const ef = (v.site && v.site.ef) || [1, 0, 0], e0 = P.eastOf(ef), n0 = V.cross(ef, e0);
@@ -1978,12 +2013,12 @@ function groundCam(O, th, base, nose, rdt) {
   const L = stackL() || 40, aim = V.add(base, V.scale(nose, L * 0.5)), rel = V.sub(aim, gw), dist = V.len(rel);
   camera.position.set(gw[0] - O[0], gw[1] - O[1], gw[2] - O[2]); const up = V.norm(gw); camera.up.set(up[0], up[1], up[2]);
   camera.lookAt(aim[0] - O[0], aim[1] - O[1], aim[2] - O[2]);
-  const fov = Math.max(0.05, Math.min(50, 2 * Math.atan(L * 1.6 / dist) * 180 / Math.PI)); // rocket ≈ 1/3 of the view height
+  const fov = Math.max(0.05, Math.min(80, 2 * Math.atan(L * 1.6 * GCAM.zoom / dist) * 180 / Math.PI)); // rocket ≈ 1/3 of the view height at zoom 1; zooming out widens to the horizon
   camera.fov = fov; camera.updateProjectionMatrix(); // no easing: slow frames must not leave the rocket a dot
 }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-gcam]'); if (!b) return; const g = $('gcamBtn'); if (g) g.click(); const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); try { mobile.closeMenu(); } catch (er) { } }); // f5.8i: 🎥 Ground cam from ☰
-{ const gb = document.createElement('button'); gb.id = 'gcamBtn'; gb.className = 'hidden'; gb.title = 'Ground camera: watch from beside the pad'; gb.textContent = '🎥 GROUND';
-  gb.onclick = e => { e.stopPropagation(); e.currentTarget.blur(); GCAM.on = !GCAM.on; if (GCAM.on) { if (split.on) split.full = 'u'; camMode = 'chase'; } toast(GCAM.on ? 'Ground camera: watching from beside the pad' : 'Chase camera', '#9cc3ff'); };
+{ const gb = document.createElement('button'); gb.id = 'gcamBtn'; gb.className = 'hidden'; gb.title = 'Camera view (V): ground, horizon, vehicle, free'; gb.textContent = '🎥 VEHICLE';
+  gb.onclick = e => { e.stopPropagation(); e.currentTarget.blur(); cycleCam(); };
   document.body.appendChild(gb); }
 const splitBs = () => [booster, booster2].filter(x => x && x.mesh && (x.state === 'flying' || x.state === 'landed' || x === booster));
 // ---------- gx1: sun, sky, scattering, eclipse, plume light; cinematic shake and staging drama ----------
@@ -2506,6 +2541,7 @@ function plumeAudit() {
   out.smoke = { samp: smoke.d.filter(p => { if (p.life <= 0 || p.max - p.life > 2.5) return false; const al = V.dot([p.x - base[0], p.y - base[1], p.z - base[2]], vh); return al < 60 && al > -400; }).slice(0, 10).map(p => { const d = [p.x - base[0], p.y - base[1], p.z - base[2]], al = V.dot(d, vh); return [+(p.max - p.life).toFixed(1), Math.round(al), Math.round(V.len(V.addS(d, vh, -al)))]; }), n, rms: n ? +Math.sqrt(s2 / n).toFixed(1) : 0, max: +mx.toFixed(1) }; return out;
 }
 window.__craft = { CRAFT_TYPES };
+createDock(); // f5.9a: every flight control docks in the two bars (late controls adopt via data-dock)
 window.__game = { get SG() { return SG; }, get viewId() { return viewId; }, fleetVis, goHome: () => goBuild(), rocketMarks: () => [comMark.visible, copMark.visible, cotMark.visible], get rocketG() { return rocketG; }, get pad() { return padCx; }, get fairHalves() { return fairHalves; }, get satVis() { return satVis; }, get hero() { return hero; }, flight: () => F, mem: () => { const m = renderer.info.memory || {}; let meshes = 0, geo = new Set(); scene.traverse(o => { if (o.isMesh) { meshes++; geo.add(o.geometry); } }); return { geometries: m.geometries, textures: m.textures, programs: renderer.info.programs ? renderer.info.programs.length : null, meshes, sceneGeo: geo.size, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }; }, stageDbg: c => { if (!hero) return { model: design.model || null, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0) }; heroStage(c); const lv = (hero.levels || [{ object: hero }])[0].object, st = (lv.userData && lv.userData.stages) || {}; const r = { model: design.model, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0), hidden: Object.keys(st).filter(k => !st[k].visible), shown: Object.keys(st).filter(k => st[k].visible) }; heroStage(v.cur); return r; }, opDbg: () => ({ on: !!opSess, id: opSess && opSess.m.id, done: opSess && opSess.done, failed: opSess && opSess.failed, task: opSess && opSess.task && opSess.task.kind, lastOp, ended: F.ended, state }), get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
     const c0 = b.mesh.getWorldPosition(new THREE.Vector3()), p0 = c0.clone().project(cam), p1 = c0.clone().add(ny.clone().multiplyScalar(10)).project(cam), up = V.norm(b.r);
     const cu = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion), crt = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
@@ -2514,6 +2550,7 @@ window.__game = { get SG() { return SG; }, get viewId() { return viewId; }, flee
     for (const sys of [fire, smoke]) for (const q of sys.d) { if (q.life <= 0 || Math.hypot(q.x, q.y, q.z) - P.R_E < 300) continue; /* ignore the pad cloud */ const a = V.dot([q.x - nz[0], q.y - nz[1], q.z - nz[2]], vh); if (V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]) > 3000) continue; n++; if (a > maxA) maxA = a; if (a > 2) { ahead++; if (dbg.length < 6) dbg.push({ sys: sys === fire ? 'fire' : 'smoke', a: +a.toFixed(0), age: +(q.max - q.life).toFixed(2), c: q.c0 && q.c0.toString(16), d: q.drag, rva: +V.dot([q.vx - v.v[0], q.vy - v.v[1], q.vz - v.v[2]], vh).toFixed(0), an: +V.dot(P.noseOf(v), vh).toFixed(3), r: +V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]).toFixed(0) }); } }
     return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, relFrame: () => relFrame(), mapProbe: id => smap.probe(id), siteSun: () => siteArt.obj.map(L => ({ el: +(L.userData.sunEl || 0).toFixed(1), night: !!L.userData.night, lights: (() => { let n = 0; L.traverse(o => { if (o.isLight && o.visible) n++; }); return n; })() })), audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, bus: fbus ? fbus.gain.value : -1, crack: crackSrc ? 1 : 0, sfx: sbus ? sbus.gain.value : -1, dist: dbus ? dbus.gain.value : -1, mix: audioMix, music: funMusic.probe(), musicNow: musicMode(), loops: (rumbleSrc ? 1 : 0) + funAudio.liveLoops(), dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, startReplay, get replay() { return replay; }, explode, split, setGroundCam: on => { GCAM.on = !!on; if (on && split.on) split.full = 'u'; camMode = 'chase'; }, get groundCam() { return GCAM.act; }, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, stickCmd: () => ({ ...mobile.input }), get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get camPitch() { return camPitch; }, camInfo: () => { const bR = (P.BODIES[F.body] || {}).R || R, O = shipPos ? null : null; return { pitch: camPitch, dist: camDist, up: camera.up.toArray().map(x => +x.toFixed(3)) }; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, qol, craftDv, sitePicker, get sbSite() { return sbSite; } };
 window.__game.tileStats = () => { const w = tileGeo.attributes.wat.array, c = tileGeo.attributes.color.array, h = [0, 0, 0, 0, 0]; for (const x of w) h[Math.min(4, Math.max(0, Math.floor(x * 5)))]++; return { hist: h, vis: tile.visible, c0: [c[0], c[1], c[2]], center: tileC, px: !!earthPx, mat: tile.material.type }; };
+window.__game.camView = () => ({ view: CAMV.view, open: CAMV.open, openT: +CAMV.openT.toFixed(2), ground: GCAM.on, gact: !!GCAM.act, gzoom: +GCAM.zoom.toFixed(3), dist: +camDist.toFixed(1), pitch: +camPitch.toFixed(3), label: ($('gcamBtn') || {}).textContent, btnHidden: !!($('gcamBtn') && $('gcamBtn').classList.contains('hidden')) }); // f5.9 test hook
 window.__game.camSet = (y, p, d, a) => { camYaw = y; camPitch = p; if (d) camDist = d; if (a != null) camAim = a; camUserT = performance.now() + 1e9; }; // flight-ground-3: shot tools aim the chase camera
 window.__game.tileOff = b => { tileForceOff = !!b; }; window.__game.tileFadeInfo = () => { const h = F ? Math.max(0, F.alt) : 0; return { h, alt: GX.tileAltAlpha(h), rim: GX.tileRimAlpha(h), vis: tile.visible || tileF.visible, fade: tileF.visible }; }; // f5.9 terrain: render A/B + fade numbers for tests/smoke/terrain_blend.cjs
 window.__game.scn = { scene, camera, earth, bodyG, stars, get W1() { return W1; }, sunDirV, get bodyCur() { return bodyCur; } }; // f6.4: far-planet smoke hooks

@@ -7,14 +7,14 @@ export const ACTIONS = [
   ['stage', 'Ignite / stage (press twice)', 'Space'], ['thrUp', 'Throttle up', 'ShiftLeft'], ['thrDown', 'Throttle down', 'ControlLeft'],
   ['thrFull', 'Full throttle', 'KeyZ'], ['thrCut', 'Cut throttle', 'KeyX'],
   ['pitchDn', 'Pitch down', 'KeyW'], ['pitchUp', 'Pitch up', 'KeyS'], ['yawL', 'Yaw left', 'KeyA'], ['yawR', 'Yaw right', 'KeyD'], ['rollL', 'Roll left', 'KeyQ'], ['rollR', 'Roll right', 'KeyE'],
-  ['auto', 'AUTO pilot', 'KeyF'], ['sas', 'SAS on/off', 'KeyV'], ['rcs', 'RCS on/off', 'KeyC'],
-  ['map', 'Map', 'KeyM'], ['warpUp', 'Warp faster', 'KeyT'], ['warpDn', 'Warp slower', 'Comma'], ['warpAp', 'Warp to apoapsis', 'KeyG'], ['warpNext', 'Warp to next event', 'Period'],
+  ['auto', 'AUTO pilot', 'KeyF'], ['sas', 'SAS on/off', 'Backquote'], ['rcs', 'RCS on/off', 'KeyC'],
+  ['map', 'Map', 'KeyM'], ['warpUp', 'Warp faster ( > )', 'Period'], ['warpDn', 'Warp slower ( < )', 'Comma'], ['warpReset', 'Cancel warp ( / )', 'Slash'], ['warpAp', 'Warp to apoapsis', 'KeyG'], ['warpNext', 'Warp to next event', 'Digit0'],
   ['sasNode', 'SAS maneuver', 'Digit8'], ['exec', 'Execute maneuver', 'Digit9'],
   ['deorbit', 'Deorbit & home', 'KeyO'], ['chute', 'Parachutes', 'KeyP'], ['flyBooster', 'Fly the booster', 'KeyY'], ['boosterCam', 'Booster camera', 'KeyB'],
-  ['camMode', 'Camera: free / locked', 'Backquote'], ['overlay', 'CoM / CoP / CoT overlay', 'Backslash'],
+  ['camView', 'Camera view: ground / horizon / vehicle / free', 'KeyV'], ['overlay', 'CoM / CoP / CoT overlay', 'Backslash'],
   ['quicksave', 'Quicksave', 'F5'], ['quickload', 'Quickload', 'F9'], ['pause', 'Pause menu', 'Escape'],
   ['vesselNext', 'Next craft in space', 'BracketRight'], ['vesselPrev', 'Previous craft in space', 'BracketLeft'], ['power', 'Craft power on / off', 'Minus'], ['craftList', 'Craft list', 'Equal'],
-  ['hangar', 'Back to hangar', 'KeyR'], ['fx', 'Effects quality', 'KeyU'], ['learn', 'Learn overlay', 'Slash'],
+  ['hangar', 'Back to hangar', 'KeyR'], ['fx', 'Effects quality', 'KeyU'], ['learn', 'Learn overlay', 'Semicolon'],
 ];
 export const DEFAULT_KEYS = Object.fromEntries(ACTIONS.map(a => [a[0], a[2]]));
 export const DEFAULTS = { v: 1, unitsV: 2, keys: {}, sens: { cam: 1, zoom: 1, stick: 1 }, units: 'imperial', overlay: false, camStyle: 'free', conic: 'body', musicOn: true, musicVol: 0.5, sfxVol: 1 }; // f6.3: music toggle + separate music / effects volume

@@ -897,13 +897,13 @@ body.touch.autoOn #mAbort .mAbT{font-size:9px;letter-spacing:.04em;display:block
 body.touch.autoOn #mAbort{font-size:15px!important;padding:4px 0!important;min-width:44px!important;min-height:36px!important}
 body.touch.autoOn #mThr u{display:none!important}body.touch.autoOn #mThr b{font-size:9px!important} /* f5.7e: the throttle bar keeps its THR label */
 body.touch.warp1 #wVal{display:none!important}
-body.touch.inOrbit #mAbort,body.touch.inOrbit.autoOn #mThr{display:none!important}
+body.touch.inOrbit #mAbort{display:none!important} /* f5.9: the throttle stays reachable in orbit with AUTO on (touching it hands control to the player) */
 /* f5.6x (QA f5.6w P1): the end card hides the whole live HUD at every size (visibility, so no display:!important rule can bring a piece back) */
 body.endOn #plain,body.endOn #nav,body.endOn #navBall,body.endOn #mright,body.endOn #mleft,body.endOn #mhud,body.endOn #mThr,body.endOn #mAbort,body.endOn #dCtl,body.endOn #split,body.endOn .spCard,body.endOn #spPane2,body.endOn #hud,body.endOn #pilot,body.endOn #ctl,body.endOn #warpBar,body.endOn #topStack,body.endOn #hintS,body.endOn #badge,body.endOn #relBtn,body.endOn #gcamBtn,body.endOn #dMenu,body.endOn #mMenu,body.endOn #ignite{visibility:hidden!important;pointer-events:none!important}
 body.noStage #mStage,body.noStage #dStage{opacity:.35;filter:grayscale(1);box-shadow:none!important;animation:none!important}
 body.splitOn:not(.touch):not(.mapOn):not(.pip):has(#split:not(.hidden):not(.fullB):not(.fullU):not(.portrait)) #dCtl{right:auto!important;left:25%!important;transform:translateX(-50%)} /* f5.6x (QA f5.6w P2): desktop split: the AUTO/STAGE row belongs to the upper pane you fly */
 /* f5.6z (QA f5.6x): phone landscape RELEASE sits top-left under the top bar (it drew over the navball); desktop orbit drops ABORT + throttle like the phone */
-body.inOrbit #dAbort,body.inOrbit.autoOn #dThr{display:none!important}
+body.inOrbit #dAbort{display:none!important}
 /* f5.7e (QA f5.7c P1): RELEASE / End flight has ONE fixed spot in split and single view, every size: top-left, clear of the top bar (right), toasts (centre) and navball; taps land because it never moves */
 #relBtn,#relBtn.done,body.splitOn #relBtn{position:fixed!important;top:calc(12px + var(--sat,0px))!important;left:calc(12px + env(safe-area-inset-left,0px))!important;right:auto!important;bottom:auto!important;transform:none!important;translate:none!important;z-index:40!important}
 /* f5.7e (QA f5.7c P2): phone portrait split: the band under the booster strip is solid HUD, so AUTO/STAGE sit on the HUD, not in the booster's picture */
@@ -1202,7 +1202,7 @@ body.touch #mapBurn input[type=range]{height:34px}
 body.touch.mapPanelOn #mapBurn{left:calc(8px + env(safe-area-inset-left));transform:none;max-width:calc(100vw - min(360px,44vw) - 30px)}
 @media (orientation:portrait){body.touch #mapBurn{flex-wrap:wrap;justify-content:center;bottom:calc(66px + var(--sab,0px))}body.touch.mapPanelOn #mapBurn{top:calc(112px + env(safe-area-inset-top));bottom:auto;left:8px;right:8px;transform:none;max-width:none}}
 /* f6.2 vessels: the craft list. Tokens only; hidden until opened with the CRAFT button / the map's Craft list */
-#vsl{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);transform:translateX(-50%);width:min(580px,96vw);max-height:min(62vh,480px);display:flex;flex-direction:column;z-index:60;background:var(--glass);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);color:var(--txt);font-family:var(--ui)}
+#vsl{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + var(--botH,0px) + 14px);transform:translateX(-50%);width:min(580px,96vw);max-height:min(62vh,480px);display:flex;flex-direction:column;z-index:60;background:var(--glass);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);color:var(--txt);font-family:var(--ui)}
 #vsl.hidden{display:none}
 #vsl .vh{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:var(--fs-m)}
 #vsl .vn{color:var(--dim);font-size:var(--fs-s);flex:1}
