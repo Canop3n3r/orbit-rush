@@ -800,7 +800,7 @@ function rocketBounds() {
 function showFree(land) { // the UI-covered fractions of the screen: the home card + nav (portrait: below; landscape: right column)
   const c = document.getElementById('hCard'), n = document.getElementById('hNav'); let top = innerHeight, left = innerWidth;
   for (const e of [c, n, document.getElementById('hGal')]) if (e && e.offsetParent !== null) { const r = e.getBoundingClientRect(); if (r.height > 0) { top = Math.min(top, r.top); left = Math.min(left, r.left); } }
-  return land ? { right: Math.min(0.5, Math.max(0, 1 - left / innerWidth)) } : { bottom: Math.min(0.45, Math.max(0, 1 - top / innerHeight)) };
+  if (land && !document.body.classList.contains('u59')) return { right: Math.min(0.5, Math.max(0, 1 - left / innerWidth)) }; /* f5.9: Home is a live view with a bottom panel at every size */ return { bottom: Math.min(0.5, Math.max(0, 1 - top / innerHeight)) };
 }
 const ART_ALIAS = { 'titan-ss-v3': 'colossus-v3', 'titan-ss-v4': 'colossus-v4' }; // art model ids renamed by the public-name audit (catalog ids unchanged)
 let hero = null;
@@ -2510,11 +2510,7 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
 }
 { // f5.4m (QA declutter): Home = ‹ › FLY 🔧 📍 ☰. Rockets, Missions, Atlas, Career and Settings live in the ☰ menu
   const top = document.querySelector('#hTop .hTopR'), act = document.querySelector('#hCard .hAct');
-  if (top && !$('hMenuB')) { const mb = document.createElement('button'); mb.id = 'hMenuB'; mb.textContent = '⚙'; mb.title = mb.ariaLabel = 'Settings and more'; top.appendChild(mb);
-    const m = document.createElement('div'); m.id = 'hMenu'; m.className = 'hidden'; document.body.appendChild(m);
-    for (const [t, id] of [['🪐 Atlas', 'hnAtlas'], ['⚙ Settings', 'hGear']]) { const b = document.createElement('button'); b.textContent = t; b.onclick = () => { m.classList.add('hidden'); const t0 = $(id); if (t0) t0.click(); }; m.appendChild(b); }
-    mb.onclick = e => { e.stopPropagation(); m.classList.toggle('hidden'); };
-    addEventListener('pointerdown', e => { if (!m.classList.contains('hidden') && !e.target.closest('#hMenu,#hMenuB')) m.classList.add('hidden'); }); } }
+  if (top && !$('hAtlasB')) { const ab = document.createElement('button'); ab.id = 'hAtlasB'; ab.textContent = '🪐'; ab.title = ab.ariaLabel = 'Planetary Atlas'; ab.onclick = () => fun.openAtlas(); top.insertBefore(ab, top.firstChild); } } // f5.9: Atlas has its own Home button; the ⚙ drawer that repeated Atlas / Settings is gone
 setTimeout(prewarmHeavy, 1500);
 { // f5.9-0: ?hangar (old Build deep link) now just opens Home
  const d0 = Math.max(0, SHOW.findIndex(x => x.id === DEFAULT_ID)); let i0 = d0; try { const v = localStorage.getItem(HOME_KEY); if (v !== null && v !== '') i0 = +v; } catch (e) { } if (!(i0 >= 0 && i0 < SHOW.length) || RETIRED.has(SHOW[i0].id)) i0 = d0; home.set(i0); /* fleet-1: retired/unknown saves fall back to Heron-9 */ siteDefault(); home.show(true); }

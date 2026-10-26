@@ -435,3 +435,22 @@ body.u59 #end>#endBody{max-height:max(60px,calc(58dvh - 190px))}
   body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>#endBody{grid-area:b!important}
   body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endShare{grid-area:s!important}
 }
+
+/* ===== f5.9f: Home = live view + ONE bottom panel (name / Fly / site / All rockets, then one scrolling card row) ===== */
+body.u59 #home #hTop :is(#hGear,#hAtlasB){display:inline-flex!important;align-items:center;justify-content:center;pointer-events:auto}
+body.u59 #home #hCard #hAll{flex:none;height:var(--tap);min-height:var(--tap)!important;padding:0 12px!important;font:700 var(--t-xs) var(--font)!important;border-radius:var(--rad)!important;background:var(--btn)!important}
+body.u59 #home #hCard #hAll.on{background:var(--btn-on)!important;border-color:var(--bc-hi)!important}
+body.u59 #home:not(.allOn) #hGal #picker :is(.pkH,.pkTabs){display:none!important}
+body.u59 #home.allOn #hGal #picker :is(.pkH,.pkTabs){display:flex!important}
+@media (orientation:landscape) and (max-height:520px){
+  body.u59 #home:not(.hidden){grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1fr) auto auto!important;grid-template-areas:"top" "." "card" "gal"!important}
+  body.u59 #home #hCard{grid-template-columns:minmax(0,1fr) auto!important;align-content:center;align-items:center;border-right:0!important;border-top:var(--bw) solid var(--bc)!important;gap:8px!important;padding-top:4px!important;padding-bottom:4px!important}
+  body.u59 #home #hGal{--gal-h:30;max-height:calc(var(--gal-h) * 1dvh)}
+  body.u59 #home #hGal #picker{display:block!important;padding-top:2px!important;padding-bottom:4px!important}
+  body.u59 #home #hGal #picker .pkG .pkC{width:clamp(96px,11vw,130px)}
+  body.u59 #home #hGal #picker .pkC .pkT{height:clamp(26px,8dvh,36px)!important}
+  body.u59 #home #hGal #picker .pkC b{min-height:0;font-size:var(--t-xs)}
+  body.u59 #home #hGal #picker .pkC small{display:none}
+}
+@media (orientation:landscape) and (max-height:520px){body.u59 :is(#hGearM,#hMenu){max-height:calc(100dvh - 52px - 146px)!important;overflow:auto}}
+@media (orientation:landscape) and (max-height:520px){body.u59 #home #hCard{padding-top:2px!important;padding-bottom:2px!important}body.u59 #home #hGal #picker .pkG{margin-bottom:2px}body.u59 #home #hGal #picker .pkG .pkC{padding:2px!important}}

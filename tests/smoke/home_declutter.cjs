@@ -9,10 +9,10 @@ require('fs').mkdirSync(OUT, { recursive: true });
   const pg = await br.newPage(vp); pg.setDefaultTimeout(120000); const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.addInitScript(() => { localStorage.setItem('or_seen_welcome', '1'); });
   await pg.goto(URL + '?noacademy'); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 240000 }); await pg.waitForTimeout(2000);
-  const n = await pg.evaluate(() => [...document.querySelectorAll('#home button')].filter(b => b.offsetParent && !b.closest('#hMenu,#picker')).map(b => b.id || b.textContent.trim()));
+  const n = await pg.evaluate(() => [...document.querySelectorAll('#home button')].filter(b => b.offsetParent && !b.closest('#hGearM,#picker')).map(b => b.id || b.textContent.trim()));
   await pg.screenshot({ path: `${OUT}/${tag}_home.png` }); ok(n.length <= 7, `${tag}: Home shows ${n.length} controls (${n.join(' ')})`);
-  await pg.click('#hMenuB'); await pg.waitForTimeout(300); await pg.screenshot({ path: `${OUT}/${tag}_menu.png` }); ok(await pg.evaluate(() => !document.getElementById('hMenu').classList.contains('hidden')), `${tag}: ☰ opens`);
-  await pg.evaluate(() => document.getElementById('hMenu').classList.add('hidden')); await pg.waitForTimeout(300); // Home is one screen: the picker is always visible
+  await pg.click('#hGear'); await pg.waitForTimeout(300); await pg.screenshot({ path: `${OUT}/${tag}_menu.png` }); ok(await pg.evaluate(() => !document.getElementById('hGearM').classList.contains('hidden')), `${tag}: ☰ opens`);
+  await pg.evaluate(() => document.getElementById('hGearM').classList.add('hidden')); await pg.waitForTimeout(300); // Home is one screen: the picker is always visible
   const pk = await pg.evaluate(() => ({ regions: [...document.querySelectorAll('#picker section h4')].map(h => h.textContent), vis: [...document.querySelectorAll('#picker .pkC')].filter(c => c.offsetParent).length }));
   await pg.screenshot({ path: `${OUT}/${tag}_picker.png` }); ok(pk.regions.length <= 6, `${tag}: picker ${pk.regions.join(', ')} (${pk.vis} cards showing)`);
   await pg.fill('#pkQ', 'heron'); await pg.waitForTimeout(300); const hits = await pg.evaluate(() => [...document.querySelectorAll('#picker .pkC')].filter(c => c.offsetParent).map(c => c.querySelector('b').textContent));

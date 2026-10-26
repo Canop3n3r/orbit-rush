@@ -6,7 +6,7 @@ export function createHome({ list, onSelect, onFly, onMission, onMissions, onAtl
   const el = document.createElement('div'); el.id = 'home'; el.className = 'hidden';
   el.innerHTML = `<div id="hTop"><div class="hLogo">ORBIT <b>RUSH</b></div><span class="hTopR"><button id="hnCareer" aria-label="Career progress" title="Career progress">🏆</button><button id="hGear" aria-label="Settings" title="Settings">⚙</button></span></div>
   <div id="hCard"><div class="hRow"><div><div id="hName"></div><div id="hRole"></div></div></div>
-    <div class="hRow hAct"><button id="hFly">Fly</button><button id="hMis"></button></div></div>
+    <div class="hRow hAct"><button id="hFly">Fly</button><button id="hAll" title="Search, Sandbox and regions">All rockets</button><button id="hMis"></button></div></div>
   <div id="hGal" aria-label="Rockets"></div>
   <nav id="hNav" class="hidden"><button id="hnFly" class="on">🚀<span>Fly</span></button><button id="hnMis">🎯<span>Missions</span></button><button id="hnAtlas">🪐<span>Atlas</span></button></nav>`;
   document.body.appendChild(el);
@@ -18,7 +18,7 @@ export function createHome({ list, onSelect, onFly, onMission, onMissions, onAtl
     if (!quiet) onSelect(i); };
   const tap = (id, fn) => { $(id).onclick = e => { e.currentTarget.blur(); fn(); }; };
   tap('hFly', () => onFly(i)); tap('hMis', () => { if (list[i].mission) onMission(i); });
-  tap('hnFly', () => {}); tap('hnMis', () => onMissions()); tap('hnAtlas', () => onAtlas()); tap('hnCareer', () => onCareer()); tap('hGear', () => onGear());
+  tap('hAll', () => { const on = !el.classList.contains('allOn'); el.classList.toggle('allOn', on); $('hAll').classList.toggle('on', on); }); tap('hnFly', () => {}); tap('hnMis', () => onMissions()); tap('hnAtlas', () => onAtlas()); tap('hnCareer', () => onCareer()); tap('hGear', () => onGear());
   document.addEventListener('keydown', e => { if (!on || e.target.closest && e.target.closest('input,select,textarea')) return; if (e.code === 'Enter') onFly(i); });
   return { el, set, refresh: () => set(i, true), get index() { return i; }, get on() { return on; },
     show(v) { on = !!v; el.classList.toggle('hidden', !on); document.body.classList.toggle('home', on); } };
