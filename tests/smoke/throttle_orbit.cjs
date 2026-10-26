@@ -20,9 +20,9 @@ const URL = process.env.U || 'http://localhost:8982/', VPS = (process.env.VP || 
       ok(r.inBar && r.onscreen && r.hit, `${vp} strip is in the bottom bar, on screen and hit-testable`);
       const cx = r.rect[0] + r.rect[2] / 2, cy = r.rect[1] + r.rect[3] * 0.15;
       if (touch) await pg.touchscreen.tap(cx, cy); else await pg.mouse.click(cx, cy);
-      await pg.waitForTimeout(600);
-      const a = await pg.evaluate(() => ({ auto: !!window.__game.F.autoOn, ut: window.__game.F.v.ut, thr: window.__game.F.v.throttle }));
-      ok(!a.auto && a.ut > 0.6, `${vp} tapping the strip hands control over and sets throttle ${JSON.stringify(a)}`);
+      /* QA f5.9-7b: v.throttle follows v.ut a few frames later; on SwiftShader at 1-5 fps a 600 ms read gave thr 0 at 3 of 4 sizes. Poll up to 4 s so the check proves the engine really throttles up */
+      let a; for (let k = 0; k < 8; k++) { await pg.waitForTimeout(500); a = await pg.evaluate(() => ({ auto: !!window.__game.F.autoOn, ut: window.__game.F.v.ut, thr: window.__game.F.v.throttle })); if (a.thr > 0.6) break; }
+      ok(!a.auto && a.ut > 0.6 && a.thr > 0.6, `${vp} tapping the strip hands control over and the engine throttles up ${JSON.stringify(a)}`);
     }
     ok(!errs.length, `${vp} no page errors ${errs.slice(0, 2).join(' | ')}`); await pg.close(); }
   await br.close(); process.exit(bad ? 1 : 0); })().catch(e => { console.log('FAIL ' + e.message); process.exit(1); });
