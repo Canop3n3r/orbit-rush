@@ -1,0 +1,344 @@
+{
+ "schema": 1,
+ "id": "dark-dart",
+ "height_m": 13.3,
+ "units": "m",
+ "frame": "game: +Y up, origin = bottom of the lowest engine exit",
+ "tiers": [
+  "hi",
+  "mid",
+  "lo"
+ ],
+ "stages": [
+  {
+   "key": "s1",
+   "role": "tank",
+   "prop": "kerolox",
+   "asset": {
+    "hi": "assets/rockets/dark-dart/s1.hi.glb",
+    "mid": "assets/rockets/dark-dart/s1.mid.glb",
+    "lo": "assets/rockets/dark-dart/s1.lo.glb"
+   },
+   "tris": {
+    "hi": 7344,
+    "mid": 2496,
+    "lo": 832
+   },
+   "offset": [
+    0,
+    0.41,
+    0
+   ],
+   "rotY": 0,
+   "size_m": {
+    "h": 8.16,
+    "r": 1.04
+   },
+   "attach": {
+    "top": [
+     0,
+     8.16,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    3.43,
+    0
+   ],
+   "engines": [
+    {
+     "pos": [
+      0.55,
+      -0.01,
+      0.23
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.14,
+     "length": 0.6,
+     "prop": "kerolox"
+    },
+    {
+     "pos": [
+      0.23,
+      -0.01,
+      0.55
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.14,
+     "length": 0.6,
+     "prop": "kerolox"
+    },
+    {
+     "pos": [
+      -0.23,
+      -0.01,
+      0.55
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.14,
+     "length": 0.6,
+     "prop": "kerolox"
+    },
+    {
+     "pos": [
+      -0.55,
+      -0.01,
+      0.23
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.14,
+     "length": 0.6,
+     "prop": "kerolox"
+    },
+    {
+     "pos": [
+      -0.55,
+      -0.01,
+      -0.23
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.14,
+     "length": 0.6,
+     "prop": "kerolox"
+    },
+    {
+     "pos": [
+      -0.23,
+      -0.01,
+      -0.55
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.14,
+     "length": 0.6,
+     "prop": "kerolox"
+    },
+    {
+     "pos": [
+      0.23,
+      -0.01,
+      -0.55
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.14,
+     "length": 0.6,
+     "prop": "kerolox"
+    },
+    {
+     "pos": [
+      0.55,
+      -0.01,
+      -0.23
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.14,
+     "length": 0.6,
+     "prop": "kerolox"
+    }
+   ],
+   "group_noz_ref": [
+    0,
+    0.41,
+    0
+   ],
+   "bytes": {
+    "hi": 67792,
+    "mid": 31952,
+    "lo": 18196
+   }
+  },
+  {
+   "key": "s2",
+   "role": "tank",
+   "prop": "kerolox",
+   "asset": {
+    "hi": "assets/rockets/dark-dart/s2.hi.glb",
+    "mid": "assets/rockets/dark-dart/s2.mid.glb",
+    "lo": "assets/rockets/dark-dart/s2.lo.glb"
+   },
+   "tris": {
+    "hi": 2748,
+    "mid": 960,
+    "lo": 328
+   },
+   "offset": [
+    0,
+    8.61,
+    0
+   ],
+   "rotY": 0,
+   "size_m": {
+    "h": 2.56,
+    "r": 0.99
+   },
+   "attach": {
+    "top": [
+     0,
+     2.56,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    1.08,
+    0
+   ],
+   "engines": [
+    {
+     "pos": [
+      0.3,
+      -0.41,
+      0
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.14,
+     "length": 0.5,
+     "prop": "kerolox"
+    },
+    {
+     "pos": [
+      -0.3,
+      -0.41,
+      0
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.14,
+     "length": 0.5,
+     "prop": "kerolox"
+    }
+   ],
+   "group_noz_ref": [
+    0,
+    8.61,
+    0
+   ],
+   "bytes": {
+    "hi": 31540,
+    "mid": 16612,
+    "lo": 11184
+   }
+  },
+  {
+   "key": "payload",
+   "role": "fairing",
+   "prop": "kerolox",
+   "asset": {
+    "hi": "assets/rockets/dark-dart/payload.hi.glb",
+    "mid": "assets/rockets/dark-dart/payload.mid.glb",
+    "lo": "assets/rockets/dark-dart/payload.lo.glb"
+   },
+   "tris": {
+    "hi": 2256,
+    "mid": 808,
+    "lo": 192
+   },
+   "offset": [
+    0,
+    11.2,
+    0
+   ],
+   "rotY": 0,
+   "size_m": {
+    "h": 2.04,
+    "r": 0.68
+   },
+   "attach": {
+    "top": [
+     0,
+     2.04,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    0.86,
+    0
+   ],
+   "engines": [],
+   "group_noz_ref": [
+    0,
+    11.2,
+    0
+   ],
+   "pivots": {
+    "fairing_L": [
+     0,
+     0,
+     0
+    ],
+    "note": "fairing_L / fairing_R nodes in the asset: hinge at the base ring, sep_dir in extras"
+   },
+   "bytes": {
+    "hi": 21616,
+    "mid": 10720,
+    "lo": 4872
+   }
+  }
+ ],
+ "skipped": [],
+ "order": [
+  "s1",
+  "s2",
+  "payload"
+ ],
+ "bytes": {
+  "hi": 120948,
+  "mid": 59284,
+  "lo": 34252
+ }
+}

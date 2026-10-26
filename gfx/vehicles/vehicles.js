@@ -13,6 +13,8 @@ import * as PR from './profiles.js?v=f5.9-8';
 import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f5.9-8';
 export { setLegs, mat };
 import { buildPayload, registerPayload } from './payloads.js?v=f5.9-8';
+import { stagedReady, buildStaged, preloadStaged, stagedEnabled, loadIndex as stagedIndex } from './staged.js?v=f5.9-8'; // f6.0: Blender stage assets (one .glb per stage); procedural fallback when a rocket has none
+export { preloadStaged, stagedReady, stagedEnabled, stagedIndex };
 import { CRYO } from './cryo.js?v=f5.9-8';
 import { dressStages } from './dress.js?v=f5.9-8';
 import { OWN_PAYLOAD } from './payload_kinds.js?v=f5.9-8';
@@ -262,7 +264,11 @@ export function setPayload(g, id, kind, det = 'hi') {
   const piv = new THREE.Group(); piv.name = 'bay'; piv.position.set(1.4, bay.y + bay.h / 2, cz + bay.r + 0.04); const door = new THREE.Mesh(new THREE.BoxGeometry(2.8, bay.h + 1.0, 0.14), mat('steel')); door.position.x = -1.4; piv.add(door); g.add(piv); st.bay = piv;
   g.userData.bayExpose = k => { const e = Math.max(0, Math.min(1, k)), sm = e * e * (3 - 2 * e); piv.rotation.y = -1.9 * sm; p.position.z = zIn + (zOut - zIn) * Math.max(0, Math.min(1, (e - 0.35) / 0.65)); };
   g.userData.bayExpose(0); return p; }
-export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi'; const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
+export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi';
+  if (o.staged !== false && stagedReady(id, det)) { // f6.0: stages assembled from the rocket's manifest (Blender .glb per stage); same userData shape as the procedural model
+    const g = buildStaged(id, { detail: det }); g.userData.id = id; g.userData.detail = det; if (o.payload !== false) setPayload(g, id, o.payload || 'comsat', det);
+    let tris = 0; g.traverse(m => { if (m.isMesh) tris += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; }); g.userData.tris = tris; return g; }
+  const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
   if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
   else if (/^heron-9|^kite-1$|^kite-3$|^ballast-1$|^granite-2$|^lifttop-1$|^onestep-m1$|^parabolica-1$|^dark-dart$|^conestogo$|^minotaurus-1$|^minotaurus-4$|^taurox$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
   else if (/^heron-9|^geo-slinger$|^slinger-mini$|^slinger-mk3$|^dark-dart$/.test(id)) compactStages(g, ['legs'], true); // rockets-3: heron-9 hi merged per material per stage (was 40-41 meshes)
@@ -297,7 +303,7 @@ export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail
   shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
   dressStages(g, id, det); frostCryo(g, id, det);
   if (o.payload !== false) setPayload(g, id, o.payload || 'comsat', det);
-  let tris = 0; g.traverse(m => { if (m.isMesh) tris += m.geometry.attributes.position.count / 3; }); g.userData.tris = tris; return g; }
+  let tris = 0; g.traverse(m => { if (m.isMesh) tris += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)
 // o.phone: the near level uses 'mid' (titan ~11k instead of ~53k tris)
 export function buildLOD(id, o = {}) { const lod = new THREE.LOD(), hi = build(id, { ...o, detail: o.phone ? 'mid' : 'hi' }), lo = build(id, { ...o, detail: 'lo' }), h = VEHICLES[id].height;

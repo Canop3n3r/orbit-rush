@@ -1,0 +1,65 @@
+{
+ "version": 1,
+ "rockets": {
+  "atlantean-v-551": {
+   "enabled": true,
+   "tiers": [
+    "hi",
+    "mid",
+    "lo"
+   ],
+   "stages": 8,
+   "skipped": 0,
+   "bytes": {
+    "hi": 246516,
+    "mid": 129324,
+    "lo": 81648
+   }
+  },
+  "dark-dart": {
+   "enabled": true,
+   "tiers": [
+    "hi",
+    "mid",
+    "lo"
+   ],
+   "stages": 3,
+   "skipped": 0,
+   "bytes": {
+    "hi": 120948,
+    "mid": 59284,
+    "lo": 34252
+   }
+  },
+  "electrino": {
+   "enabled": true,
+   "tiers": [
+    "hi",
+    "mid",
+    "lo"
+   ],
+   "stages": 3,
+   "skipped": 0,
+   "bytes": {
+    "hi": 119888,
+    "mid": 57328,
+    "lo": 31056
+   }
+  },
+  "heron-9-v11": {
+   "enabled": true,
+   "tiers": [
+    "hi",
+    "mid",
+    "lo"
+   ],
+   "stages": 3,
+   "skipped": 0,
+   "bytes": {
+    "hi": 154940,
+    "mid": 78180,
+    "lo": 43072
+   }
+  }
+ }
+}

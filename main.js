@@ -49,7 +49,7 @@ import { createHome } from './fun/home.js?v=f5.9-8';
 import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-8';
 import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-8';
 import { createFunUI } from './fun/ui.js?v=f5.9-8';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload } from './gfx/vehicles/vehicles.js?v=f5.9-8';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-8';
 import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-8';
 import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-8'; // f6.2: craft types, switching between vessels
 import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-8';
@@ -689,6 +689,11 @@ function spawnFairHalves() {
   const sz = box.getSize(new THREE.Vector3()), r = Math.max(0.4, Math.max(sz.x, sz.z) / 2), cone = Math.min(sz.y * 0.4, r * 2.6), body = Math.max(0.5, sz.y - cone);
   const mat = M.white.clone(); mat.side = THREE.DoubleSide; mat.userData = { ...mat.userData };
   const nose = P.noseOf(v), at = V.addS(V.sub(v.r, V.scale(nose, v.tel.ycom)), nose, box.min.y);
+  { const ss = shells.find(o => o.userData && o.userData.nodes && o.userData.nodes.role === 'fairing'), root = ss && ss.children[0]; // f6.0: a staged rocket's fairing is two modelled half-shells (fairing_L / fairing_R nodes of the payload asset): they fly off instead of the generic cones
+    if (root && root.getObjectByName('fairing_L') && root.getObjectByName('fairing_R')) { mat.dispose();
+      for (const [nm, side] of [['fairing_L', 1], ['fairing_R', -1]]) { const c = root.getObjectByName(nm).clone(true), h = new THREE.Group(); c.position.set(0, 0, 0); c.quaternion.identity(); c.scale.copy(hero.scale); c.visible = true;
+        c.traverse(o => { if (o.isMesh) { o.geometry = o.geometry.clone(); o.visible = true; } }); h.add(c); h.userData.side = side; h.quaternion.copy(q0); scene.add(h); fairHalves.push({ g: h, r: at.slice(), v: v.v.slice(), q0: q0.clone(), t: 0, mat: { dispose() { } } }); }
+      return; } }
   for (const h of buildHalves(THREE, { r, body, cone }, mat)) { h.quaternion.copy(q0); scene.add(h); fairHalves.push({ g: h, r: at.slice(), v: v.v.slice(), q0: q0.clone(), t: 0, mat }); }
 }
 const _fhq = new THREE.Quaternion(), _fhx = new THREE.Vector3(1, 0, 0), _fhz = new THREE.Vector3();
@@ -811,6 +816,9 @@ function prewarmHeavy() { // rockets-3: build the heavy hero LODs in idle slices
   const W = heroPrewarm(ids, { phone: TOUCH });
   for (const id of ids) { const k = id + (TOUCH ? ':p' : ''), p = W.get(k); if (!p || HERO_WARM.has(k)) continue; HERO_WARM.add(k); p.then(l => { if (HERO_WARM.has(k)) { HERO_READY.set(k, l); HERO_WARM.delete(k); W.delete(k); } }).catch(() => HERO_WARM.delete(k)); } }
 function attachHero() { showFrame = null; // re-frame from the new model at once
+  // f6.0 Blender stage assets: the rocket's per-stage .glb files load in the background (phones: mid+lo only). Until they are parsed the procedural model stands in;
+  // once ready, a model that has not ignited yet is rebuilt from the manifest (the pad sits idle until STAGE, so this lands before anyone flies it).
+  { const m0 = design.model; if (m0 && !stagedReady(m0, TOUCH ? 'mid' : 'hi')) preloadStaged(m0, { phone: TOUCH }).then(ok => { try { if (ok && design.model === m0 && F && !F.ignited && hero && !(hero.userData && hero.userData.staged)) { HERO_READY.delete(m0 + (TOUCH ? ':p' : '')); attachHero(); } } catch (e) { console.warn('[Orbit Rush] staged swap', e); } }); }
   if (hero) { const old = hero; hero = null; heroRelease(old, renderer, scene, camera).catch(() => heroDispose(old)); } // rockets-3: leak-safe swap
   if (!design.model || !SG.length) return;
   if (ART_ALIAS[design.model]) design.model = ART_ALIAS[design.model]; // saved designs from before the art public-name audit

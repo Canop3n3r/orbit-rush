@@ -1,0 +1,589 @@
+{
+ "schema": 1,
+ "id": "atlantean-v-551",
+ "height_m": 62.2,
+ "units": "m",
+ "frame": "game: +Y up, origin = bottom of the lowest engine exit",
+ "tiers": [
+  "hi",
+  "mid",
+  "lo"
+ ],
+ "stages": [
+  {
+   "key": "ccb",
+   "role": "tank",
+   "prop": "kerolox",
+   "asset": {
+    "hi": "assets/rockets/atlantean-v-551/ccb.hi.glb",
+    "mid": "assets/rockets/atlantean-v-551/ccb.mid.glb",
+    "lo": "assets/rockets/atlantean-v-551/ccb.lo.glb"
+   },
+   "tris": {
+    "hi": 2700,
+    "mid": 1056,
+    "lo": 400
+   },
+   "offset": [
+    0,
+    -0.01,
+    0
+   ],
+   "rotY": 0,
+   "size_m": {
+    "h": 32.51,
+    "r": 2.24
+   },
+   "attach": {
+    "top": [
+     0,
+     32.51,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    13.65,
+    0
+   ],
+   "engines": [
+    {
+     "pos": [
+      -0.55,
+      0.01,
+      0
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.75,
+     "length": 2.8,
+     "prop": "kerolox"
+    },
+    {
+     "pos": [
+      0.55,
+      0.01,
+      0
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.75,
+     "length": 2.8,
+     "prop": "kerolox"
+    }
+   ],
+   "group_noz_ref": [
+    0,
+    -0.01,
+    0
+   ],
+   "bytes": {
+    "hi": 32000,
+    "mid": 17096,
+    "lo": 11676
+   }
+  },
+  {
+   "key": "srb0",
+   "role": "solid",
+   "prop": "solid",
+   "asset": {
+    "hi": "assets/rockets/atlantean-v-551/srb0.hi.glb",
+    "mid": "assets/rockets/atlantean-v-551/srb0.mid.glb",
+    "lo": "assets/rockets/atlantean-v-551/srb0.lo.glb"
+   },
+   "tris": {
+    "hi": 2718,
+    "mid": 1236,
+    "lo": 452
+   },
+   "offset": [
+    0,
+    0.6,
+    2.76
+   ],
+   "rotY": -1.57,
+   "size_m": {
+    "h": 21.26,
+    "r": 0.83
+   },
+   "attach": {
+    "top": [
+     0,
+     21.26,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    8.93,
+    0
+   ],
+   "engines": [
+    {
+     "pos": [
+      0,
+      0,
+      0
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.59,
+     "length": 1.6,
+     "prop": "solid"
+    }
+   ],
+   "group_noz_ref": [
+    0,
+    0,
+    0
+   ],
+   "bytes": {
+    "hi": 29896,
+    "mid": 16144,
+    "lo": 10636
+   }
+  },
+  {
+   "key": "srb1",
+   "role": "solid",
+   "prop": "solid",
+   "asset": {
+    "hi": "assets/rockets/atlantean-v-551/srb1.hi.glb",
+    "mid": "assets/rockets/atlantean-v-551/srb1.mid.glb",
+    "lo": "assets/rockets/atlantean-v-551/srb1.lo.glb"
+   },
+   "tris": {
+    "hi": 2718,
+    "mid": 1236,
+    "lo": 452
+   },
+   "offset": [
+    0,
+    0.6,
+    -2.75
+   ],
+   "rotY": 1.57,
+   "size_m": {
+    "h": 21.26,
+    "r": 0.83
+   },
+   "attach": {
+    "top": [
+     0,
+     21.26,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    8.93,
+    0
+   ],
+   "engines": [
+    {
+     "pos": [
+      0,
+      0,
+      0
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.59,
+     "length": 1.6,
+     "prop": "solid"
+    }
+   ],
+   "group_noz_ref": [
+    0,
+    0,
+    0
+   ],
+   "bytes": {
+    "hi": 29960,
+    "mid": 16144,
+    "lo": 10636
+   }
+  },
+  {
+   "key": "srb2",
+   "role": "solid",
+   "prop": "solid",
+   "asset": {
+    "hi": "assets/rockets/atlantean-v-551/srb2.hi.glb",
+    "mid": "assets/rockets/atlantean-v-551/srb2.mid.glb",
+    "lo": "assets/rockets/atlantean-v-551/srb2.lo.glb"
+   },
+   "tris": {
+    "hi": 2718,
+    "mid": 1236,
+    "lo": 452
+   },
+   "offset": [
+    2.45,
+    0.6,
+    1.25
+   ],
+   "rotY": -0.47,
+   "size_m": {
+    "h": 21.26,
+    "r": 0.83
+   },
+   "attach": {
+    "top": [
+     0,
+     21.26,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    8.93,
+    0
+   ],
+   "engines": [
+    {
+     "pos": [
+      0,
+      0,
+      0
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.59,
+     "length": 1.6,
+     "prop": "solid"
+    }
+   ],
+   "group_noz_ref": [
+    0,
+    0,
+    0
+   ],
+   "bytes": {
+    "hi": 29892,
+    "mid": 16156,
+    "lo": 10636
+   }
+  },
+  {
+   "key": "srb3",
+   "role": "solid",
+   "prop": "solid",
+   "asset": {
+    "hi": "assets/rockets/atlantean-v-551/srb3.hi.glb",
+    "mid": "assets/rockets/atlantean-v-551/srb3.mid.glb",
+    "lo": "assets/rockets/atlantean-v-551/srb3.lo.glb"
+   },
+   "tris": {
+    "hi": 2718,
+    "mid": 1236,
+    "lo": 452
+   },
+   "offset": [
+    2.45,
+    0.6,
+    -1.25
+   ],
+   "rotY": 0.47,
+   "size_m": {
+    "h": 21.26,
+    "r": 0.83
+   },
+   "attach": {
+    "top": [
+     0,
+     21.26,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    8.93,
+    0
+   ],
+   "engines": [
+    {
+     "pos": [
+      0,
+      0,
+      0
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.59,
+     "length": 1.6,
+     "prop": "solid"
+    }
+   ],
+   "group_noz_ref": [
+    0,
+    0,
+    0
+   ],
+   "bytes": {
+    "hi": 29988,
+    "mid": 16156,
+    "lo": 10636
+   }
+  },
+  {
+   "key": "srb4",
+   "role": "solid",
+   "prop": "solid",
+   "asset": {
+    "hi": "assets/rockets/atlantean-v-551/srb4.hi.glb",
+    "mid": "assets/rockets/atlantean-v-551/srb4.mid.glb",
+    "lo": "assets/rockets/atlantean-v-551/srb4.lo.glb"
+   },
+   "tris": {
+    "hi": 2718,
+    "mid": 1236,
+    "lo": 452
+   },
+   "offset": [
+    -2.75,
+    0.6,
+    0
+   ],
+   "rotY": -3.14,
+   "size_m": {
+    "h": 21.26,
+    "r": 0.83
+   },
+   "attach": {
+    "top": [
+     0,
+     21.26,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    8.93,
+    0
+   ],
+   "engines": [
+    {
+     "pos": [
+      0,
+      0,
+      0
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.59,
+     "length": 1.6,
+     "prop": "solid"
+    }
+   ],
+   "group_noz_ref": [
+    0,
+    0,
+    0
+   ],
+   "bytes": {
+    "hi": 29976,
+    "mid": 16148,
+    "lo": 10636
+   }
+  },
+  {
+   "key": "upper",
+   "role": "tank",
+   "prop": "hydrolox",
+   "asset": {
+    "hi": "assets/rockets/atlantean-v-551/upper.hi.glb",
+    "mid": "assets/rockets/atlantean-v-551/upper.mid.glb",
+    "lo": "assets/rockets/atlantean-v-551/upper.lo.glb"
+   },
+   "tris": {
+    "hi": 2238,
+    "mid": 852,
+    "lo": 320
+   },
+   "offset": [
+    0,
+    32.8,
+    0
+   ],
+   "rotY": 0,
+   "size_m": {
+    "h": 12.4,
+    "r": 1.53
+   },
+   "attach": {
+    "top": [
+     0,
+     12.4,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    5.21,
+    0
+   ],
+   "engines": [
+    {
+     "pos": [
+      0,
+      0,
+      0
+     ],
+     "dir": [
+      0,
+      -1,
+      0
+     ],
+     "bell_r": 0.55,
+     "length": 1.9,
+     "prop": "hydrolox"
+    }
+   ],
+   "group_noz_ref": [
+    0,
+    32.8,
+    0
+   ],
+   "bytes": {
+    "hi": 27544,
+    "mid": 14888,
+    "lo": 10424
+   }
+  },
+  {
+   "key": "payload",
+   "role": "fairing",
+   "prop": "kerolox",
+   "asset": {
+    "hi": "assets/rockets/atlantean-v-551/payload.hi.glb",
+    "mid": "assets/rockets/atlantean-v-551/payload.mid.glb",
+    "lo": "assets/rockets/atlantean-v-551/payload.lo.glb"
+   },
+   "tris": {
+    "hi": 5604,
+    "mid": 2548,
+    "lo": 588
+   },
+   "offset": [
+    0,
+    32.5,
+    0
+   ],
+   "rotY": 0,
+   "size_m": {
+    "h": 27.8,
+    "r": 2.71
+   },
+   "attach": {
+    "top": [
+     0,
+     27.8,
+     0
+    ],
+    "bottom": [
+     0,
+     0,
+     0
+    ]
+   },
+   "com": [
+    0,
+    11.68,
+    0
+   ],
+   "engines": [],
+   "group_noz_ref": [
+    0,
+    32.5,
+    0
+   ],
+   "pivots": {
+    "fairing_L": [
+     0,
+     0,
+     0
+    ],
+    "note": "fairing_L / fairing_R nodes in the asset: hinge at the base ring, sep_dir in extras"
+   },
+   "bytes": {
+    "hi": 37260,
+    "mid": 16592,
+    "lo": 6368
+   }
+  }
+ ],
+ "skipped": [],
+ "order": [
+  "ccb",
+  "srb0",
+  "srb1",
+  "srb2",
+  "srb3",
+  "srb4",
+  "upper",
+  "payload"
+ ],
+ "bytes": {
+  "hi": 246516,
+  "mid": 129324,
+  "lo": 81648
+ }
+}

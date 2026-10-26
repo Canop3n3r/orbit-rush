@@ -1,0 +1,3 @@
+{"stages": {"s1": {"winged": {"rot": -1.5708, "sz": 1.0, "stripe": false, "belly_tile": false,
+  "fuse": [[0.4, 0.55], [0.92, 0.64], [9.8, 0.64]],
+  "wing": {"span": 6.7, "root_te": 0.8, "root_le": 4.6, "tip_te": 1.5, "tip_le": 2.9, "root_x": 0.64, "z": 0.0, "thick": 0.12}}}}}

@@ -1,3 +1,5 @@
 screens/
 screens/art2_cmp_*
 screens/art2_cmpraw_*
+*.pyc
+__pycache__/
