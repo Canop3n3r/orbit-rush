@@ -1,8 +1,8 @@
 // Tier-B generator: builds a whole vehicle from a stage table (radius, length, engine count per stage, strap-on boosters, fairing)
 // with per-family tweak hooks (ne/sideNe engine overrides, r1 per-stage taper, sideTop strap-on taper, liveries, bands, extra, post). Tables are emitted per company by the private rocketdb tool (dimensions + public ids only).
 // Phone budget tier B: hi <= 12k, mid <= 4k, lo <= 2k tris. Stage groups: s1..sN, side0..sideN (strap-ons), payload.
-import { stage, fairing, nose, PI, livery } from './co_gen.js?v=f5.9-8';
-import { group, plume } from './co_civspace.js?v=f5.9-8';
+import { stage, fairing, nose, PI, livery } from './co_gen.js?v=f5.9-9';
+import { group, plume } from './co_civspace.js?v=f5.9-9';
 // engine layouts (ring list for stage(): [n, ringR, re, L, a0])
 export function engines(n, r, L) { const e = (k) => Math.min(r * 0.55, r * k);
   if (n <= 1) return [[1, 0, e(0.5), L]];

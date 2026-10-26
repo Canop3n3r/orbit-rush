@@ -2,10 +2,10 @@
 // (Redrock body + spinning cluster tub + pencil probe) and Saturnine I / IB (8-tank clustered first stage with 8 engines and fins;
 // 6-engine 5.5 m upper (I) or single-engine 6.6 m upper (IB); capsule stack with tower). rocketdb redrock / junebug-1 / saturnine-1.
 import * as THREE from 'three/webgpu';
-import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-8';
-import * as PR from './profiles.js?v=f5.9-8';
-import { lathe, tube, bell, ringPos, ring, decal } from './parts.js?v=f5.9-8';
-import { group, plume } from './co_civspace.js?v=f5.9-8';
+import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-9';
+import * as PR from './profiles.js?v=f5.9-9';
+import { lathe, tube, bell, ringPos, ring, decal } from './parts.js?v=f5.9-9';
+import { group, plume } from './co_civspace.js?v=f5.9-9';
 const PI = Math.PI, HI = k => k.detail === 'hi';
 const quads = (k, r, y, h) => { for (let i = 0; i < 2; i++) tube(k, r * 1.006, r * 1.006, h, y, 'dark', { open: true, t0: i * PI, tl: PI / 2, seg: k.hi ? 10 : 4 }); };
 function fin(k, a, r, w, h, y, t = 0.06) { const s = new THREE.Shape([[r, 0], [r + w, 0], [r + w, h * 0.35], [r, h]].map(([x, z]) => new THREE.Vector2(x, z)));

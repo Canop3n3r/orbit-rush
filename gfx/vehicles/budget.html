@@ -3,7 +3,7 @@
 </head><body><script type="module">
 // perf budget probe (tests/vehicles_budget.cjs): tris + meshes per vehicle/LOD, shared geometry, dispose leak check
 import * as THREE from 'three/webgpu';
-import { build, buildLOD, VEHICLES, dispose, geometryCacheSize, setLegs } from './vehicles.js?v=f5.9-8';
+import { build, buildLOD, VEHICLES, dispose, geometryCacheSize, setLegs } from './vehicles.js?v=f5.9-9';
 const renderer = new THREE.WebGPURenderer({ forceWebGL: true }); renderer.setSize(64, 64); document.body.appendChild(renderer.domElement); await renderer.init();
 const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1e4); cam.position.set(0, 50, 300);
 const out = { rows: [], mem: [] }, count = g => { let n = 0; g.traverse(m => { if (!m.isMesh) return; for (let p = m; p; p = p.parent) if (!p.visible) return; n++; }); return n; }; // visible meshes = draw calls

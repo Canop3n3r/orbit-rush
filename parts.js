@@ -1,9 +1,9 @@
 // Orbit Rush parts: the catalog, rocket designs (a vertical stack of parts, top to bottom), staging, and the
 // per-stage mass / delta-v / TWR math. No DOM, so the hangar UI, the flight and the tests all share it.
-import { G0 } from './physics/constants.js?v=f5.9-8';
-import { stackGeom, massProps } from './physics/vehicle.js?v=f5.9-8';
-import { centerOfPressure } from './physics/aero.js?v=f5.9-8';
-import { dimsOf } from './vehicles/dims.js?v=f5.9-8';
+import { G0 } from './physics/constants.js?v=f5.9-9';
+import { stackGeom, massProps } from './physics/vehicle.js?v=f5.9-9';
+import { centerOfPressure } from './physics/aero.js?v=f5.9-9';
+import { dimsOf } from './vehicles/dims.js?v=f5.9-9';
 
 export const ORBIT_DV = 9400; // m/s: what reaching low Earth orbit really costs (≈7.8 km/s orbital speed + gravity, drag and steering losses)
 // type: pod | payload | fairing | tank | engine | decoupler | fins | rcs | shield | chute.  Masses in tonnes, thrust in kN (vacuum),

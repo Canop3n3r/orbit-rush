@@ -1,5 +1,5 @@
 // Expl Space, tier B (stage-table generator + hooks): Swiftlet, Wayfarer and Ember Finch small solid launchers. White with dark interstages.
-import { buildB } from './gen_b.js?v=f5.9-8';
+import { buildB } from './gen_b.js?v=f5.9-9';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'swiftlet-1': 'Swiftlet-1', 'swiftlet-1a': 'Swiftlet-1A', 'swiftlet-11': 'Swiftlet-11', 'wayfarer-1': 'Wayfarer-1', 'wayfarer-2': 'Wayfarer-2', 'ember-finch-1': 'Ember Finch-1'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length
