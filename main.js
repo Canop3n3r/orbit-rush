@@ -1335,6 +1335,7 @@ function showEnd() {
   if (flags.recovered) lines.push(`<span class="good">✔ Recovered — touchdown at ${UN.spd(flags.touchdown)} · peak heating ${(F.maxHeat / 1000).toFixed(0)} kW/m² · peak skin ${F.maxTskin.toFixed(0)} K · ${F.maxGret.toFixed(1)} g on entry</span>`);
   if (flags.stranded && !flags.dead) lines.push(`<span class="warn">${F.advice()}</span>`);
   lines.push(`Max altitude: ${UN.big(flags.maxAlt || 0)} · Max-Q (ascent): ${(F.maxQ / 1000).toFixed(1)} kPa${F.maxQEntry > 1000 ? ` · entry peak q ${(F.maxQEntry / 1000).toFixed(1)} kPa` : ''} · max ${F.maxG.toFixed(1)} g · Δv used ${UN.dv(F.dvUsed)}`);
+  { const es = endStats(); lines.push(`<span title="${es.tip.replace(/"/g, '&quot;')}">${es.line}</span>`); } // f6.7: ONE compact line (max Q · top speed · cost) in the collapsed Flight details; the long jokes are its tooltip
   if (F.released) { const sv = F.released.saved, W0 = WORLD.load(localStorage); lines.unshift(sv ? `<b class="good">🛰 ${sv.name} delivered · Pe ${UN.big(F.released.pe)} · ${WORLD.count(W0, 'constellation')} in the constellation, ${WORLD.count(W0)} in orbit</b>` : `<b class="warn">🛰 Payload released too low: it will re-enter</b>`); }
   if (flags.deorbited) lines.push(`<span class="good">✔ Spent stage de-orbited (${flags.deorbited})</span>`); else if (F.released && !flags.recovered) lines.push('<span class="warn">Spent stage left in orbit as debris</span>');
   if (flags.space) lines.push(`<span class="good">✔ Reached space (Kármán line, ${UN.big(100000)})</span>`);
@@ -1369,9 +1370,6 @@ function showEnd() {
       const d = String(flags.dead || ''), c = flags.cause, m = d.match(/([\d.]+) m\/s/), sp = m ? UN.spd(+m[1]) : null, tilt = (d.match(/(\d+)° from upright/) || [])[1];
       cl.textContent = !d ? '' : c === 'impact' || c === 'ground' ? (/never cleared/.test(d) ? 'Never cleared the tower' : sp ? `Hit the ground at ${sp}${/no parachutes/.test(d) ? ', no parachutes' : /failed/.test(d) ? ', parachutes failed' : tilt ? `, ${tilt}° off upright` : ''}` : 'Hit the ground') : c === 'tumble' ? 'Out of control' : c === 'breakup' ? 'Broke up under aero load' : c === 'burnup' || /burn|overheat/i.test(d) ? 'Burned up from heat' : d.charAt(0).toUpperCase() + d.slice(1, 48); }
     let mb = $('endMoreBtn'); if (!mb) { mb = document.createElement('button'); mb.id = 'endMoreBtn'; mb.textContent = '⋯'; mb.title = 'Details: score, Share, Retry'; mb.setAttribute('aria-label', 'Flight details'); $('contBtn').after(mb); mb.onclick = () => $('end').classList.toggle('more'); }
-    { /* f6.7: ONE compact line (max Q · top speed · cost) under the cause line; the funny long lines are its tooltip */
-      let ef = $('endFun'); if (!ef) { ef = document.createElement('div'); ef.id = 'endFun'; ($('endCause') || $('endTitle')).after(ef); }
-      const es = endStats(); ef.textContent = es.line; ef.title = es.tip; }
     $('relaunchBtn').textContent = '↻ Retry'; $('end').classList.add('lean'); $('end').classList.remove('more'); }
   document.body.classList.add('endOn');
   $('end').classList.remove('hidden');
