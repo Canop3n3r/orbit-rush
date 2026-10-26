@@ -1,9 +1,9 @@
 // Orbitron Sciences (parody) — Pegacorn: air-launched 3-stage solid winged rocket (delta wing + 3 tail fins on stage 1), shown on a
 // launch table for the showroom; Antarion: 3.9 m kerosene core (2 engines), solid upper, 3.9 m fairing. rocketdb pegacorn / antarion.
 import * as THREE from 'three/webgpu';
-import { xf } from './kit.js?v=f5.9-6';
-import { stage, fairing, PI, livery, fin } from './co_gen.js?v=f5.9-6';
-import { group, plume } from './co_civspace.js?v=f5.9-6';
+import { xf } from './kit.js?v=f5.9-7';
+import { stage, fairing, PI, livery, fin } from './co_gen.js?v=f5.9-7';
+import { group, plume } from './co_civspace.js?v=f5.9-7';
 function peg(o) { const d = o.detail, R = 0.64, dk = livery(0x2e3033);
   const a = stage(d, 's1', { r: R, h: 8.9, y0: 0.9, eng: [[1, 0, 0.45, 0.9]], key: 'paint:0,0', bands: [[0, 0.5]], decalY: 5,
     extra: k => { const w = new THREE.Shape([[0, 0], [3.35, 0.3], [3.35, 1.1], [0, 4.2]].map(([z, y]) => new THREE.Vector2(z, y)));

@@ -1,5 +1,5 @@
 // JAXO, tier B (stage-table generator + hooks): Epsilonix, Hoshi-M/V, Kago Sounder, Kawasemi, Mejiro, Samba-4S, Uguisu. White bodies, nine-strap-on rings on the Kawasemi/Uguisu cores.
-import { buildB } from './gen_b.js?v=f5.9-6';
+import { buildB } from './gen_b.js?v=f5.9-7';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'epsilonix': 'Epsilonix', 'hoshi-m': 'Hoshi-M', 'hoshi-v': 'Hoshi-V', 'kago-sounder': 'Kago Sounder', 'kawasemi': 'Kawasemi', 'mejiro': 'Mejiro', 'samba-4s': 'Samba-4S', 'uguisu': 'Uguisu'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

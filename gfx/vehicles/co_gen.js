@@ -1,9 +1,9 @@
 // co_gen.js: compact shared builders for the tier-A company files (each stage = one direct child group, named; top in userData.top)
 import * as THREE from 'three/webgpu';
-import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-6';
-import * as PR from './profiles.js?v=f5.9-6';
-import * as T from './textures.js?v=f5.9-6';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-6';
+import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-7';
+import * as PR from './profiles.js?v=f5.9-7';
+import * as T from './textures.js?v=f5.9-7';
+import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-7';
 export const PI = Math.PI, isHi = k => k.detail === 'hi';
 const LM = new Map(); // livery colours: cached, weak dispose listeners (flat heap)
 export function livery(hex) { const key = 'x-c' + hex.toString(16); if (!LM.has(key)) { const m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.55, map: T.paint({ base: '#ffffff' }) }); m.name = key; m.userData.cached = true; weakDisposeListeners(m); LM.set(key, m); } return key; }
