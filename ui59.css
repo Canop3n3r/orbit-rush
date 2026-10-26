@@ -380,3 +380,15 @@ body.splitOn:not(.mapOn) #topBar .spBtns{display:flex}
 body.splitOn:has(#split.fullB.camMan) #topBar #spReset{display:inline-flex!important}
 /* f5.9e: END FLIGHT / RELEASE live in the bottom bar even after the payload is out (legacy fixed pin loses) */
 body.u59 #botBar #relBtn,body.u59 #botBar #relBtn.done,body.u59.splitOn #botBar #relBtn{position:static!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:auto!important}
+/* sim_ui contract: the speedometer is big on a short landscape screen too (width is plentiful there) */
+@media (orientation:landscape){#botBar #spd .spV{font-size:clamp(28px,7vh,40px)}}
+
+/* ===== f5.9f: modals are a bounded, scrollable sheet BETWEEN the bars; the rocket / scene stays visible ===== */
+body.u59 :is(.modal,#settings,#dvModal,#credits,#hub,#atlas,#pause){background:rgba(2,6,14,.4)!important}
+body.u59 :is(#settings,#dvModal,#credits,#hub,#atlas) .mbox{pointer-events:none!important;overflow:hidden!important;align-items:center}
+body.u59 :is(#settings,#dvModal,#credits,#hub,#atlas) .mbox>:is(h2,.row,.col){pointer-events:auto;align-self:stretch}
+body.u59 :is(#settings,#dvModal,#credits,#hub,#atlas) .mbox>:not(h2):not(.row):not(.col){flex:0 1 auto!important;margin:auto!important;width:min(100%,640px)!important;max-height:min(58dvh,calc(100dvh - 190px))!important;overflow:auto!important;pointer-events:auto;border:var(--bw) solid var(--bc);border-radius:var(--rad);background:var(--panel)!important;overscroll-behavior:contain}
+@media (orientation:landscape) and (max-height:520px){body.u59 :is(#settings,#dvModal,#credits,#hub,#atlas) .mbox>:not(h2):not(.row):not(.col){width:min(100%,560px)!important;max-height:calc(100dvh - 130px)!important}}
+/* Settings header: title left, ✕ right (replaces the sticky Done bar) */
+body.u59 #settings .mbox>h2{justify-content:space-between;gap:8px}
+body.u59 #settings .mbox>h2 .hx{flex:none;min-width:var(--tap);height:var(--tap);padding:0 12px!important;margin:0!important}
