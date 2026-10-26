@@ -229,3 +229,21 @@ Budget rows retargeted (the ratchet was not lowered; UI_BASELINE stays 220):
 - `stage_lit` rows: a hidden STAGE button is a valid state (nothing left to stage), recorded as value `gone`, ok.
 - `group_words`: the picker step first opens "All rockets" (Search/Sandbox/region tabs live behind it) and counts `.pkTab`.
 - BOOSTER ⤢ lives only in the expanded booster view/PiP corner, so `hud_ctl`/`same_controls` count it once.
+
+## Round 4 notes (QA f5.9-7b fixes, f5.9i/j)
+
+Bottom bar and navball (owner: "the navball is the one thing bigger than the border, in the middle, the border wraps around it"):
+- The navball is `position:absolute` in `#botBar`, `left:50%`, centre `--nbS` (10% of its size) above the bar's top edge, so it rises above the bar and
+  its lower part sits in the bar row. Size `--nbD = clamp(88px, min(36vw, 27vh), 190px)` (140 px at 390x844, 105 at 844x390, 190 at 1280 and 1920).
+- The border wraps around it: `#botBar::before` is a ring (same 2px `--bc` border, same panel fill) clipped at the bar's top edge, so the edge runs into the
+  arch and out the other side with no gap; `--nbG` (8px) is the gap between ball and arch. `--botH` (published by `fun/dock.js`) includes the bulge so sheets and
+  the rocket framing clear the arch.
+- Left and right columns are `minmax(0,1fr)` around a centre column of `--nbD + 16px`, so telemetry and AUTO/STAGE/THR never touch the ball.
+  SAS ⊙ sits left of the arch and the HDG/PIT/ROLL/INC readout right of it, both just above the bar edge (only while lifted with AUTO off).
+- Portrait phones: the right cluster stacks (AUTO over STAGE, THR tall beside them); RELEASE takes STAGE's row while a payload is aboard.
+- The legacy "portrait navball above the thumb cluster" placement in `main.js` is off whenever the two-border layout is on.
+- `ui_walk` CHECK now fails when the navball centre is more than 2 px from the viewport centre, when it does not rise above the bar, or when any control or readout overlaps it.
+
+Bars (QA P1): the one-row bottom bar applies in orbit, with AUTO off and after a craft switch. 844x390: 44 + 50 px = 24.1% of the height; 390x844 about 23 to 26%.
+Controls: ■ End flight moved to ☰ (tap twice), RELEASE is RELEASE only; 📸 Photo mode is in ☰ on phones and Esc leaves photo mode; the craft list and every sheet sit
+between the bars with the ✕ reachable; ⚙ on Home opens one wide Settings sheet (graphics, effects, sound and credits are in it; the ⚙ dropdown is gone).
