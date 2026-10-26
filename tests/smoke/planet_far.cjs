@@ -19,7 +19,7 @@ require('fs').mkdirSync(OUT, { recursive: true });
   await pg.click('#hFly'); await pg.waitForTimeout(3000);
   await pg.evaluate(async () => { // hide every DOM overlay so the screenshot is the canvas only
     const st = document.createElement('style'); st.textContent = 'html body > :not(canvas):not(#zz1):not(#zz2):not(#zz3){display:none !important}'; document.head.append(st);
-    const { BODIES } = await import('/physics/solar.js'); window.__pf = { mode: 'normal', R: id => BODIES[id].R };
+    const { BODIES } = await import(new URL('physics/solar.js', location.href).href); window.__pf = { mode: 'normal', R: id => BODIES[id].R };
     window.__camHook = cam => { const G = window.__game, s = G.scn, F = G.flight(), m = window.__pf.mode, id = F.body, T = new s.camera.position.constructor();
       if (id === 'earth') s.earth.getWorldPosition(T); else T.copy(s.bodyG.position);
       const hide = m === 'noplanet'; if (id === 'earth') { s.earth.visible = !hide; if (s.W1 && hide) s.W1.g.visible = false; } else s.bodyG.visible = !hide;
