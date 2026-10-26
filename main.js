@@ -949,7 +949,7 @@ function onVesselParked(o) { // the craft you left keeps its orbit in the saved 
   try { const w = WORLD.load(localStorage), a = w.objs.find(x => x.id === o.worldId); if (a) { a.r = o.r.slice(); a.v = o.v.slice(); a.t = o.t; a.craft = o.type; WORLD.save(localStorage, w); } } catch (e) { } }
 function onVesselRemoved(o) { smapSats.c = null; const e = fleetVis.get(o.id); if (e) { scene.remove(e.g); fleetVis.delete(o.id); } if (viewId === o.id) viewId = null;
   if (o.worldId) try { const w = WORLD.load(localStorage); w.objs = w.objs.filter(x => x.id !== o.worldId); WORLD.save(localStorage, w); } catch (e2) { } if (vesselUI) vesselUI.draw(); syncCraftBtn(); }
-function syncCraftBtn() { const b = $('craftBtn'); if (!b) return; const n = F && F.fleet ? F.fleet.list.length : 0, on = state === 'flight' && !!F && F.ignited && n > 1; b.classList.toggle('hidden', !on); if (on) { const c = v.craft; b.textContent = `CRAFT ${n} ([ ])`; b.title = c ? `You fly ${c.name}. Switch craft, view it, or power it on or off` : 'Switch to a craft left in space'; } }
+function syncCraftBtn() { const b = $('craftBtn'); if (!b) return; const n = F && F.fleet ? F.fleet.list.length : 0, on = state === 'flight' && !!F && F.ignited && n > 1; b.classList.toggle('hidden', !on); if (on) { const c = v.craft; b.textContent = `CRAFT ${n}`; b.title = c ? `You fly ${c.name}. Switch craft, view it, or power it on or off` : 'Switch to a craft left in space'; } }
 let chuteVis = null;
 // f5.2.3 payload lifecycle: the released payload is its own object (saved to the world list, drawn here until the flight ends)
 let satVis = null; const smapSats = { c: null, t: 0 };
@@ -985,9 +985,9 @@ function updateSat(O, pdt) { if (!satVis) return; if (F.fleet && satVis.rec.vess
   if (satVis.q0) { const k = Math.min(1, satVis.t / 10), e = k * k * (3 - 2 * k), n = V.norm(s.r); _satQ.setFromUnitVectors(Y_AXIS, dv3.set(n[0], n[1], n[2])); satVis.g.quaternion.copy(satVis.q0).slerp(_satQ, e); } else dirQ(satVis.g, V.norm(s.r)); // keeps the stage's attitude at release, then eases to nadir
   const d = satVis.sat && satVis.sat.userData.deploy; if (d) d.call(satVis.sat.userData, (satVis.t - 1.2) / 4); } // arrays unfold after the springs have pushed it clear
 function updateEndFlightBtn() { let b = $('relBtn'); if (!b) { b = document.createElement('button'); b.id = 'relBtn'; document.body.appendChild(b);
-    b.onclick = e => { e.currentTarget.blur(); if (F.released) { if (!F.ended) showEnd(); } else F.releasePayload(); updateEndFlightBtn(); }; }
+    b.onclick = e => { e.currentTarget.blur(); if (F.canRelease()) F.releasePayload(); else if (F.released && !F.ended) showEnd(); updateEndFlightBtn(); }; }
   const on = state === 'flight' && !F.ended && !F.flags.dead && (F.canRelease() || !!F.released);
-  b.classList.toggle('hidden', !on); if (on) { b.textContent = F.released ? '■ End flight' : '🛰 RELEASE'; b.title = F.released ? 'End the flight: everything deployed stays in orbit' : 'Release the payload (or press STAGE)'; b.classList.toggle('rel', !F.released); b.classList.toggle('done', !!F.released); } }
+  b.classList.toggle('hidden', !on); if (on) { const more = F.canRelease(); /* f5.9: END FLIGHT never takes the RELEASE button while a payload is still aboard */ b.textContent = more ? '🛰 RELEASE' : '■ End flight'; b.title = more ? 'Release the payload (or press STAGE)' : 'End the flight: everything deployed stays in orbit'; b.classList.toggle('rel', more); b.classList.toggle('done', !more); } }
 function reset() {
   try { if (F && F.fleet && F.v && F.v.craft) F.parkActive(); } catch (e) { } clearFleetVis(); viewId = null; // f6.2: leaving a flight parks the craft you fly (its orbit is saved)
   gen++; freeSat();

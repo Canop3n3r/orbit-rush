@@ -392,3 +392,27 @@ body.u59 :is(#settings,#dvModal,#credits,#hub,#atlas) .mbox>:not(h2):not(.row):n
 /* Settings header: title left, ✕ right (replaces the sticky Done bar) */
 body.u59 #settings .mbox>h2{justify-content:space-between;gap:8px}
 body.u59 #settings .mbox>h2 .hx{flex:none;min-width:var(--tap);height:var(--tap);padding:0 12px!important;margin:0!important}
+
+/* ===== f5.9f: ONE compact bottom row (~72px): speed / altitude / Ap-Pe | navball | AUTO STAGE THR ===== */
+:root{--bnb:clamp(60px,17vw,72px);--ctlH:54px}
+@media (orientation:landscape) and (max-height:520px){:root{--bnb:58px;--ctlH:46px}}
+body.u59 #botBar{gap:2px 8px;padding:4px calc(8px + max(var(--sar),var(--sal))) calc(4px + var(--sab));align-items:center}
+body.autoOn #bbT,body.autoOn #botBar #dvStages{display:none!important}
+body.u59:not(.autoOn) #botBar #dvStages{display:flex;flex-wrap:wrap;gap:0 10px}
+#botBar #plain{display:grid!important;grid-template-columns:auto;row-gap:0;align-items:start;font-size:var(--t-xs)!important}
+#botBar #spd .spV{font-size:clamp(22px,min(5vh,7vw),30px)!important}
+#botBar #spd small{font-size:var(--t-xs)}
+#botBar #plAlt{margin:0!important;font-size:var(--t-xs)!important}
+#botBar #apPe{margin:0}#botBar #apPe div{font-size:var(--t-xs)!important;line-height:1.15;gap:3px}
+#botBar #dvStages{display:none}
+#botBar #plLand{display:none!important}
+#botBar :is(#mright,#dCtl){grid-template-columns:auto auto 32px!important;grid-auto-rows:auto;gap:6px;align-items:center}
+#botBar :is(#mAuto,#dAuto){grid-column:1;grid-row:1;height:var(--ctlH)!important;min-width:60px}
+#botBar #mChute{grid-column:2;grid-row:1;height:var(--ctlH)}
+#botBar :is(#mStage,#dStage){grid-column:2;grid-row:1;width:auto!important;min-width:68px;height:var(--ctlH)!important}
+#botBar :is(#mThr,#dThr){grid-column:3;grid-row:1!important;width:32px!important;height:var(--ctlH)!important}
+body.noStage #botBar :is(#mStage,#dStage){display:none!important}
+#bbR{flex-direction:column;align-items:flex-end;gap:4px}
+#botBar #relBtn{height:40px}
+#botBar #relBtn.done{width:auto;min-width:var(--tap);max-width:120px;padding:0 10px!important;height:var(--tap);font-size:var(--t-xs)!important;color:var(--txt)!important;background:var(--btn)!important;border-color:var(--bc)!important;align-self:flex-end}
+@media (max-width:380px){:root{--bnb:56px}#botBar :is(#mAuto,#dAuto){min-width:50px}#botBar :is(#mStage,#dStage){min-width:56px}}
