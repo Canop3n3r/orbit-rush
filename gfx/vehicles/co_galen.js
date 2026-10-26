@@ -1,5 +1,5 @@
 // Galen Space, tier B (stage-table generator + hooks): Millstone-1 and Millstone-2 four-stage solid launchers. White, grey upper.
-import { buildB } from './gen_b.js?v=f5.9-5';
+import { buildB } from './gen_b.js?v=f5.9-6';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'millstone-1': 'Millstone-1', 'millstone-2': 'Millstone-2'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

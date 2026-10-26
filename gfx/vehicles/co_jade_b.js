@@ -1,5 +1,5 @@
 // Jade Sky Academy, tier B (stage-table generator + hooks): the Jade Lantern 1-12 families and Gale Runner-1. Off-white bodies.
-import { buildB } from './gen_b.js?v=f5.9-5';
+import { buildB } from './gen_b.js?v=f5.9-6';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'jade-lantern-1': 'Jade Lantern 1', 'jade-lantern-2': 'Jade Lantern 2', 'jade-lantern-2c': 'Jade Lantern 2C', 'jade-lantern-2d': 'Jade Lantern 2D', 'jade-lantern-2e': 'Jade Lantern 2E', 'jade-lantern-4': 'Jade Lantern 4', 'jade-lantern-6': 'Jade Lantern 6', 'jade-lantern-7': 'Jade Lantern 7', 'jade-lantern-8': 'Jade Lantern 8', 'jade-lantern-11': 'Jade Lantern 11', 'jade-lantern-12': 'Jade Lantern 12', 'gale-runner-1': 'Gale Runner-1'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

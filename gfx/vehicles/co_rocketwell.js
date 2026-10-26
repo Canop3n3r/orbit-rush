@@ -2,10 +2,10 @@
 // Super Lift System (Block 1 crew/cargo, Block 1B crew/cargo) sharing the segmented booster + foam core helpers.
 // Dimensions: rocketdb space-truck / super-lift (GCAT) + design.md. Original geometry, no logos/names.
 import * as THREE from 'three/webgpu';
-import { Kit, xf } from './kit.js?v=f5.9-5';
-import * as PR from './profiles.js?v=f5.9-5';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-5';
-import { group, lmat, kbuild, plume } from './co_civspace.js?v=f5.9-5';
+import { Kit, xf } from './kit.js?v=f5.9-6';
+import * as PR from './profiles.js?v=f5.9-6';
+import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-6';
+import { group, lmat, kbuild, plume } from './co_civspace.js?v=f5.9-6';
 const PI = Math.PI;
 // ---- Space Truck Stack (parody of the winged orbiter stack): ET axis at x=z=0, boosters at x=±6.6, orbiter on +z ----
 // rocketdb space-truck (GCAT): SRB 45.5 x 3.71 m, ET 47.0 x 8.4 m, orbiter 37.2 m long; stack 56.1 m; wingspan 23.8 m (art-fitted placement)

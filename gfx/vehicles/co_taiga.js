@@ -1,7 +1,7 @@
 // Krunov Machine Works — Taiga: modular 2.9 m common cores (one engine each), wider 3.6 m upper, 4.1 m fairing.
 // 'taiga-1' single core light, 'taiga-a5' heavy with four strap-on cores (cone noses). Grey-white, dark band, blue stripe. rocketdb taiga + design.md.
-import { stage, fairing, PI, livery } from './co_gen.js?v=f5.9-5';
-import { group, plume } from './co_civspace.js?v=f5.9-5';
+import { stage, fairing, PI, livery } from './co_gen.js?v=f5.9-6';
+import { group, plume } from './co_civspace.js?v=f5.9-6';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = { 'taiga-1': 'Taiga 1', 'taiga-a5': 'Taiga A5' };
 const R = 1.45, ANG = [PI / 4, 3 * PI / 4, 5 * PI / 4, 7 * PI / 4], OFF = 2 * R + 0.1;
