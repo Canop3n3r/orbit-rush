@@ -87,10 +87,15 @@ async function endCard(br) {
   await pg.waitForTimeout(2000);
   for (let k = 0; k < 40; k++) { const done = await pg.evaluate(() => { const F = window.__game.F; for (let i = 0; i < 60 * 15; i++) F.advance(1 / 60); const e = document.getElementById('end'); return e && !e.classList.contains('hidden'); }); await pg.waitForTimeout(400); if (done) break; }
   await pg.waitForTimeout(1500); await shot(pg, 'endcard');
-  const r = await pg.evaluate(MC => { const e = document.getElementById('end'); if (!e || e.classList.contains('hidden')) return { shown: false, card: MC }; const r = e.getBoundingClientRect(), b = window.__game.rocketBox ? window.__game.rocketBox() : null;
+  const r = await pg.evaluate(MC => { const e = document.getElementById('end'); if (!e || e.classList.contains('hidden')) return { shown: false, card: MC }; const r0 = e.getBoundingClientRect(), b = window.__game.rocketBox ? window.__game.rocketBox() : null;
+    // QA f5.9-7: since the f5.9 redesign #end is a transparent inset:0 frame (title strip on top, button bar at the bottom); measure its visible
+    // children (the parts that actually cover the scene), not the frame. Pre-f5.9 the children sit inside a compact card, so this reads the same.
+    const kids = [...e.children].map(k => k.getBoundingClientRect()).filter(k => k.width > 1 && k.height > 1);
+    const area = kids.reduce((a, k) => a + k.width * k.height, 0), ixA = bb => kids.reduce((a, k) => a + Math.max(0, Math.min(k.right, bb.x + bb.w) - Math.max(k.left, bb.x)) * Math.max(0, Math.min(k.bottom, bb.y + bb.h) - Math.max(k.top, bb.y)), 0);
+    const r = { width: r0.width, height: kids.length ? Math.min(r0.height, area / Math.max(1, r0.width)) : r0.height };
     const lines = (document.getElementById('endBody').innerText.match(/\n/g) || []).length + 1;
-    const ix = b ? Math.max(0, Math.min(r.right, b.x + b.w) - Math.max(r.left, b.x)) * Math.max(0, Math.min(r.bottom, b.y + b.h) - Math.max(r.top, b.y)) : null;
-    return { shown: true, card: MC, cardPct: +(100 * r.width * r.height / innerWidth / innerHeight).toFixed(1), cardH: Math.round(r.height), lines, rocket: b && [b.x, b.y, b.w, b.h].map(Math.round), rocketHiddenPct: b && b.w * b.h > 0 ? +(100 * ix / (b.w * b.h)).toFixed(0) : null }; }, mc);
+    const ix = b ? ixA(b) : null;
+    return { shown: true, card: MC, cardPct: +(100 * (kids.length ? area : r0.width * r0.height) / innerWidth / innerHeight).toFixed(1), cardH: Math.round(r.height), frameH: Math.round(r0.height), parts: kids.length, lines, rocket: b && [b.x, b.y, b.w, b.h].map(Math.round), rocketHiddenPct: b && b.w * b.h > 0 ? +(100 * ix / (b.w * b.h)).toFixed(0) : null }; }, mc);
   rec('end_card_compact', r.shown && r.cardPct <= 45 && r.lines <= 8 && (r.rocketHiddenPct === null ? true : r.rocketHiddenPct <= 20), r); // no rocketBox hook (f2): judged on size alone
   await pg.ctx.close(); return pg.errs;
 }
