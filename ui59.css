@@ -552,3 +552,37 @@ body.u59 #settings #qExtra label{margin:0}
 }
 body.u59 #settings #setBody>.setGrid{width:100%!important;box-sizing:border-box}
 body.u59 #settings #setBody{padding-left:16px!important;padding-right:16px!important;box-sizing:border-box}
+
+/* ===== f5.9j (owner): the navball is the one thing bigger than the bottom border, exactly centred, and the border wraps around it =====
+   The bar's top edge arches up around the ball: #botBar::before is a ring (same 2px border, same panel fill) clipped at the bar's top edge, so
+   the edge runs into the arch and out the other side with no gap. The ball's centre sits --nbS above the edge; the bar row only has to hold the lower part. */
+:root{--nbD:clamp(88px,min(36vw,27vh),190px);--nbG:8px;--nbS:calc(var(--nbD)*.1);--nbR:calc(var(--nbD)/2 + var(--nbG) + var(--bw));--bnb:var(--nbD)}
+body.u59 #botBar{grid-template-columns:minmax(0,1fr) calc(var(--nbD) + 16px) minmax(0,1fr)!important;grid-template-areas:"l c r"!important;align-items:end!important;min-height:calc(var(--nbD)/2 - var(--nbS) + 8px + var(--sab))!important}
+body.u59 #botBar::before{content:'';position:absolute;left:50%;top:calc(-1*(var(--nbR) + var(--nbS)));width:calc(2*var(--nbR));height:calc(2*var(--nbR));margin-left:calc(-1*var(--nbR));box-sizing:border-box;border:var(--bw) solid var(--bc);border-radius:50%;background:rgb(9,16,30);clip-path:inset(0 0 calc(50% - var(--nbS)) 0);pointer-events:none;z-index:0}
+body.u59 #botBar:has(#nav.hidden)::before{display:none}
+body.u59 #botBar #nav{position:absolute!important;left:50%!important;top:calc(-1*(var(--nbD)/2 + var(--nbS)))!important;bottom:auto!important;margin:0 0 0 calc(var(--nbD)/-2)!important;width:var(--nbD)!important;height:var(--nbD)!important;--nb:var(--nbD);transform:none!important;z-index:2}
+body.u59 #botBar :is(#bbL,#bbR){position:relative;z-index:1}
+/* the SAS toggle and the attitude readout flank the arch, just above the bar edge */
+body.u59.lifted:not(.autoOn) #bbT{display:contents!important}
+body.u59 #bbT #navSasT{position:absolute!important;left:calc(50% - var(--nbR) - 50px)!important;bottom:calc(100% + 6px)!important;top:auto!important;width:44px;min-width:44px;height:40px;order:0;z-index:2}
+body.u59 #bbT #navRd{position:absolute!important;left:calc(50% + var(--nbR) + 8px);bottom:calc(100% + 6px);display:grid!important;grid-template-columns:auto auto!important;gap:0 8px!important;padding:0!important;max-width:none!important;white-space:nowrap;text-shadow:0 1px 3px #000,0 0 2px #000;z-index:2;overflow:visible!important;pointer-events:none}
+body.u59 #bbT #navRd.hidden{display:none!important}
+@media (min-width:900px){body.u59 #bbT #navRd{display:flex!important;gap:10px!important}}
+/* portrait phones: the right cluster stacks (AUTO over STAGE, THR tall beside them) so it fits beside the big ball */
+@media (orientation:portrait) and (max-width:700px){
+  body.u59 #botBar :is(#mright,#dCtl){grid-template-columns:auto 28px!important;grid-template-rows:var(--ctlH) auto!important;grid-auto-rows:var(--ctlH)!important;gap:4px!important;height:auto!important;justify-items:end;align-items:stretch}
+  body.u59 #botBar :is(#mAuto,#dAuto){grid-column:1!important;grid-row:1!important}
+  body.u59 #botBar :is(#mStage,#dStage){grid-column:1!important;grid-row:2!important}
+  body.u59 #botBar #mChute{grid-column:1 / span 2!important;grid-row:3!important;width:100%!important}
+  body.u59 #botBar :is(#mThr,#dThr){grid-column:2!important;grid-row:1 / span 2!important;height:auto!important;align-self:stretch}
+  body.u59 #bbR{align-items:flex-end}
+  body.u59 #botBar :is(#relBtn,#craftBtn){width:100%!important;min-width:0!important;padding:0 4px!important;height:40px!important;font-size:var(--t-xs)!important;white-space:nowrap}
+}
+@media (orientation:portrait) and (max-width:700px){
+  body.u59 #botBar{gap:0 4px!important}
+  body.u59 #botBar #dvStages .dvH{display:none!important}
+  body.u59 #botBar #spd .spV{font-size:clamp(20px,6.2vw,26px)!important}
+  body.u59 #botBar #plain{row-gap:0!important}
+  /* RELEASE does what STAGE does while the payload is aboard, so it takes STAGE's row instead of stacking a third row */
+  body.u59:has(#relBtn:not(.hidden)) #botBar :is(#mStage,#dStage){display:none!important}
+}

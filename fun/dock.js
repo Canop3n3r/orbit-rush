@@ -20,8 +20,8 @@ export function createDock() {
   };
   sweep();
   new MutationObserver(() => sweep()).observe(document.body, { childList: true, subtree: true });
-  const pub = () => { const r = document.documentElement.style; r.setProperty('--topH', (top.offsetHeight || 0) + 'px'); r.setProperty('--botH', (bot.offsetHeight || 0) + 'px'); };
-  if (window.ResizeObserver) { const ro = new ResizeObserver(pub); ro.observe(top); ro.observe(bot); } else window.addEventListener('resize', pub);
+  const pub = () => { const r = document.documentElement.style; r.setProperty('--topH', (top.offsetHeight || 0) + 'px'); const nv = $('nav'), bb = bot.getBoundingClientRect(), nq = nv && nv.getBoundingClientRect(); const bulge = bot.offsetHeight && nq && nq.width ? Math.max(0, Math.round(bb.top - nq.top + 6)) : 0; r.setProperty('--botH', ((bot.offsetHeight || 0) + bulge) + 'px'); }; // f5.9j: the navball arches above the bar, so sheets and framing treat the bulge as part of the bottom border
+  if (window.ResizeObserver) { const ro = new ResizeObserver(pub); ro.observe(top); ro.observe(bot); } else window.addEventListener('resize', pub); window.addEventListener('resize', pub); setInterval(pub, 700); // the bulge follows the viewport (and the nav showing/hiding), not only the bar's own box
   const pubMap = () => { const mb = $('mapBurn'); document.documentElement.style.setProperty('--mapBotH', (mb && getComputedStyle(mb).display !== 'none' ? Math.round(mb.getBoundingClientRect().height) : 0) + 'px'); }; // fixed elements have no offsetParent
   const hookMap = () => { const m = $('mapBurn'); if (!m || m === hookMap.el) return; hookMap.el = m; if (window.ResizeObserver) new ResizeObserver(pubMap).observe(m); new MutationObserver(pubMap).observe(m, { attributes: true, attributeFilter: ['class'] }); pubMap(); };
   hookMap(); new MutationObserver(hookMap).observe(document.body, { childList: true });
