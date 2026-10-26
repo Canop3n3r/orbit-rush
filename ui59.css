@@ -456,3 +456,26 @@ body.u59 #home.allOn #hGal #picker :is(.pkH,.pkTabs){display:flex!important}
 @media (orientation:landscape) and (max-height:520px){body.u59 #home #hCard{padding-top:2px!important;padding-bottom:2px!important}body.u59 #home #hGal #picker .pkG{margin-bottom:2px}body.u59 #home #hGal #picker .pkG .pkC{padding:2px!important}}
 /* expanded booster view: the upper stage's faded readouts leave the bottom bar so the booster card is the only one */
 body.u59:has(#split.fullB) #botBar #bbL{visibility:hidden}
+
+/* ===== f5.9f (budget): fixed control sizes, short bars, photo bar without a fill, one scrolling card row ===== */
+:root{--ctlH:50px}
+@media (orientation:landscape) and (max-height:520px){:root{--ctlH:46px}}
+#botBar{grid-template-columns:minmax(0,1fr) auto auto!important;grid-template-areas:"t t t" "l c r"}
+#bbL{min-width:0;overflow:hidden}
+#botBar :is(#mStage,#dStage){width:68px!important;min-width:68px!important;max-width:68px}
+#botBar :is(#mAuto,#dAuto){width:60px!important;min-width:60px!important}
+#botBar :is(#mThr,#dThr){width:32px!important;height:var(--ctlH)!important}
+body.u59 #photobar{background:none!important;border:0!important;box-shadow:none!important;pointer-events:none;justify-content:center!important}
+body.u59 #photobar button{pointer-events:auto}
+/* BOOSTER ⤢ is not a HUD control: the PiP itself is the button; the expanded view shows ⤡ BACK / ⟲ FOLLOW */
+body.splitOn:not(:has(#split.fullB)) #topBar #spFull{display:none!important}
+@media (orientation:landscape) and (max-height:520px){
+  body.u59 #topBar{padding-top:calc(3px + var(--sat))!important;padding-bottom:3px!important}
+  body.u59 #botBar{padding-top:2px!important;padding-bottom:calc(2px + var(--sab))!important}
+  body.u59 #home #hGal #picker section.pkR{display:flex!important;flex-wrap:nowrap;overflow-x:auto;gap:8px;scrollbar-width:none}
+  body.u59 #home #hGal #picker details.pkCo{display:flex!important;flex:none;gap:8px}
+  body.u59 #home #hGal #picker details.pkCo>summary{display:none!important}
+  body.u59 #home #hGal #picker .pkG{overflow:visible!important;flex-wrap:nowrap!important}
+}
+:root{--ctlH:46px}
+@media (orientation:landscape) and (max-height:520px){:root{--bnb:54px}#botBar #spd .spV{font-size:clamp(22px,6vh,26px)!important}}
