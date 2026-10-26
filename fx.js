@@ -8,7 +8,7 @@
 //  - Shock cone / bow shock (Mach angle, standoff), compressed-air glow, transonic vapor cone (condensation collar),
 //    reentry plasma (bow cap, windward body glow, wake), coloured by stagnation temperature.
 import * as THREE from 'three/webgpu';
-import { fxState, QUALITY, shockStandoff, plasmaGate } from './fxmap.js?v=f5.9-7';
+import { fxState, QUALITY, shockStandoff, plasmaGate } from './fxmap.js?v=f5.9-8';
 const T = THREE.TSL;
 const { Fn, If, instancedArray, instancedBufferAttribute, instanceIndex, uniform, vec3, vec4, float, hash, length, normalize, dot, cross, max, mix,
   smoothstep, exp, sqrt, clamp, abs, sin, cos, uv, positionLocal, normalLocal, normalView, positionView, pow, oneMinus, texture, time, vec2 } = T;

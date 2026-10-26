@@ -1,9 +1,9 @@
 // f5.3 exhaust (engines-1 data): one plume per engine at each nozzle, coloured by propellant.
-import * as CAT from '../vehicles/catalog.js?v=f5.9-7';
+import * as CAT from '../vehicles/catalog.js?v=f5.9-8';
 const { VEHICLES, ROSTER_BLUEH } = CAT;
-import { rosterFor } from './specstack.js?v=f5.9-7';
+import { rosterFor } from './specstack.js?v=f5.9-8';
 const ALL = [...VEHICLES, ...ROSTER_BLUEH], ALIAS = { 'titan-ss-v3': 'colossus-v3', 'titan-ss-v4': 'colossus-v4' };
-import { PLUME_TABLE, PROPS, stagePlume } from './plumetable.js?v=f5.9-7';
+import { PLUME_TABLE, PROPS, stagePlume } from './plumetable.js?v=f5.9-8';
 export { PROPS };
 // look per propellant now lives in fun/plumetable.js (data-driven: colours, smoke, Mach diamonds, vacuum/sea-level rule, thrust scale)
 export const LOOK = PLUME_TABLE;

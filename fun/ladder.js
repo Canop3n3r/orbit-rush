@@ -4,7 +4,7 @@
 // Rungs reuse Mission Design Bot's design: the ops contracts in missions/*.js (constellation-batch, crew-dock,
 // lunar-landing, mars-ship) and the vehicle order of missions/campaign/career.js (sparrow-1 -> heron-9 ->
 // heron-9-crew -> heron-heavy -> colossus). Vehicle ids here are showroom ids (fun/showroom.js MODEL_OF).
-import { CONTRACTS as DESIGN } from '../design/career_contracts.js?v=f5.9-7';
+import { CONTRACTS as DESIGN } from '../design/career_contracts.js?v=f5.9-8';
 export const KEY = 'orbitrush.ladder.v1', VERSION = 2, SANDBOX_KEY = 'orbitrush.sandbox';
 export const START = { vehicles: ['pip', 'hopper', 'needle'], sites: ['atoll'], parts: [], missions: ['hop'] };
 // every lockable thing, for sandbox and the progress screen
