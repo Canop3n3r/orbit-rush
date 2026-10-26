@@ -28,11 +28,14 @@ const URL = process.env.U || 'http://localhost:8982/', VPS = (process.env.VP || 
       ok(r.n >= 2 && !r.end, `${vp} release_double_tap released (fleet ${r.n}) and the flight is still running (end card ${r.end ? 'OPEN' : 'closed'})`);
       if (r.end) { await tap('contBtn'); await pg.waitForTimeout(1500); } }
     const cb = await pg.evaluate(() => { const b = document.getElementById('craftBtn'); if (!b) return 'no craftBtn'; const q = b.getBoundingClientRect(); if (!q.width) return 'craftBtn hidden'; const h = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2); return h === b || b.contains(h) ? 'ok' : 'craftBtn covered by ' + (h ? h.id || h.className : '-'); });
-    const opened = await tap('craftBtn'); await pg.waitForTimeout(1200); if (cb !== 'ok') console.log('note ' + vp + ' ' + cb);
+    const alreadyOpen = await pg.evaluate(() => { const v = document.getElementById('vsl'); return !!v && !v.classList.contains('hidden'); }); /* a second RELEASE tap can land on CRAFT n, which then opens the list: fine */ const opened = alreadyOpen || await tap('craftBtn'); await pg.waitForTimeout(1200); if (cb !== 'ok') console.log('note ' + vp + ' ' + cb);
     const hd = await pg.evaluate(() => { const v = document.getElementById('vsl'), h = v && v.querySelector('.vh'), x = v && v.querySelector('.vx'), t = document.getElementById('topBar'); if (!v || v.classList.contains('hidden') || !h) return null; const hq = h.getBoundingClientRect(), tq = t ? t.getBoundingClientRect() : { bottom: 0 }; const xq = x.getBoundingClientRect(), top = document.elementFromPoint(xq.left + xq.width / 2, xq.top + xq.height / 2); return { headTop: Math.round(hq.top), barBottom: Math.round(tq.bottom), xHit: !!top && (top === x || x.contains(top)) }; });
     ok(opened && hd && hd.headTop >= hd.barBottom - 1 && hd.xHit, `${vp} craft_list_below_top_bar ${hd ? JSON.stringify(hd) : 'craft list did not open (' + cb + ')'}`);
-    const rel2 = await pg.evaluate(() => { const b = document.getElementById('relBtn'), q = b && b.getBoundingClientRect(); return q && q.width ? [q.left + q.width / 2, q.top + q.height / 2] : null; });
-    if (rel2) { await tapAt(rel2[0], rel2[1]); await pg.waitForTimeout(2000); }
+    const relGone = await pg.evaluate(() => { const b = document.getElementById('relBtn'); return !b || b.classList.contains('hidden') || !b.getBoundingClientRect().width; }); ok(relGone, `${vp} end_flight_not_on_release: no button where RELEASE was after the payload left`);
+    await tap(touch ? 'mMenuBtn' : 'dMenuBtn'); await pg.waitForTimeout(600);
+    const ef = await pg.evaluate(() => { const b = document.querySelector('#mMenu [data-endf],#dMenu [data-endf]'); return !!b && !b.hidden; }); ok(ef, `${vp} end_flight_in_menu: ■ End flight is in ☰`);
+    for (let k = 0; k < 2; k++) { await pg.evaluate(() => { const b = [...document.querySelectorAll('[data-endf]')].find(b => b.offsetParent); b && b.click(); }); await pg.waitForTimeout(500); }
+    await pg.waitForTimeout(1500);
     const st = await pg.evaluate(() => ({ end: !document.getElementById('end').classList.contains('hidden'), list: !!document.getElementById('vsl') && !document.getElementById('vsl').classList.contains('hidden') }));
     if (!hd) console.log(`SKIP ${vp} end_closes_craft_list (list never opened)`); else ok(st.end && !st.list, `${vp} end_closes_craft_list end card ${st.end ? 'open' : 'closed'}, craft list ${st.list ? 'STILL OPEN' : 'closed'}`);
     if (process.env.OUT) await pg.screenshot({ path: `${process.env.OUT}/flight_gaps_${vp}_end.png` });
