@@ -1,4 +1,4 @@
-// f5.6 (Aaron): reaching orbit / landing never ends the flight or pops the end card; only destruction does.
+// f5.6 (owner): reaching orbit / landing never ends the flight or pops the end card; only destruction does.
 // Usage: U=http://localhost:8958/ node tests/smoke/no_end.cjs
 const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-core');
 const GPU = ['--enable-unsafe-webgpu','--enable-features=Vulkan','--use-vulkan=swiftshader','--use-webgpu-adapter=swiftshader','--use-angle=swiftshader','--ignore-gpu-blocklist'];

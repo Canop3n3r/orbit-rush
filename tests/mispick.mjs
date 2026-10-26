@@ -1,4 +1,4 @@
-// f5.1h (Aaron): every ladder mission flies the rocket the player picked (3 qualifying picker rockets each), never a swap,
+// f5.1h (owner): every ladder mission flies the rocket the player picked (3 qualifying picker rockets each), never a swap,
 // AUTO only when asked. Flown headlessly on the real physics with the mission director (the AUTO path).
 import { Flight } from '../flight.js?v=f5.3b5';
 import { Director } from '../fun/director.js?v=f5.3b5';

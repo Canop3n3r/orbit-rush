@@ -22,7 +22,7 @@ export function createAudio(getCtx) {
     wind(q, mach) { const c = A(); if (!c || !live) return; const ac = c.ac;
       if (!wind) { const s = ac.createBufferSource(); s.buffer = noise(2); s.loop = true; windF = ac.createBiquadFilter(); windF.type = 'bandpass'; windF.Q.value = 0.7; wind = ac.createGain(); wind.gain.value = 0; s.connect(windF).connect(wind).connect(FB()); s.start(); windSrc = s; s.onended = () => { if (windSrc === s) windSrc = null; try { s.disconnect(); } catch (e) { } }; }
       wind.gain.setTargetAtTime(Math.min(0.35, q / 60000), ac.currentTime, 0.2); windF.frequency.setTargetAtTime(300 + Math.min(2.5, mach || 0) * 900, ac.currentTime, 0.3); },
-    // f5.8y (Aaron: "the sound playing when a rocket ends its flight keeps playing into the menu"): the wind loop was only retargeted by the
+    // f5.8y (owner: "the sound playing when a rocket ends its flight keeps playing into the menu"): the wind loop was only retargeted by the
     // flight tick, so when the flight screen went away (Home, Build, pause) its last gain stayed forever. stopLoops fades and STOPS the loop source.
     stopLoops(fade = 0.3) { live = false; const c = A(); if (!c || !wind) return; const ac = c.ac, t = ac.currentTime, g = wind, s = windSrc; windSrc = null; wind = null; windF = null;
       try { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + fade); if (s) { s.stop(t + fade + 0.05); s.onended = () => { try { s.disconnect(); g.disconnect(); } catch (e) { } }; } } catch (e) { try { s && s.stop(); } catch (e2) { } } },

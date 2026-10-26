@@ -1,4 +1,4 @@
-// f5.1h: the grouped rocket picker (Aaron-confirmed direction). One sheet: the Orbit Rush Originals first, then one
+// f5.1h: the grouped rocket picker (owner-confirmed direction). One sheet: the Orbit Rush Originals first, then one
 // section per fictional launch house with its art models. The part builder sits behind the Sandbox toggle.
 export const HOUSES = [
   ['spacey', 'Spacey'], ['civspace', 'Civil Space Agency'], ['arion', 'Arion Space'], ['albion', 'Albion Rocket Establishment'],

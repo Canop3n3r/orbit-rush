@@ -409,7 +409,7 @@ body.cx:not(.sheet) #tele,body.cx #heat{display:none!important}
 #sR #wVal{width:52px!important;font-family:var(--mono)!important}
 #sR #pTake{background:#b8322ad9!important;border-color:#ff8a7a!important;border-radius:50%!important;font-size:18px!important}
 #sR #pTake.hidden{display:none}
-/* f5.8o (Aaron): ◀◀ is available in portrait while warping */
+/* f5.8o (owner): ◀◀ is available in portrait while warping */
 #hintS{position:fixed;z-index:24;top:calc(52px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);height:28px;box-sizing:border-box;max-width:min(520px,calc(100vw - 24px));padding:0 14px;border-radius:999px;font:600 13px/26px var(--ui);color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);pointer-events:none;opacity:0;transition:opacity .25s}
 #hintS.on{opacity:1}#hintS.call{color:#ffe9b0;font-weight:800}#hintS:not(.on){visibility:hidden}
 #craftTag{position:fixed;left:0;top:0;z-index:8;width:92px;box-sizing:border-box;padding:3px 8px;border-left:2px solid var(--acc);background:linear-gradient(90deg,#0b1424b0,#0b142400);font:700 11px/1.35 var(--mono);font-variant-numeric:tabular-nums;color:#eaf2ff;text-shadow:0 1px 2px #000;pointer-events:none;will-change:transform}
@@ -769,7 +769,7 @@ body.splitOn:not(.pip) #strip2{display:none!important} /* f5.4i: in split the pa
   #sitePick .spBodies{grid-row:2}#sitePick .spInfo{grid-row:3}#sitePick .spSites{grid-row:4}#sitePick .spMap{grid-row:2;align-self:start}#sitePick .spHint{grid-row:3}#sitePick .spAct{grid-row:4;align-self:start;margin-top:4px}
   #sitePick .spBodies button,#sitePick .spSites button{padding:4px 8px;font-size:12px;min-height:30px}
 }
-/* f5.4j (Aaron, desktop 1024): the engineer tiles start under the PE / FUEL / STAGE row instead of under-lapping it */
+/* f5.4j (owner, desktop 1024): the engineer tiles start under the PE / FUEL / STAGE row instead of under-lapping it */
 body.cx #engS{top:calc(92px + env(safe-area-inset-top,0px))}
 body.cx:not(.touch) #engS{top:104px}
 /* f5.4j (QA declutter): picker = search + 4 regions with folding launch houses */
@@ -788,9 +788,9 @@ body:not(.home) #hMenu{display:none}
 @media (orientation:landscape) and (max-height:500px){#sitePick .spBodies{gap:4px}#sitePick .spBodies button{padding:3px 7px!important;font-size:11px!important;min-height:26px!important;border-radius:9px}}
 #home #hCard{bottom:calc(16px + env(safe-area-inset-bottom,0px))}@media (min-width:900px) and (min-height:600px){#home #hCard{bottom:28px}}@media (orientation:landscape) and (max-height:500px){#home #hCard{bottom:auto}}
 
-/* f5.5a (Aaron): sim, not a mission game: no mission / career entry points anywhere in the UI */
+/* f5.5a (owner): sim, not a mission game: no mission / career entry points anywhere in the UI */
 #hMis,#hnMis,#hnCareer,#nextMisBtn,#opTask,#pObj{display:none!important}
-/* f5.5c (Aaron): plain telemetry card, bottom-left, big and readable; jargon chips only in 📊 Details (engineer) */
+/* f5.5c (owner): plain telemetry card, bottom-left, big and readable; jargon chips only in 📊 Details (engineer) */
 #plain{position:fixed;z-index:25;left:calc(14px + env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));min-width:180px;max-width:230px;padding:10px 14px 10px;border-radius:16px;background:rgba(8,14,28,.62);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 14px var(--ui,system-ui);font-variant-numeric:tabular-nums;pointer-events:none;backdrop-filter:blur(6px)}
 #plain.hidden,body.mapOn #plain,body.photo #plain{display:none}
 #spd{display:flex;align-items:baseline;gap:6px;line-height:1}
@@ -805,7 +805,7 @@ body:not(.eng) #strip #sL,body:not(.eng) #strip2{display:none!important}
 @media (max-height:500px){#plain{min-width:150px;padding:7px 10px;bottom:calc(8px + env(safe-area-inset-bottom,0px));left:calc(8px + env(safe-area-inset-left,0px))}#spd .spV{font-size:38px}#plAlt{margin:1px 0 3px;font-size:13px}#apPe div{font-size:13px}#dvStages{margin-top:3px;padding-top:3px}#dvStages .dvS{font-size:12px}}
 body.touch #mleft{left:calc(178px + var(--sal))}
 body:not(.eng) #strip{justify-content:flex-end}
-/* f5.5d (Aaron): the navball is the joystick (drag = pitch/yaw, two-finger twist = roll); bigger ball, INC readout; it stays up under AUTO */
+/* f5.5d (owner): the navball is the joystick (drag = pitch/yaw, two-finger twist = roll); bigger ball, INC readout; it stays up under AUTO */
 #nav #navBall{pointer-events:auto;cursor:grab;touch-action:none}#nav #navBall.grab{cursor:grabbing;box-shadow:0 0 0 3px #0b1424,0 0 0 5px #ffcf4a,var(--shadow)}
 #nbKnob{position:absolute;left:50%;bottom:calc(var(--nb) / 2 + var(--nb) * .02);width:22px;height:22px;margin:0 0 -11px -11px;border-radius:50%;border:3px solid #ffcf4a;background:#ffcf4a40;pointer-events:none;opacity:0;transition:opacity .15s}#nbKnob.on{opacity:1}
 body.cx #nav{--nb:190px}
@@ -816,9 +816,9 @@ body.touch #mleft,#mStick,#mRoll{display:none!important}
 body.touch #mleft{left:calc(12px + var(--sal))}
 #navRd #nbInc b{color:#d58cff}
 
-/* f5.6 (Aaron 7:23): rockets, flying, crashing, landing. No Missions, Career, Academy, Dailies, rewards anywhere */
+/* f5.6 (owner 7:23): rockets, flying, crashing, landing. No Missions, Career, Academy, Dailies, rewards anywhere */
 #learnBtn,#firstRun,#learn,#learnTip,#hnCareer,#hnMis,#hub,#careerM,.eLine,.lockTag,.pkLock{display:none!important}
-/* f5.6c (Aaron video): one card per half, no duplicates; flight HUD only in flight; map shows only the map bar */
+/* f5.6c (owner video): one card per half, no duplicates; flight HUD only in flight; map shows only the map bar */
 #hud.hidden ~ #plain,#hud.hidden ~ #nav,#hud.hidden ~ #strip,#hud.hidden ~ #strip2,#hud.hidden ~ #hintS,#hud.hidden ~ #gcamBtn,#hud.hidden ~ #relBtn{display:none!important}
 body.splitOn:not(.pip) #plain,body.splitOn:not(.pip) #nav{display:none!important}
 .spBall{pointer-events:auto;touch-action:none;cursor:grab;border-radius:50%}
@@ -857,7 +857,7 @@ body.cx #topStack{display:none!important}
 #plLand{display:flex;flex-wrap:wrap;gap:2px 10px;margin:6px 0 2px;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.06);font:700 14px/1.2 var(--ui)}
 #plLand.hidden{display:none}#plLand b{font-size:18px;color:#fff;width:100%}#plLand span{color:#cfe3ff}#plLand em{font-style:normal;color:#7dffa6}
 #plLand.soon em{color:#ffd23a}#plLand.now{background:rgba(255,80,40,.28)}#plLand.now em{color:#fff;animation:fade 0.5s infinite alternate}#plLand.low em{color:#ff8a6a}
-/* f5.6h (Aaron): split halves get one identical bottom strip (navball centered, mph/alt left, Ap/Pe/Δv right) */
+/* f5.6h (owner): split halves get one identical bottom strip (navball centered, mph/alt left, Ap/Pe/Δv right) */
 .spCard.spStrip{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 10px 8px!important;background:linear-gradient(#0b142400,#0b1424d0 45%)!important;border:0!important;border-radius:0!important;max-width:none!important;box-sizing:border-box;font:700 12px/1.35 var(--ui,system-ui)}
 .spStrip .spL,.spStrip .spR{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:700 12px/1.4 var(--ui,system-ui)!important;text-shadow:0 1px 2px #000}
 .spStrip .spL{text-align:right}.spStrip .spR{text-align:left}
@@ -979,7 +979,7 @@ body:has(#settings:not(.hidden)) #home{visibility:hidden!important}
 @media (orientation:landscape){body.touch.splitOn #mMenu{left:calc(10px + var(--sal))!important;right:auto!important;top:calc(60px + var(--sat))!important;width:min(330px,40vw)!important}}
 body.touch #navRd,body.touch #navRd *{font-size:12px!important}
 @media (orientation:landscape) and (max-height:500px){#sitePick .spBox{align-content:start!important;grid-auto-rows:min-content!important;overflow-y:auto!important}#sitePick .spMap{grid-row:2 / span 4!important;align-self:start}#sitePick .spAct{grid-row:6!important}#sitePick .spSites button,#sitePick .spBodies button{min-height:30px!important;padding:4px 8px!important;font-size:12px!important}#sitePick .spBodies,#sitePick .spSites{margin:4px 0!important}}
-/* ===== f5.8 (Aaron): ONE home screen = 3D hero + hero bar + rocket gallery ===== */
+/* ===== f5.8 (owner): ONE home screen = 3D hero + hero bar + rocket gallery ===== */
 #home .hArr,#home #hDots,#home #hNav{display:none!important}
 #hGal{position:absolute;z-index:3;overflow-y:auto;overscroll-behavior:contain;background:#070b14f0;-webkit-overflow-scrolling:touch}
 #hGal #picker{position:static!important;inset:auto!important;display:block!important;background:transparent!important;padding:10px 12px calc(16px + env(safe-area-inset-bottom,0px))!important;z-index:auto!important;overflow:visible!important}

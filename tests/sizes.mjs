@@ -1,4 +1,4 @@
-// sizes-1 (Aaron: "a lot of rocket sizes are very off"): every house rocket is drawn and flown at its real-world height and
+// sizes-1 (owner: "a lot of rocket sizes are very off"): every house rocket is drawn and flown at its real-world height and
 // core diameter (vehicles/dims.js). Before, the model was scaled to whatever generic part stack it flew (2-8x off).
 // Checks: (1) the physics stack (the height the model is scaled to) is within 5 % of the target height and its core tank
 // diameter within 5 % of the target diameter; (2) the rendered body diameter (model width x height scale x xz) is within 5 %;

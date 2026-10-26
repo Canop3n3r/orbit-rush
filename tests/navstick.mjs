@@ -1,4 +1,4 @@
-// f5.6h (Aaron): trackball navball. The nose marker stays at ball center; dragging rotates the sphere under the
+// f5.6h (owner): trackball navball. The nose marker stays at ball center; dragging rotates the sphere under the
 // finger and the target attitude is the direction the ball now shows at center.
 import { aoaLimit, limitToPrograde, dragRotate, twistRotate, shiftRoll, frameOf, ghostAngle } from '../fun/navstick.js';
 import { rollError } from '../physics/control.js';

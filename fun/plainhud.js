@@ -1,4 +1,4 @@
-// f5.5c (Aaron): plain telemetry for non-nerds. One bottom-left card: a big speedometer in mph, altitude,
+// f5.5c (owner): plain telemetry for non-nerds. One bottom-left card: a big speedometer in mph, altitude,
 // Ap and Pe heights each with a T−/T+ clock, and Δv left per stage (replaces the fuel bars). The jargon chips
 // (ALT km / SRF m/s / AP·T−AP / PE / FUEL / STAGE) move behind the 📊 Details toggle (engineer view).
 import * as U from './units.js?v=f5.9-5';

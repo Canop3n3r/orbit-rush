@@ -39,7 +39,7 @@ export function createSolarMap(opts) {
     const b = B[id], tn = GX.BODY_TEX[id];
     const mat = id === 'sun' ? new THREE.MeshBasicMaterial({ map: GX.tex('sun', gfxQ), color: new THREE.Color(4, 3.4, 2.6) })
       : id === 'earth' ? GX.earthMaterial(gfxQ, sunPosU)
-      : (() => { const tx = tn ? GX.tex(tn, gfxQ) : GX.bodyTexture(b.color, id.length * 7 + id.charCodeAt(0)); return new THREE.MeshStandardMaterial({ map: tx, emissiveMap: tx, emissive: 0x2a2a2a, roughness: 0.95, metalness: 0 }); })(); // f5.4j: a dim night side, so a craft over the dark half is visibly over the world (Aaron's Mars report)
+      : (() => { const tx = tn ? GX.tex(tn, gfxQ) : GX.bodyTexture(b.color, id.length * 7 + id.charCodeAt(0)); return new THREE.MeshStandardMaterial({ map: tx, emissiveMap: tx, emissive: 0x2a2a2a, roughness: 0.95, metalness: 0 }); })(); // f5.4j: a dim night side, so a craft over the dark half is visibly over the world (the owner's Mars report)
     const m = new THREE.Mesh(id === 'earth' ? earthSphere : sphere, mat);
     if (id === 'earth') { const cl = new THREE.Mesh(earthSphere, GX.cloudMaterial(gfxQ, sunPosU)); cl.scale.setScalar(1.002); m.add(cl);
       const am = GX.atmoMaterial({ R: 1, Ra: 1.02 }); const at = new THREE.Mesh(sphere, am); at.frustumCulled = false; scene.add(at); earthAtmo = { m: at, u: am.userData }; }

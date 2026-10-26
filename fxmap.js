@@ -96,7 +96,7 @@ export const plumeFlicker = (t, seed = 0) => 1 + 0.025 * Math.sin(t * 7.1 + seed
 export const glowScaleK = (len, full) => clamp01((len / Math.max(full, 1e-6) - 0.05) / 0.6);
 // Liftoff ground cloud size multiplier (was ×2 with a 60 m/s burst): bounded, only near the pad.
 export const groundSmokeK = h => (h < 60 ? 1.25 : 1);
-// fx-1 (Aaron's phone video: pitch-black booster): fill-light floors so a hull in its own shadow (space, booster
+// fx-1 (the owner's phone video: pitch-black booster): fill-light floors so a hull in its own shadow (space, booster
 // pane looking into the sun) still reads. day 0..1, k = space factor 0..1, sunK = 1 in sunlight, phone adds a bit.
 export function fillLight(day, k, sunK, phone = false) {
   const hemi = Math.max(phone ? 0.5 : 0.4, (0.25 + 0.75 * day) * (1 - k * 0.75));

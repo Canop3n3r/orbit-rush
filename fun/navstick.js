@@ -1,4 +1,4 @@
-// f5.6h (Aaron): direct-manipulation (trackball) navball. The rocket's nose marker is ALWAYS at ball center.
+// f5.6h (owner): direct-manipulation (trackball) navball. The rocket's nose marker is ALWAYS at ball center.
 // Grab the ball and drag: the sphere turns under your finger like a trackball (drag the horizon down = pitch up,
 // drag sideways = yaw: the side you drag away from comes to center). Two-finger twist turns the ball about center
 // = roll (mouse: Shift-drag or right-drag sideways). The direction the ball now shows at center becomes a TARGET

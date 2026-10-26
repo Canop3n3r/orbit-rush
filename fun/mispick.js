@@ -1,4 +1,4 @@
-// f5.1h (Aaron): missions fly the rocket the player picked or built. Never swap it silently; AUTO is opt-in.
+// f5.1h (owner): missions fly the rocket the player picked or built. Never swap it silently; AUTO is opt-in.
 // qualifying(): the picker rockets that can do a mission (the showroom rocket made for it, plus the house rockets
 // that fly on its stack); the mission card lists them with the player's current rocket first.
 export function qualifying(id, show, houseBase = []) {

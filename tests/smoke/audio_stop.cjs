@@ -1,4 +1,4 @@
-// Flight audio never leaks into the menus (f5.8y, Aaron: "whatever sound was playing when a rocket ends its flight keeps playing into the menu").
+// Flight audio never leaks into the menus (f5.8y, owner: "whatever sound was playing when a rocket ends its flight keeps playing into the menu").
 // Phone 390x844, one browser. Flies a few seconds, then checks the number of live LOOPING sources (engine rumble + wind) and the flight bus gain
 //   in flight (loops >= 1) · after a crash end card (0 loops) · after Keep flying (loops back) · under the pause menu (0) · after Home (0 loops, bus faded to 0)
 //   · after the next launch (bus back to 1, loops back).

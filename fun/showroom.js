@@ -30,7 +30,7 @@ Object.assign(MODEL_OF, { selene: 'selene', ares: 'ares' }); // f5.1h (QA f5.1e)
 for (const r of SHOWROOM) if (MODEL_OF[r.id]) { r.model = MODEL_OF[r.id]; r.design.model = r.model; }
 for (const r of SHOWROOM) if (r.check === 'space' || r.check === 'mission:hop') r.design.sub = true; // f5.1h: suborbital by role
 { const h = SHOWROOM.find(r => /colossus|ss-v3/.test(r.model || '')); if (h) setHeavyBase(h.id); } // f5.1h: the super-heavy stack for big house rockets
-// fleet-1 (Aaron 10-22): the Originals group is retired. Pip, Selene and Red Arrow stay only as internal physics stacks
+// fleet-1 (owner 10-22): the Originals group is retired. Pip, Selene and Red Arrow stay only as internal physics stacks
 // (house rockets and tests fly on them) and never show on Home or in the picker; the hopper joins the Spacey house as Sandpiper.
 export const RETIRED = new Set(['pip', 'selene', 'ares']);
 export const DEFAULT_ID = 'swift'; // Heron-9: the default rocket on a fresh load or when a save points at a retired one

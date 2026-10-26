@@ -24,7 +24,7 @@ export function createMobile(api) {
       <div id="mThr" data-l="thr"><i></i><b>THR</b><u>0%</u></div></div>
     <div id="mMenu" class="hidden"><div class="mh"><b>Menu</b><span id="mWarp" hidden></span><button id="mClose" aria-label="Close">✕</button></div>
       <div class="mg mTop">${menuHTML()}</div>
-      <div hidden><button id="mRcs"></button><button id="mFx"></button></div></div>`; // f5.6d (Aaron video + QA #8): one compact side sheet, ~10 big buttons, one Home, one chute, no debug text
+      <div hidden><button id="mRcs"></button><button id="mFx"></button></div></div>`; // f5.6d (owner video + QA #8): one compact side sheet, ~10 big buttons, one Home, one chute, no debug text
   document.body.appendChild(root);
   const $ = id => document.getElementById(id);
   const vib = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) { /* not supported (iOS) */ } };

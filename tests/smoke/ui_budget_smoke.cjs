@@ -15,7 +15,7 @@ const GPU = ['--use-angle=swiftshader', '--ignore-gpu-blocklist'];
 
 // Budgets (spec section 6). ui = [phone, desktop] max UI%. null = not budgeted.
 const B = {
-  first_run:    { controls: 40, words: 70, ui: [70, 62], note: '0 extra screens: must already be Home' }, // f5.8 (Aaron): Home = hero + rocket gallery (cards are the controls)
+  first_run:    { controls: 40, words: 70, ui: [70, 62], note: '0 extra screens: must already be Home' }, // f5.8 (owner): Home = hero + rocket gallery (cards are the controls)
   home:         { controls: 40, words: 70, ui: [70, 62] },
   settings:     { controls: 8, words: 30, ui: [70, 70] },
   hud_auto:     { controls: 5, words: 6, ui: [10, 6] },
@@ -73,7 +73,7 @@ function extra() {
   return { thumbs, arrows, endUp, endCover, hudVis, card, rocketSrc: rocket.src, launch, W: innerWidth, H: innerHeight, groups, builder, sandbox: sbKey ? { key: sbKey, on: !!st[sbKey] } : sbPk || (sbUi ? { key: 'ui', on: null } : null), sandboxLS: ls };
 }
 
-const CARDROWS = (rows, vp, screen, c) => { if (!c) return; /* f5.8m (Aaron): the sim has no stars/missions; crash = Retry + Home, clean = Keep flying/Home with no orange Retry */
+const CARDROWS = (rows, vp, screen, c) => { if (!c) return; /* f5.8m (owner): the sim has no stars/missions; crash = Retry + Home, clean = Keep flying/Home with no orange Retry */
   rows.push({ vp, screen, metric: 'card_no_stars_next', val: c.bad || 'none', max: 'none', ok: !c.bad, info: c.text });
   if (c.dead) { rows.push({ vp, screen, metric: 'card_cause', val: c.cause || 'none', max: 'a short cause', ok: !!c.cause && c.cause.length <= 48 && c.causeVis, info: c.text }); }
   rows.push({ vp, screen, metric: 'card_primary_first', val: c.prim0 || '-', max: c.dead ? 'relaunchBtn' : 'contBtn', ok: c.dead ? c.prim0 === 'relaunchBtn' : c.prim0 === 'contBtn', info: 'primary is always the leftmost button' });
@@ -89,13 +89,13 @@ const THRDRAG = async (pg, phone) => { /* f5.8o (QA f5.8n P1): one real pointer 
   if (phone) { const cdp = await pg.context().newCDPSession(pg), tp = (t, y) => cdp.send('Input.dispatchTouchEvent', { type: t, touchPoints: t === 'touchEnd' ? [] : [{ x, y }] }); await tp('touchStart', y0); for (let i = 1; i <= 10; i++) { await tp('touchMove', y0 + (y1 - y0) * i / 10); await pg.waitForTimeout(60); } await tp('touchEnd'); await cdp.detach(); }
   else { await pg.mouse.move(x, y0); await pg.mouse.down(); for (let i = 1; i <= 10; i++) { await pg.mouse.move(x, y0 + (y1 - y0) * i / 10); await pg.waitForTimeout(60); } await pg.mouse.up(); }
   await pg.waitForTimeout(2500); const p1 = await PITCH(pg), thr = await pg.evaluate(() => +window.__game.F.v.throttle.toFixed(2)); await pg.evaluate(() => { window.__game.F.v.ut = 0; }); return { p0, p1, d: Math.abs(p1 - p0), thr }; };
-const WARPCHECK = async (pg, phone) => { /* f5.8o (Aaron): warp ×1000 forced: ◀◀ and ×N exist, are visible, ≥40 px and hit-testable; a real tap on ×N returns to ×1 */
+const WARPCHECK = async (pg, phone) => { /* f5.8o (owner): warp ×1000 forced: ◀◀ and ×N exist, are visible, ≥40 px and hit-testable; a real tap on ×N returns to ×1 */
   await pg.evaluate(() => { const F = window.__game.F; F.setAuto(false); F.v.ut = 0; for (let i = 0; i < 14; i++) { F.setWarp(i, true); if (F.effWarp() >= 1000) break; } }); await pg.waitForTimeout(1500);
   const info = () => pg.evaluate(() => { const o = {}; for (const id of ['wDn', 'wVal']) { const e = document.getElementById(id); if (!e) { o[id] = null; continue; } const r = e.getBoundingClientRect(), h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2), c = getComputedStyle(e); o[id] = { w: Math.round(r.width), h: Math.round(r.height), vis: r.width > 2 && c.display !== 'none' && c.visibility !== 'hidden' && !e.hidden, hit: !!h && (h === e || e.contains(h)), x: r.left + r.width / 2, y: r.top + r.height / 2 }; } o.warp = window.__game.F.effWarp(); return o; });
   const a = await info(), v = a.wVal; let reset = false; if (v && v.vis && v.hit) { if (phone) await pg.touchscreen.tap(v.x, v.y); else await pg.mouse.click(v.x, v.y); await pg.waitForTimeout(900); reset = (await pg.evaluate(() => window.__game.F.effWarp())) === 1; } return { a, reset }; };
 const WARPROW = (rows, vp, W) => { if (!W) { rows.push({ vp, screen: 'flight', metric: 'warp_slowdown', val: 'SKIP', max: '-', ok: null, info: 'no probe' }); return; } const d = W.a.wDn, v = W.a.wVal, okE = el => !!el && el.vis && el.hit && el.w >= 40 && el.h >= 40;
   rows.push({ vp, screen: 'flight', metric: 'warp_slowdown', val: W.a.warp >= 1000 && okE(d) && okE(v) && W.reset ? 'ok' : 'broken', max: 'ok', ok: W.a.warp >= 1000 && okE(d) && okE(v) && W.reset, info: `warp ×${W.a.warp}; ◀◀ ${d ? `${d.w}x${d.h} vis ${d.vis} hit ${d.hit}` : 'missing'}; ×N ${v ? `${v.w}x${v.h} vis ${v.vis} hit ${v.hit}` : 'missing'}; tap ×N → ×1: ${W.reset}` }); };
-const STAGEWALK = async (pg) => { /* f5.8o (Aaron): STAGE sampled across the WHOLE flight until orbit (payload still unreleased): every sample must be lit */
+const STAGEWALK = async (pg) => { /* f5.8o (owner): STAGE sampled across the WHOLE flight until orbit (payload still unreleased): every sample must be lit */
   const seq = []; for (let k = 0; k < 120; k++) { const done = await pg.evaluate(() => { const F = window.__game.F; for (let i = 0; i < 20 * 60 && !(F.flags.orbit && F.v.guid === 'done'); i++) F.advance(1 / 60); return !!(F.flags.orbit && F.v.guid === 'done'); }); await pg.waitForTimeout(450); const st = await pg.evaluate(STAGEINFO); if (st) seq.push({ lit: st.lit ? 1 : 0, rel: st.released ? 1 : 0 }); if (done) break; }
   return seq; };
 const STAGEWALKROW = (rows, vp, seq) => { /* seq: whole-flight samples incl. the post-RELEASE ones; at most one lit→grey change and it only after release; never grey→lit */

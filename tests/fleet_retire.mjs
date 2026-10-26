@@ -1,4 +1,4 @@
-// fleet-1 (Aaron 10-22): Originals retired; hopper saved as Sandpiper under Spacey; default is Heron-9 (swift stack)
+// fleet-1 (owner 10-22): Originals retired; hopper saved as Sandpiper under Spacey; default is Heron-9 (swift stack)
 import { SHOWROOM, RETIRED, DEFAULT_ID } from '../fun/showroom.js';
 import { pickerHTML } from '../fun/picker.js';
 import { isHopper } from '../fun/director.js';

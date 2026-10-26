@@ -1,4 +1,4 @@
-// f5.7q (QA f5.7n, Aaron): one place for display units. Imperial (default) = mph, mi, ft, ft/s; metric = km/h, km, m, m/s.
+// f5.7q (QA f5.7n, owner): one place for display units. Imperial (default) = mph, mi, ft, ft/s; metric = km/h, km, m, m/s.
 // main.js binds the getter to the live settings so every HUD / pane / card follows the Units setting.
 let get = () => 'imperial';
 export const bindUnits = f => { get = f; };

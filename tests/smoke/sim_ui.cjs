@@ -1,4 +1,4 @@
-// f5.5 sim UI smoke (Aaron 2026-10-22): no missions in UI, no auto-launch, plain telemetry (mph, Pe/Ap + T-, Δv/stage), navball joystick.
+// f5.5 sim UI smoke (owner 2026-10-22): no missions in UI, no auto-launch, plain telemetry (mph, Pe/Ap + T-, Δv/stage), navball joystick.
 // Usage: U=http://localhost:8957/ OUT=dir [ONLY=1,2] node tests/smoke/sim_ui.cjs
 const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-core');
 const GPU = ['--enable-unsafe-webgpu','--enable-features=Vulkan','--use-vulkan=swiftshader','--use-webgpu-adapter=swiftshader','--use-angle=swiftshader','--ignore-gpu-blocklist'];

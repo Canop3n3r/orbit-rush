@@ -1,4 +1,4 @@
-// fx-2 (Aaron: cool landings): every reusable booster (Heron family, Colossus, New Glendale) under AUTO flies
+// fx-2 (owner: cool landings): every reusable booster (Heron family, Colossus, New Glendale) under AUTO flies
 // boostback/entry burn/landing burn with grid fins onto the pad or the drone ship, and lands.
 // new-glendale (f5.7g): AUTO stages it earlier/slower (~2.6 km/s, ~110 t) so entry + landing burns fit; it lands on the droneship (tests/ng_entry.mjs).
 import * as P from '../physics.js?v=fx2';

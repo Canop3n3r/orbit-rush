@@ -24,7 +24,7 @@ const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
-const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // f5.7q (Aaron): every HUD/pane/card reads the Units setting
+const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // f5.7q (owner): every HUD/pane/card reads the Units setting
 import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-5';
 import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-5';
 import { guardToasts } from './fun/toastzone.js?v=f5.9-5';
@@ -624,7 +624,7 @@ function initAudio() {
   sbus = ac.createGain(); sbus.connect(master); dbus = ac.createGain(); dbus.connect(sbus); fbus = ac.createGain(); fbus.connect(dbus); mbus = ac.createGain(); mbus.gain.value = 0; mbus.connect(master); applyAudioSettings();
   startFlightAudio();
 }
-// f5.8y (Aaron: "whatever sound was playing when a rocket ends its flight keeps playing into the menu"): the engine rumble and the wind roar are LOOPS; they were only retargeted by the flight tick, so when the
+// f5.8y (owner: "whatever sound was playing when a rocket ends its flight keeps playing into the menu"): the engine rumble and the wind roar are LOOPS; they were only retargeted by the flight tick, so when the
 // flight screen went away (Home, Build, pause, end card) their last gain stayed. Now: stopFlightLoops fades and stops both loop sources; silenceFlight also fades the bus so an explosion tail never reaches a menu.
 function startFlightAudio() {
   if (!ac || !fbus) return; const t = ac.currentTime; fbus.gain.cancelScheduledValues(t); fbus.gain.setValueAtTime(fbus.gain.value, t); fbus.gain.linearRampToValueAtTime(1, t + 0.05); funAudio.startLoops();
@@ -731,7 +731,7 @@ const hooks = {
   soi: (from, to) => { if (!PROG.visited.includes(to)) { PROG.visited.push(to); PR.save(localStorage, PROG); fun.reveal(to); } else fun.call('🪐', 'Entering ' + P.BODIES[to].name + ' space', '#9cc3ff'); },
   chute: st => { if (st === 'failed') for (let k = 0; k < 30; k++) smoke.spawn(V.sub(v.r, V.scale(P.noseOf(v), -stackL() * 0.5)), jit(v.v, 12), 2, 1, 4, 0xff7a3c, null, 0.6); },
   recovered: () => { const up = V.norm(v.r); for (let k = 0; k < 60; k++) smoke.spawn(v.r, V.add(siteVel(v), V.add(V.scale(up, 4 + Math.random() * 10), [rnd(10), rnd(10), rnd(10)])), 2 + Math.random() * 2, 2, 9, 0xeaf4ff, null, 0.9); },
-  end: (ms, cond) => later(() => { if (!F.flags.dead && !F.flags.deorbited) { updateEndFlightBtn(); return; } /* f5.6 (Aaron): reaching orbit / landing / any goal never ends the flight or pops a card; only destruction does (or the player picks Home) */ if (opSess && !F.flags.dead) return; if (!F.flags.dead && !F.released && F.payloadPart() && F.alt > 100000 && F.body === 'earth') { updateEndFlightBtn(); return; } /* f5.4 (QA D4): a payload in orbit waits for 🛰 RELEASE, then ■ End flight shows the card */ if (cond()) { // QA f5a.2: an ops contract owns its ending (no card at orbit mid-contract)
+  end: (ms, cond) => later(() => { if (!F.flags.dead && !F.flags.deorbited) { updateEndFlightBtn(); return; } /* f5.6 (owner): reaching orbit / landing / any goal never ends the flight or pops a card; only destruction does (or the player picks Home) */ if (opSess && !F.flags.dead) return; if (!F.flags.dead && !F.released && F.payloadPart() && F.alt > 100000 && F.body === 'earth') { updateEndFlightBtn(); return; } /* f5.4 (QA D4): a payload in orbit waits for 🛰 RELEASE, then ■ End flight shows the card */ if (cond()) { // QA f5a.2: an ops contract owns its ending (no card at orbit mid-contract)
     if (academy && academy.active) academy.onEnd(); else showEnd(); } }, ms),
 };
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
@@ -1116,7 +1116,7 @@ $('wUp').onclick = e => { e.currentTarget.blur(); initAudio(); warpStep(1); };
 $('wVal').onclick = e => { e.currentTarget.blur(); warpReset(); };
 function exitMap() { const a = document.activeElement; if (a && a !== document.body && a.blur) a.blur(); camMode = split.full === 'b' || flyingBooster() ? 'booster' : 'chase'; } // f5.6c: back to the view you left (split + its focus survive the map)
 renderer.domElement.addEventListener('pointerdown', () => { const a = document.activeElement; if (a && a !== document.body && a.blur) a.blur(); }, true);
-function stageFlash(r) { // f5.6c (Aaron video): every STAGE tap answers: a flash on the button and a one-line toast
+function stageFlash(r) { // f5.6c (owner video): every STAGE tap answers: a flash on the button and a one-line toast
   for (const id of ['mStage', 'dStage']) { const b = $(id); if (b) { b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash'); if (!b._fl) { b._fl = 1; b.addEventListener('animationend', () => b.classList.remove('flash')); } } } /* f5.8m: the flash is one-shot, the class never lingers */
   if (r === 'stage') toast('Stage ' + v.cur + ' separated', '#ffd23a'); else if (r === 'none') toast('Nothing left to stage', '#9cc3ff'); else if (r === 'debounce') toast('Staged', '#ffd23a');
 }
@@ -1339,7 +1339,7 @@ function showEnd() {
   if (!stars && design.sub && flags.space && !director) stars = 1; // f5.1h (QA): Pip's job is to touch space
   const noStars = isHopper(design); if (noStars) stars = 0; // fx-3: hops are free flight, no star rating
   if (!stars) extra.medal = ''; // f5.1h (QA): the ⋯ sheet never shows a medal the card's stars do not
-  $('endBody').innerHTML = /* f5.8m (Aaron): no stars in the sim */ head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` 
+  $('endBody').innerHTML = /* f5.8m (owner): no stars in the sim */ head.join('<br>') + `<div class="endScore">${sc}${extra.medal || ''}</div>` 
     + `<details class="endMore"><summary>Flight details</summary>${rest.join('<br>')}</details>`; /* f5.8w (QA f5.8v P2): no achievement / unlock wall on the end card (86% of the height at 1280) */
   $('replayBtn').classList.toggle('hidden', !(flags.dead && recBuf.length > 30));
   $('contBtn').classList.toggle('hidden', !!flags.dead || !!flags.stranded);
@@ -1349,7 +1349,7 @@ function showEnd() {
     const what = design.sub && flags.space && !director ? 'Touched space ✓' : flags.dead ? 'Crashed' : F.released && F.released.saved && !director ? 'Delivered · ' + F.released.saved.name : landedOn ? 'Landed · ' + P.BODIES[landedOn[0]].name : director && director.result && director.m && director.m.target ? director.result.replace(/!$/, '') : flags.orbit ? (apKm => Number.isFinite(apKm) && apKm > 0 ? `Orbit · ${UN.big(apKm * 1000)}` : `Escape · ${P.BODIES[F.body].name}`)(((F.orbitSnap ? F.orbitSnap.o : o).ap || 0) / 1000) : UN.dist(flags.maxAlt || 0);
     const earn = false && L && (L.cash || L.sci) ? ` <span class="eLine">+$${L.cash}M${L.sci ? ' 🔬' + L.sci : ''}</span>` : '';
     $('endTitle').innerHTML = `${what}${earn}`;
-    { /* f5.8m (Aaron): no missions/stars. Crash/strand: Retry + Home. Clean orbit/landing: Keep flying + Home (Retry only under ⋯) */
+    { /* f5.8m (owner): no missions/stars. Crash/strand: Retry + Home. Clean orbit/landing: Keep flying + Home (Retry only under ⋯) */
       const bad = !!flags.dead || !!flags.stranded; $('relaunchBtn').classList.toggle('noRetry', !bad); $('relaunchBtn').classList.toggle('big', bad); $('contBtn').classList.toggle('big', !bad); $('contBtn').textContent = 'Keep flying'; $('againBtn').textContent = '⌂ Home'; }
     { /* f5.8o (QA f5.8n): a short cause line from the real crash state, in a fixed slot under the title */
       let cl = $('endCause'); if (!cl) { cl = document.createElement('div'); cl.id = 'endCause'; $('endTitle').after(cl); }
@@ -1388,7 +1388,7 @@ function emit(veh, group, dt, bottom, dir) {
   const ps = plumeShape(p * 101325, thr), pl = plumeLook(p * 101325, thr), ud = plume.userData, w0 = ud.w, fl = plumeFlicker(performance.now() / 1000, group.id || 0); // fx-1: smooth flicker (no per-frame random strobe)
   const PM = ud.mats || plumeMats('kerolox'), LK = PM.look, env = ud.env || 1, vf = vacFactors(LK, pl.vac); // QA plume pass: length from the engine (ud.lenM, gfx/plume_style.js), shortened and dimmed per propellant in vacuum
   let len = ud.lenM ? ud.lenM * (pl.len / 24) * vf.len * fl : pl.len * w0 * fl * Math.sqrt(env) * Math.sqrt(ud.ts || 1); const len0 = len, szK = ud.lenM ? Math.min(2, Math.max(0.45, Math.sqrt(ud.lenM / 30))) : 1;
-  if (veh === v && booster && booster.state === 'flying' && performance.now() - WV.pulse < 6000) { const gap = V.len(V.sub(v.r, booster.r)) * 0.55; if (gap < len) len = Math.max(1.5, gap); } // f5.6c (Aaron video): the upper-stage plume never pokes through the booster just after separation
+  if (veh === v && booster && booster.state === 'flying' && performance.now() - WV.pulse < 6000) { const gap = V.len(V.sub(v.r, booster.r)) * 0.55; if (gap < len) len = Math.max(1.5, gap); } // f5.6c (owner video): the upper-stage plume never pokes through the booster just after separation
   plume.scale.set(1, 1, 1); const gk = glowScaleK(len, len0); // fx-1: the nozzle glow sprite fades with a clamped flame (no lone flat 2D sprite) // f5.3: the engines' jets merge into one column as long as the whole base would make
   const setL = (m, wk, lk = 1) => { m.scale.set(wk, len * lk, wk); m.position.y = -len * lk / 2; };
   const wd = LK.wid || 1, applyTo = P0 => { const u = P0.userData; if (u.lite) { setL(u.outer, (1.7 + 0.4 * pl.vac) * wd, 1); setL(u.core, pl.coreW * Math.sqrt(wd), 0.45 + 0.05 * fl); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk * LK.glow); return; }
@@ -1643,7 +1643,7 @@ const setRel = (obj, p, O) => obj.position.set(p[0] - O[0], p[1] - O[1], p[2] - 
 const dirQ = (obj, d) => obj.quaternion.setFromUnitVectors(Y_AXIS, dv3.set(d[0], d[1], d[2]));
 await renderer.compileAsync(scene, camera).catch(() => {});
 $('loading') && $('loading').remove();
-// f5.6 (Aaron): no Academy / welcome card
+// f5.6 (owner): no Academy / welcome card
 renderer.setAnimationLoop(() => {
   GX.oceanTime.value = performance.now() / 1000; // flight-ground-2: ocean wave clock
   const now = performance.now(), rdt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -1679,7 +1679,7 @@ renderer.setAnimationLoop(() => {
   const tilesOn = !!(window.__tiles && window.__tiles.stats && window.__tiles.stats.on); // private Google tiles own the ground while they show (the LOD globe hid them)
   if (tilesOn) earthLOD.group.visible = false; else { if (window.__tiles) earthLOD.group.visible = true; lodFrame(); }
   { const op = state === 'flight' && !!F && !F.ignited; if (op !== document.body.classList.contains('onPad')) document.body.classList.toggle('onPad', op); } // f5.7j: pad state for CSS (ABORT unlit)
-  { const ao = state === 'flight' && !!(F && F.autoOn) && !(director && director.active === false && false); if (ao !== document.body.classList.contains('autoOn')) document.body.classList.toggle('autoOn', ao); } { const io = state === 'flight' && !!(F && F.flags.orbit); if (io !== document.body.classList.contains('inOrbit')) document.body.classList.toggle('inOrbit', io); const dead = state === 'flight' && !!F && !!F.flags.dead /* f5.8u (QA f5.8r P3): nothing to stage on the crash frame */, want = dead || state === 'flight' && !!F && F.ignited && !(F.v && F.v.cur < F.last) && !(!F.released && !!F.payloadPart()); /* f5.8o (Aaron): STAGE stays lit from liftoff while a stage remains OR the payload is unreleased; calm grey only after RELEASE with nothing left */ /* f5.8n: ONE condition: lit while a payload is unreleased or a stage remains (not gated on tower/altitude, which made it flicker at ~141 m); 0.3 s debounce */
+  { const ao = state === 'flight' && !!(F && F.autoOn) && !(director && director.active === false && false); if (ao !== document.body.classList.contains('autoOn')) document.body.classList.toggle('autoOn', ao); } { const io = state === 'flight' && !!(F && F.flags.orbit); if (io !== document.body.classList.contains('inOrbit')) document.body.classList.toggle('inOrbit', io); const dead = state === 'flight' && !!F && !!F.flags.dead /* f5.8u (QA f5.8r P3): nothing to stage on the crash frame */, want = dead || state === 'flight' && !!F && F.ignited && !(F.v && F.v.cur < F.last) && !(!F.released && !!F.payloadPart()); /* f5.8o (owner): STAGE stays lit from liftoff while a stage remains OR the payload is unreleased; calm grey only after RELEASE with nothing left */ /* f5.8n: ONE condition: lit while a payload is unreleased or a stage remains (not gated on tower/altitude, which made it flicker at ~141 m); 0.3 s debounce */
     const nowT = performance.now(); if (want !== stageWant) { stageWant = want; stageWantAt = nowT; } const ns = (want !== document.body.classList.contains('noStage') && (!want || dead || nowT - stageWantAt > 300 || state !== 'flight')) ? want : document.body.classList.contains('noStage'); if (ns !== document.body.classList.contains('noStage')) document.body.classList.toggle('noStage', ns); { const lf = state === 'flight' && !!F && !!F.ignited; if (lf !== document.body.classList.contains('lifted')) document.body.classList.toggle('lifted', lf); } } // f5.6x: STAGE goes dark with nothing left to stage // f5.6u: orbit drops ABORT / throttle on phones // f5: manual controls hide while AUTO flies
   setRel(rocketG, base, O); toQ(v.q, rocketG.quaternion);
   worldVis(base, O, nose);
@@ -1836,7 +1836,7 @@ let ctlTopC = { t: 0, v: 0 };
 function ctlTop() { const H = innerHeight; if (!TOUCH || !splitPortrait()) return H; const now = performance.now(); if (now - ctlTopC.t < 500) return ctlTopC.v;
   let top = H; for (const id of ['mleft', 'mright']) { const e = document.getElementById(id); if (!e || getComputedStyle(e).display === 'none') continue; const r = e.getBoundingClientRect(); if (r.height > 0) top = Math.min(top, r.top); }
   ctlTopC = { t: now, v: Math.max(H * 0.6, top - 6) }; return ctlTopC.v; }
-// f5.7i (QA f5.7g P1, Aaron): phones fly the upper stage full screen with its HUD cluster; the booster is a picture-in-picture top-left
+// f5.7i (QA f5.7g P1, owner): phones fly the upper stage full screen with its HUD cluster; the booster is a picture-in-picture top-left
 const pipRect = () => { const W = innerWidth, H = innerHeight, sat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0, w = Math.round(Math.min(W * 0.42, H * 0.48, 480)); return { x: TOUCH ? 10 : 12, y: (splitPortrait() ? 64 : TOUCH ? 60 : 64) + sat, w, h: Math.round(w * 0.75) }; }; // f5.8i (QA f5.8h P2): one 4:3 booster inset at every size
 function paneRect(i = 0, nb = 1) { if (nb === 1) return pipRect(); const W = innerWidth, H = innerHeight, Hc = ctlTop(); // f4.2: a heavy's two boosters: stacked on the right (landscape) or rows 2-3 (portrait)
   if (nb > 1) return splitPortrait() ? { x: 0, y: Hc / 3 * (i + 1), w: W, h: Hc / 3 } : { x: W * 0.5, y: H * 0.5 * i, w: W * 0.5, h: H * 0.5 };
@@ -1879,7 +1879,7 @@ function updateSplit(rdt) {
     miniBall($('spBallU'), P.noseOf(v), v.r, P.altOf(v) > 80000 ? v.v : uva, v.holdAtt && v.sas === 'stab' && !v.steerDir ? v.holdAtt.n : null);
   }
 }
-// f5.3 (Aaron): identical layout in every half: the card (navball + telemetry) sits at the pane's top-left under one
+// f5.3 (owner): identical layout in every half: the card (navball + telemetry) sits at the pane's top-left under one
 // button row, the pane buttons at its top-right. Positions are set here (viewport px) so every pane uses one rule.
 function upperRect(nb) { const W = innerWidth, H = innerHeight; if (split.full === 'u') return { x: 0, y: 0, w: W, h: H };
   if (nb === 1) return splitPortrait() ? { x: 0, y: 0, w: W, h: H, sh: ctlTop() } : { x: 0, y: 0, w: W - 150, h: H }; // f5.7i: the upper stage owns the screen; its strip ends above (portrait) / left of (landscape) the AUTO/STAGE cluster
@@ -1902,7 +1902,7 @@ function layoutSplitCards(nb, fb) {
   if (false) pinBottom($('gcamBtn'), 'right'); // f5.7j: hidden in the inset layout // f5.7e (QA f5.7c P1): RELEASE is no longer pinned into the split; it has one fixed spot (style.css)
   if (nb > 1) placeIn($('spCardB2'), paneRect(1, nb), 'strip');
 }
-// f5.6h (Aaron): each split half gets the same bottom strip: a simple navball centered, mph + altitude on its left,
+// f5.6h (owner): each split half gets the same bottom strip: a simple navball centered, mph + altitude on its left,
 // Ap / Pe with their T-times and Δv (ft/s) on its right. Nothing sits in the middle of a pane, so the craft stays clear.
 function spStrip(id, label, ph, hot, mps, alt, c, cur, upper, landed) { let o = null, tAp = NaN, tPe = NaN; try { o = P.orbitOf(c); tAp = P.timeToApV(c); tPe = C.timeToPe(c.r, c.v, P.muOf(c)); } catch (e) { }
   const pad = upper && (v.clamped || !F.ignited), ap = o ? apsisLine('ap', o, tAp, SIM_SPEED, pad) : { lab: 'Ap', h: '—', t: '' }, pe = o ? apsisLine('pe', o, tPe, SIM_SPEED, pad) : { lab: 'Pe', h: '—', t: '' };
@@ -1963,7 +1963,7 @@ function renderPane(b, O, R2, i) {
 }
 // f5.3: the booster fills ~45 % of the pane's short side whatever its length or the pane shape (phone panes are short)
 function boosterFrameDist(b, R2) { let L = 40; try { L = Math.max(10, P.stackGeom(b).L || 40); } catch (e) { } return L * 2.14 * R2.h / Math.max(60, Math.min(R2.w, R2.h)); }
-// f5.3 (Aaron): ground spectator camera in AUTO: a fixed tripod ~2 km south-west of the pad, a few metres up, that tracks
+// f5.3 (owner): ground spectator camera in AUTO: a fixed tripod ~2 km south-west of the pad, a few metres up, that tracks
 // the climbing rocket and zooms (narrows the field of view) so the rocket stays ~1/4 of the screen tall.
 const GCAM = { on: false, fov0: 55 };
 function groundCam(O, th, base, nose, rdt) {
@@ -2309,7 +2309,7 @@ function stripTick() {
   cx.updateEng(engCells());
 }
 { const wantB = on => { try { if (!F || !booster || booster.state !== 'flying') return; if (!!booster.manual !== on && (on ? booster.stages[0].fuel > 0 : true)) F.toggleBooster(); } catch (e) { } }; // f5.6g: each pane's ball steers THAT pane's craft
-  // f5.6h (Aaron): trackball navball. The ball turns under the finger; the attitude it puts at center is a target that SAS holds
+  // f5.6h (owner): trackball navball. The ball turns under the finger; the attitude it puts at center is a target that SAS holds
   const upCur = () => F && v ? { n: P.noseOf(v), t: V.qrot(v.q, [0, 0, -1]) } : null;
   const upHold = G => { if (!F || !v || v.clamped || F.flags.dead || (P.altOf(v) < 60 && V.len(P.airVel(v)) < 5)) return; // sitting on the pad: nothing to steer if (director && director.active) director.takeOver(); if (v.auto) F.takeOverUpper(); if (F.ret && F.ret.auto) F.setAuto(false);
     if (!window.__dragTold) { window.__dragTold = 1; toast('Navball: you drag the sky — drag ⬆ = nose down, ⬇ = nose up', '#9cc3ff'); } // f5.7e (QA f5.7c P2): say which way the drag turns the nose, once
@@ -2339,7 +2339,7 @@ const dCtl = (() => { if (TOUCH) return null; const d = document.createElement('
   return d; })();
 function dCtlTick() { if (!dCtl) return; const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); dCtl.classList.toggle('hidden', !on); if (!on) { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); return; } // f5.6h (QA): the ☰ never stays open over the end card
   if (F.ignited && dCtlTick.ig !== F) { dCtlTick.ig = F; const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); try { mobile.closeMenu(); } catch (e) { } } // f5.7e (QA f5.7c P2): ☰ closes at liftoff (it stayed open from ascent to orbit)
-  const t = Math.round(100 * (v.throttle || 0)); $('dThr').querySelector('i').style.height = t + '%'; $('dThr').querySelector('u').textContent = t + '%'; $('dAuto').classList.toggle('on', !!F.autoOn); } // f5.5c (Aaron): plain telemetry: mph, Ap/Pe with T−/+, Δv per stage
+  const t = Math.round(100 * (v.throttle || 0)); $('dThr').querySelector('i').style.height = t + '%'; $('dThr').querySelector('u').textContent = t + '%'; $('dAuto').classList.toggle('on', !!F.autoOn); } // f5.5c (owner): plain telemetry: mph, Ap/Pe with T−/+, Δv per stage
 function plainTick() {
   if (F && F.ignited) { const ig = $('ignite'); if (ig && !ig.classList.contains('hidden')) ig.classList.add('hidden'); } // f5.6o (QA): the pad hint goes away at ignition, however you staged
   const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden');
@@ -2417,7 +2417,7 @@ const rungLabel = c => c.brandKey ? brandMName(c.brandKey, c.name) : c.name;
 var careerUI = createCareerUI({ store: localStorage, onPlay: c => playRung(c),
   name: { rung: rungLabel, vehicle: id => (SHOW.find(x => x.id === id) || { name: id }).name, site: id => brandLabel('site.' + id, SITE_NAMES[id] || id),
     part: id => (PARTS[id] || { name: id }).name, mission: id => (MISSIONS[id] || {}).name || brandMName(id, (opsList.find(m => m.id === id) || {}).name || id) } });
-function lockWhy(kind, id) { return null; /* f5.6 (Aaron): it's a sim, every rocket and site is open */ if (!careerUI.locked(kind, id)) return null; const c = careerUI.unlockedBy(kind, id); return '🔒 Locked: earn "' + (c ? rungLabel(c) : '?') + '" in Career (or turn on Sandbox)'; }
+function lockWhy(kind, id) { return null; /* f5.6 (owner): it's a sim, every rocket and site is open */ if (!careerUI.locked(kind, id)) return null; const c = careerUI.unlockedBy(kind, id); return '🔒 Locked: earn "' + (c ? rungLabel(c) : '?') + '" in Career (or turn on Sandbox)'; }
 const lockedFly = i => { return false; if (sbSite) return false; // f5.4 sandbox: every rocket
    const w = lockWhy('vehicles', SHOW[i].id); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); careerUI.show(true); } return !!w; };
 function playRung(c) {
@@ -2431,7 +2431,7 @@ function playRung(c) {
 addEventListener('career-change', () => { if (home) home.refresh(); });
 var home = createHome({ list: SHOW, hidden: i => RETIRED.has(SHOW[i].id), locked: i => !!lockWhy('vehicles', SHOW[i].id), onCareer: () => careerUI.show(true),
   onSelect: i => { pickModel = null; pickStack = null; setTimeout(() => window.__galMark && window.__galMark(), 0); try { localStorage.setItem(HOME_KEY, String(i)); } catch (e) { } setDesign(showDesign(i)); },
-  onFly: i => { if (lockedFly(i)) return; setDesign(pickDesign(i)); home.show(false); launch(); try { F.setAuto(false, true); } catch (e) { } }, // f5.5b (Aaron): load onto the pad with control; pick AUTO if wanted, STAGE to go. Was QA f5b.3: home FLY = 1 tap to liftoff on AUTO
+  onFly: i => { if (lockedFly(i)) return; setDesign(pickDesign(i)); home.show(false); launch(); try { F.setAuto(false, true); } catch (e) { } }, // f5.5b (owner): load onto the pad with control; pick AUTO if wanted, STAGE to go. Was QA f5b.3: home FLY = 1 tap to liftoff on AUTO
   onMission: i => { if (lockedFly(i)) return; const w = lockWhy('missions', SHOW[i].mission); if (w) { fun.call('🔒', w.slice(2), '#ffb35c', true); return; } home.show(false); startMission(SHOW[i].mission); },
   onMissions: () => fun.openHub(), onAtlas: () => fun.openAtlas(), onGear: () => $('hGearM').classList.toggle('hidden') });
 // f5.4 sandbox: 📍 launch site button on the Home card + picker
@@ -2451,7 +2451,7 @@ const sitePicker = createSitePicker({ BODIES: P.BODIES, onPick: s => { sbSite = 
   document.addEventListener('pointerdown', e => { if (!g.classList.contains('hidden') && !e.target.closest('#hGearM,#hGear')) g.classList.add('hidden'); }, true);
 }
 { // f5.1h: grouped rocket picker: Originals first, then one section per launch house; the builder lives behind Sandbox
-  const pk = document.createElement('div'); pk.id = 'picker'; pk.className = 'gal'; ($('hGal') || document.body).appendChild(pk); // f5.8 (Aaron): the picker IS the home gallery
+  const pk = document.createElement('div'); pk.id = 'picker'; pk.className = 'gal'; ($('hGal') || document.body).appendChild(pk); // f5.8 (owner): the picker IS the home gallery
   const render = () => { pk.innerHTML = pickerHTML({ sets: HOUSE_SETS, name: houseName, role: id => (CLASS_OF[baseOf(id)] || 'Super-heavy') + (specFor(id) ? ' · Payload ' + fmtPay(payloadT(id)) : ' · ' + Math.round((ART[id] && ART[id].height) || 50) + ' m'), locked: id => !!lockWhy('vehicles', SHOW[baseIdx(id)].id),
     originals: SHOW.map((r, i) => ({ i, name: r.name, maker: r.house ? (SHORT_HOUSE[r.house] || r.house) : 'Original', locked: !!lockWhy('vehicles', r.id), thumb: r.model || r.id })).filter(o => !RETIRED.has(SHOW[o.i].id)), pinned: {}, flat: true }); if (matchMedia('(min-width:1100px) and (min-height:501px)').matches) pk.querySelectorAll('section.pkR').forEach(sc => sc.querySelectorAll('details.pkRow').forEach((d, i) => { d.open = i < 3; })); /* f5.8g (QA): desktop opens the first 3 companies per region (≤4 screens), the rest fold */ markSel(); }; // f5.8: Featured = the curated home rockets
   const close = () => { markSel(); }; // f5.8: the gallery stays; selecting just updates the hero

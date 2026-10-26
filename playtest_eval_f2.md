@@ -3,7 +3,7 @@
 Method: `playtest.cjs` walks every flow headless (Chrome + SwiftShader WebGPU) at **390x844 touch** (pp), **844x390 touch** (pl)
 and **1280x800 desktop** (d), screenshots each step to `playtest/shots/{pp,pl,d1280}_NN_*.png`, and runs an automatic
 scan per step (visible buttons, < 40 px taps, offscreen controls, overlapping buttons, clipped text, page errors).
-Missions are fast-forwarded through the real director. Aaron's iPhone screenshots (plume, map) and QA's
+Missions are fast-forwarded through the real director. the owner's phone screenshots (plume, map) and QA's
 `qa_2026-10-19.md` are folded in. No page errors in any flow.
 
 | Flow | Score f2 (/10) | Main problems | f3 status |

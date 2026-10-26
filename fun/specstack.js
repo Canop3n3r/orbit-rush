@@ -1,4 +1,4 @@
-// f5.2 (Aaron: accurate specs): a house rocket flies a physics stack built from Vehicle Specs' roster data (rocketdb):
+// f5.2 (owner: accurate specs): a house rocket flies a physics stack built from Vehicle Specs' roster data (rocketdb):
 // stage count, dry/propellant mass, engine thrust and Isp, booster stage, payload and fairing mass. The part list only
 // gives the stack its shape; the physics numbers are overridden from the roster (flight.js applies design.spec).
 // Rockets with any unsourced engine are UNMODELLED and keep the matched showroom stack.

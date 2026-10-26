@@ -515,7 +515,7 @@ export class Flight {
     b.manual = !b.manual;
     if (b.manual) {
       b.ut = 0; b.retro = true; this.autoWarp = false;
-      const up = !this.flags.dead && this.autoOn; // f5.6c (Aaron): the upper stage only flies itself if the player armed AUTO for it
+      const up = !this.flags.dead && this.autoOn; // f5.6c (owner): the upper stage only flies itself if the player armed AUTO for it
       if (up) { this.v.auto = true; if (this.v.ut <= 0 && !this.flags.orbit) this.v.ut = 1; } else { this.v.ut = 0; this.v.throttle = 0; }
       this.toast(up ? 'YOU HAVE THE BOOSTER — upper stage on AUTO' : 'YOU HAVE THE BOOSTER — upper stage coasting', '#ffd23a');
     } else this.toast('Booster on auto-land. You have the upper stage' + (this.autoOn ? ' (AUTO on)' : ''), '#9cc3ff');

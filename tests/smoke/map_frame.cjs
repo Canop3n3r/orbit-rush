@@ -1,4 +1,4 @@
-// f5.4j map frame (Aaron's Mars report): sandbox launch on the Moon and Mars, open the map mid-ascent, assert the
+// f5.4j map frame (the owner's Mars report): sandbox launch on the Moon and Mars, open the map mid-ascent, assert the
 // map's craft-to-body distance equals altitude + radius (and the body is drawn at its radius). Usage: U=... OUT=dir node tests/smoke/map_frame.cjs
 const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-core');
 const GPU = ['--enable-unsafe-webgpu','--enable-features=Vulkan','--use-vulkan=swiftshader','--use-webgpu-adapter=swiftshader','--use-angle=swiftshader','--ignore-gpu-blocklist'];

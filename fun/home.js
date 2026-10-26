@@ -1,4 +1,4 @@
-// f5.8 (Aaron): ONE home screen. The 3D rocket on the pad is the hero preview; a scrollable gallery of rocket cards
+// f5.8 (owner): ONE home screen. The 3D rocket on the pad is the hero preview; a scrollable gallery of rocket cards
 // (thumbnails baked from the game's own models) with region chips + search sits beside it (desktop/landscape) or under it
 // (portrait). Tap a card = select it; Fly and the launch site sit on the hero bar. No arrows, no carousel, no separate picker.
 const $ = id => document.getElementById(id);
