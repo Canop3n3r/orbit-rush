@@ -1316,7 +1316,8 @@ function updateChunks(dt, O) {
 }
 let endMin = false, stageWant = false, stageWantAt = 0;
 function showEnd() {
-  if (F.ended) return; const score = F.finish();
+  if (F.ended) return; for (const id of ['mMenu', 'dMenu', 'engS', 'heat', 'learn', 'lesson', 'opTask']) { const e = $(id); if (e) e.classList.add('hidden'); } { const nv = $('nav'); if (nv) nv.classList.remove('fan'); } try { mobile.closeMenu(); } catch (e) { } // f5.9: no popup survives onto the end card
+ const score = F.finish();
   const flags = F.flags, o = F.orbitSnap ? F.orbitSnap.o : P.orbitOf(v), ok = (flags.orbit || !!(F.homeBody && F.homeBody !== 'earth' && (F.goals[F.homeBody] || {}).orbit)) && !flags.dead;
   const out = recordFlight(score);
   if (flags.dead || flags.recovered || flags.stranded || F.flags.landed) stopFlightLoops(0.5); // f5.8y: a finished flight stops its engine / wind loops now; the explosion one-shot plays out
@@ -1833,7 +1834,7 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
   $('spCtl').onclick = e => { e.stopPropagation(); if (booster && booster.state === 'flying' && F.ship && booster.stages[0].fuel > 0) F.toggleBooster(); else toast('The booster is on autopilot', '#9cc3ff'); };
   $('spClose').onclick = e => { e.stopPropagation(); split.closed = true; };
   $('spCloseU').onclick = $('spClose').onclick; $('spCtlU').onclick = $('spCtl').onclick; // f5.6h (QA P2): both halves carry the same buttons
-  $('spFull').textContent = 'BOOSTER ⤢'; $('spFullU').textContent = 'UPPER ⤢'; // f5.6x: every size // f5.6u (QA P1): phones get one small label per pane; tapping it focuses that pane (⇄ / ✕ are hidden: the pane's ball takes control)
+  $('spFull').textContent = split.full === 'b' ? '⤡ BACK' : 'BOOSTER ⤢'; $('spFullU').textContent = 'UPPER ⤢'; // f5.6x: every size // f5.6u (QA P1): phones get one small label per pane; tapping it focuses that pane (⇄ / ✕ are hidden: the pane's ball takes control)
 }
 const splitPortrait = () => innerHeight > innerWidth;
 const hasChutes = () => { try { return !!(F && F.v.stages.some(s => s.parts.some(p => /chute/i.test(p.kind || '')))); } catch (e) { return true; } }; // f5.7i

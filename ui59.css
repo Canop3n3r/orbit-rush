@@ -454,3 +454,5 @@ body.u59 #home.allOn #hGal #picker :is(.pkH,.pkTabs){display:flex!important}
 }
 @media (orientation:landscape) and (max-height:520px){body.u59 :is(#hGearM,#hMenu){max-height:calc(100dvh - 52px - 146px)!important;overflow:auto}}
 @media (orientation:landscape) and (max-height:520px){body.u59 #home #hCard{padding-top:2px!important;padding-bottom:2px!important}body.u59 #home #hGal #picker .pkG{margin-bottom:2px}body.u59 #home #hGal #picker .pkG .pkC{padding:2px!important}}
+/* expanded booster view: the upper stage's faded readouts leave the bottom bar so the booster card is the only one */
+body.u59:has(#split.fullB) #botBar #bbL{visibility:hidden}
