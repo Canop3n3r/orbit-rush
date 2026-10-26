@@ -36,3 +36,9 @@ f5.1c note: the welcome's `#frSb` became "🚀 Fly now" (it launches), so the sc
     U=http://localhost:8964/ OUT=dir [BODIES=earth,moon,mars,venus,jupiter] [ALTS=1000,10000,...] node tests/smoke/planet_far.cjs
 
 Parks the craft on the Sun side of a body at each altitude (km above the surface), points the camera at the body centre (tele fov so a far disc is ~60 px) and reads back three frames with the UI hidden: normal, planet+clouds hidden, sky sphere hidden. Inside the disc: ≥90% of pixels must change when the planet is hidden (it is drawn), ≤2% may change when the sky is hidden and are not drifting clouds (no sky painted over it), mean luminance ≥25. Bug it guards: the sky sphere was a fixed 1e8 m, so any planet whose surface was further than 100,000 km from the camera was drawn behind it. One slow software-GL page, ~40 s per case.
+
+# release_end_safe (Playtest QA Bot, f5.9-7 live pass)
+
+    VP=390x844,844x390 node tests/smoke/release_end_safe.cjs [baseUrl]
+
+At orbit: a real double tap (120 ms apart) on RELEASE must release the payload but not end the flight (END FLIGHT takes the same corner once the payload is out), and ending the flight with the craft list open must close the list (no FLY/VIEW rows left over the end card). Red on f5.9-7 d9ca4843: 4 FAIL (2 per viewport). `planet_far` now imports `physics/solar.js` relative to the page so it also runs on the GitHub Pages sub-path.
