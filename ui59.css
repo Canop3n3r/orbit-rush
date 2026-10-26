@@ -420,3 +420,18 @@ body.u59:not(.lifted) #bbT{display:none!important}
 @media (orientation:landscape) and (max-height:520px){body.u59 #botBar #dvStages{display:none!important}body.u59 #botBar #plain{grid-template-columns:auto auto;column-gap:14px}#botBar #apPe{grid-column:2;grid-row:1 / span 2;align-self:center}}
 @media (max-width:420px){#botBar :is(#mAuto,#dAuto,#mStage,#dStage){font-size:var(--t-s)!important;padding:0 2px!important}}
 @media (max-width:340px){:root{--bnb:52px}#botBar :is(#mAuto,#dAuto,#mStage,#dStage){font-size:10px!important;padding:0 1px!important;min-width:44px!important;letter-spacing:-.02em}#botBar :is(#mright,#dCtl){gap:3px}#botBar :is(#mThr,#dThr){width:26px!important}#botBar #spd .spV{font-size:20px!important}}
+
+/* ===== f5.9f: the end card is a bounded card docked on the bottom border; the rocket / wreck stays in view ===== */
+body.u59 #end:not(.hidden){inset:auto 0 0 0!important;top:auto!important;height:auto!important;max-height:58dvh!important;background:var(--panel)!important;border-top:var(--bw) solid var(--bc)!important;pointer-events:auto!important;overflow:hidden}
+body.u59 #end>h2{min-height:0!important;padding:8px calc(12px + var(--sar)) 2px calc(12px + var(--sal))!important;border-bottom:0!important;font-size:var(--t-m)!important}
+body.u59 #end>#endCause{padding:0 calc(12px + var(--sar)) 6px calc(12px + var(--sal))!important;border-bottom:0!important}
+body.u59 #end>.endMain{margin-top:0!important;border-top:0!important;padding-top:4px!important}
+body.u59 #end>#endBody{max-height:max(60px,calc(58dvh - 190px))}
+@media (orientation:landscape) and (max-height:520px){
+  body.u59 #end:not(.hidden):not(.q1):not(.q2):not(.q3):not(.q4){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(260px,46%);grid-template-areas:"t m" "c m" "b b" "s s";align-items:center}
+  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>#endTitle{grid-area:t!important;align-self:end!important}
+  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>#endCause{grid-area:c!important;align-self:start!important;padding-bottom:6px!important}
+  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endMain{grid-area:m!important;align-self:center!important;padding:6px calc(12px + var(--sar)) 6px 0!important}
+  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>#endBody{grid-area:b!important}
+  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endShare{grid-area:s!important}
+}
