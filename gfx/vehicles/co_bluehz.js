@@ -2,10 +2,10 @@
 // (6 ring + centre), two lifting strakes, 4 aft fins and 6 landing legs; 2-engine hydrogen upper; 7 m clamshell fairing.
 // White with a pale-blue wave band. Dimensions: rocketdb new-glendale (GCAT) + design.md; splits art-fitted. No logos/names.
 import * as THREE from 'three/webgpu';
-import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-4';
-import * as PR from './profiles.js?v=f5.9-4';
-import { lathe, tube, bell, ringPos, ring, decal, legs, setLegs } from './parts.js?v=f5.9-4';
-import { group, plume } from './co_civspace.js?v=f5.9-4';
+import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-5';
+import * as PR from './profiles.js?v=f5.9-5';
+import { lathe, tube, bell, ringPos, ring, decal, legs, setLegs } from './parts.js?v=f5.9-5';
+import { group, plume } from './co_civspace.js?v=f5.9-5';
 const PI = Math.PI, R = 3.5, HI = k => k.detail === 'hi';
 const LM = new Map();
 function lm(key) { if (LM.has(key)) return LM.get(key); const m = new THREE.MeshStandardMaterial({ color: 0x3c86d8, roughness: 0.35, emissive: 0x0b2440 }); m.name = key; m.userData.cached = true; weakDisposeListeners(m); LM.set(key, m); return m; }

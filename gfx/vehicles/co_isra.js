@@ -2,10 +2,10 @@
 // (one separable set), liquid 2nd stage, small solid 3rd, twin-engine 4th, 3.2 m fairing; Monsoon Heavy: 4 m twin-engine liquid core,
 // two 3.2 m solid boosters, cryogenic upper, 5 m bulbous fairing. rocketdb polar-slinger / monsoon-heavy (GCAT) + design.md. No logos/names.
 import * as THREE from 'three/webgpu';
-import { xf } from './kit.js?v=f5.9-4';
-import { regNozzle } from './parts.js?v=f5.9-4';
-import { stage, fairing, srm, PI, livery, ringPos, Kit, tube, lathe, PR, kb, isHi } from './co_gen.js?v=f5.9-4';
-import { group, plume } from './co_civspace.js?v=f5.9-4';
+import { xf } from './kit.js?v=f5.9-5';
+import { regNozzle } from './parts.js?v=f5.9-5';
+import { stage, fairing, srm, PI, livery, ringPos, Kit, tube, lathe, PR, kb, isHi } from './co_gen.js?v=f5.9-5';
+import { group, plume } from './co_civspace.js?v=f5.9-5';
 function solids(d, name, pos, r, L, nL) { const k = new Kit(d), seg = isHi(k) ? 16 : k.mid ? 10 : 6;
   for (const [x, z] of pos) { k.add(new THREE.LatheGeometry([[0.4, 0], [0.62, -0.3], [0.7, -1.0]].map(([a, y]) => new THREE.Vector2(a * r / 0.5 * 0.5, y + 1.0)), seg), 'bell', xf([x, 0.3, z])); regNozzle(k, x, 0.3, z, 0.7 * r);
     tube(k, r, r, L - nL - 1.0, 1.3, 'paint:0,0', { x, z, seg }); lathe(k, PR.ogive(r, nL, L - nL + 0.3, isHi(k) ? 8 : 4, 0.08), 'paint:0,0', { seg, m: xf([x, 0, z]) }); }

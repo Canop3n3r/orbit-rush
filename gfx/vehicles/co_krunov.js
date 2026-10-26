@@ -2,10 +2,10 @@
 // six 1.6 m fuel tanks, one engine under each; 4-engine second stage; third stage; doughnut-tank upper under a 4.35 m fairing) and
 // Gorynych-K (third stage + spherical-tank kick stage in a long fairing). Dimensions: rocketdb gorynych (GCAT) + design.md. No logos/names.
 import * as THREE from 'three/webgpu';
-import { Kit, xf } from './kit.js?v=f5.9-4';
-import * as PR from './profiles.js?v=f5.9-4';
-import { lathe, tube, bell, ringPos, ring, decal } from './parts.js?v=f5.9-4';
-import { group, plume } from './co_civspace.js?v=f5.9-4';
+import { Kit, xf } from './kit.js?v=f5.9-5';
+import * as PR from './profiles.js?v=f5.9-5';
+import { lathe, tube, bell, ringPos, ring, decal } from './parts.js?v=f5.9-5';
+import { group, plume } from './co_civspace.js?v=f5.9-5';
 const PI = Math.PI, RC = 2.05, RO = 0.8, OFF = RC + RO - 0.05, RF = 2.18;
 const hiOnly = k => k.detail === 'hi';
 function s1(d) { const k = new Kit(d), y0 = 2.2, h = 21.2; // central oxidizer tank + 6 outboard fuel tanks, engine under each outboard

@@ -3,7 +3,7 @@
 // lapse rate per layer; pressure from the hydrostatic equation, density from the ideal gas law.
 // 86–1000 km: the 1976 tabulated thermosphere, interpolated log-linearly (i.e. an exponential fit
 // between table points, so density falls with a local scale height). Above 1000 km: vacuum.
-import { P0 } from './constants.js?v=f5.9-4';
+import { P0 } from './constants.js?v=f5.9-5';
 const R_AIR = 287.053, GAMMA = 1.4, G0 = 9.80665, R_GEO = 6356766; // J/(kg K), -, m/s^2, m (USSA76 Earth radius)
 // layer bases: geopotential altitude (m), temperature (K), lapse rate (K/m), pressure (Pa)
 const LAYERS = [
