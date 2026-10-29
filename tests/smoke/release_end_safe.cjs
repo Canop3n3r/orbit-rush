@@ -26,7 +26,10 @@ let n = 0, bad = 0; const ok = (t, m, i) => { n++; if (!t) bad++; console.log((t
     ok(!s1.endCard && !s1.ended, `${vp} a double tap on RELEASE does not end the flight`, s1);
     if (s1.endCard) { const k = await rect('Keep flying'); if (k) { await tap(k.x, k.y); await pg.waitForTimeout(1500); } }
     const cb = await rect('^CRAFT'); ok(!!cb, `${vp} CRAFT button on screen after release`); if (cb) { await tap(cb.x, cb.y); await pg.waitForTimeout(900); }
-    const e = await rect('#relBtn'); if (e) { await tap(e.x, e.y); await pg.waitForTimeout(2500); }
+    const e = await rect('#relBtn'); if (e) { await tap(e.x, e.y); await pg.waitForTimeout(1500); } /* f5.9-10: RELEASE never ends the flight; End flight lives in ☰ behind a confirm tap */
+    const mb = await rect(touch ? '#mMenuBtn' : '#dMenuBtn'); if (mb) { await tap(mb.x, mb.y); await pg.waitForTimeout(600); }
+    for (let k = 0; k < 2; k++) { await pg.evaluate(() => { const b = [...document.querySelectorAll('[data-endf]')].find(b => b.offsetParent); b && b.click(); }); await pg.waitForTimeout(500); }
+    await pg.waitForTimeout(2000);
     const s2 = await pg.evaluate(() => { const vis = b => { const r = b.getBoundingClientRect(); return r.width > 2 && !b.closest('.hidden') && getComputedStyle(b).visibility !== 'hidden'; }; return { end: !document.getElementById('end').classList.contains('hidden'), craftRows: [...document.querySelectorAll('button')].filter(b => /^(FLY|VIEW|FLYING)$/.test(b.textContent.trim()) && vis(b)).length }; });
     ok(s2.end, `${vp} End flight shows the end card`, s2); ok(s2.craftRows === 0, `${vp} the craft list closes when the end card opens (no FLY/VIEW rows over it)`, s2);
     ok(!errs.length, `${vp} no page errors ${errs.slice(0, 2).join(' | ')}`); await pg.close();
