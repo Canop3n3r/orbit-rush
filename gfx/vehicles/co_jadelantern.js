@@ -2,10 +2,10 @@
 // kerosene boosters with conical noses (2 bells each), 5 m hydrogen upper, 5.2 m ogive fairing) and Jade Lantern 5B (no upper stage,
 // very long 20 m fairing for heavy LEO modules). Dimensions: rocketdb jade-lantern-5 (GCAT) + design.md; splits art-fitted. No logos/names.
 import * as THREE from 'three/webgpu';
-import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-10';
-import * as PR from './profiles.js?v=f5.9-10';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-10';
-import { group, plume } from './co_civspace.js?v=f5.9-10';
+import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-11';
+import * as PR from './profiles.js?v=f5.9-11';
+import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-11';
+import { group, plume } from './co_civspace.js?v=f5.9-11';
 const PI = Math.PI, R = 2.5, RB = 1.675, RF = 2.6, BOFF = R + RB + 0.15;
 const LM = new Map(); // local livery materials (cached + weak dispose listeners: flat heap)
 function lm(key) { if (LM.has(key)) return LM.get(key); const m = new THREE.MeshStandardMaterial(key === 'x-sky' ? { color: 0x8fb4d6, roughness: 0.5 } : { color: 0xe9e4d6, roughness: 0.7 });

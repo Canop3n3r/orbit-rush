@@ -3,7 +3,7 @@ const pw=require(process.env.PWT||'/workspace/pwt/node_modules/playwright-core')
 (async()=>{const b=await pw.chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});
 const p=await b.newPage();p.on('pageerror',e=>console.log('ERR',e.message));
 await p.goto((process.env.BASE||'http://localhost:8771')+'/gfx/vehicles/viewer.html?webgl');await p.waitForFunction(()=>window.__viewer&&window.__viewer.ready,null,{timeout:180000});
-const rows=await p.evaluate(async()=>{const T=await import('three/webgpu');const M=await import('/gfx/vehicles/vehicles.js?v=f5.9-10');const out={};
+const rows=await p.evaluate(async()=>{const T=await import('three/webgpu');const M=await import('/gfx/vehicles/vehicles.js?v=f5.9-11');const out={};
 for(const id of Object.keys(M.VEHICLES)){let g;try{g=M.build(id,{detail:'hi'});}catch(e){continue;}
  g.updateMatrixWorld(true);const st=g.userData.stages||{},o={};
  for(const [k,sg] of Object.entries(st)){const inv=sg.matrixWorld.clone().invert(),list=[];
