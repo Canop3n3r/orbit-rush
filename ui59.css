@@ -574,7 +574,7 @@ body.u59 #bbT #navRd.hidden{display:none!important}
   body.u59 #botBar :is(#mAuto,#dAuto){grid-column:1!important;grid-row:1!important}
   body.u59 #botBar :is(#mStage,#dStage){grid-column:1!important;grid-row:2!important}
   body.u59 #botBar #mChute{grid-column:1 / span 2!important;grid-row:3!important;width:100%!important}
-  body.u59 #botBar :is(#mThr,#dThr){grid-column:2!important;grid-row:1 / span 2!important;height:auto!important;align-self:stretch}
+  body.u59 #botBar :is(#mThr,#dThr){grid-column:2!important;grid-row:2!important;height:var(--ctlH)!important;align-self:end /* f5.9-10 (budget throttle_same): one THR size at every viewport, beside STAGE */}
   body.u59 #bbR{align-items:flex-end}
   body.u59 #botBar :is(#relBtn,#craftBtn){width:100%!important;min-width:0!important;padding:0 4px!important;height:40px!important;font-size:var(--t-xs)!important;white-space:nowrap}
 }
