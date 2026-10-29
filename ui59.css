@@ -612,7 +612,7 @@ body.u59 #settings input:is([type=checkbox],[type=radio]){width:40px!important;h
 body.u59 #settings label{min-height:44px!important}
 body.u59 #settings #setBody{scrollbar-width:thin;scrollbar-color:#9cc3ff88 transparent}
 @media (orientation:landscape) and (max-height:520px){
-  body.u59 #settings .mbox>:not(h2):not(.row):not(.col){width:min(100% - 24px,760px)!important;max-height:calc(100dvh - 72px)!important}
+  body.u59 #settings .mbox>:not(h2):not(.row):not(.col){width:min(100% - 24px,600px)!important;max-height:calc(100dvh - 72px)!important}
   body.u59 #settings section:not(.qKeys){grid-template-columns:1fr 1fr}
   body.u59 #settings .sg>h4{margin:2px 0}
   body.u59 #settings label>input[type=range]{min-width:60px}
@@ -621,10 +621,12 @@ body.u59 #settings #setBody{scrollbar-width:thin;scrollbar-color:#9cc3ff88 trans
 body.u59 #sitePick button{min-height:40px!important;box-sizing:border-box}
 body.u59 #sitePick select{min-height:40px!important}
 /* f5.9-11 (QA f5.9-10): phone-landscape bars get margin under the 25% cap (24.1% -> ~22%): 42px controls (≥40 targets), 1px bar padding */
+/* one control size at every viewport (budget throttle_same / stage_size_same) */
+:root{--ctlH:42px!important}
 @media (orientation:landscape) and (max-height:520px){
-  :root{--ctlH:42px}
   body.u59 #topBar{padding-top:var(--sat)!important;padding-bottom:0!important}
   body.u59 #botBar{padding-top:1px!important;padding-bottom:calc(1px + var(--sab))!important;min-height:calc(var(--ctlH) + 4px + var(--sab))!important}
   body.u59 #topBar button{min-height:40px!important;height:40px!important}
   body.u59 #botBar :is(#mAuto,#dAuto,#mStage,#dStage,#mThr,#dThr){height:var(--ctlH)!important;min-height:var(--ctlH)!important}
 }
+@media (orientation:landscape) and (max-height:520px){body.u59 #settings .mbox>#setBody{width:min(100% - 24px,600px)!important;max-width:600px!important}}
