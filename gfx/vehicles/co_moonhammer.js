@@ -2,10 +2,10 @@
 // 4 lattice grid fins, two conical upper stages, then lunar stack (two small stages, crew shroud, escape tower). White with grey.
 // Dimensions: rocketdb moonhammer (GCAT) + design.md; stage split art-fitted. Fully parody; no logos/names.
 import * as THREE from 'three/webgpu';
-import { Kit, xf } from './kit.js?v=f5.9-11';
-import * as PR from './profiles.js?v=f5.9-11';
-import { regNozzle, lathe, tube, ringPos, ring, decal } from './parts.js?v=f5.9-11';
-import { group, plume } from './co_civspace.js?v=f5.9-11';
+import { Kit, xf } from './kit.js?v=f5.9-12';
+import * as PR from './profiles.js?v=f5.9-12';
+import { regNozzle, lathe, tube, ringPos, ring, decal } from './parts.js?v=f5.9-12';
+import { group, plume } from './co_civspace.js?v=f5.9-12';
 const PI = Math.PI, H = 105.3;
 function mini(k, re, L, x, y, z, rt) { const hi = k.detail === 'hi', n = hi ? 5 : 3, seg = hi ? 14 : k.mid ? 8 : 6, pts = [];
   for (let i = 0; i <= n; i++) { const t = i / n; pts.push(new THREE.Vector2(rt + (re - rt) * Math.pow(1 - t, 1.7), t * L)); }

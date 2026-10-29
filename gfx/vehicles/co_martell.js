@@ -1,7 +1,7 @@
 // co-martell-1: Martell Marietta (parody) — Titanus II: 3.05 m two-stage hypergolic rocket. 'titanus-2' = crew launcher (white/grey,
 // adapter + two-seat capsule); 'titanus-2-icbm' = dark missile with re-entry nose. rocketdb titanus-2 (GCAT) + design.md. No logos/names.
-import { stage, nose, capsule, kb, Kit, tube, ring, PI, livery, isHi } from './co_gen.js?v=f5.9-11';
-import { group, plume } from './co_civspace.js?v=f5.9-11';
+import { stage, nose, capsule, kb, Kit, tube, ring, PI, livery, isHi } from './co_gen.js?v=f5.9-12';
+import { group, plume } from './co_civspace.js?v=f5.9-12';
 const R = 1.525;
 function t2(o, crew) { const d = o.detail, key = crew ? 'paint:0,0' : livery(0x3b3d40);
   const a = stage(d, 's1', { r: R, h: 19.0, y0: 2.2, eng: [[2, 0.72, 0.6, 2.1]], key, skirt: R * 1.03, bands: [[18.0, 1.0], [8.0, 0.3, 'grey']], decalY: 10 });

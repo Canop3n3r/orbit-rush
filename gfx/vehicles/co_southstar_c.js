@@ -1,5 +1,5 @@
 // Southstar Design Bureau, tier B (stage-table generator + hooks): Partial Orbiter, three-chamber silo core with a single-engine upper stage. Olive drab and grey.
-import { buildB } from './gen_b.js?v=f5.9-11';
+import { buildB } from './gen_b.js?v=f5.9-12';
 // display names: the only place they live (cheap to rename later)
 export const NAMES = {'partial-orbiter': 'Partial Orbiter'};
 // stage tables (generated): r, L in m, ne = engines; sides = strap-ons; fair = payload fairing length

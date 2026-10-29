@@ -4,7 +4,7 @@
 // camera (|n·v|^k): the shell's middle stays bright and its edges dissolve, from any angle.
 import * as THREE from 'three/webgpu';
 const T = THREE.TSL;
-import { SOFT_K, VAC_PLUME } from '../fxmap.js?v=f5.9-11';
+import { SOFT_K, VAC_PLUME } from '../fxmap.js?v=f5.9-12';
 export { SOFT_K, VAC_PLUME };
 export function softPlumeMaterial({ color = 0xffffff, opacity = 1, k = 1.5, vertexColors = false } = {}) {
   const m = new THREE.MeshBasicNodeMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, vertexColors });

@@ -4,8 +4,8 @@
 //      buildSiteLOD(S, { phone }) -> THREE.LOD (near = hi, or mid on phones; mid; lo)
 //      placeSite(obj, S) applies the site's body-frame matrix;  dispose / release free geometry (materials are shared).
 import * as THREE from 'three/webgpu';
-import { weakDisposeListeners, dispose, release } from '../vehicles/kit.js?v=f5.9-11';
-import { siteMatrix, localOffset, localBasis, BODY_R } from './geo.js?v=f5.9-11';
+import { weakDisposeListeners, dispose, release } from '../vehicles/kit.js?v=f5.9-12';
+import { siteMatrix, localOffset, localBasis, BODY_R } from './geo.js?v=f5.9-12';
 export { dispose, release, BODY_R };
 export const LOD_DIST = { mid: 1500, lo: 6000 }; // metres from the camera
 const MATS = new Map(), TEX = new Map(), S = THREE.MeshStandardMaterial;

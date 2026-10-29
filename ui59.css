@@ -570,11 +570,11 @@ body.u59 #bbT #navRd.hidden{display:none!important}
 @media (min-width:900px){body.u59 #bbT #navRd{display:flex!important;gap:10px!important}}
 /* portrait phones: the right cluster stacks (AUTO over STAGE, THR tall beside them) so it fits beside the big ball */
 @media (orientation:portrait) and (max-width:700px){
-  body.u59 #botBar :is(#mright,#dCtl){grid-template-columns:auto 28px!important;grid-template-rows:var(--ctlH) auto!important;grid-auto-rows:var(--ctlH)!important;gap:4px!important;height:auto!important;justify-items:end;align-items:stretch}
+  body.u59 #botBar :is(#mright,#dCtl){grid-template-columns:auto 46px!important;grid-template-rows:var(--ctlH) auto!important;grid-auto-rows:var(--ctlH)!important;gap:4px!important;height:auto!important;justify-items:end;align-items:stretch}
   body.u59 #botBar :is(#mAuto,#dAuto){grid-column:1!important;grid-row:1!important}
   body.u59 #botBar :is(#mStage,#dStage){grid-column:1!important;grid-row:2!important}
   body.u59 #botBar #mChute{grid-column:1 / span 2!important;grid-row:3!important;width:100%!important}
-  body.u59 #botBar :is(#mThr,#dThr){grid-column:2!important;grid-row:2!important;height:var(--ctlH)!important;align-self:end /* f5.9-10 (budget throttle_same): one THR size at every viewport, beside STAGE */}
+  body.u59 #botBar :is(#mThr,#dThr){grid-column:2!important;grid-row:2!important;height:var(--ctlH)!important;width:46px!important;min-width:46px!important;align-self:end /* f5.9-12 (QA): a real pill, not a 28px sliver; f5.9-10 (budget throttle_same): one THR size at every viewport, beside STAGE */}
   body.u59 #bbR{align-items:flex-end}
   body.u59 #botBar :is(#relBtn,#craftBtn){width:100%!important;min-width:0!important;padding:0 4px!important;height:40px!important;font-size:var(--t-xs)!important;white-space:nowrap}
 }
