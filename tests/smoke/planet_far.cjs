@@ -12,7 +12,7 @@ const BODIES = (process.env.BODIES || 'earth,moon,mars,venus,jupiter').split(','
 const ALTS = (process.env.ALTS || '1000,10000,30000,60000,100000,200000,400000').split(',').map(Number); // km above the surface
 require('fs').mkdirSync(OUT, { recursive: true });
 (async () => {
-  const br = await pw.chromium.launch({ executablePath: process.env.CHROME || undefined, args: GPU }); let bad = 0; const rows = [];
+  const br = await pw.chromium.launch({ executablePath: process.env.CHROME || (require('fs').existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined), args: GPU }); let bad = 0; const rows = [];
   const pg = await br.newPage({ viewport: { width: 640, height: 360 } }); pg.setDefaultTimeout(180000); const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.addInitScript(() => { localStorage.setItem('or_seen_welcome', '1'); });
   await pg.goto(URL + '?noacademy&fx=low&sun=day'); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 240000 }); await pg.waitForTimeout(1500);
