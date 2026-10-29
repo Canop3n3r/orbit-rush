@@ -42,3 +42,9 @@ Parks the craft on the Sun side of a body at each altitude (km above the surface
     VP=390x844,844x390 node tests/smoke/release_end_safe.cjs [baseUrl]
 
 At orbit: a real double tap (120 ms apart) on RELEASE must release the payload but not end the flight (END FLIGHT takes the same corner once the payload is out), and ending the flight with the craft list open must close the list (no FLY/VIEW rows left over the end card). Red on f5.9-7 d9ca4843: 4 FAIL (2 per viewport). `planet_far` now imports `physics/solar.js` relative to the page so it also runs on the GitHub Pages sub-path.
+
+# staged_deploy (Playtest QA Bot, f5.9-9 live pass)
+
+    U=http://localhost:8959/ [VP=390x844] node tests/smoke/staged_deploy.cjs [ids...]
+
+Every staged (Blender, f6.0) rocket on AUTO: reaches orbit, drops at least one stage, splits the fairing into 2 halves, shows a tappable RELEASE in orbit without a hidden extra STAGE, and a real tap releases the payload. Red on f5.9-9 (dfd186de) for electrino (AUTO parks with the kick stage attached; RELEASE appears only after a manual STAGE). planet_far.cjs now defaults to /usr/bin/google-chrome when CHROME is unset (the bundled headless shell is not installed for playwright-core 1.64).
