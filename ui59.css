@@ -586,3 +586,10 @@ body.u59 #bbT #navRd.hidden{display:none!important}
   /* RELEASE does what STAGE does while the payload is aboard, so it takes STAGE's row instead of stacking a third row */
   body.u59:has(#relBtn:not(.hidden)) #botBar :is(#mStage,#dStage){display:none!important}
 }
+/* f5.9-10 (QA f5.9-9 P2): expanded booster view. ⤡ BACK / ⟲ FOLLOW sit in ONE spot at every size (right corner just under the top bar),
+   and the upper stage's navball / attitude row / readouts leave the bottom bar so nothing ghosts behind the booster card */
+body.u59:has(#split.fullB) #topBar .spBtns{position:fixed!important;top:calc(var(--topH,52px) + 8px)!important;right:calc(10px + var(--sar,0px))!important;left:auto!important;bottom:auto!important;z-index:30}
+body.u59:has(#split.fullB) #botBar :is(#bbT,#bbL,#bbC){visibility:hidden!important}
+body.u59:has(#split.fullB) #botBar #nav{visibility:hidden!important}
+body.u59 #split.fullB #spCardB{background:var(--panel)!important;border-top:var(--bw) solid var(--bc)}
+body.u59:has(#split.fullB) #botBar::before{display:none!important}
