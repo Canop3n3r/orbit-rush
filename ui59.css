@@ -630,3 +630,13 @@ body.u59 #sitePick select{min-height:40px!important}
   body.u59 #botBar :is(#mAuto,#dAuto,#mStage,#dStage,#mThr,#dThr){height:var(--ctlH)!important;min-height:var(--ctlH)!important}
 }
 @media (orientation:landscape) and (max-height:520px){body.u59 #settings .mbox>#setBody{width:min(100% - 24px,600px)!important;max-width:600px!important}}
+/* f5.9-12 (QA f5.9-11): a closed <details> really hides its body (Chrome still lays slotted content out, so word/control censuses counted the folded notes) */
+body.u59 details:not([open])>:not(summary){display:none!important}
+/* Atlas: opaque sheet (Home no longer ghosts through), compact column on wide screens */
+body.u59 #atlas .mbox>#atlasBody,body.u59 #atlas .mbox>h2{background:#0b1424!important}
+@media (min-width:900px){
+  body.u59 :is(#atlas,#settings){background:transparent!important}
+  body.u59 #atlas .mbox>#atlasBody{width:min(420px,100%)!important;max-height:min(70dvh,560px)!important}
+  body.u59 #settings .mbox>#setBody{width:min(720px,100% - 32px)!important;max-height:min(60dvh,520px)!important}
+}
+@media (max-width:899px){body.u59 #atlas{background:#0b1424!important}}
