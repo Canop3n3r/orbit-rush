@@ -44,12 +44,12 @@ export function createMobile(api) {
   root.querySelectorAll('#mMenu [data-sas]').forEach(b => tap(b, () => { api.setSAS(b.dataset.sas); vib(10); }));
   root.querySelectorAll('#mMenu [data-p]').forEach(b => tap(b, () => { const k = b.dataset.p; api.press(k); vib(10); if (['KeyR', 'KeyO', 'KeyY', 'KeyG', 'Slash', 'Escape', 'F9', 'Quote'].includes(k)) M.closeMenu(); }));
   tap($('mAbort'), () => { api.press('Backspace'); vib(30); });
-  tap(root.querySelector('[data-full]'), () => {
+  { const fb = root.querySelector('[data-full]'); if (fb) tap(fb, () => { /* f5.9-10: ⛶ moved to the Pause sheet */
     const d = document.documentElement, rq = d.requestFullscreen || d.webkitRequestFullscreen;
     if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
     else if (rq) rq.call(d).catch?.(() => {});
     else api.toast('On iPhone: Share ▸ Add to Home Screen for full screen', '#9cc3ff');
-  });
+  }); }
   // thumb stick (pitch/yaw): drag from the centre; springs back on release
   const drag = (zone, move, end) => {
     let id = null;
