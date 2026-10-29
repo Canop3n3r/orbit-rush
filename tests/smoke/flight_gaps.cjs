@@ -7,9 +7,9 @@
 // 5 craft_list_below_top_bar: the craft list header (title + ✕) is not under the top bar
 const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-core');
 const GPU = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'];
-const URL = process.env.U || 'http://localhost:8982/', VPS = (process.env.VP || '390x844,844x390,1280x800').split(','), MAXBARS = +(process.env.MAXBARS || 30);
+const URL = process.env.U || 'http://localhost:8982/', VPS = (process.env.VP || '390x844,844x390,1280x800').split(','), MAXBARS0 = +(process.env.MAXBARS || 30);
 (async () => { const br = await pw.chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: GPU }); let bad = 0; const ok = (t, m) => { console.log((t ? 'ok   ' : 'FAIL ') + m); if (!t) bad++; };
-  for (const vp of VPS) { const [W, H] = vp.split('x').map(Number), touch = Math.min(W, H) < 700;
+  for (const vp of VPS) { const [W, H] = vp.split('x').map(Number), touch = Math.min(W, H) < 700, MAXBARS = W > H && H < 520 ? Math.min(MAXBARS0, 25) : MAXBARS0; /* f5.9-10: phone landscape ≤ 25% */
     const pg = await br.newPage({ viewport: { width: W, height: H }, isMobile: touch, hasTouch: touch }); pg.setDefaultTimeout(240000); const errs = []; pg.on('pageerror', e => errs.push(e.message));
     await pg.addInitScript(() => { try { localStorage.setItem('or_seen_welcome', '1'); } catch (e) { } });
     await pg.goto(URL + '?noacademy&fx=low'); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await pg.waitForTimeout(1500);
@@ -27,6 +27,7 @@ const URL = process.env.U || 'http://localhost:8982/', VPS = (process.env.VP || 
       const r = await pg.evaluate(() => ({ end: !document.getElementById('end').classList.contains('hidden'), n: window.__game.F.fleet ? window.__game.F.fleet.list.length : 0 }));
       ok(r.n >= 2 && !r.end, `${vp} release_double_tap released (fleet ${r.n}) and the flight is still running (end card ${r.end ? 'OPEN' : 'closed'})`);
       if (r.end) { await tap('contBtn'); await pg.waitForTimeout(1500); } }
+    { await pg.keyboard.press(']'); await pg.waitForTimeout(1500); const bS = await bars(); ok(bS <= MAXBARS, `${vp} bars_after_craft_switch ${bS}% ≤ ${MAXBARS}%`); await pg.keyboard.press('['); await pg.waitForTimeout(1200); }
     const cb = await pg.evaluate(() => { const b = document.getElementById('craftBtn'); if (!b) return 'no craftBtn'; const q = b.getBoundingClientRect(); if (!q.width) return 'craftBtn hidden'; const h = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2); return h === b || b.contains(h) ? 'ok' : 'craftBtn covered by ' + (h ? h.id || h.className : '-'); });
     const alreadyOpen = await pg.evaluate(() => { const v = document.getElementById('vsl'); return !!v && !v.classList.contains('hidden'); }); /* a second RELEASE tap can land on CRAFT n, which then opens the list: fine */ const opened = alreadyOpen || await tap('craftBtn'); await pg.waitForTimeout(1200); if (cb !== 'ok') console.log('note ' + vp + ' ' + cb);
     const hd = await pg.evaluate(() => { const v = document.getElementById('vsl'), h = v && v.querySelector('.vh'), x = v && v.querySelector('.vx'), t = document.getElementById('topBar'); if (!v || v.classList.contains('hidden') || !h) return null; const hq = h.getBoundingClientRect(), tq = t ? t.getBoundingClientRect() : { bottom: 0 }; const xq = x.getBoundingClientRect(), top = document.elementFromPoint(xq.left + xq.width / 2, xq.top + xq.height / 2); return { headTop: Math.round(hq.top), barBottom: Math.round(tq.bottom), xHit: !!top && (top === x || x.contains(top)) }; });
