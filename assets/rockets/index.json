@@ -46,6 +46,36 @@
     "lo": 31056
    }
   },
+  "heron-9": {
+   "enabled": true,
+   "tiers": [
+    "hi",
+    "mid",
+    "lo"
+   ],
+   "stages": 3,
+   "skipped": 0,
+   "bytes": {
+    "hi": 158324,
+    "mid": 81036,
+    "lo": 42520
+   }
+  },
+  "heron-9-crew": {
+   "enabled": true,
+   "tiers": [
+    "hi",
+    "mid",
+    "lo"
+   ],
+   "stages": 3,
+   "skipped": 0,
+   "bytes": {
+    "hi": 145928,
+    "mid": 73072,
+    "lo": 40684
+   }
+  },
   "heron-9-v11": {
    "enabled": true,
    "tiers": [
@@ -59,6 +89,36 @@
     "hi": 154940,
     "mid": 78180,
     "lo": 43072
+   }
+  },
+  "heron-heavy": {
+   "enabled": true,
+   "tiers": [
+    "hi",
+    "mid",
+    "lo"
+   ],
+   "stages": 5,
+   "skipped": 1,
+   "bytes": {
+    "hi": 346764,
+    "mid": 165736,
+    "lo": 91996
+   }
+  },
+  "new-glendale": {
+   "enabled": true,
+   "tiers": [
+    "hi",
+    "mid",
+    "lo"
+   ],
+   "stages": 3,
+   "skipped": 0,
+   "bytes": {
+    "hi": 142668,
+    "mid": 72100,
+    "lo": 41484
    }
   }
  }
