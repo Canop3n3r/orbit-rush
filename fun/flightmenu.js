@@ -3,7 +3,7 @@
 export const MENU_ITEMS = [
   { k: 'Escape', l: '⏸ Pause' }, { k: 'KeyG', l: '⏩ Warp to Ap' }, { k: 'KeyP', l: '🪂 Chute', chute: 1 },
   /* f5.7j (QA f5.7i P2): Fly booster / Booster cam dropped, tapping the inset does both */
-  { k: 'KeyO', l: '↩ Return to pad', home: 1 }, { k: 'Backspace', l: '⛔ Abort', abort: 1, cls: 'abort' }, { gcam: 1, l: '🎥 Ground cam' }, { k: 'Quote', l: '📸 Photo mode', photo: 1 }, { full: 1, l: '⛶ Full screen' }, { k: 'Equal', l: '🛰 Craft list', craft: 1 }, { endf: 1, l: '■ End flight' }, { k: 'KeyR', l: '🏠 Home' }]; // f6.2: craft: only while more than one craft is in space
+  { k: 'KeyO', l: '↩ Return to pad', home: 1 }, { k: 'Backspace', l: '⛔ Abort', abort: 1, cls: 'abort' }, { gcam: 1, l: '🎥 Ground cam' }, { k: 'Equal', l: '🛰 Craft list', craft: 1 }, { endf: 1, l: '■ End flight' }, { k: 'KeyR', l: '🏠 Home' }]; /* f5.9-10: 📸 Photo and ⛶ Full screen live in the Pause sheet (☰ ⏸ Pause) so ☰ stays at 6 + Abort with ■ End flight */ // f6.2: craft: only while more than one craft is in space
 export function menuHTML() { return MENU_ITEMS.map(i => `<button${i.k ? ` data-p="${i.k}"` : ''}${i.b ? ' data-b="1"' : ''}${i.home ? ' data-home="1"' : ''}${i.full ? ' data-full="1"' : ''}${i.chute ? ' data-chute="1"' : ''}${i.abort ? ' data-abort="1"' : ''}${i.gcam ? ' data-gcam="1"' : ''}${i.craft ? ' data-craft="1"' : ''}${i.photo ? ' data-photo="1"' : ''}${i.endf ? ' data-endf="1" hidden' : ''}${i.cls ? ` class="${i.cls}"` : ''}>${i.l}</button>`).join(''); }
 export const homeLabel = cancel => cancel ? '✕ Cancel return' : '↩ Return to pad';
 // d: { booster: a booster is flying, ret: return-to-pad autopilot on }

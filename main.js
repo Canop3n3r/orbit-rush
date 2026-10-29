@@ -669,7 +669,7 @@ function fitDist(L, frac) { const vf = (camera.fov || 50) * Math.PI / 180; retur
 function setDesign(d) { design = d; refreshBuild(); } // f5.9-0: the hangar / Build screen is gone; a rocket pick just loads its design for the pad
 function refreshBuild() { if (state === 'build') showPreview(); } // f5.9-0: was the builder refresh (stage list, Δv table, verdict worker, saved designs); only the pad preview is left
 const qol = createQoL({ fillExtras: x => { const g = $('hGearM'); if (g) for (const el of [...g.children]) x.appendChild(el); }, settings: () => SET, onSettings: s => { SET = s; translate = makeTranslator(SET); applyAudioSettings(); if (typeof smap !== 'undefined' && smap.conic !== SET.conic) smap.setConic(SET.conic); if (state === 'build') refreshBuild(); },
-  resume: () => setPause(false), quicksave: () => quicksave(), quickload: () => quickload(), revertLaunch: () => revertLaunch(), hangar: () => { setPause(false); goBuild(); }, quickInfo,
+  resume: () => setPause(false), quicksave: () => quicksave(), quickload: () => quickload(), revertLaunch: () => revertLaunch(), photo: () => { setPause(false); press('Quote'); }, hangar: () => { setPause(false); goBuild(); }, quickInfo,
   dvTable: () => dvTableHTML(state === 'flight' ? craftDv() : designStats(design).total, state !== 'flight') });
 // ---------- game state ----------
 let state = 'build', F, v, booster, booster2 = null, shipVis2 = null, rocketG, SG = [], camMode, gen = 0;

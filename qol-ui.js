@@ -23,7 +23,7 @@ export function createQoL(api) {
   const root = document.createElement('div'); root.id = 'qol';
   root.innerHTML = `<div id="pause" class="modal hidden"><div class="mbox"><h2>⏸ Paused</h2>
       <div class="col"><button data-q="resume" class="big">▶ Resume<kbd> (Esc)</kbd></button><button data-q="save">💾 Quicksave<kbd> (F5)</kbd></button><button data-q="load">📂 Quickload<kbd> (F9)</kbd></button>
-      <button data-q="revertLaunch">↺ Restart</button><button data-q="settings">⚙ Settings</button></div>
+      <button data-q="revertLaunch">↺ Restart</button><button data-q="settings">⚙ Settings</button><button data-q="photo">📸 Photo</button><button data-q="full">⛶ Full screen</button></div>
       <p id="qsInfo" class="sm"></p></div></div>
     <div id="settings" class="modal hidden"><div class="mbox wide"><h2><span>⚙ Settings</span><button data-q="closeSet" class="hx" aria-label="Close settings" title="Close">✕</button></h2><div id="setBody"></div></div></div>
     <div id="dvModal" class="modal hidden"><div class="mbox wide"><h2>Δv map</h2><div id="dvBody"></div><div class="row"><button data-q="closeDv" class="big">Close</button></div></div></div>
@@ -50,7 +50,7 @@ export function createQoL(api) {
     if (t.dataset.key) { listening = listening === t.dataset.key ? null : t.dataset.key; renderSettings(); return; }
     if (q === 'resume') api.resume();
     if (q === 'save') { api.quicksave(); info(); } if (q === 'load') api.quickload();
-    if (q === 'revertLaunch') api.revertLaunch(); if (q === 'hangar') api.hangar();
+    if (q === 'revertLaunch') api.revertLaunch(); if (q === 'photo' && api.photo) api.photo(); if (q === 'full') { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (e) { } } if (q === 'hangar') api.hangar();
     if (q === 'settings') { renderSettings(); show('settings', true); }
     if (q === 'closeSet') { listening = null; show('settings', false); }
     if (q === 'resetKeys') { resetKeys(S()); commit(); }
