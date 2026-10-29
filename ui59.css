@@ -640,3 +640,5 @@ body.u59 #atlas .mbox>#atlasBody,body.u59 #atlas .mbox>h2{background:#0b1424!imp
   body.u59 #settings .mbox>#setBody{width:min(720px,100% - 32px)!important;max-height:min(60dvh,520px)!important}
 }
 @media (max-width:899px){body.u59 #atlas{background:#0b1424!important}}
+/* f5.9-12 (budget throttle_same): one THR pill size everywhere, 46x42 */
+body.u59 #botBar :is(#mThr,#dThr){width:46px!important;min-width:46px!important;max-width:46px!important}
