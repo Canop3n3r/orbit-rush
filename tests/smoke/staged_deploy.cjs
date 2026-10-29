@@ -2,6 +2,8 @@
 // tappable RELEASE once in orbit (payload deployable without a hidden extra STAGE). Then a real tap on RELEASE must release the payload.
 // Red on f5.9-9 (dfd186de) for electrino: AUTO parks with the near-empty kick stage attached and RELEASE only appears after a manual STAGE.
 // Usage: U=http://localhost:8959/ [VP=390x844] node tests/smoke/staged_deploy.cjs [ids...]   (default: every enabled rocket in assets/rockets/index.json)
+// QA f5.9-11: VP may be a comma list (VP=390x844,844x390,...): re-run this file once per size and exit non-zero if any size fails.
+if ((process.env.VP || '').includes(',')) { const { spawnSync } = require('child_process'); let rc = 0; for (const v of process.env.VP.split(',')) { console.log('== VP ' + v); const r = spawnSync(process.execPath, [__filename, ...process.argv.slice(2)], { stdio: 'inherit', env: { ...process.env, VP: v } }); if (r.status !== 0) rc = 1; } process.exit(rc); }
 const fs = require('fs'), path = require('path'); const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-core');
 const GPU = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'];
 const U = process.env.U || 'http://localhost:8959/', [W, H] = (process.env.VP || '390x844').split('x').map(Number), touch = Math.min(W, H) < 700;
