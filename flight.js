@@ -864,6 +864,7 @@ export class Flight {
     if (!f.space && h > P.KARMAN) { f.space = 1; this.toast('🌌 SPACE! Kármán line (100 km) +1000', '#b98cff'); this.call('sound', 'beep', 1200); }
     const o = P.orbitOf(v);
     if (h > ATM && !f.orbit && o.pe > P.ORBIT_PE && isFinite(o.ap) && !(this.autoOn && v.thrust > 0 && /^(ascent|circ|raise|insert)$/.test(v.guid || ''))) { /* fx-site: under AUTO the ORBIT call waits for the burn to end (it fired mid-burn on a run-away 28,742 × 137 km circularization) */ f.orbit = 1; this.call('sound', 'orbit'); /* f5.8b (QA): the HUD's ORBIT banner is the one orbit toast */ }
+    if (f.orbit && this.autoOn && !this.ret && !this.released && v.thrust <= 0 && v.cur < this.last && !v.craft && this.payloadPart() && this.met - (this._autoKickT ?? -9) > 1.5) { /* f5.9-10 (QA f5.9-9 P1): AUTO parks in orbit with a spent kick stage still attached (Electrino); AUTO stages it so RELEASE is offered */ this._autoKickT = this.met; this.stage(); this.toast('AUTO: kick stage separated — RELEASE the payload', '#7dffa6'); }
     if (!f.orbit && !f.stranded && v.cur >= this.lastPow && (v.cur > this.lastPow || v.stages[v.cur].fuel <= 0) && !this.ret) {
       f.stranded = 1; f.apAtOut = o.ap; f.peAtOut = o.pe; f.cause = this.diagnose();
       if (this.rec.capsule && this.rec.chute) this.toast('Out of fuel — suborbital. Press O to separate the capsule and ride it home', '#ffb35c');
