@@ -70,6 +70,7 @@ export function createMobile(api) {
     () => { input.roll = 0; rk.style.left = '50%'; });
   // throttle: absolute position on a vertical slider (top = 100%)
   const thr = $('mThr');
+  thr.addEventListener('click', () => { }); thr.setAttribute('role', 'slider'); thr.setAttribute('aria-label', 'Throttle'); /* f5.9-10 (budget thr_drag_pitch @390): Chrome's touch adjustment snapped a THR touch onto RELEASE stacked above it; a tap-target THR wins its own touches */
   let thrDrag = false;
   drag(thr, e => { thrDrag = true; const r = thr.getBoundingClientRect(); api.setThrottle(clamp(1 - (e.clientY - r.top) / r.height, 0, 1)); }, () => { thrDrag = false; });
   // pinch/drag on the map and the 3D view are handled by main.js on the canvas; nothing here covers the centre
