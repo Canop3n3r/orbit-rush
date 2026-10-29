@@ -331,6 +331,8 @@ export class Flight {
     if (which === 'ap' && !isFinite(o.ap)) { this.toast('Escape trajectory: no apoapsis', '#ffb35c'); return false; }
     const dt = which === 'ap' ? P.timeToAp(v.r, v.v, mu) : C.timeToPe(v.r, v.v, mu);
     if (!isFinite(dt)) { this.toast('Orbit is circular', '#ffb35c'); return false; }
+    if (dt <= 21 && isFinite(o.ap)) { /* f5.9-11 (QA f5.9-10): already at this apsis (key 0 said "Nothing to warp to" at one size, "Arrived" at another): the next event is the other apsis */
+      const w2 = which === 'ap' ? 'pe' : 'ap', d2 = w2 === 'ap' ? P.timeToAp(v.r, v.v, mu) : C.timeToPe(v.r, v.v, mu); if (isFinite(d2) && d2 > 21) return this.warpTo(this.tAbs + d2 - 20, w2 === 'ap' ? 'apoapsis' : 'periapsis', w2); }
     return this.warpTo(this.tAbs + dt - 20, which === 'ap' ? 'apoapsis' : 'periapsis', which);
   }
   // The current stage as a burn model for the planner ({ T N, m0 kg, isp s }) — null without an engine.

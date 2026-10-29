@@ -133,14 +133,14 @@ export function createFunUI(ctx) {
     hub.classList.remove('hidden');
   }
   // ---------- Planetary Atlas ----------
-  const atlas = el('div', { id: 'atlas', className: 'modal hidden' }, '<div class="mbox wide"><h2>🪐 Planetary Atlas</h2><div id="atlasBody"></div><div class="row"><button id="atlasClose" class="big">Close</button></div></div>');
+  const atlas = el('div', { id: 'atlas', className: 'modal hidden' }, '<div class="mbox wide"><h2><span>🪐 Atlas</span><button id="atlasClose" class="hx" aria-label="Close the atlas" title="Close">✕</button></h2><div id="atlasBody"></div></div>');
   document.body.appendChild(atlas); $('atlasClose').onclick = () => atlas.classList.add('hidden');
   function openAtlas() {
     const s = ctx.progress(), B = ctx.bodies();
-    $('atlasBody').innerHTML = Object.entries(ATLAS).filter(([id]) => B[id]).map(([id, a]) => { const b = B[id], seen = s.visited.includes(id), g = b.mu / (b.R * b.R);
-      return `<div class="atl ${seen ? 'seen' : 'unseen'}"><div class="orb" style="background:${ctx.bodyColor(id)}"></div><div><b>${b.name}</b> <small>${a.tag}${seen ? ' · ✔ visited' : ' · not visited yet'}</small>
-        <p>${seen ? a.blurb : '???  Fly there to unlock the survey notes.'}</p><p class="sm">radius ${UN.big(b.R)} · gravity ${(g / 9.80665).toFixed(2)} g${b.atm ? ' · has air' : ' · no air'}${a.tip && seen ? ' · tip: ' + a.tip : ''}</p>
-        ${seen ? poisOf(id).map(p => `<p class="poi">📍 <b>${p.name}</b> — ${p.lore}</p>`).join('') : ''}</div></div>`; }).join('');
+    $('atlasBody').innerHTML = Object.entries(ATLAS).filter(([id]) => B[id]).map(([id, a]) => { const b = B[id], seen = s.visited.includes(id), g = b.mu / (b.R * b.R); /* f5.9-10 (QA): one line per world; notes fold inside */
+      return `<details class="atl ${seen ? 'seen' : 'unseen'}"><summary><span class="orb" style="background:${ctx.bodyColor(id)}"></span><b>${b.name}</b><small>${seen ? '✔' : ''} ${(g / 9.80665).toFixed(2)} g</small></summary>
+        <p class="sm">${a.tag} · radius ${UN.big(b.R)}${b.atm ? ' · air' : ' · no air'}</p><p>${seen ? a.blurb : 'Fly there to unlock the notes.'}</p>${a.tip && seen ? `<p class="sm">Tip: ${a.tip}</p>` : ''}
+        ${seen ? poisOf(id).map(p => `<p class="poi">📍 <b>${p.name}</b> — ${p.lore}</p>`).join('') : ''}</details>`; }).join('');
     atlas.classList.remove('hidden');
   }
   let revealQ = [], revealBusy = false; // f3: one NEW WORLD card at a time (Sun + Moon used to stack on top of each other)

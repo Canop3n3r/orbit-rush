@@ -132,7 +132,7 @@ function padExtras(g) {
   for (const [x, z, w, l, ry] of [[0, -420, 9, 560, 0], [-260, -150, 7, 300, 1.2], [230, 120, 7, 260, -0.9]]) { const r = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, l), asphalt); r.position.set(x, 0.05, z); r.rotation.y = ry; g.add(r); }
   const defl = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 7, 6, 3, 1), new THREE.MeshStandardMaterial({ color: 0x55504a, roughness: 0.6, metalness: 0.6 })); defl.rotation.set(Math.PI / 2, 0, 0); defl.position.set(0, PAD_Z - 3, 18); g.add(defl);
   const wireM = new THREE.LineBasicMaterial({ color: 0x222222 }), tops = [];
-  for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4, x = Math.cos(a) * 70, z = Math.sin(a) * 70;
+  for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4, x = Math.cos(a) * 140, z = Math.sin(a) * 140; /* f5.9-11 (QA f5.9-10): lightning masts at the apron edge, out of the pad camera foreground (at 70 m two cut across the view) */
     const m = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 1.1, 110, 8), steel); m.position.set(x, 55, z); g.add(m);
     const lt = new THREE.Mesh(new THREE.SphereGeometry(0.7, 8, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 0.4, 0.2) })); lt.position.set(x, 111, z); g.add(lt); tops.push(new THREE.Vector3(x, 110, z)); }
   for (let i = 0; i < 4; i++) { const a = tops[i], b = tops[(i + 1) % 4], pts = []; for (let k = 0; k <= 24; k++) { const t = k / 24; pts.push(new THREE.Vector3().lerpVectors(a, b, t).add(new THREE.Vector3(0, -18 * 4 * t * (1 - t), 0))); }

@@ -9,7 +9,7 @@ const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-cor
 const GPU = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'];
 const URL = process.env.U || 'http://localhost:8982/', VPS = (process.env.VP || '390x844,844x390,1280x800').split(','), MAXBARS0 = +(process.env.MAXBARS || 30);
 (async () => { const br = await pw.chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: GPU }); let bad = 0; const ok = (t, m) => { console.log((t ? 'ok   ' : 'FAIL ') + m); if (!t) bad++; };
-  for (const vp of VPS) { const [W, H] = vp.split('x').map(Number), touch = Math.min(W, H) < 700, MAXBARS = W > H && H < 520 ? Math.min(MAXBARS0, 25) : MAXBARS0; /* f5.9-10: phone landscape ≤ 25% */
+  for (const vp of VPS) { const [W, H] = vp.split('x').map(Number), touch = Math.min(W, H) < 700, MAXBARS = W > H && H < 520 ? Math.min(MAXBARS0, 23) : MAXBARS0; /* f5.9-11: ≤23% keeps margin under the 25% cap */ /* f5.9-10: phone landscape ≤ 25% */
     const pg = await br.newPage({ viewport: { width: W, height: H }, isMobile: touch, hasTouch: touch }); pg.setDefaultTimeout(240000); const errs = []; pg.on('pageerror', e => errs.push(e.message));
     await pg.addInitScript(() => { try { localStorage.setItem('or_seen_welcome', '1'); } catch (e) { } });
     await pg.goto(URL + '?noacademy&fx=low'); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await pg.waitForTimeout(1500);

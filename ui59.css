@@ -593,3 +593,38 @@ body.u59:has(#split.fullB) #botBar :is(#bbT,#bbL,#bbC){visibility:hidden!importa
 body.u59:has(#split.fullB) #botBar #nav{visibility:hidden!important}
 body.u59 #split.fullB #spCardB{background:var(--panel)!important;border-top:var(--bw) solid var(--bc)}
 body.u59:has(#split.fullB) #botBar::before{display:none!important}
+/* f5.9-11 (QA f5.9-10): Atlas is a short scannable list: one row per world, notes collapsed, ✕ in the header, bounded sheet */
+body.u59 #atlas .mbox{max-height:calc(100dvh - 24px)!important;width:min(560px,calc(100vw - 16px))!important;display:flex;flex-direction:column;overflow:hidden}
+body.u59 #atlas h2{display:flex;justify-content:space-between;align-items:center;margin:0 0 6px}
+body.u59 #atlas #atlasBody{overflow:auto;min-height:0}
+body.u59 #atlas details.atl{display:block;border-top:1px solid #ffffff1a;padding:0}
+body.u59 #atlas details.atl summary{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;list-style:none}
+body.u59 #atlas details.atl summary::-webkit-details-marker{display:none}
+body.u59 #atlas details.atl summary .orb{width:22px;height:22px;border-radius:50%;flex:none}
+body.u59 #atlas details.atl summary small{margin-left:auto;opacity:.7}
+body.u59 #atlas details.atl p{margin:4px 0 6px 32px}
+body.u59 #atlas #atlasClose{min-width:44px;min-height:44px}
+/* f5.9-11 (QA f5.9-10): Settings. Sound | Units side by side wherever there is width (phone landscape: both visible, Imperial on screen), every target ≥40px */
+body.u59 #settings section:not(.qKeys){display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));column-gap:24px;align-content:start}
+body.u59 #settings section:not(.qKeys)>details{grid-column:1 / -1}
+body.u59 #settings .sg>h4{margin:6px 0 2px;font:700 var(--t-m) var(--font)}
+body.u59 #settings input:is([type=checkbox],[type=radio]){width:40px!important;height:40px!important;min-width:40px;margin:0;flex:none}
+body.u59 #settings label{min-height:44px!important}
+body.u59 #settings #setBody{scrollbar-width:thin;scrollbar-color:#9cc3ff88 transparent}
+@media (orientation:landscape) and (max-height:520px){
+  body.u59 #settings .mbox>:not(h2):not(.row):not(.col){width:min(100% - 24px,760px)!important;max-height:calc(100dvh - 72px)!important}
+  body.u59 #settings section:not(.qKeys){grid-template-columns:1fr 1fr}
+  body.u59 #settings .sg>h4{margin:2px 0}
+  body.u59 #settings label>input[type=range]{min-width:60px}
+}
+/* f5.9-11 (QA f5.9-10): 📍 site sheet chips are ≥40px targets */
+body.u59 #sitePick button{min-height:40px!important;box-sizing:border-box}
+body.u59 #sitePick select{min-height:40px!important}
+/* f5.9-11 (QA f5.9-10): phone-landscape bars get margin under the 25% cap (24.1% -> ~22%): 42px controls (≥40 targets), 1px bar padding */
+@media (orientation:landscape) and (max-height:520px){
+  :root{--ctlH:42px}
+  body.u59 #topBar{padding-top:var(--sat)!important;padding-bottom:0!important}
+  body.u59 #botBar{padding-top:1px!important;padding-bottom:calc(1px + var(--sab))!important;min-height:calc(var(--ctlH) + 4px + var(--sab))!important}
+  body.u59 #topBar button{min-height:40px!important;height:40px!important}
+  body.u59 #botBar :is(#mAuto,#dAuto,#mStage,#dStage,#mThr,#dThr){height:var(--ctlH)!important;min-height:var(--ctlH)!important}
+}
