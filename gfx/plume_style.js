@@ -2,7 +2,7 @@
 // Pure functions, no three.js: main.js (makePlume sites + emit()) and tests/plume_style.mjs both read this.
 //   Look (colours, base opacity k, Mach-diamond strength) stays in fun/plumetable.js PLUME_TABLE; this file adds the rest of the style
 //   (length/width factors, smoke, flame puffs, vacuum behaviour) and the size rule (engine -> plume length and width).
-import { PLUME_TABLE, lookFor } from '../fun/plumetable.js?v=f5.9-9';
+import { PLUME_TABLE, lookFor } from '../fun/plumetable.js?v=f5.9-10';
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 // One row per propellant. Lengths are in nozzle EXIT DIAMETERS at sea level and full throttle (a single engine).
 //   len    column length (exit diameters)       wid     flame width factor (1 = the classic orange column)
