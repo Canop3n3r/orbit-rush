@@ -565,16 +565,21 @@ function alignRadialPlumes() { // stages-pass-1: every side-booster plume sits o
   const rg = SG.find(g => g.userData.radial); if (!rg || !hero) return; const st = (hero.userData.hi || hero).userData.stages || {}, NZ = NOZZLES[design.model] || {};
   const sides = Object.keys(st).filter(x => /^(side|srb|strap|ssb)/i.test(x)).sort(); if (!sides.length) return;
   const p0 = rocketG.position.clone(), q0 = rocketG.quaternion.clone(); rocketG.position.set(0, 0, 0); rocketG.quaternion.identity(); rocketG.updateMatrixWorld(true);
-  const inv = rg.matrixWorld.clone().invert(), bells = [], groups = [];
+  const inv = rg.matrixWorld.clone().invert(), bells = [], groups = [], radii = [], gR = []; // stages-pass-2: each bell's exit radius, so a plume is sized from its OWN bell (small strap-ons beside big ones)
   for (const k of sides) { const nd = st[k].userData.nodes, a = (nd && nd.rotY) || 0, c = Math.cos(a), sn = Math.sin(a);
     const pts = nd && nd.engines ? nd.engines.map(e => [e.pos[0] * c + e.pos[2] * sn + nd.offset[0], e.pos[1] + nd.offset[1], -e.pos[0] * sn + e.pos[2] * c + nd.offset[2]]) : (NZ[k] || []);
-    const bs = pts.map(q => new THREE.Vector3(q[0], q[1], q[2]).applyMatrix4(st[k].matrixWorld).applyMatrix4(inv)); if (bs.length) groups.push(bs); bells.push(...bs); }
+    const rr = nd && nd.engines ? nd.engines.map(e => e.bell_r) : (NZ[k] || []).map(q => q[3]);
+    const bs = pts.map(q => new THREE.Vector3(q[0], q[1], q[2]).applyMatrix4(st[k].matrixWorld).applyMatrix4(inv)); if (bs.length) { groups.push(bs); gR.push(Math.max(...rr.map(x => x || 0))); } bells.push(...bs); radii.push(...rr.slice(0, bs.length)); }
   const pl = rg.userData.plume, all = [pl, ...(pl.userData.extra || [])];
   if (bells.length > all.length && groups.length) { // fewer plumes than bells (a strap-on with a 4-chamber engine): one plume per booster, at the centre of its bells
     const ctr = groups.map(bs => { const c = new THREE.Vector3(); for (const b of bs) c.add(b); c.divideScalar(bs.length); c.y = Math.min(...bs.map(b => b.y)); return c; });
-    all.forEach((e, i) => e.position.copy(ctr[i % ctr.length])); }
-  else if (bells.length) { all.forEach((e, i) => { if (i < bells.length) e.position.copy(bells[i]); else rg.remove(e); }); // the roster may list more side boosters than the model has: drop the plumes with no bell
+    const per = all.length % ctr.length === 0 ? all.length : ctr.length; // stages-pass-2: never two plumes on one booster while another has none: keep one per booster, drop the rest
+    all.forEach((e, i) => { if (i < per) { e.position.copy(ctr[i % ctr.length]); e.userData.bellR = gR[i % ctr.length]; } else rg.remove(e); });
+    if (all.length > per) { pl.userData.extra = all.slice(1, per); pl.userData.nEng = per; } }
+  else if (bells.length) { all.forEach((e, i) => { if (i < bells.length) { e.position.copy(bells[i]); e.userData.bellR = radii[i]; } else rg.remove(e); }); // the roster may list more side boosters than the model has: drop the plumes with no bell
     if (all.length > bells.length) { pl.userData.extra = all.slice(1, bells.length); pl.userData.nEng = bells.length; } }
+  { const live = [pl, ...(pl.userData.extra || [])], rs = live.map(e => e.userData.bellR).filter(x => x > 0), rMax = rs.length ? Math.max(...rs) : 0; // width from the plume's own bell, relative to the biggest side bell (the size the plume was built for)
+    for (const e of live) { const k = rMax > 0 && e.userData.bellR > 0 ? e.userData.bellR / rMax : 1; e.userData.sxz = k; e.scale.set(k, 1, k); } }
   rocketG.position.copy(p0); rocketG.quaternion.copy(q0); rocketG.updateMatrixWorld(true);
 }
 // CoM / CoP markers for the hangar preview (drawn through the hull)
@@ -1419,7 +1424,7 @@ function emit(veh, group, dt, bottom, dir) {
   const PM = ud.mats || plumeMats('kerolox'), LK = PM.look, env = ud.env || 1, vf = vacFactors(LK, pl.vac); // QA plume pass: length from the engine (ud.lenM, gfx/plume_style.js), shortened and dimmed per propellant in vacuum
   let len = ud.lenM ? ud.lenM * (pl.len / 24) * vf.len * fl : pl.len * w0 * fl * Math.sqrt(env) * Math.sqrt(ud.ts || 1); const len0 = len, szK = ud.lenM ? Math.min(2, Math.max(0.45, Math.sqrt(ud.lenM / 30))) : 1;
   if (veh === v && booster && booster.state === 'flying' && performance.now() - WV.pulse < 6000) { const gap = V.len(V.sub(v.r, booster.r)) * 0.55; if (gap < len) len = Math.max(1.5, gap); } // f5.6c (owner video): the upper-stage plume never pokes through the booster just after separation
-  plume.scale.set(1, 1, 1); const gk = glowScaleK(len, len0); // fx-1: the nozzle glow sprite fades with a clamped flame (no lone flat 2D sprite) // f5.3: the engines' jets merge into one column as long as the whole base would make
+  plume.scale.set(ud.sxz || 1, 1, ud.sxz || 1); const gk = glowScaleK(len, len0); // fx-1: the nozzle glow sprite fades with a clamped flame (no lone flat 2D sprite) // f5.3: the engines' jets merge into one column as long as the whole base would make
   const setL = (m, wk, lk = 1) => { m.scale.set(wk, len * lk, wk); m.position.y = -len * lk / 2; };
   const wd = LK.wid || 1, applyTo = P0 => { const u = P0.userData; if (u.lite) { setL(u.outer, (1.7 + 0.4 * pl.vac) * wd, 1); setL(u.core, pl.coreW * Math.sqrt(wd), 0.45 + 0.05 * fl); u.noz.scale.setScalar(w0 * (3 + 2 * thr) * fl * gk * LK.glow); return; }
     setL(u.glow, pl.glowW * 1.15 * fl * Math.sqrt(env) * wd, 0.85); setL(u.outer, (1.7 + 0.4 * pl.vac) * wd, 1); setL(u.core, pl.coreW * Math.sqrt(wd), 0.45 + 0.05 * fl);
