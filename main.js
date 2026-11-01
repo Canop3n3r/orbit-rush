@@ -2590,7 +2590,7 @@ window.__game.tileOff = b => { tileForceOff = !!b; }; window.__game.tileFadeInfo
 window.__game.scn = { scene, camera, earth, bodyG, stars, get W1() { return W1; }, sunDirV, get bodyCur() { return bodyCur; } }; // f6.4: far-planet smoke hooks
 window.__game.paneSlots = () => paneSlots; // f5.6x: shot tools / pane-rect checks
 // f5.9-13 (QA P2): sheets close the desktop way too: Esc, or a click outside the card
-{ const SHEETS = ['xferPlan', 'atlas', 'settings'], closeOf = m => m.querySelector('#atlasClose, .xp-x, h2 .hx, .hx');
+{ const SHEETS = ['xferPlan', 'atlas', 'settings', 'sitePick'], closeOf = m => m.querySelector('#atlasClose, .xp-x, .spX, h2 .hx, .hx'); // QA f5.9-13: the 📍 sheet closes on Esc / outside tap like the others
   const shut = m => { const b = closeOf(m); if (b) b.click(); else m.classList.add('hidden'); };
   addEventListener('keydown', e => { if (e.key !== 'Escape') return; for (const id of SHEETS) { const m = document.getElementById(id); if (m && !m.classList.contains('hidden')) { shut(m); e.preventDefault(); return; } } });
-  addEventListener('pointerdown', e => { for (const id of SHEETS) { const m = document.getElementById(id); if (!m || m.classList.contains('hidden')) continue; const box = m.querySelector('.mbox, .xp-box'); if (box && !box.contains(e.target) && !e.target.closest('#topBar,#hTop')) shut(m); } }, true); }
+  addEventListener('pointerdown', e => { for (const id of SHEETS) { const m = document.getElementById(id); if (!m || m.classList.contains('hidden')) continue; const box = m.querySelector('.mbox, .xp-box, .spBox'); if (box && !box.contains(e.target) && !e.target.closest('#topBar,#hTop')) shut(m); } }, true); }
