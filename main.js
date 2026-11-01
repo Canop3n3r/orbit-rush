@@ -735,6 +735,7 @@ const hooks = {
   sound: (k, f) => { if (k === 'ignite') { burst(0.6, 1.2, 500); if (F.alt < 200) ignitionClouds(v); } else if (k === 'beep') beep(f); else if (k === 'orbit') { beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); if (F.alt < 3000) touchdownDust(v); } },
   stage: (b, parts) => { const g = detachStage(b.stageIndex ?? 0); booster = b; booster2 = null;
     if (parts && parts[1]) { const [mA, mB] = splitSideMesh(g); parts[0].mesh = mA; parts[1].mesh = mB; booster2 = parts[1]; } else b.mesh = g; // f4.2: one mesh per side booster
+    for (const p of [b, ...(parts || [])]) if (p && p.mesh) legsOf(p.mesh); // f5.9-14 (QA P3): a detached booster group always lists its leg sets (heron-heavy read null)
     stagingDrama(v.r, v.v, P.noseOf(v)); },
   drop: d => { if (opHooks) try { opHooks.drop(d); } catch (e) {} d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
   ship: s => { if (s.lz) { if (s.name === 'LZ-2') shipVis2 = makeLZ(s); else shipVis = makeLZ(s); return; } shipVis = makeShip(s); }, // RTLS: the landing zone is the pad area, no droneship
@@ -759,6 +760,7 @@ const hooks = {
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
 // f4.2: the detached side pair is one group (both columns + struts). Make one holder per side booster: a deep copy
 // with only that side's meshes visible, re-centred on that column so each sim's r is its own booster's centre.
+function legsOf(m) { const u = m.userData; if (Array.isArray(u.legs) && u.legs.length || u.legs && u.legs.isObject3D) return u.legs; const L = []; m.traverse(o => { if (o !== m && o.userData && o.userData.pivots && !L.includes(o)) L.push(o); }); u.legs = L; return L; }
 function splitSideMesh(g) {
   g.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(g.matrixWorld).invert(), bx = new THREE.Box3(), c = new THREE.Vector3();
   const sideOf = o => { bx.setFromObject(o).applyMatrix4(inv); bx.getCenter(c); return [c.x, c.z]; };
@@ -1741,7 +1743,7 @@ renderer.setAnimationLoop(() => {
   fairTick(pdt, O); updateSat(O, pdt); updateFleetVis(O); if ((F.met | 0) !== (updateEndFlightBtn.k | 0)) { updateEndFlightBtn.k = F.met; updateEndFlightBtn(); }
   for (const bq of [booster, booster2]) if (bq && bq.mesh && bq.mesh.visible) { // f4.2: each side booster
     setRel(bq.mesh, bq.r, O); dirQ(bq.mesh, bq.dir);
-    const bh = V.len(bq.r) - R, legs = bq.mesh.userData.legs; if (legs) legs.visible = bq.state === 'landed' || (bq.state === 'flying' && (bq.legs || bh < 600));
+    const bh = V.len(bq.r) - R, legs = bq.mesh.userData.legs; if (legs) { const on = bq.state === 'landed' || (bq.state === 'flying' && (bq.legs || bh < 600)); if (!Array.isArray(legs)) legs.visible = on; } // staged leg sets (arrays) stay visible, folded until deploy;
     if (bq.state === 'flying') emit(bq, bq.mesh, pdt, bq.r, bq.dir); else bq.mesh.userData.plume.visible = false;
   }
   // ground tile follows the focus (Earth-fixed coordinates)
