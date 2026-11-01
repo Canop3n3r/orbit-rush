@@ -300,3 +300,13 @@ def capsule(part, ctx, cx, spec):
 
 def les_tower(part, ctx, cx, spec):
     hull(part, cx, spec, ctx)
+
+def strakes(part, ctx, cx, sil, spec):
+    """aft side strakes: thin tapered fixed fins along the hull (own pivots strake_<i>, so tests can find them). Phone-light: 8 quads each."""
+    n = spec.get('n', 2); y0 = spec['y0']; y1 = spec['y1']; w = spec.get('w', 1.2); t = spec.get('t', 0.14); a0 = spec.get('a0', 0.0)
+    col = srgb(HEX.get(spec.get('mat', 'dark'), 0x26272B)); L = y1 - y0
+    for i in range(n):
+        a = a0 + i / n * TAU; r0 = interp(sil, y0); r1 = interp(sil, y1)
+        s = part.sub(f'strake_{i}', (cx[0], 0.0, cx[1]), rot_y=-a, kind='strake')
+        poly = [(r0 - 0.05, y0), (r0 + w, y0 + 0.12 * L), (r1 + w * 0.55, y1 - 0.25 * L), (r1 - 0.05, y1)]
+        prism(s.buf('metal', 0.01 if ctx.detail >= 1 else 0.0), poly, t, col)
