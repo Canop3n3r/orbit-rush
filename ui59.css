@@ -685,7 +685,7 @@ html body.u59 #botBar :is(#mThr,#dThr) b{display:none!important}
   html body.u59 #atlas{background:transparent!important}
   html body.u59 #atlas .mbox{inset:auto!important;top:calc(var(--topH,52px) + 6px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;width:min(460px,100vw - 32px)!important;height:auto!important;max-height:calc(100dvh - var(--topH,52px) - 18px)!important;pointer-events:auto!important;display:flex!important;flex-direction:column!important;border:1px solid var(--bc,#2a3c5c);border-radius:14px;background:#0b1424!important;overflow:hidden!important}
   html body.u59 #atlas .mbox>h2{position:static!important;padding:4px 10px!important;min-height:0!important}
-  html body.u59 #atlas .mbox>#atlasBody{margin:0!important;width:auto!important;max-height:none!important;flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+  html body.u59 #atlas .mbox>#atlasBody{margin:0!important;width:auto!important;align-self:stretch!important;max-height:none!important;flex:1 1 auto!important;min-height:0!important;overflow:auto!important;border:0!important}
 }
 /* f5.9-14 (QA P1): the transfer planner is a bottom card (≤35% of the screen), the game stays visible above it */
 html body.u59 #xferPlan{inset:auto 0 0 0!important;top:auto!important;background:transparent!important;pointer-events:none;display:flex;justify-content:center;align-items:flex-end!important}
