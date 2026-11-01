@@ -27,7 +27,9 @@ export function specStages(v) {
   if (boost.length) { const e = boost.map(s => engOf(s.engines)), bt = Math.max(...boost.map(s => s.jettisonAt || s.burn)), coreUsed = Math.min(core.prop * 0.9, core.prop * bt / core.burn);
     const T = e.reduce((t, x) => t + x.tv * x.n, 0) + ce.tv * ce.n, n = e.reduce((t, x) => t + x.n, 0) + ce.n;
     const fv = e.reduce((t, x) => t + x.tv * x.n / x.ispVac, 0) + ce.tv * ce.n / ce.ispVac, fs = e.reduce((t, x) => t + x.tv * x.n / x.ispSl, 0) + ce.tv * ce.n / ce.ispSl;
-    out.push({ radial: true, dry: boost.reduce((t, s) => t + s.dry, 0) / 1000, fuel: (boost.reduce((t, s) => t + s.prop, 0) + coreUsed) / 1000, n, tv: T / n, ispSl: T / fs, ispVac: T / fv });
+    // n counts every engine lit in the parallel phase (boosters + core); `boosters` is the strap-on count when the roster sources it
+    const nb = boost.every(s => s.boosters > 0) ? boost.reduce((t, s) => t + s.boosters, 0) : undefined;
+    out.push({ radial: true, dry: boost.reduce((t, s) => t + s.dry, 0) / 1000, fuel: (boost.reduce((t, s) => t + s.prop, 0) + coreUsed) / 1000, n, tv: T / n, ispSl: T / fs, ispVac: T / fv, ...(nb ? { boosters: nb } : {}) });
     out.push({ dry: core.dry / 1000, fuel: (core.prop - coreUsed) / 1000, n: ce.n, tv: ce.tv, ispSl: ce.ispSl, ispVac: ce.ispVac }); }
   else out.push({ dry: core.dry / 1000, fuel: core.prop / 1000, n: ce.n, tv: ce.tv, ispSl: ce.ispSl, ispVac: ce.ispVac });
   for (const s of rest) { const e = engOf(s.engines); out.push({ dry: s.dry / 1000, fuel: s.prop / 1000, n: e.n, tv: e.tv, ispSl: e.ispSl, ispVac: e.ispVac }); }
@@ -43,7 +45,8 @@ export function specDesign(v, name, model) {
   parts.push(P('fairing'), P('probe')); // a shroud always (roster fairing mass when sourced, else the part's 1 t: ESTIMATE)
   for (let i = core.length - 1; i >= 0; i--) { if (i < core.length - 1) parts.push(P('dec')); parts.push(P(i ? 'tank-m' : 'tank-xl')); parts.push(P(i ? 'lark' : 'thumper', Math.min(5, Math.max(1, core[i].n)))); }
   parts.push(P('fins'));
-  if (radial) { const k = SYM.reduce((a, b) => (Math.abs(b - radial.n) < Math.abs(a - radial.n) ? b : a), 2); parts.push(P('rdec', k), P('tank-r'), P('thumper', 1)); }
+  // radial symmetry = the sourced strap-on count when known (atlantean-v v5: 5), else nearest SYM to the parallel-phase engine count
+  if (radial) { const k = radial.boosters >= 2 && radial.boosters <= 6 ? radial.boosters : SYM.reduce((a, b) => (Math.abs(b - radial.n) < Math.abs(a - radial.n) ? b : a), 2); parts.push(P('rdec', k), P('tank-r'), P('thumper', 1)); }
   return { name, model, parts, spec: { stages: S, fairing: (v.fairing || 0) / 1000, src: v.src, area: v.area || 0 } };
 }
 // house rockets verified by the f5.2 audit (tests/specstack.mjs): the roster stack reaches orbit on AUTO and its stages match the model.
