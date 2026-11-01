@@ -64,6 +64,7 @@ def build_stage(vid, st, tier, ov, scale=1.0):
     prop = (st.get('info') or {}).get('prop', 'kerolox'); tint = PROP_TINT.get(prop, 0xB87333)
     if 'legs' in ov: L['legs'] = ov['legs'] and dict(L.get('legs') or {}, **ov['legs'])
     if 'fins' in ov: L['fins'] = ov['fins']
+    if 'strakes' in ov: L['strakes'] = ov['strakes']
     if role == 'winged':
         WG.build(part, ctx, L, W, tint)
     elif role == 'fairing':
@@ -86,6 +87,7 @@ def build_stage(vid, st, tier, ov, scale=1.0):
         if role == 'solid': K.solid_details(part, ctx, cx, L)
         if L.get('legs') and ctx.detail >= 0: K.legs(part, ctx, cx, L['legs'])
         if L.get('fins') and ctx.detail >= 0: K.grid_fins(part, ctx, cx, interp_r(sil, L['fins']['y']), L['fins'])
+        if L.get('strakes'): K.strakes(part, ctx, cx, sil, L['strakes'])
         if role in ('solid', 'strap'):
             ref = st['_toward'] if '_toward' in st else None
             if ref: K.strut_to_core(part, ctx, cx, L, [H * 0.2, H * 0.78], R, ref)
