@@ -732,7 +732,7 @@ function thinAir() { if (!F || F.body === 'earth') return false; const b = P.BOD
 function siteVel(b) { const w = b.earthRot === false ? 0 : F && F.body && F.body !== 'earth' ? P.BODIES[F.body].omega : P.OMEGA_E; /* f5.4: the air/ground turns with the current world */ return [-w * b.r[1], w * b.r[0], 0]; }
 const hooks = {
   toast: (m, c) => toast(m, c),
-  sound: (k, f) => { if (k === 'ignite') { burst(0.6, 1.2, 500); if (F.alt < 200) ignitionClouds(v); } else if (k === 'beep') beep(f); else if (k === 'orbit') { beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); if (F.alt < 3000) touchdownDust(v); } },
+  sound: (k, f) => { if (k === 'ignite') { burst(0.6, 1.2, 500); if (F.alt < 200) ignitionClouds(v); } else if (k === 'beep') beep(f); else if (k === 'orbit') { if (camMode === 'chase' && performance.now() - camUserT > 4000) camDist = orbitDist(); /* f5.9-14 (QA P2): in orbit the camera comes in on the craft, not the ascent framing */ beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); if (F.alt < 3000) touchdownDust(v); } },
   stage: (b, parts) => { const g = detachStage(b.stageIndex ?? 0); booster = b; booster2 = null;
     if (parts && parts[1]) { const [mA, mB] = splitSideMesh(g); parts[0].mesh = mA; parts[1].mesh = mB; booster2 = parts[1]; } else b.mesh = g; // f4.2: one mesh per side booster
     for (const p of [b, ...(parts || [])]) if (p && p.mesh) legsOf(p.mesh); // f5.9-14 (QA P3): a detached booster group always lists its leg sets (heron-heavy read null)

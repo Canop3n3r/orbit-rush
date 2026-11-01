@@ -583,8 +583,7 @@ body.u59 #bbT #navRd.hidden{display:none!important}
   body.u59 #botBar #dvStages .dvH{display:none!important}
   body.u59 #botBar #spd .spV{font-size:clamp(20px,6.2vw,26px)!important}
   body.u59 #botBar #plain{row-gap:0!important}
-  /* RELEASE does what STAGE does while the payload is aboard, so it takes STAGE's row instead of stacking a third row */
-  body.u59:has(#relBtn:not(.hidden)) #botBar :is(#mStage,#dStage){display:none!important}
+  /* f5.9-14 (QA P2): STAGE stays in portrait too (same controls at every size); RELEASE sits under it */
 }
 /* f5.9-10 (QA f5.9-9 P2): expanded booster view. ⤡ BACK / ⟲ FOLLOW sit in ONE spot at every size (right corner just under the top bar),
    and the upper stage's navball / attitude row / readouts leave the bottom bar so nothing ghosts behind the booster card */
@@ -670,3 +669,6 @@ body.u59 #xferPlan .xp-act{position:sticky;bottom:-12px;background:#0d1626;paddi
 @media (min-width:900px){body.u59 #xferPlan{top:max(var(--topH,0px),52px)!important}body.u59 #xferPlan .xp-box{margin-top:8px;border-radius:16px!important;border:1px solid #2a3c5c}}
 /* f5.9-14 (QA P3): "Δv left" and "Stage 2" no longer run together on desktop */
 body.u59 #dvStages .dvH{margin-right:.6em}
+/* f5.9-14 (QA P2): the THR pill shows its value (with the fill) at every size, in AUTO too; the value replaces the THR label so the pill says one thing */
+html body.u59 #botBar :is(#mThr,#dThr) u{display:block!important;top:50%!important;bottom:auto!important;transform:translateY(-50%)}
+html body.u59 #botBar :is(#mThr,#dThr) b{display:none!important}
