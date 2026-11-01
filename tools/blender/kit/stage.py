@@ -58,6 +58,8 @@ def build_stage(vid, st, tier, ov, scale=1.0):
                 if b <= yc: continue
                 nb.append((max(a, yc), b, m))
             L['bands'] = nb or [(yc, L['prof'][-1][0], 'dark')]
+    if ov.get('extend_top'): # stages-pass-1: an interstage sleeve up over the next stage's bells (that stage's hull base is clipped up to show them)
+        yt, rt = L['prof'][-1]; ext = float(ov['extend_top']); L['prof'] = L['prof'] + [(yt + ext, rt)]; L['bands'] = list(L['bands']) + [(yt, yt + ext, ov.get('extend_band') or (L['bands'][-1][2] if L['bands'] else 'dark'))]
     part = Part(key); cx = (0.0, 0.0); sil = L['prof']; H = sil[-1][0]; R = max(r for _, r in sil)
     prop = (st.get('info') or {}).get('prop', 'kerolox'); tint = PROP_TINT.get(prop, 0xB87333)
     if 'legs' in ov: L['legs'] = ov['legs'] and dict(L.get('legs') or {}, **ov['legs'])

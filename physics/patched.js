@@ -2,9 +2,9 @@
 // reaching an altitude), trajectory prediction through several SOI patches and maneuver nodes, closest
 // approach to a target, node frames and burn times, and a transfer planner (Hohmann window + phase angle,
 // ejection geometry for interplanetary transfers, then a numerical refinement against the predictor).
-import { elements, propagate } from './kepler.js?v=f5.9-12';
-import { BODIES, relState, transfer, atmTop } from './solar.js?v=f5.9-12';
-import { RAILS_ALT, G0 } from './constants.js?v=f5.9-12';
+import { elements, propagate } from './kepler.js?v=f5.9-13';
+import { BODIES, relState, transfer, atmTop } from './solar.js?v=f5.9-13';
+import { RAILS_ALT, G0 } from './constants.js?v=f5.9-13';
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], len = a => Math.hypot(a[0], a[1], a[2]);
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], sc = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nz = a => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
@@ -136,17 +136,19 @@ export function hohmann(mu, r1, r2) {
 }
 // Plan from the craft's current orbit (body `id`, state r, v at t) to `target`: a child of `id` (moon) or a
 // sibling (another planet). Returns { kind, node, hohmann, phaseNow, phaseReq, wait, ejection } (node: {t, pro, nrm, rad}).
-export function planTransfer(id, r, v, t, target) {
+export function planTransfer(id, r, v, t, target, forceWait) { // forceWait (s): depart at t + forceWait instead of the next phase window (a pre-launch plan chose the day)
   const b = BODIES[id], tb = BODIES[target], mu = b.mu, hN = nz(cross(r, v)), r1 = len(r), n1 = Math.sqrt(mu / r1 ** 3);
   if (tb.parent === id) { // moon transfer from orbit around its planet
     const H = hohmann(mu, r1, tb.a), cs = relState(target, t), pNow = angIn(nz(r), nz(sub(cs.r, sc(hN, dot(cs.r, hN)))), hN), n2 = Math.sqrt(mu / tb.a ** 3);
     let wait = (pNow - H.phase) / (n1 - n2); const syn = TAU / Math.abs(n1 - n2); wait = ((wait % syn) + syn) % syn;
+    if (forceWait != null) wait = forceWait; // a pre-launch plan fixed the departure day
     return { kind: 'moon', syn, hohmann: H, phaseNow: pNow, phaseReq: H.phase, wait, node: { t: t + wait, pro: H.dv1, nrm: 0, rad: 0 }, dvTotal: H.dv1 + H.dv2 };
   }
   if (b.parent && tb.parent === b.parent) { // interplanetary from a parking orbit
     const P = BODIES[b.parent], ps = relState(id, t), ts = relState(target, t), rp1 = len(ps.r), H = hohmann(P.mu, rp1, tb.a);
     const hP = nz(cross(ps.r, ps.v)), pNow = angIn(nz(ps.r), nz(ts.r), hP), np1 = Math.sqrt(P.mu / rp1 ** 3), np2 = Math.sqrt(P.mu / tb.a ** 3);
     let wait = (pNow - H.phase) / (np1 - np2); const syn = TAU / Math.abs(np1 - np2); wait = ((wait % syn) + syn) % syn;
+    if (forceWait != null) wait = forceWait; // a pre-launch plan fixed the departure day
     const vinf = Math.abs(H.dv1), dvEj = Math.sqrt(vinf * vinf + 2 * mu / r1) - Math.sqrt(mu / r1);
     // ejection point: periapsis of the departure hyperbola, ν∞ before the asymptote (= planet velocity ± direction)
     const tw = t + wait, pw = relState(id, tw), Fp = transfer(b.parent, id, [0, 0, 0], pw.v, tw); // planet velocity seen in the planet frame
@@ -263,8 +265,8 @@ export function suggestInclination(id, target, t, plan) {
 // (the default: usually the cheapest), the Lambert-exact alternative for planets, and the suggested
 // parking-orbit inclination for this transfer.
 export function planFull(id, r, v, t, target, opts = {}) {
-  let pl = planTransfer(id, r, v, t, target); if (!pl) return null;
   const minWait = opts.minWait ?? 900;
+  let pl = planTransfer(id, r, v, t, target, opts.departT != null ? Math.max(minWait, opts.departT - t) : undefined); if (!pl) return null;
   if (pl.node.t - t < minWait) { // too soon to turn and start the burn: the next window
     const mu = BODIES[id].mu, n1 = Math.sqrt(mu / len(r) ** 3), k = Math.ceil((minWait - (pl.node.t - t)) / (TAU / n1));
     pl = pl.kind === 'moon' ? { ...pl, wait: pl.wait + k * TAU / n1, node: { ...pl.node, t: pl.node.t + k * TAU / n1 } } : pl;

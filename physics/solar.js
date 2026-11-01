@@ -8,7 +8,7 @@
 // Frames: ECL = heliocentric J2000 ecliptic (the map/world frame). Each body has an inertial
 // "equatorial" frame (z = its spin pole); a craft's state is always kept in its SOI body's frame, so the
 // Earth frame is the same ECI frame the rest of physics/ has always used (z = Earth's pole, spin about z).
-import { R_E, MU_E, OMEGA_E } from './constants.js?v=f5.9-12';
+import { R_E, MU_E, OMEGA_E } from './constants.js?v=f5.9-13';
 const D2R = Math.PI / 180, DAY = 86400, CENT = 36525 * DAY, AU = 1.495978707e11, OBL = 23.43928 * D2R;
 export const J2000_MS = Date.UTC(2000, 0, 1, 12, 0, 0); // J2000.0 = 2000-01-01 12:00 TT (≈ UTC + 64 s; ignored)
 export { AU };
@@ -103,6 +103,10 @@ export const BODY_IDS = Object.keys(BODIES);
 let EARTH_PHI = 0;
 export function setEarthPhase(phi) { EARTH_PHI = phi; frameCache.clear(); }
 export const earthPhase = () => EARTH_PHI;
+// f6.5: the real orientation: Earth rotation angle of the day (rad, t = s since J2000), and the frame phase that puts the game's +x (the main pad,
+// 80.6043° W on the map) where that longitude really is, so a planned launch has its real local time of day and Sun.
+export const eraAt = t => 2 * Math.PI * ((((0.7790572732640 + 1.00273781191135448 * (t / 86400)) % 1) + 1) % 1);
+export const realPhaseAt = t => ((eraAt(t) - 80.6043 * D2R) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
 const frameCache = new Map();
 export function frameOf(id) {
   if (id === 'sun') return [1, 0, 0, 0, 1, 0, 0, 0, 1]; // the Sun's frame is ECL itself (heliocentric orbits are ecliptic-referenced)

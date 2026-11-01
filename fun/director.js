@@ -2,9 +2,9 @@
 // planner-built transfer nodes executed as finite burns, mid-course corrections, SOI warps, capture, Moon
 // landing) and tells the renderer which cinematic camera suits each phase. The player can take over anytime
 // (takeOver()); nothing here bypasses the physics. DOM-free, so tests/fun.mjs runs it headlessly.
-import * as UN from './units.js?v=f5.9-12';
-import * as P from '../physics.js?v=f5.9-12';
-import * as C from '../physics/patched.js?v=f5.9-12';
+import * as UN from './units.js?v=f5.9-13';
+import * as P from '../physics.js?v=f5.9-13';
+import * as C from '../physics/patched.js?v=f5.9-13';
 const V = P.V;
 export const MISSIONS = {
   orbit: { name: 'Orbit & home', icon: '🛰️', tpl: 'Orbit & home', target: null, blurb: 'Fly to orbit, then bring the capsule home under parachutes.' },
@@ -68,7 +68,7 @@ export class Director {
         }
         break;
       case 'plan': {
-        const pl = C.planFull(F.body, v.r, v.v, F.tAbs, this.target, { minWait: 1200, burn: F.burnModel() });
+        const pl = C.planFull(F.body, v.r, v.v, F.tAbs, this.target, { minWait: 1200, burn: F.burnModel(), departT: this.opts.departT }); // f6.5: departT = the day a pre-launch transfer plan chose
         if (!pl || !pl.reaches) { this.finish('No transfer found from this orbit', false); break; }
         this.plan = pl; F.target = pl.target; this.execNext(pl.tuned);
         this.set('burn', `Window in ${pl.wait > 86400 ? (pl.wait / 86400).toFixed(0) + ' days' : Math.round(pl.wait / 60) + ' min'} — warping to the burn`); break; }

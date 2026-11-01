@@ -20,9 +20,9 @@
     "lo": "assets/rockets/heron-heavy/booster.lo.glb"
    },
    "tris": {
-    "hi": 10238,
-    "mid": 4348,
-    "lo": 1264
+    "hi": 12078,
+    "mid": 5420,
+    "lo": 1200
    },
    "offset": [
     0,
@@ -194,10 +194,11 @@
     0
    ],
    "legs": 4,
+   "grid_fins": 4,
    "bytes": {
-    "hi": 93676,
-    "mid": 44848,
-    "lo": 25064
+    "hi": 102908,
+    "mid": 51552,
+    "lo": 26352
    }
   },
   {
@@ -340,9 +341,9 @@
     "lo": "assets/rockets/heron-heavy/side0.lo.glb"
    },
    "tris": {
-    "hi": 10910,
-    "mid": 4708,
-    "lo": 1420
+    "hi": 12750,
+    "mid": 5780,
+    "lo": 1304
    },
    "offset": [
     -3.86,
@@ -514,10 +515,11 @@
     0
    ],
    "legs": 4,
+   "grid_fins": 4,
    "bytes": {
-    "hi": 97236,
-    "mid": 45968,
-    "lo": 25428
+    "hi": 106460,
+    "mid": 52668,
+    "lo": 27188
    }
   },
   {
@@ -530,9 +532,9 @@
     "lo": "assets/rockets/heron-heavy/side1.lo.glb"
    },
    "tris": {
-    "hi": 10910,
-    "mid": 4708,
-    "lo": 1420
+    "hi": 12750,
+    "mid": 5780,
+    "lo": 1304
    },
    "offset": [
     3.86,
@@ -704,10 +706,11 @@
     0
    ],
    "legs": 4,
+   "grid_fins": 4,
    "bytes": {
-    "hi": 97244,
-    "mid": 45952,
-    "lo": 25428
+    "hi": 106468,
+    "mid": 52652,
+    "lo": 27188
    }
   }
  ],
@@ -725,8 +728,8 @@
   "side1"
  ],
  "bytes": {
-  "hi": 346764,
-  "mid": 165736,
-  "lo": 91996
+  "hi": 374444,
+  "mid": 185840,
+  "lo": 96804
  }
 }

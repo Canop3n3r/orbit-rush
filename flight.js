@@ -1,12 +1,12 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.9-12';
-import * as C from './physics/patched.js?v=f5.9-12';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.9-12';
-import { designReusable } from './vehicles/reusable.js?v=f5.9-12';
-import { newStats, trackStats } from './fun/endstats.js?v=f5.9-12';
-import { installVessels } from './fun/vessels.js?v=f5.9-12'; // f6.2: switching between vessels left in space, craft power, deployed payloads
+import * as P from './physics.js?v=f5.9-13';
+import * as C from './physics/patched.js?v=f5.9-13';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.9-13';
+import { designReusable } from './vehicles/reusable.js?v=f5.9-13';
+import { newStats, trackStats } from './fun/endstats.js?v=f5.9-13';
+import { installVessels } from './fun/vessels.js?v=f5.9-13'; // f6.2: switching between vessels left in space, craft power, deployed payloads
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -27,7 +27,7 @@ export const GOAL_PTS = { flyby: 1500, orbit: 3000, landed: 6000 };
 export const NODE_LEAD = 90; // s: time warp stops this long before a node's burn starts (half the burn before the node)
 // Game clock epoch: ?epoch=YYYY-MM-DD or now. The Earth frame's x axis is set so the pad (on frame +x at clock 0)
 // sees the Sun 45° east of the zenith: a mid-morning launch.
-export function epochPhase(t0) { P.setEarthPhase(0); const s = P.sunDir('earth', t0); P.setEarthPhase(Math.atan2(s[1], s[0]) - Math.PI / 4); return P.earthPhase(); }
+export function epochPhase(t0, real) { if (real) { P.setEarthPhase(P.realPhaseAt(t0)); return P.earthPhase(); } P.setEarthPhase(0); const s = P.sunDir('earth', t0); P.setEarthPhase(Math.atan2(s[1], s[0]) - Math.PI / 4); return P.earthPhase(); }
 // Launch azimuth (rad from north, measured in the rotating frame) for a target inclination i (deg) from latitude lat.
 export function launchAzimuth(incDeg, lat = 0, vEq = P.OMEGA_E * P.R, vOrb = 7800) {
   const i = incDeg * Math.PI / 180, sA = Math.max(-1, Math.min(1, Math.cos(i) / Math.max(1e-6, Math.cos(lat)))), A = Math.asin(sA);
@@ -194,7 +194,7 @@ export class Flight {
     this.rec = recoveryInfo(design); this.ret = null; this.orbitSnap = null; this.maxHeat = 0; this.maxTskin = 0; this.maxGret = 0; this.parked = null;
     v.chute = { state: 'stowed', t: 0 }; v.chuteCdA = 0;
     // solar system: game clock epoch, SOI body, nodes, alarms, target, per-body goals
-    this.t0 = opts.t0 ?? P.tFromDate(opts.epoch ?? Date.now()); epochPhase(this.t0);
+    this.t0 = opts.t0 ?? P.tFromDate(opts.epoch ?? Date.now()); this.realPhase = !!opts.realPhase; epochPhase(this.t0, this.realPhase); // f6.5: realPhase = the real Earth rotation (planned transfer launches)
     this.nodes = []; this.alarms = []; this.target = opts.target || null; this.goals = {}; this.warpTarget = null; this.exec = false; this.deep = !!(design.goal || opts.deep);
     if (opts.incl) v.incl = +opts.incl;
     this.initFleet(design); // f6.2: the rocket is vessel 1; payloads it leaves join the fleet
@@ -362,7 +362,7 @@ export class Flight {
     this.v = v; Object.assign(this, JSON.parse(JSON.stringify(s.f)));
     this.booster = null; this.boosters = []; this.ret = null; this.autoOn = false; this.exec = false; this.warpTarget = null; this.warpI = 0; this.autoWarp = false; this.rails = false; this.ended = false; this.finalScore = null; this._soiC = null;
     for (const n of this.nodes) { n.started = false; delete n.done; }
-    this.restoreFleet(s.fleet); epochPhase(this.t0); P.stepVehicle(v, 0); return this;
+    this.restoreFleet(s.fleet); epochPhase(this.t0, this.realPhase); P.stepVehicle(v, 0); return this;
   }
   // Ballistic impact prediction with drag (no thrust): { t (game time), r (body frame), speed, lat, lon } or null.
   // Coasts on rails to the top of the atmosphere, then integrates a point mass with this craft's drag.

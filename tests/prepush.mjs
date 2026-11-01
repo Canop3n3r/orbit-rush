@@ -8,7 +8,7 @@ const root = new URL('..', import.meta.url).pathname, tdir = new URL('.', import
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 // KNOWN-FAIL (not silently passed): reported on every run as KNOWN; flagged if it starts passing so it can be removed.
 // timelines.mjs: known fail since 2026-11-01 (stale timeline expectations vs current roster); owner Mission Design.
-// specstack.mjs: known fail on main (atlantean-551 6 vs 5 SRBs); fixed on gamebot-specs/atlantean-551-srb-1, drop it from KNOWN when that merges.
+// specstack.mjs: the atlantean-551 SRB count is fixed (PR 52, 204/205 pass), but space-truck (orbit on AUTO after 1 separation) also fails on main 048e6cdb; known until Specs fixes it.
 const KNOWN = new Set(['timelines.mjs', 'specstack.mjs']);
 const jobs = +arg('--jobs', Math.max(2, cpus().length - 1)), tmo = +arg('--timeout', 240) * 1000;
 const only = arg('--only', '') ? new Set(arg('--only').split(',').map(s => s.endsWith('.mjs') ? s : s + '.mjs')) : null;
