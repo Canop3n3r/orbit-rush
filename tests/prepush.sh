@@ -3,7 +3,9 @@
 # Serves the tree on $PORT, runs targeted unit tests + sim_ui + ui_budget (--strict default), one browser at a time, then stops the server.
 set -u; PORT=${PORT:-8958}; cd "$(dirname "$0")/.."; fail=0
 python3 -m http.server $PORT >/dev/null 2>&1 & SRV=$!; trap 'kill $SRV 2>/dev/null' EXIT; sleep 1
-for t in ${TESTS:-mobile qol plainhud navball navstick flightmenu tilefade fleet payload_kinds}; do node tests/$t.mjs >/tmp/prepush_$t.log 2>&1 || { echo "FAIL tests/$t.mjs"; fail=1; }; done
+# 2026-11-01: all tests/*.mjs in parallel (syntax check + ~74 unit tests, ~3 min vs ~15 min serial). FAST=1 skips the browser smokes below.
+node tests/prepush.mjs ${PREPUSH_ARGS:-} 2>&1 | tee /tmp/prepush_unit.log | grep -E '^(syntax|tests|FAIL|SYNTAX|KNOWN)' ; [ ${PIPESTATUS[0]} = 0 ] || { echo "FAIL unit (tests/prepush.mjs)"; fail=1; }
+[ -n "${FAST:-}" ] && { [ $fail = 0 ] && echo "prepush (FAST, no browser smokes) OK" || echo "prepush FAILED"; exit $fail; }
 U=http://localhost:$PORT/ OUT=${OUT:-/tmp/prepush_sim_ui} node tests/smoke/sim_ui.cjs >/tmp/prepush_sim_ui.log 2>&1 || { echo "FAIL sim_ui"; fail=1; }; tail -2 /tmp/prepush_sim_ui.log
 node tests/smoke/audio_stop.cjs http://localhost:$PORT/ >/tmp/prepush_audio_stop.log 2>&1 || { echo "FAIL audio_stop"; fail=1; }; tail -1 /tmp/prepush_audio_stop.log # f5.8y: no engine/wind loop survives the flight screen
 node tests/smoke/audio_music.cjs http://localhost:$PORT/ >/tmp/prepush_audio_music.log 2>&1 || { echo "FAIL audio_music"; fail=1; }; tail -1 /tmp/prepush_audio_music.log # f6.3: menu beat, space score, pause silence, crackle/distance mix, music settings
