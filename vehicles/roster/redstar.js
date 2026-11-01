@@ -10,7 +10,7 @@ export const ENGINES_REDSTAR = {
 export const ROSTER_REDSTAR = [
   { id: 'rodnik', name: 'Rodnik', company: 'redstar', src: 'spec:rodnik', area: 18.1, fairing: 4500, est: ['fairing'],
     stages: [
-      { engines: { 'ko-k1': 4 }, engineCount: 4, engineName: 'ko-k1', propellant: 'kerolox', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 15136, prop: 156640, burn: 118, group: 0, recovery: 'expended' },
+      { engines: { 'ko-k1': 4 }, engineCount: 4, engineName: 'ko-k1', boosters: 4, boostersSrc: 'spec:rodnik#boosters', propellant: 'kerolox', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 15136, prop: 156640, burn: 118, group: 0, recovery: 'expended' },
       { engines: { 'ko-k2': 1 }, engineCount: 1, engineName: 'ko-k2', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 6545, prop: 90100, burn: 286, group: 0, recovery: 'expended' },
       { engines: { 'ko-k3': 1 }, engineCount: 1, engineName: 'ko-k3', propellant: 'kerolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 2355, prop: 25400, burn: 270, group: 1, recovery: 'expended' },
     ],
