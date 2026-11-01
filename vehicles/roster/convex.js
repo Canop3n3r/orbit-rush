@@ -14,7 +14,7 @@ export const ENGINES_CONVEX = {
 export const ROSTER_CONVEX = [
   { id: 'titanus-4', name: "Titanus IV", company: 'convex', src: 'spec:titanus-4', area: 22.5, fairing: 4989, est: ['area'],
     stages: [
-      { engines: {'cv-e1': 2}, engineCount: 2, engineName: 'cv-e1', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 102400, prop: 536200, burn: 120.0, group: 0, jettisonAt: 120.0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
+      { engines: {'cv-e1': 2}, engineCount: 2, engineName: 'cv-e1', boosters: 2, boostersSrc: 'spec:titanus-4#boosters', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 102400, prop: 536200, burn: 120.0, group: 0, jettisonAt: 120.0, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
       { engines: {'cv-e2': 2}, engineCount: 2, engineName: 'cv-e2', propellant: 'hypergolic', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 8000, prop: 155000, burn: 164.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'cv-e3': 1}, engineCount: 1, engineName: 'cv-e3', propellant: 'hypergolic', nozzleLayout: { type: 'single' }, reusable: false, dry: 4500, prop: 35000, burn: 223.0, group: 1, recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
     ],

@@ -9,7 +9,7 @@ export const ROSTER_ROCKETWELL = [
   { id: 'space-truck', name: 'Space Truck Stack', company: 'rocketwell', src: 'spec:space-truck', area: 100, fairing: 0, est: ['area'],
     publishedLoss: { grav: 1222, drag: 107, steer: 358 }, // spec:loss-model#published
     stages: [
-      { engines: { 'rw-s4': 2 }, engineCount: 2, engineName: 'rw-s4', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 181437, prop: 997903, burn: 124, group: 0, recovery: 'parachute to sea, recovered' },
+      { engines: { 'rw-s4': 2 }, engineCount: 2, engineName: 'rw-s4', boosters: 2, boostersSrc: 'spec:space-truck#boosters', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 181437, prop: 997903, burn: 124, group: 0, recovery: 'parachute to sea, recovered' },
       // tank + orbiter: orbiter carried at its 110 t launch mass (EST: taken as excluding payload); tank prop = gross − empty
       { engines: { 'rw-h3': 3 }, engineCount: 3, engineName: 'rw-h3', propellant: 'hydrolox', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 26535 + 110000, prop: 735510, burn: 510, group: 0, recovery: 'orbiter runway landing; tank expended', est: ['dry'] },
     ],
