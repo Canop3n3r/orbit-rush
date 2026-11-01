@@ -9,7 +9,7 @@ ok(withRadial.length === 14 && withRadial.every(id => id in WANT), `14 house roc
 for (const [id, n] of Object.entries(WANT)) {
   const v = rosterFor(id), S = specStages(v), rd = specDesign(v, id, id).parts.find(p => p.id === 'rdec');
   const bs = v.stages.filter(s => (s.group || 0) === 0 && s.boosters !== undefined);
-  ok(bs.length > 0 && bs.every(s => /^spec:[a-z0-9-]+#boosters$/.test(s.boostersSrc) || /^spec:atlantean-v#srb-count$/.test(s.boostersSrc)), `${id}: boosters cited (${bs.map(s => s.boostersSrc).join(', ')})`);
+  ok(bs.length > 0 && bs.every(s => /^spec:[a-z0-9-]+#boosters$/.test(s.boostersSrc)), `${id}: boosters cited (${bs.map(s => s.boostersSrc).join(', ')})`);
   ok(S[0].boosters === n && rd && rd.n === n, `${id}: ${n} side boosters in roster and flight stack (rdec ${rd && rd.n}, parallel-phase engines ${S[0].n})`);
 }
 console.log(`\nroster_boosters: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
