@@ -561,14 +561,20 @@ function makeRadialGroup(s, si, coreR = 1.25) {
   return g;
 }
 // fx-1: once the art model is in, put the side-booster plumes under the art's side boosters (stages side0, side1, ...)
-function alignRadialPlumes() {
-  const rg = SG.find(g => g.userData.radial); if (!rg || !hero) return; const st = (hero.userData.hi || hero).userData.stages || {}, sides = Object.keys(st).filter(x => /^side\d/.test(x)).sort();
-  const colP = RADCOLS.get(rg); if (!colP || sides.length !== colP.length) return;
+function alignRadialPlumes() { // stages-pass-1: every side-booster plume sits on one of the model's own side bells (staged asset: manifest engines; procedural: nozzles.js)
+  const rg = SG.find(g => g.userData.radial); if (!rg || !hero) return; const st = (hero.userData.hi || hero).userData.stages || {}, NZ = NOZZLES[design.model] || {};
+  const sides = Object.keys(st).filter(x => /^(side|srb|strap|ssb)/i.test(x)).sort(); if (!sides.length) return;
   const p0 = rocketG.position.clone(), q0 = rocketG.quaternion.clone(); rocketG.position.set(0, 0, 0); rocketG.quaternion.identity(); rocketG.updateMatrixWorld(true);
-  const inv = rg.matrixWorld.clone().invert();
-  sides.forEach((k, ci) => { const b = new THREE.Box3().setFromObject(st[k]); if (b.isEmpty()) return; const c = b.getCenter(new THREE.Vector3()).applyMatrix4(inv);
-    const sz = b.getSize(new THREE.Vector3()), kq = Math.max(1, Math.min(2.2, Math.min(sz.x, sz.z) / 2 / (RADCOLS.rB.get(rg) || 0.9)));
-    for (const { pl, q } of colP[ci]) pl.position.set(c.x + q[0] * kq, 0, c.z + q[1] * kq); });
+  const inv = rg.matrixWorld.clone().invert(), bells = [], groups = [];
+  for (const k of sides) { const nd = st[k].userData.nodes, a = (nd && nd.rotY) || 0, c = Math.cos(a), sn = Math.sin(a);
+    const pts = nd && nd.engines ? nd.engines.map(e => [e.pos[0] * c + e.pos[2] * sn + nd.offset[0], e.pos[1] + nd.offset[1], -e.pos[0] * sn + e.pos[2] * c + nd.offset[2]]) : (NZ[k] || []);
+    const bs = pts.map(q => new THREE.Vector3(q[0], q[1], q[2]).applyMatrix4(st[k].matrixWorld).applyMatrix4(inv)); if (bs.length) groups.push(bs); bells.push(...bs); }
+  const pl = rg.userData.plume, all = [pl, ...(pl.userData.extra || [])];
+  if (bells.length > all.length && groups.length) { // fewer plumes than bells (a strap-on with a 4-chamber engine): one plume per booster, at the centre of its bells
+    const ctr = groups.map(bs => { const c = new THREE.Vector3(); for (const b of bs) c.add(b); c.divideScalar(bs.length); c.y = Math.min(...bs.map(b => b.y)); return c; });
+    all.forEach((e, i) => e.position.copy(ctr[i % ctr.length])); }
+  else if (bells.length) { all.forEach((e, i) => { if (i < bells.length) e.position.copy(bells[i]); else rg.remove(e); }); // the roster may list more side boosters than the model has: drop the plumes with no bell
+    if (all.length > bells.length) { pl.userData.extra = all.slice(1, bells.length); pl.userData.nEng = bells.length; } }
   rocketG.position.copy(p0); rocketG.quaternion.copy(q0); rocketG.updateMatrixWorld(true);
 }
 // CoM / CoP markers for the hangar preview (drawn through the hull)
