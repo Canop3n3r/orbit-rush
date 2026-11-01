@@ -61,7 +61,7 @@ export function createNavball(canvas) {
     { const t = (Math.max(-75, Math.min(75, att.roll)) - 90) * Math.PI / 180, rr = R - W / 12, s2 = W / 22; g.save(); g.translate(R + Math.cos(t) * rr, R + Math.sin(t) * rr); g.rotate(t + Math.PI / 2);
       g.beginPath(); g.moveTo(0, -s2); g.lineTo(s2 * 0.8, s2 * 0.6); g.lineTo(-s2 * 0.8, s2 * 0.6); g.closePath(); g.fillStyle = '#ffcf4a'; g.fill(); g.restore(); }
     lastAtt = att;
-    for (const [k, dir] of Object.entries(st.markers || {})) { if (!dir) continue; const p = navballProject(F, dir); if (!p.front) continue; const big = k === 'pro' || k === 'retro', mx = R + p.x * R, my = R - p.y * R; // f5.5d: bold, labelled prograde / retrograde
+    for (const [k, dir] of Object.entries(st.markers || {})) { if (!dir) continue; const p = navballProject(F, dir); if (!p.front || Math.hypot(p.x, p.y) > 0.86) continue; /* f5.9-14 (QA P3): a marker this close to the rim would be cut in half by it */ const big = k === 'pro' || k === 'retro', mx = R + p.x * R, my = R - p.y * R; // f5.5d: bold, labelled prograde / retrograde
       if (big) { g.save(); g.globalAlpha = 0.85; mark(k, mx, my, Math.max(9, W / 8.5), '#0b1424', 2.2); g.restore(); } mark(k, mx, my, big ? Math.max(9, W / 8.5) : Math.max(5, W / 13));
       if (big) lab(k === 'pro' ? 'PRO' : 'RETRO', mx, my + Math.max(9, W / 8.5) + fs * 0.55, fs * 0.7, MARKERS[k], '#0b1424e0'); }
     if (st.ghost && st.ghost.n) { const p = navballProject(F, st.ghost.n), off = Math.acos(Math.max(-1, Math.min(1, p.z))); // f5.6h: ghost of the trackball target until the ship catches up

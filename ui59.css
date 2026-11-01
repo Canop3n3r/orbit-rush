@@ -668,3 +668,5 @@ body.u59 #botBar :is(#mThr,#dThr) i{display:block!important}
 /* f5.9-13: planner actions always visible (sticky at the card's foot); desktop card clears the Home top bar */
 body.u59 #xferPlan .xp-act{position:sticky;bottom:-12px;background:#0d1626;padding:8px 0 4px;margin-bottom:-4px}
 @media (min-width:900px){body.u59 #xferPlan{top:max(var(--topH,0px),52px)!important}body.u59 #xferPlan .xp-box{margin-top:8px;border-radius:16px!important;border:1px solid #2a3c5c}}
+/* f5.9-14 (QA P3): "Δv left" and "Stage 2" no longer run together on desktop */
+body.u59 #dvStages .dvH{margin-right:.6em}
