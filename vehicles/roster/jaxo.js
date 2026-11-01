@@ -29,7 +29,7 @@ export const ENGINES_JAXO = {
 export const ROSTER_JAXO = [
   { id: 'tsubame', name: "Tsubame", company: 'jaxo', src: 'spec:tsubame', area: 22.4, fairing: 0, est: ['fairing (unsourced, 0)', 'area'],
     stages: [
-      { engines: {'jx-e1': 2}, engineCount: 2, engineName: 'jx-e1', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 21000, prop: 132000, burn: 120.0, group: 0, jettisonAt: 120.0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
+      { engines: {'jx-e1': 2}, engineCount: 2, engineName: 'jx-e1', boosters: 2, boostersSrc: 'spec:tsubame#boosters', propellant: 'solid', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 21000, prop: 132000, burn: 120.0, group: 0, jettisonAt: 120.0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'jx-e2': 1}, engineCount: 1, engineName: 'jx-e2', propellant: 'hydrolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 13000, prop: 101000, burn: 390.0, group: 0, recovery: 'expended', src: 'masses: GCAT; engine: rocketdb (secondary: wikipedia.org) (rocketdb 1f8b463)' },
       { engines: {'jx-e3': 1}, engineCount: 1, engineName: 'jx-e3', propellant: 'hydrolox', nozzleLayout: { type: 'single' }, reusable: false, dry: 4000, prop: 16000, burn: 600.0, group: 1, restart: true, restartSrc: 'spec:tsubame#restart (rocketdb per-stage restartable, cited)', recovery: 'expended', src: 'masses: GCAT; engine: GCAT (rocketdb 1f8b463)' },
     ],

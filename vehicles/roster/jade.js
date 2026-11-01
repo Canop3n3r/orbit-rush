@@ -4,7 +4,7 @@ export const ENGINES_JADE = {
   'cl-h1': { tSl: 518, tVac: 700, ispSl: 316.7, ispVac: 428, src: 'spec:engines#cl-h1' },
   'cl-h2': { tSl: 0, tVac: 88.4, ispSl: 0, ispVac: 442.6, src: 'spec:engines#cl-h2' },
 };
-const boosters = { engines: { 'cl-k1': 8 }, engineCount: 8, engineName: 'cl-k1', propellant: 'kerolox', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 55200, prop: 571200, burn: 173, group: 0, recovery: 'expended' };
+const boosters = { engines: { 'cl-k1': 8 }, engineCount: 8, engineName: 'cl-k1', boosters: 4, boostersSrc: 'spec:jade-lantern-5#boosters', propellant: 'kerolox', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 55200, prop: 571200, burn: 173, group: 0, recovery: 'expended' };
 const core = { engines: { 'cl-h1': 2 }, engineCount: 2, engineName: 'cl-h1', propellant: 'hydrolox', nozzleLayout: { type: 'cluster' }, reusable: false, estimated: true, estimatedFields: ['nozzleLayout'], dry: 21600, prop: 165300, burn: 492, group: 0, recovery: 'expended' };
 export const ROSTER_JADE = [
   // core-to-orbit variant (no second stage): the sourced 25 t LEO figure is for this one
