@@ -672,3 +672,29 @@ body.u59 #dvStages .dvH{margin-right:.6em}
 /* f5.9-14 (QA P2): the THR pill shows its value (with the fill) at every size, in AUTO too; the value replaces the THR label so the pill says one thing */
 html body.u59 #botBar :is(#mThr,#dThr) u{display:block!important;top:50%!important;bottom:auto!important;transform:translateY(-50%)}
 html body.u59 #botBar :is(#mThr,#dThr) b{display:none!important}
+/* f5.9-14 (QA P1/P2): phone Settings (portrait and landscape) and the landscape-phone Atlas are the same card as on desktop: title, ✕ and body
+   in one piece under the top bar, sized to their content, no full-screen backdrop */
+@media (max-width:899px){
+  html body.u59 #settings{background:transparent!important}
+  html body.u59 #settings .mbox{inset:auto!important;top:calc(var(--topH,52px) + 6px)!important;left:50%!important;transform:translateX(-50%)!important;width:min(560px,100vw - 16px)!important;height:auto!important;max-height:calc(100dvh - var(--topH,52px) - 18px)!important;pointer-events:auto!important;display:flex!important;flex-direction:column!important;border:1px solid var(--bc,#2a3c5c);border-radius:14px;background:#0b1424!important;overflow:hidden!important;box-shadow:0 10px 30px #0008}
+  html body.u59 #settings .mbox>h2{position:static!important;align-self:stretch!important;padding:6px 10px!important;min-height:0!important}
+  html body.u59 #settings .mbox>:not(h2):not(.row):not(.col){margin:0!important;width:auto!important;align-self:stretch!important;max-height:none!important;flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+  html body.u59 #settings #setBody .setGrid{grid-template-columns:1fr!important}
+}
+@media (orientation:landscape) and (max-height:520px){
+  html body.u59 #atlas{background:transparent!important}
+  html body.u59 #atlas .mbox{inset:auto!important;top:calc(var(--topH,52px) + 6px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;width:min(460px,100vw - 32px)!important;height:auto!important;max-height:calc(100dvh - var(--topH,52px) - 18px)!important;pointer-events:auto!important;display:flex!important;flex-direction:column!important;border:1px solid var(--bc,#2a3c5c);border-radius:14px;background:#0b1424!important;overflow:hidden!important}
+  html body.u59 #atlas .mbox>h2{position:static!important;padding:4px 10px!important;min-height:0!important}
+  html body.u59 #atlas .mbox>#atlasBody{margin:0!important;width:auto!important;max-height:none!important;flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+}
+/* f5.9-14 (QA P1): the transfer planner is a bottom card (≤35% of the screen), the game stays visible above it */
+html body.u59 #xferPlan{inset:auto 0 0 0!important;top:auto!important;background:transparent!important;pointer-events:none;display:flex;justify-content:center;align-items:flex-end!important}
+html body.u59 #xferPlan.hidden{display:none!important}
+html body.u59 #xferPlan .xp-box{pointer-events:auto;width:min(560px,100%)!important;max-height:35dvh!important;overflow:auto!important;border-radius:16px 16px 0 0!important;border:1px solid #2a3c5c;border-bottom:0;margin:0!important;padding:6px 12px 8px!important}
+html body.u59 #xferPlan .xp-top{font-size:15px}
+html body.u59 #xferPlan .xp-chips{margin:4px 0}
+html body.u59 #xferPlan .xp-chips button,html body.u59 #xferPlan .xp-more{min-height:40px;padding:4px 10px}
+html body.u59 #xferPlan .xp-verdict{padding:5px 8px;margin:4px 0;font-size:13px}
+html body.u59 #xferPlan .xp-more2 summary{cursor:pointer;color:#9fc3ff;min-height:32px;display:flex;align-items:center}
+html body.u59 #xferPlan .xp-act{margin-top:4px}
+html body.u59 #xferPlan .xp-act button{min-height:40px}

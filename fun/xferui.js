@@ -16,11 +16,11 @@ export function describe(pl, dvAvail, rocketName) {
     ['🛰️', 'Parking orbit', `${UN.dist(pl.park.alt)} up`, `wait ${span(pl.departT - L.t - T.ASCENT_S)} for the right spot`],
     ...pl.burns.map(b => [b.key === 'tmi' ? '🔥' : b.key === 'mid' ? '🧭' : '🅿️', b.name, `${UN.dv(b.dv)} · ${day(P.dateFromT(b.t))}`, b.note])];
   const vc = { ok: 'xp-good', tight: 'xp-warn', no: 'xp-bad', none: '' }[vd.level];
-  const html = `<div class="xp-head2"><b>${esc(pl.targetName)}</b> · trip ${span(pl.flightTime)} · arrive ${day(P.dateFromT(pl.arriveT))}</div>
-    <ol class="xp-steps">${steps.map(s => `<li><span>${s[0]}</span><div><b>${s[1]}</b> <i>${s[2]}</i><small>${s[3]}</small></div></li>`).join('')}</ol>
-    <div class="xp-bill">Fuel bill: <b>${UN.dv(pl.required)}</b> of Δv (${UN.dv(pl.ascentDv)} to orbit + ${UN.dv(pl.transferDv)} for the transfer)${dvAvail > 0 ? ` · ${esc(rocketName || 'this rocket')} carries <b>${UN.dv(dvAvail)}</b>` : ''}</div>
+  const html = `<div class="xp-head2"><b>${esc(pl.targetName)}</b> · launch ${utc(L.date)} · ${esc(L.siteName)} · trip ${span(pl.flightTime)}</div>
     ${vd.text ? `<div class="xp-verdict ${vc}">${vd.text}${vd.level === 'no' ? ` About ${UN.dv(-vd.spare)} short.` : vd.level === 'ok' ? ` About ${UN.dv(vd.spare)} spare.` : ''}</div>` : ''}
-    ${win ? `<div class="xp-next">Miss it? The next window is ${day(win.date)}.</div>` : ''}`;
+    <details class="xp-more2"><summary>Burns and fuel bill</summary><ol class="xp-steps">${steps.map(s => `<li><span>${s[0]}</span><div><b>${s[1]}</b> <i>${s[2]}</i><small>${s[3]}</small></div></li>`).join('')}</ol>
+    <div class="xp-bill">Fuel bill: <b>${UN.dv(pl.required)}</b> of Δv (${UN.dv(pl.ascentDv)} to orbit + ${UN.dv(pl.transferDv)} for the transfer)${dvAvail > 0 ? ` · ${esc(rocketName || 'this rocket')} carries <b>${UN.dv(dvAvail)}</b>` : ''}</div>
+    ${win ? `<div class="xp-next">Miss it? The next window is ${day(win.date)}.</div>` : ''}</details>`;
   return { html, level: vd.level };
 }
 export function createXferPlanner({ getEpoch, getDvAvail, getRocketName, getArmed, onArm, onClear }) {
@@ -43,6 +43,6 @@ export function createXferPlanner({ getEpoch, getDvAvail, getRocketName, getArme
   q('.xp-set').onclick = () => { if (plan && plan.ok) { onArm(plan, false); show(false); } };
   q('.xp-clear').onclick = () => { onClear(); plan = null; target = null; q('.xp-body').innerHTML = '<p class="xp-hint">Plan cleared: the next launch is a normal one.</p>'; refresh(); };
   el.addEventListener('pointerdown', e => { if (e.target === el) show(false); });
-  function show(v) { el.classList.toggle('hidden', !v); if (v) { const a = getArmed(); if (a && !plan) { target = a.target; plan = a; q('.xp-body').innerHTML = describe(a, getDvAvail(), getRocketName()).html; } refresh(); } }
+  function show(v) { el.classList.toggle('hidden', !v); if (v) { const a = getArmed(); if (a && !plan) { target = a.target; plan = a; q('.xp-body').innerHTML = describe(a, getDvAvail(), getRocketName()).html; } else if (!plan && !target) run('moon'); /* f5.9-14 (QA P1): open on the Moon, the nearest trip */ refresh(); } }
   return { el, show, get on() { return !el.classList.contains('hidden'); }, run, get plan() { return plan; } };
 }
