@@ -27,7 +27,7 @@ export function createFunUI(ctx) {
   const navEl = el('div', { id: 'nav', className: 'hidden' }, `
     <button id="navMode" class="glass" title="Speed reference: surface / orbit / target">SURFACE <b id="navSpd">0 m/s</b></button>
     <div id="navCue" class="hidden"></div>
-    <div id="navRd" aria-label="Attitude readout"><span>HDG <b id="nrH">000</b>°</span><span>PIT <b id="nrP">+00</b>°</span><span>ROLL <b id="nrR">+00</b>°</span><span id="nbInc" title="Orbit inclination (0° = equator, 90° = polar)">INC <b id="nrI">0.0</b>°</span></div>
+    <div id="navRd" aria-label="Attitude readout"><span>HDG <b id="nrH">000</b>°</span><span>PIT <b id="nrP">+00</b>°</span><span>ROLL <b id="nrR">+00</b>°</span><span id="nbInc" title="Orbit inclination (0° = equator, 90° = polar)">INC <b id="nrI">0.0</b>°</span><span class="nbTw">TWR <b id="nrTw">0.00</b></span><span class="nbTw">P <b id="nrPa">0 psi</b></span></div>
     <div class="navWrap"><svg class="navArcs" viewBox="0 0 200 200" aria-hidden="true">
       <path class="trk" d="M 38 160 A 85 85 0 0 1 38 40"/><path id="navThr" class="thr" d="M 38 160 A 85 85 0 0 1 38 40"/>
       <path class="trk" d="M 162 40 A 85 85 0 0 1 162 160"/><path id="navFuel" class="fuel" d="M 162 160 A 85 85 0 0 0 162 40"/></svg>
