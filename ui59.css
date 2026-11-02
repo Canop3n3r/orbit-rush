@@ -698,3 +698,7 @@ html body.u59 #xferPlan .xp-verdict{padding:5px 8px;margin:4px 0;font-size:13px}
 html body.u59 #xferPlan .xp-more2 summary{cursor:pointer;color:#9fc3ff;min-height:32px;display:flex;align-items:center}
 html body.u59 #xferPlan .xp-act{margin-top:4px}
 html body.u59 #xferPlan .xp-act button{min-height:40px}
+/* QA f5.9-14: phone landscape (≤500 px tall): 35dvh is only ~136 px, so the sticky action row covered the chips and hid the verdict. There the card docks
+   bottom-right under the top bar instead: up to the full height between the bars, ~46% wide (≤40% of the screen), the left of the scene stays visible. */
+@media (orientation:landscape) and (max-height:500px){html body.u59 #xferPlan{justify-content:flex-end!important}
+  html body.u59 #xferPlan .xp-box{width:min(420px,48vw)!important;max-height:calc(100dvh - var(--topH,52px) - 4px)!important;border-radius:16px 0 0 0!important;border-right:0}}
