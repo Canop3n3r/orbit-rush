@@ -730,3 +730,10 @@ body.u59 #atlas .atl.unseen summary{color:var(--txt,#fff)}
   html body.u59 #atlas .mbox{bottom:8px!important;max-height:none!important}
   html body.u59 #atlas .mbox>#atlasBody{overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 }
+/* f5.9-17 (phone map): the tracking list is a small pill until tapped; open, it is a short scrollable card under the bar */
+body.u59 #mapTrack{cursor:pointer;max-height:min(30dvh,240px)!important;overflow:auto!important;font-size:var(--t-xs)}
+body.u59 #mapTrack:not(.open){padding:4px 10px!important;border-radius:0 0 999px 0!important;overflow:hidden!important}
+body.u59 #mapTrack:not(.open) div{display:none}
+body.u59 #mapTrack h4{margin:0!important;white-space:nowrap}
+body.u59 #mapTrack h4 i{font-style:normal;opacity:.7;margin-left:4px}
+body.u59 #mapTrack.open div{overflow:hidden;text-overflow:ellipsis;max-width:min(240px,70vw)}
