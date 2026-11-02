@@ -740,3 +740,13 @@ body.u59 #mapTrack.open div{overflow:hidden;text-overflow:ellipsis;max-width:min
 /* f5.9-17: TWR + ambient pressure sit in the telemetry column, same type as ALT */
 body.u59 #botBar #plTw{display:flex;gap:0 8px;flex-wrap:wrap;font-size:var(--t-xs)!important;line-height:1.15;white-space:nowrap}
 body.u59 #botBar #plTw b{font-weight:700}
+/* f5.9-17 (QA f5.9-16 P2): a switched-to craft coasting keeps the normal flight HUD: no attitude block, no lone ⊙ */
+body.u59.craftOn #bbT #navRd,body.u59.craftOn #bbT #navSasT{display:none!important}
+/* f5.9-17 (QA f5.9-16 P2): 844 craft list sits between the bars (off the navball), no footer hint, rows scroll instead of clipping */
+@media (orientation:landscape) and (max-height:520px){
+  body.u59 #vsl{top:calc(var(--topH,52px) + 4px)!important;bottom:auto!important;left:auto!important;right:calc(8px + var(--sar,0px))!important;transform:none!important;width:min(420px,calc(100vw - 16px))!important;max-height:calc(100dvh - var(--topH,52px) - var(--bnb,58px) - 20px)!important}
+  body.u59 #vsl .vf{display:none!important}
+  body.u59 #vsl .vl{overflow-y:auto!important;min-height:0}
+  body.u59 #vsl .vi{display:none}
+  body.u59 #vsl button{min-height:32px}
+}
