@@ -39,7 +39,7 @@ export function landAid(h, vs, aMax, g) {
 }
 export function createPlainHud() {
   const el = document.createElement('div'); el.id = 'plain'; el.className = 'hidden';
-  el.innerHTML = `<div id="spd"><b class="spV">0</b><small>MPH</small></div><div id="plAlt">ALT 0 ft</div>
+  el.innerHTML = `<div id="spd"><b class="spV">0</b><small>MPH</small></div><div id="plAlt">ALT 0 ft</div><div id="plTw"><span>TWR <b id="plTwr">0.00</b></span><span>P <b id="plPa">0 psi</b></span></div>
     <div id="apPe"><div><b>Ap</b> <span id="plAp">—</span> <i id="plApT"></i></div><div><b>Pe</b> <span id="plPe">—</span> <i id="plPeT"></i></div></div>
     <div id="plLand" class="hidden"><b id="plVs"></b><span id="plImp"></span><em id="plBurn"></em></div><div id="dvStages"></div>`;
   document.body.appendChild(el);
@@ -47,7 +47,7 @@ export function createPlainHud() {
   function update(d) { // { on, mps, alt, ap:{h,t}, pe:{h,t}, dv:[{n,dv,on}] }
     el.classList.toggle('hidden', !d.on); if (!d.on) return;
     el.querySelector('.spV').textContent = c0(U.spdN(d.mps)); { const sm = el.querySelector('#spd small'), l = U.spdLab().toUpperCase(); if (sm && sm.textContent !== l) sm.textContent = l; }
-    set('plAlt', 'ALT ' + fmtHeight(d.alt)); set('plAp', d.ap.h); set('plApT', d.ap.t); set('plPe', d.pe.h); set('plPeT', d.pe.t);
+    set('plAlt', 'ALT ' + fmtHeight(d.alt)); set('plTwr', isFinite(d.twr) ? d.twr.toFixed(2) : '—'); set('plPa', U.pres(d.pa || 0)); set('plAp', d.ap.h); set('plApT', d.ap.t); set('plPe', d.pe.h); set('plPeT', d.pe.t);
     const la = d.land || null; $('plLand').classList.toggle('hidden', !la); document.body.classList.toggle('plLandOn', !!la); if (la) { set('plVs', 'V/S ' + la.vs + ' ' + U.spdLab()); set('plImp', 'Impact ' + la.tImp.toFixed(1) + ' s');
       set('plBurn', la.state === 'low' ? 'TWR too low' : la.state === 'now' ? '🔥 BURN NOW' : 'Burn in ' + la.burnIn.toFixed(1) + ' s'); $('plLand').className = 'on ' + la.state; }
     const key = d.dv.map(s => s.n + ':' + Math.round(s.dv) + (s.on ? '*' : '')).join(',');

@@ -737,3 +737,6 @@ body.u59 #mapTrack:not(.open) div{display:none}
 body.u59 #mapTrack h4{margin:0!important;white-space:nowrap}
 body.u59 #mapTrack h4 i{font-style:normal;opacity:.7;margin-left:4px}
 body.u59 #mapTrack.open div{overflow:hidden;text-overflow:ellipsis;max-width:min(240px,70vw)}
+/* f5.9-17: TWR + ambient pressure sit in the telemetry column, same type as ALT */
+body.u59 #botBar #plTw{display:flex;gap:0 8px;flex-wrap:wrap;font-size:var(--t-xs)!important;line-height:1.15;white-space:nowrap}
+body.u59 #botBar #plTw b{font-weight:700}
