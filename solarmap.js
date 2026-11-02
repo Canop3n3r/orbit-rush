@@ -479,6 +479,7 @@ export function createSolarMap(opts) {
   // f5.4j: test probe: where the map draws the craft vs a body (map metres) and the end of the drawn trajectory
   const probe = id => { const o = bodies[id || getF().body]; return o && o.m ? { craftToBody: craftDot.position.distanceTo(o.m.position), R: B[id || getF().body].R, drawnR: o.m.scale.x } : null; };
   return { scene, camera, update, show, reset, key, probe, patchAt, get conic() { return S.conic; }, setConic: c => { S.conic = c; const b = document.querySelector('#mapMore [data-a=conic]'); if (b) b.textContent = c === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; }, setFocus, setView, resetView, cycle, zoomBy, runPlanner, selectNode, addNodeAt, warpNext, state: S,
+    focusPx: () => { const p = project([0, 0, 0]); return [Math.round(p.x), Math.round(p.y)]; }, // f5.9-17: map_phone smoke
     setCam: (q, dist) => { if (q) { const b = new THREE.Vector3(0, 0, 1).applyQuaternion(new THREE.Quaternion(q[0], q[1], q[2], q[3]).normalize()); S.yaw = S.yawT = Math.atan2(b.y, b.x); S.pitch = S.pitchT = Math.asin(Math.max(-1, Math.min(1, b.z))); S.idle = -1e9; applyYP(); } if (dist) { S.dist = S.distT = dist; } },
     openPlanner: tg => { S.panelMode = 'plan'; runPlanner(tg); }, get panelMode() { return S.panelMode; }, get plan() { return S.plan; } };
 }
