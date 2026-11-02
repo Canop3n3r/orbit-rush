@@ -5,7 +5,7 @@
 import { R_E, MU_E, KARMAN } from './constants.js?v=f5.9-15';
 import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.9-15';
 import { elements, timeToAp } from './kepler.js?v=f5.9-15';
-import { airVel, stepPoint, muOf, radOf } from './dynamics.js?v=f5.9-15';
+import { airVel, stepPoint, muOf, radOf, noseOf } from './dynamics.js?v=f5.9-15';
 import { massOf } from './vehicle.js?v=f5.9-15';
 import { thermalOf } from './thermal.js?v=f5.9-15';
 import { atmosphere } from './atmosphere.js?v=f5.9-15';
@@ -39,6 +39,7 @@ function holdPitch(v, f, vrDes, k, cosMax = 0.999) {
   if (aT <= 0) return Math.PI / 2;
   return Math.acos(clamp((g - vh * vh / r + (vrDes - vr) * k) / aT, -0.3, cosMax));
 }
+export const ALIGN_THR = 0.08; // f5.9-16: burn trickle while the nose swings onto the burn direction
 export const G_LIMIT = 4.5; // g: AUTO throttles down to keep acceleration under this
 // Time to burn dv with the current and later stages (vacuum; Infinity if the fuel is not there).
 export function burnTimeFor(v, dv) {
@@ -181,7 +182,12 @@ export function autoGuide(v) {
   const heavyUp = ph === 'ascent' && v.stages[0] && v.stages[0].radial && h < 50000 && vr < 120 + h * 0.012 ? 0.2 : 0;
   pitch = clamp(pitch, pgAir - lim2 - heavyUp, pgAir + lim2);
   pitch = clamp(pitch, 0, Math.PI * 0.75);
-  return { dir: dirOfPitch(pitch, f), throttle: thr, phase: ph, pitch };
+  const dir = dirOfPitch(pitch, f);
+  // f5.9-16: a heavy stack has no attitude authority while coasting (gimbal only), so its nose can drift far off by the time the
+  // circularization (or insertion / raise) burn starts; space-truck lit 67° nose-down and burned straight into the air. Until the
+  // nose is back within ~12° of the wanted direction, burn at a trickle that gives the gimbal authority but wastes almost no Δv.
+  if (thr > 0 && (ph === 'circ' || ph === 'raise' || ph === 'insert')) { const off = Math.acos(clamp(dot(noseOf(v), dir), -1, 1)); if (off > 0.21) thr = Math.min(thr, ALIGN_THR); }
+  return { dir, throttle: thr, phase: ph, pitch };
 }
 // ---------- booster (3-DOF) autopilot: live-state entry burn → aero coast → hoverslam ----------
 // Entry burn: every 0.5 s a cheap drag-only coast prediction from the live state gives the peak dynamic pressure and
