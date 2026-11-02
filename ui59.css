@@ -702,10 +702,31 @@ html body.u59 #xferPlan .xp-act button{min-height:40px}
    bottom-right under the top bar instead: up to the full height between the bars, ~46% wide (≤40% of the screen), the left of the scene stays visible. */
 @media (orientation:landscape) and (max-height:500px){html body.u59 #xferPlan{justify-content:flex-end!important}
   html body.u59 #xferPlan .xp-box{width:min(420px,48vw)!important;max-height:calc(100dvh - var(--topH,52px) - 4px)!important;border-radius:16px 0 0 0!important;border-right:0}}
-/* f5.9-16 (QA P3): phone landscape: a smaller navball that clears the screen's bottom edge */
+/* f5.9-17 (QA P3): phone landscape: a smaller navball that clears the screen's bottom edge */
 @media (orientation:landscape) and (max-height:520px){:root{--nbD:clamp(80px,22vh,190px)}}
-/* f5.9-16 (QA P3): Δv rows keep a gap between stages at every size */
+/* f5.9-17 (QA P3): Δv rows keep a gap between stages at every size */
 body.u59 #dvStages .dvS+.dvS{margin-left:.8em}
-/* f5.9-16 (QA P3): no tap highlight or focus block left over a sheet that a tap just opened */
+/* f5.9-17 (QA P3): no tap highlight or focus block left over a sheet that a tap just opened */
 body.u59 :is(button,a,[role=button],summary,label,select,input){-webkit-tap-highlight-color:transparent}
 body.u59 :is(button,a,[role=button]):focus:not(:focus-visible){outline:none!important;box-shadow:none}
+/* f5.9-17 (QA f5.9-15 P3s) */
+/* 390: speed and its unit on one line; the ΔV LEFT row shows while flying by hand (short labels) */
+@media (orientation:portrait) and (max-width:600px){
+  body.u59 #botBar #spd{flex-wrap:nowrap!important;white-space:nowrap}
+  body.u59 #botBar #spd .spV{font-size:clamp(20px,6.2vw,26px)!important}
+  body.u59 #botBar #spd small{font-size:10px!important}
+  body.u59:not(.autoOn):not(.plLandOn) #botBar #dvStages{display:flex!important;flex-wrap:wrap;gap:0 6px;margin:1px 0 0!important;padding:1px 0 0!important;font-size:var(--t-xs);line-height:1.15}
+  body.u59 #botBar #dvStages .dvH{display:none!important}
+  body.u59 #botBar #dvStages .dvS+.dvS{margin-left:0}
+  /* the craft list is a short card under the top bar, so the craft in mid-screen stays visible */
+  body.u59 #vsl{top:calc(var(--topH,52px) + 6px)!important;bottom:auto!important;max-height:min(30dvh,250px)!important}
+  body.u59 #vsl .vi{display:none}
+  body.u59 #vsl button{min-height:32px}
+}
+/* 844: Atlas rows are all normal (unvisited worlds no longer look disabled) and the list scrolls inside the card */
+body.u59 #atlas .atl.unseen{opacity:1}
+body.u59 #atlas .atl.unseen summary{color:var(--txt,#fff)}
+@media (orientation:landscape) and (max-height:520px){
+  html body.u59 #atlas .mbox{bottom:8px!important;max-height:none!important}
+  html body.u59 #atlas .mbox>#atlasBody{overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+}

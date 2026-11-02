@@ -1,5 +1,5 @@
 // f5.4 sandbox launch-from-anywhere picker (Home 📍 button): world → preset base or tap a spot on the map.
-import { SITES, GAS } from '../sites.js?v=f5.9-16';
+import { SITES, GAS } from '../sites.js?v=f5.9-17';
 const KEY = 'orbitRush.site.v1';
 export function loadSite() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && s.body ? s : null; } catch (e) { return null; } }
 export function saveSite(s) { try { s ? localStorage.setItem(KEY, JSON.stringify(s)) : localStorage.removeItem(KEY); } catch (e) { } }
@@ -39,7 +39,8 @@ export function createSitePicker({ BODIES, onPick }) {
     set('position', 'fixed'); set('margin', '0');
     if (innerHeight < 501 && r.right + 8 + w <= innerWidth) { set('left', Math.round(r.right + 8) + 'px'); set('top', Math.round(Math.max(8, Math.min(r.top, innerHeight - h - 8))) + 'px'); set('bottom', 'auto'); return; }
     set('left', Math.round(Math.max(8, Math.min(r.left, innerWidth - w - 8))) + 'px');
-    if (r.top > innerHeight / 2 && r.top - 8 - h >= 8) { set('top', 'auto'); set('bottom', Math.round(innerHeight - r.top + 8) + 'px'); } else { set('top', Math.round(Math.max(8, Math.min(r.bottom + 8, innerHeight - h - 8))) + 'px'); set('bottom', 'auto'); } };
+    const L = Math.max(8, Math.min(r.left, innerWidth - w - 8)), g = document.getElementById('hGal'), gr = g && g.offsetHeight ? g.getBoundingClientRect() : null, at = gr && gr.top > innerHeight / 2 && gr.top < r.top && gr.left < L + w && gr.right > L ? gr.top : r.top; // f5.9-17 (QA P3): clear the rocket strip, not just the button
+    if (at > innerHeight / 2 && at - 8 - h >= 8) { set('top', 'auto'); set('bottom', Math.round(innerHeight - at + 8) + 'px'); } else { set('top', Math.round(Math.max(8, Math.min(r.bottom + 8, innerHeight - h - 8))) + 'px'); set('bottom', 'auto'); } };
   const show = v => { if (v) { el.classList.remove('more'); { const sel = loadSite(); el.classList.toggle('worlds', !!sel && order.indexOf(sel.body) >= 3); } q('.spMore').textContent = 'More sites…'; pick = loadSite(); body = pick ? pick.body : 'earth'; render(); } el.classList.toggle('hidden', !v); if (v) setTimeout(() => anchor(), 0); };
   return { el, show, choose, get on() { return !el.classList.contains('hidden'); } };
 }
