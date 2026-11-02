@@ -2,17 +2,17 @@
 // AUTO ascent: vertical rise, pitch kick, gravity turn that stays near air-relative prograde while the
 // dynamic pressure is high (Max-Q throttling), a pitch program toward the horizontal, then coast to
 // apoapsis and a circularization burn. Phases on v.guid: ascent -> coast -> circ -> done.
-import { R_E, MU_E, KARMAN } from './constants.js?v=f5.9-15';
-import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.9-15';
-import { elements, timeToAp } from './kepler.js?v=f5.9-15';
-import { airVel, stepPoint, muOf, radOf, noseOf } from './dynamics.js?v=f5.9-15';
-import { massOf } from './vehicle.js?v=f5.9-15';
-import { thermalOf } from './thermal.js?v=f5.9-15';
-import { atmosphere } from './atmosphere.js?v=f5.9-15';
-import { cd0 } from './aero.js?v=f5.9-15';
-import { hoverslamSolve } from './hoverslam.js?v=f5.9-15';
-import { sampleAscent } from '../timelines/ascent.js?v=f5.9-15';
-import { BODIES, atmTop } from './solar.js?v=f5.9-15';
+import { R_E, MU_E, KARMAN } from './constants.js?v=f5.9-16';
+import { add, sub, scale, dot, cross, len, norm, clamp } from './vec.js?v=f5.9-16';
+import { elements, timeToAp } from './kepler.js?v=f5.9-16';
+import { airVel, stepPoint, muOf, radOf, noseOf } from './dynamics.js?v=f5.9-16';
+import { massOf } from './vehicle.js?v=f5.9-16';
+import { thermalOf } from './thermal.js?v=f5.9-16';
+import { atmosphere } from './atmosphere.js?v=f5.9-16';
+import { cd0 } from './aero.js?v=f5.9-16';
+import { hoverslamSolve } from './hoverslam.js?v=f5.9-16';
+import { sampleAscent } from '../timelines/ascent.js?v=f5.9-16';
+import { BODIES, atmTop } from './solar.js?v=f5.9-16';
 export const TARGET_AP = 185000;   // m: AUTO ascent cuts off once apoapsis reaches this
 export const TARGET_PE = 150000;   // m: AUTO circularizes until periapsis is above this
 export const ORBIT_PE = 130000;    // m: periapsis needed to count as a (lasting) orbit
@@ -185,8 +185,8 @@ export function autoGuide(v) {
   const dir = dirOfPitch(pitch, f);
   // f5.9-16: a heavy stack has no attitude authority while coasting (gimbal only), so its nose can drift far off by the time the
   // circularization (or insertion / raise) burn starts; space-truck lit 67° nose-down and burned straight into the air. Until the
-  // nose is back within ~12° of the wanted direction, burn at a trickle that gives the gimbal authority but wastes almost no Δv.
-  if (thr > 0 && (ph === 'circ' || ph === 'raise' || ph === 'insert')) { const off = Math.acos(clamp(dot(noseOf(v), dir), -1, 1)); if (off > 0.21) thr = Math.min(thr, ALIGN_THR); }
+  // nose is no longer pointing well below the horizon and far off the burn direction, burn at a trickle (gimbal authority, almost no Δv).
+  if (thr > 0 && ph === 'circ') { const off = Math.acos(clamp(dot(noseOf(v), dir), -1, 1)); if (off > 0.6 && dot(noseOf(v), f.up) < -0.25) thr = Math.min(thr, ALIGN_THR); }
   return { dir, throttle: thr, phase: ph, pitch };
 }
 // ---------- booster (3-DOF) autopilot: live-state entry burn → aero coast → hoverslam ----------
