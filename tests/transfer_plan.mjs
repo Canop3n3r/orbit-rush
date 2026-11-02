@@ -1,7 +1,7 @@
 // f6.5 pre-launch transfer planner: window maths, launch geometry, burn sequence, verdict. Run: node tests/transfer_plan.mjs
-import * as P from '../physics.js?v=f5.9-13';
-import * as C from '../physics/patched.js?v=f5.9-13';
-import * as T from '../physics/transfer_plan.js?v=f5.9-13';
+import * as P from '../physics.js?v=f5.9-14';
+import * as C from '../physics/patched.js?v=f5.9-14';
+import * as T from '../physics/transfer_plan.js?v=f5.9-14';
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('FAIL', m); } };
 const DAY = 86400, t0 = P.tFromDate(Date.UTC(2026, 9, 25, 15)), D2R = Math.PI / 180;
 console.log('1. Earth orientation and local time');
