@@ -23,6 +23,6 @@ export const dist = m => { const a = Math.abs(m); if (imp()) return a < MI * 0.5
 /* authored text ("Reach 10 km", "Climb above 10 km") in the current units */
 export const txt = s => imp() && typeof s === 'string' ? s.replace(/(\d+(?:\.\d+)?) km\b/g, (_, n) => big(+n * 1000)).replace(/(\d+(?:\.\d+)?) m\/s\b/g, (_, n) => dv(+n)) : s;
 
-export const presN = pa => imp() ? pa / 6894.757 : pa / 1000; // f5.9-17: ambient pressure, psi or kPa
+export const presN = pa => imp() ? pa / 6894.757 : pa / 1000; // f5.9-18: ambient pressure, psi or kPa
 export const presLab = () => imp() ? 'psi' : 'kPa';
 export const pres = pa => { const x = presN(pa); return (x <= 0 ? '0' : x >= 10 ? x.toFixed(1) : x >= 0.01 ? x.toFixed(2) : '<0.01') + ' ' + presLab(); };

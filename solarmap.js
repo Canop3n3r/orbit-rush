@@ -4,14 +4,14 @@
 // Orbit camera: quaternion trackball (any angle, pole-down or edge-on, no gimbal lock), smooth zoom, pan,
 // focus with smooth transitions. Lines are drawn twice: depth-tested (bright) and through bodies (faint).
 // Markers and node handles are HTML (crisp, finger-sized). Mouse and touch.
-import * as UN from './fun/units.js?v=f5.9-17';
+import * as UN from './fun/units.js?v=f5.9-18';
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as GX from './gfx/gfx.js?v=f5.9-17';
-import * as P from './physics.js?v=f5.9-17';
-import * as C from './physics/patched.js?v=f5.9-17';
-import { fmtDur } from './flight.js?v=f5.9-17';
-import { layoutHandles } from './maplayout.js?v=f5.9-17';
+import * as GX from './gfx/gfx.js?v=f5.9-18';
+import * as P from './physics.js?v=f5.9-18';
+import * as C from './physics/patched.js?v=f5.9-18';
+import { fmtDur } from './flight.js?v=f5.9-18';
+import { layoutHandles } from './maplayout.js?v=f5.9-18';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
 const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : UN.dist(m); }; // f5.7q: Units setting
@@ -331,7 +331,7 @@ export function createSolarMap(opts) {
     camera.position.copy(back); camera.quaternion.copy(S.q); camera.near = Math.max(0.5, S.dist * 1e-4); camera.far = Math.max(1e13, S.dist * 1e3);
     { // keep the focus in the free part of the screen (not under the toolbar or the side panel)
       const pe = document.getElementById('mapPanel'), be = document.getElementById('mapBar'), pr = pe && !pe.classList.contains('hidden') ? pe.getBoundingClientRect() : null, br = be ? be.getBoundingClientRect() : null;
-      const tx = pr && pr.left > S.W * 0.35 ? (S.W - pr.left) / 2 : 0; let y0 = 0, y1 = S.H; // f5.9-17 (phone map): centre the focus between whatever chrome sits at the top and at the bottom (the bar is at the top on phones)
+      const tx = pr && pr.left > S.W * 0.35 ? (S.W - pr.left) / 2 : 0; let y0 = 0, y1 = S.H; // f5.9-18 (phone map): centre the focus between whatever chrome sits at the top and at the bottom (the bar is at the top on phones)
       for (const r of [br && br.height ? br : null, pr && pr.left <= S.W * 0.35 ? pr : null]) { if (!r) continue; if (r.top < S.H * 0.4) y0 = Math.max(y0, r.bottom); else y1 = Math.min(y1, r.top); }
       const ty = Math.max(-S.H * 0.35, Math.min(S.H * 0.35, S.H / 2 - (y0 + y1) / 2)); // full-width panel (phone portrait): shift up
       S.vo = S.vo || [0, 0]; const k = Math.min(1, rdt * 6); S.vo[0] += (tx - S.vo[0]) * k; S.vo[1] += (ty - S.vo[1]) * k;
@@ -427,11 +427,11 @@ export function createSolarMap(opts) {
         L.geo.attributes.position.needsUpdate = true; L.geo.setDrawRange(0, 129); L.a.position.set(...eRel); L.b.position.copy(L.a.position); L.set(true);
         const st = P.propagate(o.r, o.v, t - o.t, mu); place(marker('🛰 ' + o.name, 'sat'), V.add(eRel, mv(Fe, st.r))); });
       for (let k = sats.length; k < satLines.length; k++) satLines[k].set(false);
-      const tr = ui.querySelector('#mapTrack'); tr.classList.toggle('hidden', !sats.length); if (!tr._tap) { tr._tap = 1; tr.addEventListener('click', () => { tr.classList.toggle('open'); S._trT = 0; }); } // f5.9-17 (phone map): collapsed to a pill until tapped
+      const tr = ui.querySelector('#mapTrack'); tr.classList.toggle('hidden', !sats.length); if (!tr._tap) { tr._tap = 1; tr.addEventListener('click', () => { tr.classList.toggle('open'); S._trT = 0; }); } // f5.9-18 (phone map): collapsed to a pill until tapped
       if (sats.length && (S._trT = (S._trT || 0) - rdt) <= 0) { S._trT = 1; const Rb = B.earth.R;
         tr.innerHTML = `<h4>🛰 ${sats.length} in orbit <i>${tr.classList.contains('open') ? '▴' : '▾'}</i></h4>` + sats.slice(-12).map(o => { const st = P.propagate(o.r, o.v, t - o.t, mu); return `<div>${o.name} · ${UN.big(Math.hypot(...st.r) - Rb)}</div>`; }).join(''); } }
     for (let k = markerN; k < markerPool.length; k++) markerPool[k].style.display = 'none';
-    { const kept = []; for (let k = 0; k < markerN; k++) { const d = markerPool[k]; if (d.style.display === 'none' || d._x == null) continue; if (!d._w) { d._w = d.offsetWidth; d._h = d.offsetHeight; } const r = [d._x - 3, d._y - 3, d._x + d._w + 3, d._y + d._h + 3]; if (kept.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) { d.style.display = 'none'; continue; } kept.push(r); } } // f5.9-17 (phone map): a label that would overlap an earlier (higher-priority) one is hidden
+    { const kept = []; for (let k = 0; k < markerN; k++) { const d = markerPool[k]; if (d.style.display === 'none' || d._x == null) continue; if (!d._w) { d._w = d.offsetWidth; d._h = d.offsetHeight; } const r = [d._x - 3, d._y - 3, d._x + d._w + 3, d._y + d._h + 3]; if (kept.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) { d.style.display = 'none'; continue; } kept.push(r); } } // f5.9-18 (phone map): a label that would overlap an earlier (higher-priority) one is hidden
     const n = S.sel && F.nodes.includes(S.sel) ? S.sel : null;
     handles.forEach(hd => { hd.style.display = 'none'; });
     if (n && n._scr) {
@@ -479,7 +479,7 @@ export function createSolarMap(opts) {
   // f5.4j: test probe: where the map draws the craft vs a body (map metres) and the end of the drawn trajectory
   const probe = id => { const o = bodies[id || getF().body]; return o && o.m ? { craftToBody: craftDot.position.distanceTo(o.m.position), R: B[id || getF().body].R, drawnR: o.m.scale.x } : null; };
   return { scene, camera, update, show, reset, key, probe, patchAt, get conic() { return S.conic; }, setConic: c => { S.conic = c; const b = document.querySelector('#mapMore [data-a=conic]'); if (b) b.textContent = c === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; }, setFocus, setView, resetView, cycle, zoomBy, runPlanner, selectNode, addNodeAt, warpNext, state: S,
-    focusPx: () => { const p = project([0, 0, 0]); return [Math.round(p.x), Math.round(p.y)]; }, // f5.9-17: map_phone smoke
+    focusPx: () => { const p = project([0, 0, 0]); return [Math.round(p.x), Math.round(p.y)]; }, // f5.9-18: map_phone smoke
     setCam: (q, dist) => { if (q) { const b = new THREE.Vector3(0, 0, 1).applyQuaternion(new THREE.Quaternion(q[0], q[1], q[2], q[3]).normalize()); S.yaw = S.yawT = Math.atan2(b.y, b.x); S.pitch = S.pitchT = Math.asin(Math.max(-1, Math.min(1, b.z))); S.idle = -1e9; applyYP(); } if (dist) { S.dist = S.distT = dist; } },
     openPlanner: tg => { S.panelMode = 'plan'; runPlanner(tg); }, get panelMode() { return S.panelMode; }, get plan() { return S.plan; } };
 }

@@ -3,10 +3,10 @@
 // Patched conics: a porkchop grid (Lambert in the Sun's frame for planets, in Earth's frame for the Moon) finds the cheap
 // departure days; then for each day the launch geometry (site, time of day, orbit plane) is searched so the parking orbit
 // passes through the burn point at the right moment. The in-flight planner (planFull) re-tunes the burns from the real orbit.
-import * as P from '../physics.js?v=f5.9-17';
-import { SITES } from '../sites.js?v=f5.9-17';
-import { latLonToGame } from '../gfx/earthmap.js?v=f5.9-17';
-import { ORBIT_DV } from '../parts.js?v=f5.9-17';
+import * as P from '../physics.js?v=f5.9-18';
+import { SITES } from '../sites.js?v=f5.9-18';
+import { latLonToGame } from '../gfx/earthmap.js?v=f5.9-18';
+import { ORBIT_DV } from '../parts.js?v=f5.9-18';
 const V = P.V, B = P.BODIES, TAU = Math.PI * 2, D2R = Math.PI / 180, DAY = 86400;
 export const PARK_ALT = 200000;      // m: parking orbit altitude
 export const ASCENT_S = 540;         // s: liftoff to parking orbit

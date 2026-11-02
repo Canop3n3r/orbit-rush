@@ -702,14 +702,14 @@ html body.u59 #xferPlan .xp-act button{min-height:40px}
    bottom-right under the top bar instead: up to the full height between the bars, ~46% wide (≤40% of the screen), the left of the scene stays visible. */
 @media (orientation:landscape) and (max-height:500px){html body.u59 #xferPlan{justify-content:flex-end!important}
   html body.u59 #xferPlan .xp-box{width:min(420px,48vw)!important;max-height:calc(100dvh - var(--topH,52px) - 4px)!important;border-radius:16px 0 0 0!important;border-right:0}}
-/* f5.9-17 (QA P3): phone landscape: a smaller navball that clears the screen's bottom edge */
+/* f5.9-18 (QA P3): phone landscape: a smaller navball that clears the screen's bottom edge */
 @media (orientation:landscape) and (max-height:520px){:root{--nbD:clamp(80px,22vh,190px)}}
-/* f5.9-17 (QA P3): Δv rows keep a gap between stages at every size */
+/* f5.9-18 (QA P3): Δv rows keep a gap between stages at every size */
 body.u59 #dvStages .dvS+.dvS{margin-left:.8em}
-/* f5.9-17 (QA P3): no tap highlight or focus block left over a sheet that a tap just opened */
+/* f5.9-18 (QA P3): no tap highlight or focus block left over a sheet that a tap just opened */
 body.u59 :is(button,a,[role=button],summary,label,select,input){-webkit-tap-highlight-color:transparent}
 body.u59 :is(button,a,[role=button]):focus:not(:focus-visible){outline:none!important;box-shadow:none}
-/* f5.9-17 (QA f5.9-15 P3s) */
+/* f5.9-18 (QA f5.9-15 P3s) */
 /* 390: speed and its unit on one line; the ΔV LEFT row shows while flying by hand (short labels) */
 @media (orientation:portrait) and (max-width:600px){
   body.u59 #botBar #spd{flex-wrap:nowrap!important;white-space:nowrap}
@@ -730,19 +730,19 @@ body.u59 #atlas .atl.unseen summary{color:var(--txt,#fff)}
   html body.u59 #atlas .mbox{bottom:8px!important;max-height:none!important}
   html body.u59 #atlas .mbox>#atlasBody{overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 }
-/* f5.9-17 (phone map): the tracking list is a small pill until tapped; open, it is a short scrollable card under the bar */
+/* f5.9-18 (phone map): the tracking list is a small pill until tapped; open, it is a short scrollable card under the bar */
 body.u59 #mapTrack{cursor:pointer;max-height:min(30dvh,240px)!important;overflow:auto!important;font-size:var(--t-xs)}
 body.u59 #mapTrack:not(.open){padding:4px 10px!important;border-radius:0 0 999px 0!important;overflow:hidden!important}
 body.u59 #mapTrack:not(.open) div{display:none}
 body.u59 #mapTrack h4{margin:0!important;white-space:nowrap}
 body.u59 #mapTrack h4 i{font-style:normal;opacity:.7;margin-left:4px}
 body.u59 #mapTrack.open div{overflow:hidden;text-overflow:ellipsis;max-width:min(240px,70vw)}
-/* f5.9-17: TWR + ambient pressure sit in the telemetry column, same type as ALT */
+/* f5.9-18: TWR + ambient pressure sit in the telemetry column, same type as ALT */
 body.u59 #botBar #plTw{display:flex;gap:0 8px;flex-wrap:wrap;font-size:var(--t-xs)!important;line-height:1.15;white-space:nowrap}
 body.u59 #botBar #plTw b{font-weight:700}
-/* f5.9-17 (QA f5.9-16 P2): a switched-to craft coasting keeps the normal flight HUD: no attitude block, no lone ⊙ */
+/* f5.9-18 (QA f5.9-16 P2): a switched-to craft coasting keeps the normal flight HUD: no attitude block, no lone ⊙ */
 body.u59.craftOn #bbT #navRd,body.u59.craftOn #bbT #navSasT{display:none!important}
-/* f5.9-17 (QA f5.9-16 P2): 844 craft list sits between the bars (off the navball), no footer hint, rows scroll instead of clipping */
+/* f5.9-18 (QA f5.9-16 P2): 844 craft list sits between the bars (off the navball), no footer hint, rows scroll instead of clipping */
 @media (orientation:landscape) and (max-height:520px){
   body.u59 #vsl{top:calc(var(--topH,52px) + 4px)!important;bottom:auto!important;left:auto!important;right:calc(8px + var(--sar,0px))!important;transform:none!important;width:min(420px,calc(100vw - 16px))!important;max-height:calc(100dvh - var(--topH,52px) - var(--bnb,58px) - 20px)!important}
   body.u59 #vsl .vf{display:none!important}
@@ -752,4 +752,20 @@ body.u59.craftOn #bbT #navRd,body.u59.craftOn #bbT #navSasT{display:none!importa
 }
 @media (orientation:portrait) and (max-width:600px){body.u59 #botBar #plTw{flex-wrap:nowrap;gap:0 5px;font-size:10px!important;letter-spacing:-.01em}}
 #navRd .nbTw{display:none!important}
-@media (orientation:landscape) and (max-height:520px){body.u59 #botBar #plTw{display:none!important}body.u59 #navRd .nbTw{display:inline!important}} /* f5.9-17: at 844 TWR/P join the HDG block above the bar (bar height stays ≤23 %) */
+@media (orientation:landscape) and (max-height:520px){body.u59 #botBar #plTw{display:none!important}body.u59 #navRd .nbTw{display:inline!important}} /* f5.9-18: at 844 TWR/P join the HDG block above the bar (bar height stays ≤23 %) */
+/* f5.9-18: bug report card */
+#bugCard{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;background:rgba(2,6,14,.55);padding:calc(8px + var(--sat,0px)) 8px calc(8px + var(--sab,0px))}
+#bugCard.hidden{display:none}
+#bugCard .bgBox{width:min(440px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:8px;background:var(--panel,#0d1626);border:var(--bw,1px) solid var(--bc,#2a3c5c);border-radius:var(--rad,12px);padding:10px 12px;color:var(--txt,#e6eefc);box-sizing:border-box}
+#bugCard .bgH{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#bugCard .bgShot{position:relative;border-radius:8px;overflow:hidden;background:#000;min-height:44px}
+#bugCard .bgShot img{display:block;width:100%;max-height:min(32dvh,260px);object-fit:contain}
+#bugCard.noShot .bgShot img{display:none}
+#bugCard .bgNo{display:none;padding:12px;color:var(--dim,#9ab)}#bugCard.noShot .bgNo{display:block}
+#bugCard .bgSB{position:absolute;right:6px;bottom:6px;display:flex;gap:6px}#bugCard.noShot .bgSB [data-a=drop]{display:none}#bugCard.noShot .bgSB{position:static;padding:0 6px 6px}
+#bugCard textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:64px;font:inherit;font-size:16px;background:#0006;color:inherit;border:1px solid var(--bc,#2a3c5c);border-radius:8px;padding:8px}
+#bugCard .bgMeta{font-size:var(--t-xs,11px);color:var(--dim,#9ab);overflow-wrap:anywhere}
+#bugCard .bgF{display:flex;gap:8px;justify-content:flex-end}
+#bugCard button{min-height:40px;min-width:44px;padding:0 12px}
+#bugCard .bgF .on{background:var(--btn-on,#1d5fae)}
+@media (orientation:landscape) and (max-height:520px){#bugCard .bgBox{width:min(620px,100%);display:grid;grid-template-columns:44% 1fr;grid-template-areas:"h h" "s t" "s m" "s f"}#bugCard .bgH{grid-area:h}#bugCard .bgShot{grid-area:s}#bugCard textarea{grid-area:t}#bugCard .bgMeta{grid-area:m}#bugCard .bgF{grid-area:f}#bugCard .bgShot img{max-height:calc(100dvh - 90px)}}
