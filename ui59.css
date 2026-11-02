@@ -702,3 +702,10 @@ html body.u59 #xferPlan .xp-act button{min-height:40px}
    bottom-right under the top bar instead: up to the full height between the bars, ~46% wide (≤40% of the screen), the left of the scene stays visible. */
 @media (orientation:landscape) and (max-height:500px){html body.u59 #xferPlan{justify-content:flex-end!important}
   html body.u59 #xferPlan .xp-box{width:min(420px,48vw)!important;max-height:calc(100dvh - var(--topH,52px) - 4px)!important;border-radius:16px 0 0 0!important;border-right:0}}
+/* f5.9-15 (QA P3): phone landscape: a smaller navball that clears the screen's bottom edge */
+@media (orientation:landscape) and (max-height:520px){:root{--nbD:clamp(80px,22vh,190px)}}
+/* f5.9-15 (QA P3): Δv rows keep a gap between stages at every size */
+body.u59 #dvStages .dvS+.dvS{margin-left:.8em}
+/* f5.9-15 (QA P3): no tap highlight or focus block left over a sheet that a tap just opened */
+body.u59 :is(button,a,[role=button],summary,label,select,input){-webkit-tap-highlight-color:transparent}
+body.u59 :is(button,a,[role=button]):focus:not(:focus-visible){outline:none!important;box-shadow:none}

@@ -677,7 +677,7 @@ function beep(f = 880) { if (!ac) return; const o = ac.createOscillator(), g = a
 // ---------- hangar: part-based builder ----------
 let design = cloneDesign(TEMPLATES[0]);
 // f4: camera distance that fits a stack of length L into `frac` of the screen height (fov-aware, slim rockets fill the frame)
-function orbitDist() { const L = Math.max(2, stackL()), t = 2 * Math.tan((camera.fov || 50) * Math.PI / 360) * Math.min(1, innerWidth / innerHeight); return Math.max(5, Math.min(120, L / (0.42 * t))); } // f5.9-15 (QA P2): in orbit the craft spans about half of the short side nominally (a quarter or more once foreshortened); no 18 m floor
+function orbitDist() { const L = Math.max(2, stackL()), t = 2 * Math.tan((camera.fov || 50) * Math.PI / 360) * Math.min(1, innerWidth / innerHeight); return Math.max(5, Math.min(120, L / (0.42 * t) * (innerWidth < innerHeight ? 1.35 : 1))); } // f5.9-15 (QA P2): in orbit the craft spans about half of the short side nominally (a quarter or more once foreshortened); no 18 m floor
 const inOrbitView = () => !!(F && v && F.body === 'earth' ? (F.flags.orbit || P.altOf(v) > 100000) : F && F.flags.orbit);
 function fitDist(L, frac) { const vf = (camera.fov || 50) * Math.PI / 180; return Math.max(18, L / frac / (2 * Math.tan(vf / 2))); }
 function setDesign(d) { design = d; refreshBuild(); } // f5.9-0: the hangar / Build screen is gone; a rocket pick just loads its design for the pad
