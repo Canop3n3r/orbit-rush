@@ -122,7 +122,7 @@ const sunPos = uniform(new THREE.Vector3(1e11, 0, 0)), sunDirV = new THREE.Vecto
 const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: GX.glowTexture(), color: new THREE.Color(6, 5.4, 4.6), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
 sunSprite.frustumCulled = false; scene.add(sunSprite);
 const post = GX.makePost(renderer, scene, camera);
-const plumeLight = new THREE.PointLight(0xffa860, 0, 900, 1.6); scene.add(plumeLight); // the exhaust lights the pad, the ground and the smoke
+const plumeLight = new THREE.PointLight(0xffc89a, 0, 900, 1.6); scene.add(plumeLight); // the exhaust lights the pad, the ground and the smoke
 
 
 // pad detail (gx1): flame deflector, lightning masts with catenary wires, apron, roads, service buildings, lights
@@ -2136,7 +2136,7 @@ function updateCine(rdt, h, isMap) {
     f.position.set(u.r[0] - v.r[0], u.r[1] - v.r[1], u.r[2] - v.r[2]); f.scale.setScalar(u.size * (0.6 + k * 1.6)); f.material.opacity = (1 - k) ** 2; }
   // plume light: lights the pad, ground and smoke near the ground, flickering with the throttle
   const on = state === 'flight' && !F.flags.dead && v.thrust > 0.01 && !isMap;
-  plumeLight.intensity = on ? (h < 3000 ? 1 : Math.max(0, 1 - (h - 3000) / 20000)) * Math.min(1, v.thrust / 2000) * 5e3 * (0.85 + 0.3 * Math.random()) : 0;
+  plumeLight.intensity = on ? (h < 3000 ? 1 : Math.max(0, 1 - (h - 3000) / 20000)) * Math.min(1, v.thrust / 2000) * 2.6e3 * (0.85 + 0.3 * Math.random()) /* f5.9-15 (QA art): softer, less orange light on the tower */ : 0;
   if (on) { const nose = P.noseOf(v); plumeLight.position.set(-nose[0] * 12, -nose[1] * 12, -nose[2] * 12); }
   // camera shake: engine rumble near the ground and through max-Q, plus event kicks; scaled by camera distance
   let a = shakeA * (shakeT > 0 ? 1 : 0);
