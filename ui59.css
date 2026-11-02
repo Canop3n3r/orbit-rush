@@ -751,3 +751,4 @@ body.u59.craftOn #bbT #navRd,body.u59.craftOn #bbT #navSasT{display:none!importa
   body.u59 #vsl button{min-height:32px}
 }
 @media (orientation:portrait) and (max-width:600px){body.u59 #botBar #plTw{flex-wrap:nowrap;gap:0 5px;font-size:10px!important;letter-spacing:-.01em}}
+@media (orientation:landscape) and (max-height:520px){body.u59 #botBar #plTw{position:absolute;left:calc(50% - var(--nbR,50px) - 64px);transform:translateX(-100%);bottom:calc(100% + 6px);display:grid;grid-template-columns:auto;gap:0;text-shadow:0 1px 3px #000,0 0 2px #000;pointer-events:none;z-index:2}} /* f5.9-17: at 844 it floats above the bar like the HDG block (bar height stays ≤23 %) */
