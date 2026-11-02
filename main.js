@@ -1217,6 +1217,7 @@ function press(code) {
   return res;
 }
 addEventListener('keydown', e => {
+  if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return; // QA f5.9-18: typing the bug-report note must not lose spaces/arrows or fire game hotkeys
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
   if (e.target && e.target.tagName === 'BUTTON') e.target.blur();
   if (e.target && e.target.tagName === 'INPUT' && (e.target.type === 'text' || e.target.type === 'number')) {
