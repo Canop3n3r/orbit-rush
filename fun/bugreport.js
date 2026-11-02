@@ -29,7 +29,7 @@ export function createBugReporter({ build, getState, capture, toast = () => { } 
   const q = s => el.querySelector(s), img = q('img'); let shot = null, state = {}, busy = false;
   const setShot = s => { shot = s; img.src = s || ''; el.classList.toggle('noShot', !s); };
   const grab = () => new Promise(res => { const was = !el.classList.contains('hidden'); if (was) el.style.visibility = 'hidden'; capture(s => { if (was) el.style.visibility = ''; res(s); }); });
-  async function open() { if (busy) return; state = (() => { try { return getState() || {}; } catch (e) { return {}; } })(); setShot(await grab()); q('textarea').value = '';
+  async function open() { if (busy) return; state = (() => { try { return getState() || {}; } catch (e) { console.warn('[Orbit Rush] bug state', e); return {}; } })(); setShot(await grab()); q('textarea').value = '';
     q('.bgMeta').textContent = `${build} · ${innerWidth}×${innerHeight} · ${[state.rocket, state.phase, state.alt != null ? 'alt ' + state.alt : '', state.speed != null ? state.speed : ''].filter(Boolean).join(' · ')}`; el.classList.remove('hidden'); }
   const close = () => el.classList.add('hidden');
   async function send() { if (busy) return; busy = true; const rep = makeReport({ note: q('textarea').value, build, state, shot }); const cfg = loadCfg(ls); let ok = false;
