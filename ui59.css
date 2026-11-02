@@ -769,3 +769,4 @@ body.u59.craftOn #bbT #navRd,body.u59.craftOn #bbT #navSasT{display:none!importa
 #bugCard button{min-height:40px;min-width:44px;padding:0 12px}
 #bugCard .bgF .on{background:var(--btn-on,#1d5fae)}
 @media (orientation:landscape) and (max-height:520px){#bugCard .bgBox{width:min(620px,100%);display:grid;grid-template-columns:44% 1fr;grid-template-areas:"h h" "s t" "s m" "s f"}#bugCard .bgH{grid-area:h}#bugCard .bgShot{grid-area:s}#bugCard textarea{grid-area:t}#bugCard .bgMeta{grid-area:m}#bugCard .bgF{grid-area:f}#bugCard .bgShot img{max-height:calc(100dvh - 90px)}}
+#setBody #bugOpenS{min-height:40px!important;box-sizing:border-box;padding:0 12px} /* f5.9-18: sheets_warp ≥40px targets */

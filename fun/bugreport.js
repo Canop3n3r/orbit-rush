@@ -2,16 +2,27 @@
 // 🐞 Report a bug in the flight ☰ menu / Settings. The card grabs a screenshot of the game view (retake / remove), takes a short note
 // and sends { note, build, viewport, state, shot } to a configurable endpoint. No endpoint (or offline / a failed send) → the report
 // waits in a small local queue and goes out the next time an endpoint is reachable. Nothing about the backend lives in the repo:
-// the endpoint comes from localStorage 'or_bug_cfg' = { url, headers } (or ?bugcfg=<url-encoded JSON> once, which is saved).
+// the endpoint is DEFAULT_CFG below; localStorage 'or_bug_cfg' = { url, headers } (or ?bugcfg=<url-encoded JSON> once) overrides it.
 export const QKEY = 'or_bug_queue', CKEY = 'or_bug_cfg', SKEY = 'or_bug_shake', QMAX = 8;
 const store = () => { try { return window.localStorage; } catch (e) { return null; } };
-export function loadCfg(ls = store()) { try { const c = JSON.parse(ls && ls.getItem(CKEY) || 'null'); return c && typeof c.url === 'string' && /^https:\/\/|^http:\/\/localhost/.test(c.url) ? { url: c.url, headers: c.headers && typeof c.headers === 'object' ? c.headers : {} } : null; } catch (e) { return null; } }
+export function loadCfg(ls = store(), def = DEFAULT_CFG) { try { const c = JSON.parse(ls && ls.getItem(CKEY) || 'null'); return c && typeof c.url === 'string' && /^https:\/\/|^http:\/\/localhost/.test(c.url) ? { url: c.url, headers: c.headers && typeof c.headers === 'object' ? c.headers : {} } : def; } catch (e) { return def; } }
 export function loadQueue(ls = store()) { try { const q = JSON.parse(ls && ls.getItem(QKEY) || '[]'); return Array.isArray(q) ? q : []; } catch (e) { return []; } }
 export function saveQueue(q, ls = store()) { const keep = q.slice(-QMAX); for (let n = keep.length; n >= 0; n--) { try { ls && ls.setItem(QKEY, JSON.stringify(keep.slice(keep.length - n))); return n; } catch (e) { /* quota: drop the oldest */ } } return 0; }
 export function makeReport({ note, build, state, shot, now = Date.now(), vw = innerWidth, vh = innerHeight, dpr = devicePixelRatio || 1, ua = navigator.userAgent }) {
   return { id: now.toString(36) + Math.random().toString(36).slice(2, 7), t: new Date(now).toISOString(), note: String(note || '').slice(0, 2000), build, viewport: { w: vw, h: vh, dpr }, ua: String(ua).slice(0, 300), state: state || {}, shot: shot || null };
 }
-export async function postReport(cfg, rep, fetchFn = fetch) { const r = await fetchFn(cfg.url, { method: 'POST', headers: { 'content-type': 'application/json', ...cfg.headers }, body: JSON.stringify(rep) }); if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : '?')); return true; }
+// f5.9-18: the live backend (Supabase project orbit-rush-bugs). The publishable key is public by design: anon may only INSERT rows into
+// bug_reports and upload into the private bug-shots bucket (no reads). A localStorage 'or_bug_cfg' still overrides it (tests, staging).
+export const DEFAULT_CFG = { kind: 'supabase', url: 'https://cetngoryccizrnlbusxo.supabase.co', key: 'sb_publishable_PQfCkugePubmoiBkoy39eA_yxmE_7I_' }; // gitleaks:allow (publishable key, public by design: insert-only RLS, no reads)
+const uuid = () => (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => (Math.random() * 16 | 0).toString(16));
+export function shotBytes(dataUrl) { const m = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(dataUrl || ''); if (!m) return null; const bin = atob(m[2]), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return { type: m[1], ext: m[1] === 'image/jpeg' ? 'jpg' : m[1].slice(6), bytes: u }; }
+export function supaRow(rep, path) { return { message: rep.note || '', build: rep.build || '', viewport: rep.viewport || null, state: { ...(rep.state || {}), id: rep.id, t: rep.t, ua: rep.ua }, screenshot_path: path || null }; }
+export async function supaSend(cfg, rep, fetchFn = fetch) { const h = { apikey: cfg.key }; let path = null; const sb = shotBytes(rep.shot);
+  if (sb && sb.bytes.length <= 3e6) { const name = `${rep.shotId || (rep.shotId = uuid())}.${sb.ext}`; const r = await fetchFn(`${cfg.url}/storage/v1/object/bug-shots/${name}`, { method: 'POST', headers: { ...h, 'content-type': sb.type, 'x-upsert': 'false' }, body: sb.bytes });
+    if (r && (r.ok || r.status === 409)) path = name; /* the row still goes in without a picture if the upload is refused */ }
+  const r2 = await fetchFn(`${cfg.url}/rest/v1/bug_reports`, { method: 'POST', headers: { ...h, 'content-type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(supaRow(rep, path)) });
+  if (!r2 || !r2.ok) throw new Error('HTTP ' + (r2 ? r2.status : '?')); return true; }
+export async function postReport(cfg, rep, fetchFn = fetch) { if (cfg.kind === 'supabase') return supaSend(cfg, rep, fetchFn); const r = await fetchFn(cfg.url, { method: 'POST', headers: { 'content-type': 'application/json', ...cfg.headers }, body: JSON.stringify(rep) }); if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : '?')); return true; }
 export async function flushQueue({ cfg = loadCfg(), ls = store(), fetchFn = fetch } = {}) { if (!cfg) return { sent: 0, left: loadQueue(ls).length }; const q = loadQueue(ls); let sent = 0;
   while (q.length) { try { await postReport(cfg, q[0], fetchFn); q.shift(); sent++; saveQueue(q, ls); } catch (e) { break; } } saveQueue(q, ls); return { sent, left: q.length }; }
 // shake: |a| above ~2.4 g three times inside 1.2 s, then a 3 s cool-down

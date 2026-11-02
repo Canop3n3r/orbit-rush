@@ -9,8 +9,8 @@ const URL = process.env.U || 'http://localhost:8960/', VPS = (process.env.VP || 
 (async () => { const br = await pw.chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: GPU }); let bad = 0; const ok = (t, m) => { console.log((t ? 'ok   ' : 'FAIL ') + m); if (!t) bad++; };
   for (const vp of VPS) { const [W, H] = vp.split('x').map(Number), touch = Math.min(W, H) < 700;
     const pg = await br.newPage({ viewport: { width: W, height: H }, isMobile: touch, hasTouch: touch }); pg.setDefaultTimeout(240000); const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (/bug state/.test(m.text())) console.log('CONSOLE', m.text().slice(0, 200)); });
-    const posts = []; await pg.route('http://localhost:9/bug-test', r => { posts.push({ h: r.request().headers(), b: r.request().postData() }); r.fulfill({ status: 201, headers: { 'access-control-allow-origin': '*' }, body: '' }); });
-    await pg.addInitScript(() => { try { localStorage.setItem('or_seen_welcome', '1'); localStorage.removeItem('or_bug_queue'); localStorage.removeItem('or_bug_cfg'); } catch (e) { } });
+    const posts = []; let up = false; await pg.route('http://localhost:9/bug-test', r => { if (!up) return r.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, body: '' }); posts.push({ h: r.request().headers(), b: r.request().postData() }); r.fulfill({ status: 201, headers: { 'access-control-allow-origin': '*' }, body: '' }); });
+    await pg.addInitScript(() => { try { localStorage.setItem('or_seen_welcome', '1'); localStorage.removeItem('or_bug_queue'); localStorage.setItem('or_bug_cfg', JSON.stringify({ url: 'http://localhost:9/bug-test', headers: { apikey: 'public-test' } })); /* never the live backend from a smoke */ } catch (e) { } });
     await pg.goto(URL + '?noacademy&fx=low'); await pg.waitForFunction(() => window.__game && !document.getElementById('loading'), null, { timeout: 300000 }); await pg.waitForTimeout(1500);
     await pg.evaluate(() => document.getElementById('hFly').click()); await pg.waitForTimeout(2500);
     await pg.evaluate(() => { const G = window.__game; G.F.setAuto(true); if (!G.F.ignited) G.press('Space'); for (let i = 0; i < 60 * 60; i++) G.F.advance(1 / 60); }); await pg.waitForTimeout(1500);
@@ -27,11 +27,11 @@ const URL = process.env.U || 'http://localhost:8960/', VPS = (process.env.VP || 
     await pg.click('#bugCard [data-a=retake]'); await pg.waitForFunction(() => !!window.__game.bug.shot, null, { timeout: 10000 }).catch(() => { }); ok(await pg.evaluate(() => !!window.__game.bug.shot), `${vp}: Retake grabs a new one`);
     await pg.fill('#bugCard textarea', 'smoke: stage button stuck'); await pg.click('#bugCard [data-a=send]'); await pg.waitForTimeout(800);
     const q = await pg.evaluate(() => window.__game.bug.queue()); const r = q[0] || {};
-    ok(q.length === 1 && r.note === 'smoke: stage button stuck' && r.build && r.viewport && r.viewport.w === W && r.state && r.state.rocket && r.state.phase && r.state.alt && r.state.speed && /^data:image\/jpeg/.test(r.shot || ''), `${vp}: no endpoint → queued locally with note/build/viewport/state/shot (${JSON.stringify({ n: q.length, st: r.state })})`);
+    ok(q.length === 1 && r.note === 'smoke: stage button stuck' && r.build && r.viewport && r.viewport.w === W && r.state && r.state.rocket && r.state.phase && r.state.alt && r.state.speed && /^data:image\/jpeg/.test(r.shot || ''), `${vp}: endpoint down → queued locally with note/build/viewport/state/shot (${JSON.stringify({ n: q.length, st: r.state })})`);
     ok(await pg.evaluate(() => document.getElementById('bugCard').classList.contains('hidden')), `${vp}: card closes after Send`);
-    await pg.evaluate(() => localStorage.setItem('or_bug_cfg', JSON.stringify({ url: 'http://localhost:9/bug-test', headers: { apikey: 'public-test' } })));
+    up = true;
     const fl = await pg.evaluate(() => window.__game.bug.flush()); const p0 = posts[0] || { b: '{}', h: {} }; const pb = JSON.parse(p0.b || '{}');
-    ok(fl.sent === 1 && fl.left === 0 && posts.length === 1 && pb.note === 'smoke: stage button stuck' && p0.h.apikey === 'public-test' && /json/.test(p0.h['content-type'] || ''), `${vp}: endpoint set → queue flushes (POST JSON + headers), queue empty (${JSON.stringify(fl)})`);
+    ok(fl.sent === 1 && fl.left === 0 && posts.length === 1 && pb.note === 'smoke: stage button stuck' && p0.h.apikey === 'public-test' && /json/.test(p0.h['content-type'] || ''), `${vp}: endpoint back → queue flushes (POST JSON + headers), queue empty (${JSON.stringify(fl)})`);
     await pg.evaluate(() => window.__game.press('Escape')); await pg.waitForTimeout(400);
     await pg.evaluate(() => { const b = [...document.querySelectorAll('[data-q=settings]')].find(e => e.offsetWidth > 0); b && b.click(); }); await pg.waitForTimeout(800);
     ok(await pg.evaluate(() => !!document.querySelector('#settings #bugShake') && !!document.querySelector('#settings #bugOpenS')), `${vp}: Settings has the shake toggle and 🐞 button`);
