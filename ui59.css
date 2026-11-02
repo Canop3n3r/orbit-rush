@@ -770,3 +770,7 @@ body.u59.craftOn #bbT #navRd,body.u59.craftOn #bbT #navSasT{display:none!importa
 #bugCard .bgF .on{background:var(--btn-on,#1d5fae)}
 @media (orientation:landscape) and (max-height:520px){#bugCard .bgBox{width:min(620px,100%);display:grid;grid-template-columns:44% 1fr;grid-template-areas:"h h" "s t" "s m" "s f"}#bugCard .bgH{grid-area:h}#bugCard .bgShot{grid-area:s}#bugCard textarea{grid-area:t}#bugCard .bgMeta{grid-area:m}#bugCard .bgF{grid-area:f}#bugCard .bgShot img{max-height:calc(100dvh - 90px)}}
 #setBody #bugOpenS{min-height:40px!important;box-sizing:border-box;padding:0 12px} /* f5.9-18: sheets_warp ≥40px targets */
+/* f5.9-19 (QA f5.9-17) */
+body.u59 #botBar #plTw[hidden],body.u59 #botBar #plTw [hidden],#navRd .nbTw[hidden]{display:none!important}
+@media (orientation:portrait) and (max-width:600px){body.u59 #botBar :is(#plApT,#plPeT){display:none!important}} /* 390: the apsis timers clipped into the navball and wrapped onto a stray line; the map and AUTO show them */
+@media (orientation:landscape) and (max-height:520px){body.u59.autoOn #botBar #plTw:not([hidden]){display:flex!important;grid-column:2;grid-row:1 / span 2;align-self:end;gap:0 8px;white-space:nowrap} body.u59.autoOn #botBar #plTw [hidden]{display:none!important}} /* 844 AUTO: TWR/P sit where the ΔV row is in manual flight */

@@ -1,7 +1,7 @@
 // f5.5c (owner): plain telemetry for non-nerds. One bottom-left card: a big speedometer in mph, altitude,
 // Ap and Pe heights each with a T−/T+ clock, and Δv left per stage (replaces the fuel bars). The jargon chips
 // (ALT km / SRF m/s / AP·T−AP / PE / FUEL / STAGE) move behind the 📊 Details toggle (engineer view).
-import * as U from './units.js?v=f5.9-18';
+import * as U from './units.js?v=f5.9-19';
 export const MPH = 2.236936, MI = 1609.344, FT = 0.3048;
 const c0 = (x, d = 0) => (Math.round(x * 10 ** d) / 10 ** d).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 export function fmtHeight(m) { if (!isFinite(m)) return '—'; if (!U.imp()) return U.dist(m); if (Math.abs(m) < MI) return c0(m / FT) + ' ft'; const mi = m / MI; return (Math.abs(mi) < 100 ? c0(mi, 1) : c0(mi)) + ' mi'; } // f5.7q: follows the Units setting
@@ -47,11 +47,12 @@ export function createPlainHud() {
   function update(d) { // { on, mps, alt, ap:{h,t}, pe:{h,t}, dv:[{n,dv,on}] }
     el.classList.toggle('hidden', !d.on); if (!d.on) return;
     el.querySelector('.spV').textContent = c0(U.spdN(d.mps)); { const sm = el.querySelector('#spd small'), l = U.spdLab().toUpperCase(); if (sm && sm.textContent !== l) sm.textContent = l; }
-    set('plAlt', 'ALT ' + fmtHeight(d.alt)); set('plTwr', isFinite(d.twr) ? d.twr.toFixed(2) : '—'); set('plPa', U.pres(d.pa || 0)); { const a = $('nrTw'), b = $('nrPa'); if (a) a.textContent = last.plTwr; if (b) b.textContent = last.plPa; } set('plAp', d.ap.h); set('plApT', d.ap.t); set('plPe', d.pe.h); set('plPeT', d.pe.t);
+    set('plAlt', 'ALT ' + fmtHeight(d.alt)); set('plTwr', isFinite(d.twr) ? d.twr.toFixed(2) : '—'); set('plPa', U.pres(d.pa || 0)); { const a = $('nrTw'), b = $('nrPa'); if (a) a.textContent = last.plTwr; if (b) b.textContent = last.plPa;
+      /* f5.9-19 (QA P2): no dead 'TWR 0.00 · P <0.01 psi' — TWR only while an engine pushes, pressure only inside the air */ const tOn = d.twr > 0.005, pOn = (d.pa || 0) > 7; const k = (tOn ? 't' : '') + (pOn ? 'p' : ''); if (last.twk !== k) { last.twk = k; for (const [e, on] of [[$('plTwr'), tOn], [$('plPa'), pOn], [a, tOn], [b, pOn]]) if (e && e.parentElement) e.parentElement.hidden = !on; $('plTw').hidden = !k; } } set('plAp', d.ap.h); set('plApT', d.ap.t); set('plPe', d.pe.h); set('plPeT', d.pe.t);
     const la = d.land || null; $('plLand').classList.toggle('hidden', !la); document.body.classList.toggle('plLandOn', !!la); if (la) { set('plVs', 'V/S ' + la.vs + ' ' + U.spdLab()); set('plImp', 'Impact ' + la.tImp.toFixed(1) + ' s');
       set('plBurn', la.state === 'low' ? 'TWR too low' : la.state === 'now' ? '🔥 BURN NOW' : 'Burn in ' + la.burnIn.toFixed(1) + ' s'); $('plLand').className = 'on ' + la.state; }
-    const key = d.dv.map(s => s.n + ':' + Math.round(s.dv) + (s.on ? '*' : '')).join(',');
-    if (last.dv !== key) { last.dv = key; $('dvStages').innerHTML = '<b class="dvH">Δv left</b>' + d.dv.map(s => `<div class="dvS${s.on ? ' on' : ''}"><span><i class="lg">Stage </i><i class="sh">S</i>${s.n}</span><em>${U.dv(s.dv)}</em></div>`).join(''); }
+    const key = (d.craft ? 'c' : '') + d.dv.map(s => s.n + ':' + Math.round(s.dv) + (s.on ? '*' : '')).join(',');
+    if (last.dv !== key) { last.dv = key; $('dvStages').innerHTML = '<b class="dvH">Δv left</b>' + (d.craft ? d.dv.slice(0, 1).map(s => `<div class="dvS on"><span>ΔV</span><em>${U.dv(d.dv.reduce((a, x) => a + x.dv, 0))}</em></div>`) : d.dv.map(s => `<div class="dvS${s.on ? ' on' : ''}"><span><i class="lg">Stage </i><i class="sh">S</i>${s.n}</span><em>${U.dv(s.dv)}</em></div>`)).join(''); /* f5.9-19 (QA P3): a satellite has no stages, it shows ΔV */ }
   }
   return { el, update };
 }

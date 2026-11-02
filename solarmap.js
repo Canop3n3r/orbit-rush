@@ -4,14 +4,14 @@
 // Orbit camera: quaternion trackball (any angle, pole-down or edge-on, no gimbal lock), smooth zoom, pan,
 // focus with smooth transitions. Lines are drawn twice: depth-tested (bright) and through bodies (faint).
 // Markers and node handles are HTML (crisp, finger-sized). Mouse and touch.
-import * as UN from './fun/units.js?v=f5.9-18';
+import * as UN from './fun/units.js?v=f5.9-19';
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as GX from './gfx/gfx.js?v=f5.9-18';
-import * as P from './physics.js?v=f5.9-18';
-import * as C from './physics/patched.js?v=f5.9-18';
-import { fmtDur } from './flight.js?v=f5.9-18';
-import { layoutHandles } from './maplayout.js?v=f5.9-18';
+import * as GX from './gfx/gfx.js?v=f5.9-19';
+import * as P from './physics.js?v=f5.9-19';
+import * as C from './physics/patched.js?v=f5.9-19';
+import { fmtDur } from './flight.js?v=f5.9-19';
+import { layoutHandles } from './maplayout.js?v=f5.9-19';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
 const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : UN.dist(m); }; // f5.7q: Units setting
@@ -284,9 +284,10 @@ export function createSolarMap(opts) {
     if (a === 'planb') { S.panelMode = 'plan'; runPlanner(S.bodyId); }
   });
   panel.addEventListener('change', e => { const t = e.target, n = S.sel; if (t.dataset.k && n) { const x = parseFloat(t.value); if (isFinite(x)) { n[t.dataset.k] = x; n.started = false; S.predKey = ''; renderPanel(true); } } });
+  document.addEventListener('pointerdown', e => { S.moreDown = !!(e.target && e.target.dataset && e.target.dataset.a === 'more'); }, true); /* f5.9-19: the ghost click from the MAP tap never pressed down on the more button */
   const barClick = e => {
     const a = e.target.dataset.a, F = getF(); if (!a) return; e.target.blur(); const mm = ui.querySelector('#mapMore');
-    if (a === 'more') { /* QA f5.9-16: MAP fires on pointerdown, so the same touch's click can land on ⋯ (same spot on phones) and open this grid; ignore ⋯ for 500 ms after the map opens */ if (performance.now() - (S.shownAt || 0) < 500) return; mm.classList.toggle('hidden'); return; } if (mm.contains(e.target) && a !== 'conic') mm.classList.add('hidden');
+    if (a === 'more') { /* QA f5.9-16: MAP fires on pointerdown, so the same touch's click can land on ⋯ (same spot on phones) and open this grid; ignore ⋯ for 500 ms after the map opens */ if (performance.now() - (S.shownAt || 0) < 500 || (e.detail > 0 && !S.moreDown)) return; mm.classList.toggle('hidden'); return; } if (mm.contains(e.target) && a !== 'conic') mm.classList.add('hidden');
     if (a === 'reset') resetView(); if (a === 'info') showBody(S.focus === 'craft' ? F.body : S.focus);
     if (a === 'prev') cycle(-1); if (a === 'next') cycle(1); if (a === 'craft') setFocus('craft');
     if (a === 'pole') setView('pole'); if (a === 'edge') setView('edge');
@@ -473,8 +474,9 @@ export function createSolarMap(opts) {
     if (code === 'Delete' && S.sel) { getF().removeNode(S.sel); S.sel = null; S.panelMode = null; renderPanel(); return true; }
     return false;
   }
+  function orbitFitDist(far) { /* f5.9-19 (QA P3): centred on the craft, the far side of the orbit is ~2 orbit radii away; fit that, with margin, in the narrower half-FOV (portrait phones are narrow) */ const vh = (camera.fov || 50) * Math.PI / 360, hh = Math.atan(Math.tan(vh) * (S.W || innerWidth) / (S.H || innerHeight)); return 2.2 * far / Math.tan(Math.min(vh, hh)); }
   function show(on) { if (on && !S.on) { S.inited = true; { const F = getF(), o = P.orbitOf(F.v), Rb = B[F.body].R, far = isFinite(o.ra) && o.ra < B[F.body].soi ? Math.max(o.ra, V.len(F.v.r)) : 0; // f3: frame the whole orbit around the body
-      S.focus = 'craft'; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.dist = S.distT = far ? Math.max(Rb * 3.2, far * 2.7) : niceDist('craft'); /* f5.9-18 (owner): the map always opens on the active craft (even after looking at a planet), far enough out that its orbit shows */ } S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; S.idle = 3; ui.querySelector('#mapMore').classList.add('hidden'); S.shownAt = performance.now(); } S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on); if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist());  $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); } }
+      S.focus = 'craft'; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.dist = S.distT = far ? Math.max(Rb * 3.2, orbitFitDist(far)) : niceDist('craft'); /* f5.9-18 (owner): the map always opens on the active craft (even after looking at a planet), far enough out that its orbit shows */ } S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; S.idle = 3; ui.querySelector('#mapMore').classList.add('hidden'); S.shownAt = performance.now(); } S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on); if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist());  $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); } }
   function reset() { S.focus = 'craft'; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.panelMode = null; S.plan = null; S.pred = null; S.inited = false; renderPanel(); }
   // f5.4j: test probe: where the map draws the craft vs a body (map metres) and the end of the drawn trajectory
   const probe = id => { const o = bodies[id || getF().body]; return o && o.m ? { craftToBody: craftDot.position.distanceTo(o.m.position), R: B[id || getF().body].R, drawnR: o.m.scale.x } : null; };

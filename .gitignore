@@ -3,3 +3,5 @@ screens/art2_cmp_*
 screens/art2_cmpraw_*
 *.pyc
 __pycache__/
+.env.local
+.env
