@@ -286,7 +286,7 @@ export function createSolarMap(opts) {
   panel.addEventListener('change', e => { const t = e.target, n = S.sel; if (t.dataset.k && n) { const x = parseFloat(t.value); if (isFinite(x)) { n[t.dataset.k] = x; n.started = false; S.predKey = ''; renderPanel(true); } } });
   const barClick = e => {
     const a = e.target.dataset.a, F = getF(); if (!a) return; e.target.blur(); const mm = ui.querySelector('#mapMore');
-    if (a === 'more') { mm.classList.toggle('hidden'); return; } if (mm.contains(e.target) && a !== 'conic') mm.classList.add('hidden');
+    if (a === 'more') { /* QA f5.9-16: MAP fires on pointerdown, so the same touch's click can land on ⋯ (same spot on phones) and open this grid; ignore ⋯ for 500 ms after the map opens */ if (performance.now() - (S.shownAt || 0) < 500) return; mm.classList.toggle('hidden'); return; } if (mm.contains(e.target) && a !== 'conic') mm.classList.add('hidden');
     if (a === 'reset') resetView(); if (a === 'info') showBody(S.focus === 'craft' ? F.body : S.focus);
     if (a === 'prev') cycle(-1); if (a === 'next') cycle(1); if (a === 'craft') setFocus('craft');
     if (a === 'pole') setView('pole'); if (a === 'edge') setView('edge');
@@ -474,7 +474,7 @@ export function createSolarMap(opts) {
     return false;
   }
   function show(on) { if (on && !S.on) { S.inited = true; { const F = getF(), o = P.orbitOf(F.v), Rb = B[F.body].R, far = isFinite(o.ra) && o.ra < B[F.body].soi ? Math.max(o.ra, V.len(F.v.r)) : 0; // f3: frame the whole orbit around the body
-      if (far) { S.focus = F.body; S.pan = [0, 0, 0]; S.trans = null; S.dist = S.distT = Math.max(Rb * 3.2, far * 2.7); } else { S.focus = 'craft'; S.dist = S.distT = niceDist('craft'); } } S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; S.idle = 3; ui.querySelector('#mapMore').classList.add('hidden'); } S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on); if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist());  $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); } }
+      if (far) { S.focus = F.body; S.pan = [0, 0, 0]; S.trans = null; S.dist = S.distT = Math.max(Rb * 3.2, far * 2.7); } else { S.focus = 'craft'; S.dist = S.distT = niceDist('craft'); } } S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; S.idle = 3; ui.querySelector('#mapMore').classList.add('hidden'); S.shownAt = performance.now(); } S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on); if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist());  $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); } }
   function reset() { S.focus = 'craft'; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.panelMode = null; S.plan = null; S.pred = null; S.inited = false; renderPanel(); }
   // f5.4j: test probe: where the map draws the craft vs a body (map metres) and the end of the drawn trajectory
   const probe = id => { const o = bodies[id || getF().body]; return o && o.m ? { craftToBody: craftDot.position.distanceTo(o.m.position), R: B[id || getF().body].R, drawnR: o.m.scale.x } : null; };
