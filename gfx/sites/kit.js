@@ -4,9 +4,9 @@
 //      buildSiteLOD(S, { phone }) -> THREE.LOD (near = hi, or mid on phones; mid; lo)
 //      placeSite(obj, S) applies the site's body-frame matrix;  dispose / release free geometry (materials are shared).
 import * as THREE from 'three/webgpu';
-import { weakDisposeListeners, dispose, release } from '../vehicles/kit.js?v=f5.9-23';
-import { siteMatrix, localOffset, localBasis, BODY_R } from './geo.js?v=f5.9-23';
-import { WORLD_PARTS, WORLD_MDEF, photoMaps } from './world.js?v=f5.9-23';
+import { weakDisposeListeners, dispose, release } from '../vehicles/kit.js?v=f5.9-24';
+import { siteMatrix, localOffset, localBasis, BODY_R } from './geo.js?v=f5.9-24';
+import { WORLD_PARTS, WORLD_MDEF, photoMaps } from './world.js?v=f5.9-24';
 export { dispose, release, BODY_R };
 export const PAD_DECK = 0.4; // f5.9-20 (owner): the mount deck top = the rocket base on every pad (main.js PAD_Z); PAD_CLEAR = metres around the pad centre kept free above the deck
 export const PAD_CLEAR = 8;

@@ -1,77 +1,78 @@
 import * as THREE from 'three/webgpu';
-import { createBugReporter } from './fun/bugreport.js?v=f5.9-23';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-23';
+import { createBugReporter } from './fun/bugreport.js?v=f5.9-24';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-24';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.9-23';
-import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-23';
-import * as C from './physics/patched.js?v=f5.9-23';
+import * as P from './physics.js?v=f5.9-24';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-24';
+import * as C from './physics/patched.js?v=f5.9-24';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-23';
-import { createCareerUI } from './fun/career-ui.js?v=f5.9-23';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-23';
-import { createSolarMap } from './solarmap.js?v=f5.9-23';
-import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-23';
-import { FX } from './fx.js?v=f5.9-23';
-import { createAcademy } from './academy-ui.js?v=f5.9-23';
-import { createMobile, isTouch } from './mobile.js?v=f5.9-23';
-import { localize } from './wording.js?v=f5.9-23';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-23';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-23';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-24';
+import { createCareerUI } from './fun/career-ui.js?v=f5.9-24';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-24';
+import { createSolarMap } from './solarmap.js?v=f5.9-24';
+import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-24';
+import { FX } from './fx.js?v=f5.9-24';
+import { createAcademy } from './academy-ui.js?v=f5.9-24';
+import { createMobile, isTouch, thrFromY } from './mobile.js?v=f5.9-24';
+import { localize } from './wording.js?v=f5.9-24';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-24';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-24';
+import { createTankViz } from './fun/tankviz.js?v=f5.9-24';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // f5.7q (owner): every HUD/pane/card reads the Units setting
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-23';
-import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-23';
-import { guardToasts } from './fun/toastzone.js?v=f5.9-23';
-import * as GX from './gfx/gfx.js?v=f5.9-23';
-import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-23';
-import * as PR from './fun/progress.js?v=f5.9-23';
-import * as WORLD from './fun/world.js?v=f5.9-23';
-import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-23';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-23';
-import { createAudio } from './fun/audio.js?v=f5.9-23';
-import { createMusic } from './fun/music.js?v=f5.9-23';
-import { createCompact } from './fun/compact.js?v=f5.9-23';
-import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-23';
-import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.9-23';
-import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.9-23';
-import { plumeDims, styleFor, vacFactors } from './gfx/plume_style.js?v=f5.9-23'; // QA plume pass: exhaust style per propellant + size from the engine
-import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.9-23';
-import * as UN from './fun/units.js?v=f5.9-23';
-import { buildEndStats } from './fun/endstats.js?v=f5.9-23';
-import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.9-23';
-import { createHome } from './fun/home.js?v=f5.9-23';
-import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-23';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-23';
-import { createFunUI } from './fun/ui.js?v=f5.9-23';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-23';
-import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-23';
-import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-23'; // f6.2: craft types, switching between vessels
-import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-23';
-import { createVesselUI } from './fun/vesselui.js?v=f5.9-23';
-import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.9-23';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.9-23';
-import { dimsOf } from './vehicles/dims.js?v=f5.9-23';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.9-23';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.9-23';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.9-23';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker, SHORT as SHORT_HOUSE } from './fun/picker.js?v=f5.9-23';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-24';
+import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-24';
+import { guardToasts } from './fun/toastzone.js?v=f5.9-24';
+import * as GX from './gfx/gfx.js?v=f5.9-24';
+import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-24';
+import * as PR from './fun/progress.js?v=f5.9-24';
+import * as WORLD from './fun/world.js?v=f5.9-24';
+import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-24';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-24';
+import { createAudio } from './fun/audio.js?v=f5.9-24';
+import { createMusic } from './fun/music.js?v=f5.9-24';
+import { createCompact } from './fun/compact.js?v=f5.9-24';
+import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-24';
+import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.9-24';
+import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.9-24';
+import { plumeDims, styleFor, vacFactors } from './gfx/plume_style.js?v=f5.9-24'; // QA plume pass: exhaust style per propellant + size from the engine
+import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.9-24';
+import * as UN from './fun/units.js?v=f5.9-24';
+import { buildEndStats } from './fun/endstats.js?v=f5.9-24';
+import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.9-24';
+import { createHome } from './fun/home.js?v=f5.9-24';
+import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-24';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-24';
+import { createFunUI } from './fun/ui.js?v=f5.9-24';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-24';
+import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-24';
+import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-24'; // f6.2: craft types, switching between vessels
+import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-24';
+import { createVesselUI } from './fun/vesselui.js?v=f5.9-24';
+import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.9-24';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.9-24';
+import { dimsOf } from './vehicles/dims.js?v=f5.9-24';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.9-24';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.9-24';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.9-24';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker, SHORT as SHORT_HOUSE } from './fun/picker.js?v=f5.9-24';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-23';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-23';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-23';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-23';
-import { createDock } from './fun/dock.js?v=f5.9-23'; // f5.9a: top bar + bottom bar
-import { createXferPlanner } from './fun/xferui.js?v=f5.9-23'; // f6.5 pre-launch transfer planner
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-24';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-24';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-24';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-24';
+import { createDock } from './fun/dock.js?v=f5.9-24'; // f5.9a: top bar + bottom bar
+import { createXferPlanner } from './fun/xferui.js?v=f5.9-24'; // f6.5 pre-launch transfer planner
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -316,7 +317,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.9-23').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.9-24').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -1933,7 +1934,7 @@ function updateSplit(rdt) {
   if (flying) split.landT = 0;
   if (!want) document.body.classList.remove('pip');
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want && camMode !== 'map') { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
-  if (!split.on) return;
+  if (!split.on) { const sp = $('split'); if (sp.classList.contains('fullB') || sp.classList.contains('fullU')) { sp.classList.remove('fullB', 'fullU'); document.body.classList.remove('pip'); } return; } // f5.9-22 (QA f5.9-23 P1): leaving the booster view clears .fullB, so the navball and telemetry come back
   const nb = 1, R2 = paneRect(0, nb), fb = split.full === 'b'; // f5.6e (QA): two panes max on every screen (Heavy's 2nd booster has no pane)
   $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('pipM', true); document.body.classList.toggle('pip', split.full !== 'b'); /* f5.7m (QA f5.7j P1): Heron Heavy uses the same inset */  // f5.6u (QA P1): at orbit the phone's upper pane drops its empty card + label
  $('split').classList.toggle('fullB', fb); $('split').classList.toggle('fullU', split.full === 'u'); $('split').classList.toggle('tri', nb > 1);
@@ -2443,10 +2444,10 @@ const fmtMph = m => UN.spd(m), fmtFps = m => UN.vs(m), fmtDv = m => UN.dv(m); //
 const craftDvOf = (c, cur) => { try { const d = stageDvs(c.stages, cur, P.massOf(c)).reduce((a, x) => a + x.dv, 0); return isFinite(d) ? fmtDv(d) : '—'; } catch (e) { return '—'; } };
 const plain = createPlainHud();
 const dCtl = (() => { if (TOUCH) return null; const d = document.createElement('div'); d.id = 'dCtl'; d.className = 'hidden'; // f5.6d (QA P0 #2): desktop on-screen controls with key caps
-  d.innerHTML = '<button id="dAbort" title="Abort (Backspace)">⛔ ABORT</button><div id="dThr" title="Throttle: drag, or Shift/Ctrl, Z full, X cut"><i></i><b>THR</b><u>0%</u></div><button id="dAuto" title="AUTO (F)">AUTO</button><button id="dStage" title="Stage (Space)">STAGE</button>';
+  d.innerHTML = '<button id="dAbort" title="Abort (Backspace)">⛔ ABORT</button><div id="dThr" title="Throttle: drag, or Shift/Ctrl, Z full, X cut"><i></i><s></s><b>THR</b><u>0%</u></div><button id="dAuto" title="AUTO (F)">AUTO</button><button id="dStage" title="Stage (Space)">STAGE</button>';
   document.body.appendChild(d); const tap = (id, k) => { $(id).onclick = e => { e.currentTarget.blur(); press(k); }; }; tap('dAbort', 'Backspace'); tap('dAuto', 'KeyF'); tap('dStage', 'Space');
   { const th = $('dThr'); th.style.touchAction = 'none'; /* f5.8o (QA f5.8n P1): the gauge owns its pointer: capture it, never let it reach the navball / canvas steering */
-    const setY = y => { const r = th.getBoundingClientRect(); setThrottleTouch(Math.max(0, Math.min(1, 1 - (y - r.top) / r.height))); };
+    const setY = y => setThrottleTouch(thrFromY(th, y));
     th.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); try { th.setPointerCapture(e.pointerId); } catch (x) { } th._pid = e.pointerId; setY(e.clientY); });
     th.addEventListener('pointermove', e => { if (th._pid === e.pointerId) { e.stopPropagation(); setY(e.clientY); } });
     const end = e => { if (th._pid === e.pointerId) { th._pid = null; e.stopPropagation(); try { th.releasePointerCapture(e.pointerId); } catch (x) { } } };
@@ -2455,7 +2456,9 @@ const dCtl = (() => { if (TOUCH) return null; const d = document.createElement('
   return d; })();
 function dCtlTick() { if (!dCtl) return; const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); dCtl.classList.toggle('hidden', !on); if (!on) { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); return; } // f5.6h (QA): the ☰ never stays open over the end card
   if (F.ignited && dCtlTick.ig !== F) { dCtlTick.ig = F; const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); try { mobile.closeMenu(); } catch (e) { } } // f5.7e (QA f5.7c P2): ☰ closes at liftoff (it stayed open from ascent to orbit)
-  const t = Math.round(100 * (v.throttle || 0)); $('dThr').querySelector('i').style.height = t + '%'; $('dThr').querySelector('u').textContent = t + '%'; $('dAuto').classList.toggle('on', !!F.autoOn); } // f5.5c (owner): plain telemetry: mph, Ap/Pe with T−/+, Δv per stage
+  const t = Math.round(100 * (v.throttle || 0)); $('dThr').querySelector('i').style.height = t + '%'; $('dThr').style.setProperty('--t', (v.throttle || 0).toFixed(3)); $('dThr').querySelector('u').textContent = t + '%'; $('dAuto').classList.toggle('on', !!F.autoOn); } // f5.5c (owner): plain telemetry: mph, Ap/Pe with T−/+, Δv per stage
+const tankViz = createTankViz();
+function tankTick() { try { const on = state === 'flight' && !!F && !!v && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); tankViz.tick(v, on, flyingBooster() && booster ? booster.stages[0] : null); } catch (e) { } }
 function plainTick() {
   if (F && F.ignited) { const ig = $('ignite'); if (ig && !ig.classList.contains('hidden')) ig.classList.add('hidden'); } // f5.6o (QA): the pad hint goes away at ignition, however you staged
   const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden');
@@ -2471,7 +2474,7 @@ function plainTick() {
 // Navball glue: ship frame, local horizon, the marker directions and the landing burn cue
 let navTgtT = 0, navTgt = null;
 function navTick() {
-  stripTick(); plainTick(); dCtlTick();
+  stripTick(); plainTick(); dCtlTick(); tankTick();
   if (camMode === 'map' || photoOn || !F || (split.on && innerHeight > innerWidth && !document.body.classList.contains('pip'))) { fun.hideNav(); return; }
   const nose = P.noseOf(v), top = V.qrot(v.q, [0, 0, -1]), vs = P.airVel(v), up = V.norm(v.r), vo = v.v;
   const nrmv = V.len(V.cross(v.r, v.v)) > 1 ? V.norm(V.cross(v.r, v.v)) : null, pg = V.len(vo) > 1 ? V.norm(vo) : up, rad = V.norm(V.sub(up, V.scale(pg, V.dot(up, pg))));

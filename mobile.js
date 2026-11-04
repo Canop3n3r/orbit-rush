@@ -3,12 +3,14 @@
 // a vertical throttle slider, a big STAGE button (the double-press guard lives in flight.js), and an
 // overflow menu (☰) for SAS modes, RCS, warp, map, chutes, deorbit, booster, effects, Learn, fullscreen.
 // Haptics (navigator.vibrate), Wake Lock while flying, safe areas are in style.css (env(safe-area-inset-*)).
-import { menuHTML, menuUpdate } from './fun/flightmenu.js?v=f5.9-23';
+import { menuHTML, menuUpdate } from './fun/flightmenu.js?v=f5.9-24';
 const qs = new URLSearchParams(location.search);
 export const isTouch = () => qs.has('touch') || (!qs.has('desktop') && matchMedia('(pointer: coarse)').matches);
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const SAS = [['stab', 'STAB'], ['prograde', 'PRO'], ['retrograde', 'RETRO'], ['radial', 'RAD+'], ['antiradial', 'RAD−'], ['normal', 'NRM'], ['antinormal', 'ANRM'], ['off', 'OFF']];
+// f5.9-22: throttle from a pointer Y on the vertical track; 8 px pads at each end so 0 % and 100 % are easy to hit in one drag
+export function thrFromY(el, y) { const r = el.getBoundingClientRect(), pad = Math.min(8, r.height * 0.1), u = 1 - (y - r.top - pad) / Math.max(1, r.height - 2 * pad); return u < 0.015 ? 0 : u > 0.985 ? 1 : Math.round(Math.min(1, Math.max(0, u)) * 200) / 200; }
 export function createMobile(api) {
   const on = isTouch(), input = { pitch: 0, yaw: 0, roll: 0 };
   const M = { on, input, render() {}, update() {}, vibrate() {}, closeMenu() {}, show() {}, thrDragging: () => false, wakeLock: () => false, sheet: false }; // desktop: inert stubs
@@ -21,7 +23,7 @@ export function createMobile(api) {
     <div id="mtop"><span id="mScore" data-l="score">0</span><button id="mMap">MAP</button><button id="mMenuBtn" data-l="sas" aria-label="More controls">☰</button></div>
     <div id="mleft"><div id="mRoll"><i></i><span>ROLL</span></div><div id="mStick" data-l="pitch"><i></i></div></div>
     <div id="mright"><button id="mAuto">AUTO</button><button id="mChute" class="hidden">CHUTE</button><button id="mStage">STAGE</button><button id="mAbort" data-p="Backspace" aria-label="Abort">⛔<span class="mAbT"> ABORT</span></button>
-      <div id="mThr" data-l="thr"><i></i><b>THR</b><u>0%</u></div></div>
+      <div id="mThr" data-l="thr"><i></i><s></s><b>THR</b><u>0%</u></div></div>
     <div id="mMenu" class="hidden"><div class="mh"><b>Menu</b><span id="mWarp" hidden></span><button id="mClose" aria-label="Close">✕</button></div>
       <div class="mg mTop">${menuHTML()}</div>
       <div hidden><button id="mRcs"></button><button id="mFx"></button></div></div>`; // f5.6d (owner video + QA #8): one compact side sheet, ~10 big buttons, one Home, one chute, no debug text
@@ -72,12 +74,12 @@ export function createMobile(api) {
   const thr = $('mThr');
   thr.addEventListener('click', () => { }); thr.setAttribute('role', 'slider'); thr.setAttribute('aria-label', 'Throttle'); /* f5.9-10 (budget thr_drag_pitch @390): Chrome's touch adjustment snapped a THR touch onto RELEASE stacked above it; a tap-target THR wins its own touches */
   let thrDrag = false;
-  drag(thr, e => { thrDrag = true; const r = thr.getBoundingClientRect(); api.setThrottle(clamp(1 - (e.clientY - r.top) / r.height, 0, 1)); }, () => { thrDrag = false; });
+  drag(thr, e => { thrDrag = true; api.setThrottle(thrFromY(thr, e.clientY)); }, () => { thrDrag = false; }); // f5.9-22: whole track = 0..100 %, ends snap
   // pinch/drag on the map and the 3D view are handled by main.js on the canvas; nothing here covers the centre
   M.render = d => {
     $('mAlt').textContent = d.alt; $('mSpd').textContent = d.spd; $('mAp').textContent = d.ap; $('mPe').textContent = d.pe;
     $('mMqL').textContent = d.mqL; $('mMq').textContent = d.mq; $('mMq').className = d.mqC || ''; $('mFuel').textContent = d.fuel; $('mScore').textContent = d.score;
-    thr.querySelector('i').style.height = d.thr * 100 + '%'; thr.querySelector('u').textContent = Math.round(d.thr * 100) + '%';
+    thr.querySelector('i').style.height = d.thr * 100 + '%'; thr.style.setProperty('--t', d.thr.toFixed(3)); thr.querySelector('u').textContent = Math.round(d.thr * 100) + '%';
     $('mAuto').classList.toggle('on', d.auto); { const t = 'AUTO'; /* f5.6u (QA P1 budgets): the lit button + dot says ON; one word */ if ($('mAuto').textContent !== t) $('mAuto').textContent = t; } $('mChute').classList.toggle('hidden', !d.chute); menuUpdate($('mMenu'), { fleet: !!d.fleet, booster: !!d.booster, ret: /CANCEL/.test(d.home || ''), chute: d.hasChute, canHome: d.canHome });
     $('mRcs').classList.toggle('on', d.rcs); $('mFx').textContent = 'FX ' + d.fx; $('mWarp').textContent = d.warp;
     root.querySelectorAll('#mMenu [data-sas]').forEach(b => b.classList.toggle('on', b.dataset.sas === d.sas));

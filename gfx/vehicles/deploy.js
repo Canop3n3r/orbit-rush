@@ -2,7 +2,7 @@
 // hinged antennas. Each builder returns { group, set(k) }; set(0) is stowed against the bus, set(1) deployed (timing: deploy_math.js).
 // A few small shared materials and one 64 px solar-cell texture; plain meshes (never InstancedMesh).
 import * as THREE from 'three/webgpu';
-import { wingAngles, rollOut, boomOut, hinge } from './deploy_math.js?v=f5.9-23';
+import { wingAngles, rollOut, boomOut, hinge } from './deploy_math.js?v=f5.9-24';
 let CELL = null; const MATS = {};
 function cellTex() { if (CELL) return CELL; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.fillStyle = '#16306f'; x.fillRect(0, 0, 64, 64);
   x.fillStyle = '#1f3f8c'; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) x.fillRect(i * 16 + 1, j * 16 + 1, 14, 14); x.fillStyle = '#9aa0a8'; x.fillRect(0, 0, 64, 1); x.fillRect(0, 0, 1, 64);

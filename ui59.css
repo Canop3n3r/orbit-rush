@@ -455,7 +455,7 @@ body.u59 #home.allOn #hGal #picker :is(.pkH,.pkTabs){display:flex!important}
 @media (orientation:landscape) and (max-height:520px){body.u59 :is(#hGearM,#hMenu){max-height:calc(100dvh - 52px - 146px)!important;overflow:auto}}
 @media (orientation:landscape) and (max-height:520px){body.u59 #home #hCard{padding-top:2px!important;padding-bottom:2px!important}body.u59 #home #hGal #picker .pkG{margin-bottom:2px}body.u59 #home #hGal #picker .pkG .pkC{padding:2px!important}}
 /* expanded booster view: the upper stage's faded readouts leave the bottom bar so the booster card is the only one */
-body.u59:has(#split.fullB) #botBar #bbL{visibility:hidden}
+body.u59:has(#split.fullB:not(.hidden)) #botBar #bbL{visibility:hidden}
 
 /* ===== f5.9f (budget): fixed control sizes, short bars, photo bar without a fill, one scrolling card row ===== */
 :root{--ctlH:50px}
@@ -588,10 +588,10 @@ body.u59 #bbT #navRd.hidden{display:none!important}
 /* f5.9-10 (QA f5.9-9 P2): expanded booster view. ⤡ BACK / ⟲ FOLLOW sit in ONE spot at every size (right corner just under the top bar),
    and the upper stage's navball / attitude row / readouts leave the bottom bar so nothing ghosts behind the booster card */
 body.u59:has(#split.fullB) #topBar .spBtns{position:fixed!important;top:calc(var(--topH,52px) + 8px)!important;right:calc(10px + var(--sar,0px))!important;left:auto!important;bottom:auto!important;z-index:30}
-body.u59:has(#split.fullB) #botBar :is(#bbT,#bbL,#bbC){visibility:hidden!important}
-body.u59:has(#split.fullB) #botBar #nav{visibility:hidden!important}
+body.u59:has(#split.fullB:not(.hidden)) #botBar :is(#bbT,#bbL,#bbC){visibility:hidden!important}
+body.u59:has(#split.fullB:not(.hidden)) #botBar #nav{visibility:hidden!important}
 body.u59 #split.fullB #spCardB{background:var(--panel)!important;border-top:var(--bw) solid var(--bc)}
-body.u59:has(#split.fullB) #botBar::before{display:none!important}
+body.u59:has(#split.fullB:not(.hidden)) #botBar::before{display:none!important}
 /* f5.9-11 (QA f5.9-10): Atlas is a short scannable list: one row per world, notes collapsed, ✕ in the header, bounded sheet */
 body.u59 #atlas .mbox{max-height:calc(100dvh - 24px)!important;width:min(560px,calc(100vw - 16px))!important;display:flex;flex-direction:column;overflow:hidden}
 body.u59 #atlas h2{display:flex;justify-content:space-between;align-items:center;margin:0 0 6px}
@@ -843,10 +843,52 @@ body.u59 #split.fullB #spCardB.inBar .spT b{display:none}
 body.u59 #split.fullB #spCardB.inBar :is(.spL,.spR){font-size:11px!important}
 body.u59 #split.fullB #spCardB.inBar .spBall{width:56px!important;height:56px!important}
 body.u59 #split.fullB #spCardB.inBar{background:none!important;border-top:0!important;padding:4px 8px 2px!important}
-body.u59:has(#split.fullB) #botBar #spRec:not(.hidden){display:flex;position:fixed;bottom:calc(6px + var(--sab,0px));z-index:62;flex-direction:column;align-items:stretch;gap:4px;min-width:0;box-sizing:border-box;pointer-events:auto}
+body.u59:has(#split.fullB:not(.hidden)) #botBar #spRec:not(.hidden){display:flex;position:fixed;bottom:calc(6px + var(--sab,0px));z-index:62;flex-direction:column;align-items:stretch;gap:4px;min-width:0;box-sizing:border-box;pointer-events:auto}
 #spRec .spRecB{display:flex;gap:0;border:var(--bw,2px) solid var(--bc,#9cc3ff66);border-radius:var(--rad,8px);overflow:hidden}
 #spRec .spRecB button{flex:1 1 0;height:30px;min-width:0;padding:0 4px;border:0;border-right:1px solid var(--bc,#9cc3ff66);background:transparent;color:var(--txt,#dfe9ff);font:700 11px/1 var(--font,system-ui);letter-spacing:.04em;pointer-events:auto}
 #spRec .spRecB button:last-child{border-right:0}
 #spRec .spRecB button.on{background:var(--btn-on,#1d5fae);color:#fff}
 #spRec .spRecW{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:700 11px/1.3 var(--font,system-ui);text-align:center;color:#cfe0ff}
 #spRec .spRecW b{color:#fff;letter-spacing:.04em}#spRec .spRecW span{color:#9cb4d8}#spRec .spRecW i{font-style:normal;color:#ffd23a;white-space:nowrap}
+/* ---------- f5.9-22 (owner, iPhone): no dead space. Top bar middle = tank gauge + status line; tall throttle slider ---------- */
+/* top bar: one row everywhere; the middle holds the per-stage tank gauge with the hint (HIGH Q, ...) under it */
+html body.u59:not(.splitOn):not(.mapOn) #topBar{grid-template-columns:auto minmax(0,1fr) auto!important;grid-template-areas:"l c r"!important;row-gap:0!important}
+html body.u59 #tbC{display:flex!important;flex-direction:column;align-items:stretch;justify-content:center;gap:3px;min-width:0}
+html body.u59 #tbC #hintS{font-size:11px!important;line-height:1.2!important;-webkit-line-clamp:2}
+html body.u59 #tbC #ignite{font-size:12px!important}
+#tankViz{order:-1;display:flex;align-items:center;gap:2px;height:16px;min-width:0;max-width:min(260px,100%);width:100%;margin:0 auto;pointer-events:none}
+#tankViz.hidden{display:none!important}
+#tankViz .tkS{position:relative;display:flex;flex-direction:column;gap:2px;height:100%;min-width:14px;justify-content:center}
+#tankViz .tkS.rad{height:100%;justify-content:space-between}
+#tankViz .tk{position:relative;flex:1;border:1.5px solid var(--bc,#4a6a96);border-radius:5px;background:#0b1424;overflow:hidden}
+#tankViz .tkS.rad .tk{flex:0 0 42%;border-radius:4px}
+#tankViz .tk i{position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,#2a8cff,#7cc4ff);transition:width .25s linear}
+#tankViz .tkS.act .tk{border-color:#9fd0ff;box-shadow:0 0 6px #4aa3ff88}
+#tankViz .tkS.act .tk i{background:linear-gradient(90deg,#ff7a1a,#ffc35a)}
+#tankViz .tkS.low .tk i{background:#ff4a3a}
+#tankViz .tkS.spent{opacity:.35}
+#tankViz .tkS.spent .tk{border-style:dashed;background:transparent}
+#tankViz .tkS.dry .tk{background:repeating-linear-gradient(135deg,#1a2638 0 3px,#0b1424 3px 6px)}
+#tankViz b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 8px/1 var(--font,system-ui);color:#fff;text-shadow:0 0 3px #000,0 0 2px #000;letter-spacing:.02em}
+#tankViz .tkNose{flex:none;width:0;height:0;border-top:7px solid transparent;border-bottom:7px solid transparent;border-left:9px solid var(--bc,#4a6a96)}
+/* throttle: a tall track with a thumb, full height of the controls column (portrait phones + desktop); phone landscape keeps the one-row bar (≤ 25 % budget) */
+html body.u59 #botBar :is(#mThr,#dThr){background:rgba(11,20,36,.12)!important;position:relative!important;overflow:visible!important;touch-action:none;cursor:ns-resize}
+html body.u59 #botBar :is(#mThr,#dThr)::before{content:"";position:absolute;inset:-6px 0}
+html body.u59 #botBar :is(#mThr,#dThr) i{border-radius:calc(var(--rad,10px) - 2px);background:linear-gradient(0deg,#ff6a00,#ffb347)!important;opacity:.85}
+html body.u59 #botBar :is(#mThr,#dThr) s{position:absolute;left:2px;right:2px;height:12px;bottom:calc(var(--t,0) * (100% - 12px));border-radius:6px;background:#eaf3ff;border:2px solid #0b1424;box-shadow:0 1px 4px #000a;text-decoration:none;pointer-events:none}
+html body.u59 #botBar :is(#mThr,#dThr) u{font-size:12px!important;font-weight:800!important;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;z-index:1;pointer-events:none}
+@media not ((orientation:landscape) and (max-height:520px)){
+  html body.u59 #botBar :is(#mright,#dCtl){grid-template-columns:auto 48px!important}
+  html body.u59 #botBar :is(#mThr,#dThr){grid-column:2!important;grid-row:1 / span 3!important;width:48px!important;min-width:48px!important;max-width:48px!important;height:auto!important;min-height:128px!important;align-self:stretch!important}
+  html body.u59 #botBar :is(#mStage,#dStage){align-self:end!important}
+}
+@media not ((orientation:landscape) and (max-height:520px)){html body.u59 #botBar :is(#mAuto,#dAuto){grid-column:1!important;grid-row:1!important}html body.u59 #botBar :is(#mStage,#dStage){grid-column:1!important;grid-row:2!important}html body.u59 #botBar #mChute:not(.hidden){grid-column:1!important;grid-row:3!important}}
+@media (orientation:landscape) and (max-height:520px){html body.u59 #botBar :is(#mright,#dCtl){grid-template-columns:auto auto 48px!important}html body.u59 #botBar :is(#mThr,#dThr){width:48px!important;min-width:48px!important;max-width:48px!important}}
+html body.u59 #tbC #hintS{align-self:center}
+/* f5.9-22 (owner): after a separation or craft switch the active craft keeps the same controls: STAGE stays, greyed, when nothing is left to stage */
+html body.u59.noStage #botBar :is(#mStage,#dStage){display:inline-flex!important;align-items:center;justify-content:center;pointer-events:none}
+/* f5.9-22 (QA f5.9-23 P2): the top bar stays above the full booster view; the recovery "why" line wraps instead of clipping */
+body.u59:has(#split.fullB:not(.hidden)) #topBar{z-index:62}
+@media (max-width:560px){#spRec .spRecW{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:100%}}
+/* f5.9-22 (QA P2): on a 390 phone the Pause bar is two rows of three, with room around Quicksave / Quickload */
+@media (max-width:560px){html body.u59 #pause .mbox>:is(.row,.col){flex-wrap:wrap!important;row-gap:6px!important}html body.u59 #pause .mbox>:is(.row,.col) button{flex:1 1 calc(33.3% - 8px)!important;padding:0 8px!important;white-space:nowrap}}
