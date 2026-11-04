@@ -7,6 +7,8 @@
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { surfaceMaterial, bakeSurf } from './surface.js?v=f5.9-19';
+import { sootOf } from './surface_math.js?v=f5.9-19';
 
 const BASE = new URL('../../assets/rockets/', import.meta.url).href;
 const Q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
@@ -38,10 +40,11 @@ async function loadManifest(id) {
   const m = await r.json(); MANIFESTS.set(id, m); return m;
 }
 // shared PBR materials: vertex colours carry the livery (baked), so ONE material per kind serves the whole fleet
-function sharedMaterial(src) {
-  const k = src.name; let m = MATS.get(k); if (m) return m;
-  m = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: src.roughness, metalness: src.metalness, side: src.side });
-  m.name = k; m.userData.cached = true; MATS.set(k, m); return m;
+// realism-1: hi/mid get the shared procedural surface detail (surface.js); lo keeps the plain material
+function sharedMaterial(src, tier = 'hi') {
+  const k = src.name + '|' + tier; let m = MATS.get(k); if (m) return m;
+  m = surfaceMaterial(src, tier);
+  m.name = src.name; m.userData.cached = true; MATS.set(k, m); return m;
 }
 const PENDING = new Map(); // url -> Promise<scene>; SCENES holds the parsed scenes once resolved (so stagedReady() is synchronous)
 const urlOf = rel => new URL('../../' + rel, import.meta.url).href;
@@ -68,9 +71,9 @@ export function stagedReady(id, detail) {
   return m.stages.every(st => !st.asset[t] || SCENES.has(urlOf(st.asset[t])));
 }
 
-function instantiate(scene) {
-  const c = scene.clone(true);
-  c.traverse(o => { if (o.isMesh) { o.geometry = o.geometry.clone(); o.geometry.userData.own = true; o.material = sharedMaterial(o.material); o.castShadow = o.receiveShadow = false; o.frustumCulled = true; } });
+function instantiate(scene, tier = 'hi', soot = 1) {
+  const c = scene.clone(true); c.updateMatrixWorld(true); const inv = c.matrixWorld.clone().invert();
+  c.traverse(o => { if (o.isMesh) { o.geometry = o.geometry.clone(); o.geometry.userData.own = true; if (tier !== 'lo') bakeSurf(o.geometry, inv.clone().multiply(o.matrixWorld), soot); o.material = sharedMaterial(o.material, tier); o.castShadow = o.receiveShadow = false; o.frustumCulled = true; } });
   return c;
 }
 const _q = new THREE.Quaternion(), _e = new THREE.Euler();
@@ -79,6 +82,7 @@ function legPivots(root) { // setLegs() animates pivots[i].rotation.z; rebuild e
   root.traverse(o => { if (/^leg_\d+$/.test(o.name)) { const yaw = 2 * Math.atan2(o.quaternion.y, o.quaternion.w); o.rotation.set(0, yaw, 0); L.userData.pivots.push(o); } });
   return L.userData.pivots.length ? L : null;
 }
+// realism-1: engine soot only on stages that fire near the ground or carry engines: none on fairings/payloads/crew, full on first-stage cores and boosters
 /** assemble a staged model (sync; the assets must be preloaded). detail: 'hi' | 'mid' | 'lo'. */
 export function buildStaged(id, o = {}) {
   const m = MANIFESTS.get(id), tier = tierKey(o.detail), g = new THREE.Group(), stages = {}, legsAll = [];
@@ -86,7 +90,7 @@ export function buildStaged(id, o = {}) {
   for (const st of m.stages) {
     const url = urlOf(st.asset[tier] || st.asset.lo || st.asset.hi), sc = SCENES.get(url); if (!sc) throw new Error('staged asset not loaded ' + url);
     const grp = new THREE.Group(); grp.name = st.key; grp.userData.top = st.offset[1] + st.size_m.h;
-    const a = instantiate(sc); a.position.set(...st.offset); a.rotation.set(0, st.rotY || 0, 0); a.name = st.key + ':asset'; grp.add(a);
+    const a = instantiate(sc, st.asset[tier] ? tier : 'lo', sootOf(st, m.stages, id)); a.position.set(...st.offset); a.rotation.set(0, st.rotY || 0, 0); a.name = st.key + ':asset'; grp.add(a);
     const L = legPivots(a); if (L) { a.add(L); grp.userData.legs = L; legsAll.push(L); }
     grp.userData.nodes = st; stages[st.key] = grp; g.add(grp);
   }

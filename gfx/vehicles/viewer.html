@@ -6,11 +6,12 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VEHICLES, build, setLegs, dispose, preloadStaged, stagedIndex } from './vehicles.js?v=f5.9-19';
+import * as GX from '../gfx.js?v=f5.9-19';
 import { payloadKindFor } from './payload_kinds.js?v=f5.9-19';
 const q = new URLSearchParams(location.search);
 const r = new THREE.WebGPURenderer({ antialias: true, forceWebGL: q.has('webgl') }); r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.setSize(innerWidth, innerHeight); r.toneMapping = THREE.ACESFilmicToneMapping; document.body.append(r.domElement); await r.init();
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x6f9fd8);
-{ const c = document.createElement('canvas'); c.width = 256; c.height = 128; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 128); g.addColorStop(0, '#3d6fb8'); g.addColorStop(0.48, '#dfe9f2'); g.addColorStop(0.52, '#6f6a58'); g.addColorStop(1, '#2a2a24'); x.fillStyle = g; x.fillRect(0, 0, 256, 128); const t = new THREE.CanvasTexture(c); t.mapping = THREE.EquirectangularReflectionMapping; t.colorSpace = THREE.SRGBColorSpace; scene.environment = t; }
+scene.environment = GX.envTexture(); // realism-1: same procedural sky panorama as the game, so contact sheets match flight
 scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x443d33, 0.8)); const sun = new THREE.DirectionalLight(0xfff2e0, 3.2); sun.position.set(0.8, 0.6, 0.5); scene.add(sun);
 const ground = new THREE.Mesh(new THREE.CircleGeometry(600, 48), new THREE.MeshStandardMaterial({ color: 0x8d8a82, roughness: 0.95 })); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; scene.add(ground);
 const cam = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 5000), ctl = new OrbitControls(cam, r.domElement);
