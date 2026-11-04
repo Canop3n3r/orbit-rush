@@ -29,9 +29,11 @@ export const SITE = { id: 'cape-heritage', name: 'Heritage Complex', body: 'eart
     { k: 'bld', style: 'office', at: [-480, 820], w: 40, d: 26, h: 16 },
     { k: 'bld', style: 'office', at: [360, 640], w: 34, d: 22, h: 10 },
     { k: 'tanks', at: [100, -330], n: 3, r: 4, style: 'v', h: 16 },
-    { k: 'scatter', seed: 'ch', r0: 80, r1: 2400, mix: { pine: 90, palm: 40, scrub: 140, rock: 24 }, shore: 24, mid: 0.05 } /* phone near tier stays under the 8k site cap */,
+    { k: 'scatter', seed: 'ch', r0: 80, r1: 2400, mix: { pine: 70, palm: 36, scrub: 120, rock: 24 }, shore: 24, mid: 0.05 } /* phone near tier stays under the 8k site cap */,
     { k: 'belts', seed: 'ch', road: 0.45, perimeter: 24, ring: 260, coast: 50, r1: 2400, mid: 0.3 }, // world-pop-2: crawler-road tree lines, pad hedge ring, shore palms
-    { k: 'hills', r0: 7500, r1: 13000, h: 320, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // inland ridges beyond the assembly building
+    { k: 'hills', r0: 7500, r1: 14000, h: 760, ridge: 0.65, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // world-pop-2: taller ridged range
+    { k: 'beach', z0: -2400, z1: 3000, w: 180, out: 30 }, // world-pop-2: beach strip on the game's waterline
+    // inland ridges beyond the assembly building
   ],
   stations: [{ id: 'droneship', name: 'Droneship holding area', lat: 29.8, lon: -76.0, layout: [{ k: 'droneship' }] }],
   views: { wide: { eye: [900, 300, 1100], at: [-2500, 0, 0], fov: 50 }, hero: { eye: [190, 70, 250], at: [-10, 45, 0] }, top: { eye: [-2200, 5200, 5200], at: [-2200, 0, 1200], fov: 45 }, vab: { eye: [-4200, 120, 2900], at: [-4555, 70, 2470] }, phone: { eye: [190, 80, 250], at: [0, 55, 20] } } };

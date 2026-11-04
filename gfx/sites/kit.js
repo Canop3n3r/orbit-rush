@@ -192,7 +192,8 @@ const parts = {
   hills(K, o) { WORLD_PARTS.hills(K, o, K.S); },
   lot(K, o) { WORLD_PARTS.lot(K, o, K.S); },
   belts(K, o) { WORLD_PARTS.belts(K, o, K.S); },
-  bld(K, o) { WORLD_PARTS.bld(K, o, K.S); }, // world-pop-2: textured support buildings (hangar, assembly block, blockhouse, office) // world-pop-2: tree lines / hedges along roads, perimeter, coast
+  bld(K, o) { WORLD_PARTS.bld(K, o, K.S); },
+  beach(K, o) { WORLD_PARTS.beach(K, o, K.S); }, // world-pop-2: sand + wet-sand + foam strip along the shaded waterline // world-pop-2: textured support buildings (hangar, assembly block, blockhouse, office) // world-pop-2: tree lines / hedges along roads, perimeter, coast
   ground(K, o) { K.disc(o.mat || 'ground', o.r || 2500, [0, 0, 0], K.seg * 3, -0.05); if (o.sea) K.flat('sea', o.sea.w || 12000, o.sea.d || 12000, [o.sea.x || 0, 0, o.sea.z || 0], 0, -1.0) /* f5.9-21: well under the land disc (z-fight) */; },
 };
 export const PART_KINDS = Object.keys(parts);

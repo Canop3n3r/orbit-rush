@@ -27,7 +27,8 @@ export const SITE = { id: 'cape-north', name: 'North Coast Complex', body: 'eart
     { k: 'tanks', at: [-60, -300], n: 3, r: 4, style: 'v', h: 16 },        // LOX / RP-1 day tanks
     { k: 'scatter', seed: 'cn', r0: 60, r1: 1500, mix: { pine: 150, palm: 50, scrub: 220, rock: 30 }, shore: 50, groves: 40 },
     { k: 'belts', seed: 'cn', road: 4, perimeter: 22, ring: 210, coast: 60, r1: 1500, mid: 0.3 }, // world-pop-2: tree lines along the roads, a hedge ring round the pad fence, palms + dune grass on the shore
-    { k: 'hills', r0: 4500, r1: 9000, h: 260, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // rolling inland ridges, south through west to north
+    { k: 'hills', r0: 4500, r1: 10000, h: 680, ridge: 0.65, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // world-pop-2: taller ridged inland range (grass foothills, rock above), south through west to north
+    { k: 'beach', z0: -2400, z1: 2600, w: 170, out: 30 }, // world-pop-2: sand / wet sand / foam strip on the game's waterline
   ],
   stations: [{ id: 'droneship', name: 'Droneship holding area', lat: 30.5, lon: -74.5, layout: [{ k: 'droneship' }] }],
   views: { wide: { eye: [900, 260, 900], at: [-1500, 0, -200], fov: 50 }, hero: { eye: [170, 60, 220], at: [-10, 32, 20] }, top: { eye: [0, 900, 420], at: [0, 0, 90] }, phone: { eye: [150, 70, 200], at: [0, 45, 20] } } };

@@ -6,8 +6,8 @@
 // Trunks, rocks and hill skirts reach 2.5 m below y = 0 so they meet the game's ground tile (main.js PAD_SINK 2 m) without floating.
 // Photo textures (CC0, assets/world/*.webp, see CREDITS.md) replace the procedural canvas maps in the browser only (node tests: none).
 import * as THREE from 'three/webgpu';
-import { landTest, keepOut } from './worldmask.js?v=f5.9-23';
-export { landTest, keepOut };
+import { landTest, keepOut, coastLine } from './worldmask.js?v=f5.9-23';
+export { landTest, keepOut, coastLine };
 const ER = 6378137, SINK = 2.5;
 function rnd(seed) { let x = (seed >>> 0) || 1; return () => ((x = (x * 1664525 + 1013904223) >>> 0) / 4294967296); }
 const hash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
@@ -57,23 +57,45 @@ function scatter(K, o, S) { if (K.lo) return; const a = rnd(hash(S.id + (o.seed 
   if (o.shore) { const n = Math.round(o.shore * f); let placed = 0, tries = 0; // boulders strung along the shoreline (just inside the land edge)
     while (placed < n && tries++ < n * 60) { const t = a() * Math.PI * 2, r = r0 + a() * (r1 - r0), x = Math.cos(t) * r, z = Math.sin(t) * r;
       if (!land(x, z, 0) || land(x, z, 45) || !free(x, z, 2)) continue; PLANTS.rock(K, x, z, 1.2 + 1.8 * a(), a); placed++; } } }
-// hills: o = { r0, r1, h, seg, from, to (bearing range, radians, 0 = east, pi/2 = south), islets: n }
+// hills: o = { r0, r1, h, seg, from, to (bearing range, radians, 0 = east, pi/2 = south), islets: n, ridge: 0..1 (sharp crests, world-pop-2) }
+// world-pop-2: taller ridged ranges; faces are split by height + slope into grassy 'hill' foothills and bare 'boulder' rock (rock photo map) above
+// the tree line, with a lighter scree / snow-free cap tint near the summits. Still 2 materials (hill + boulder, shared with the scatter).
+const ROCK = 0.42, STEEP = 0.7; // height fraction above which (or face slope |ny| below which) a face is rock
+function hillFace(K, P3, H) { const [A, B, C] = P3, ux = B[0] - A[0], uy = B[1] - A[1], uz = B[2] - A[2], vx = C[0] - A[0], vy = C[1] - A[1], vz = C[2] - A[2];
+  const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, ln = Math.hypot(nx, ny, nz) || 1, hf = (A[3] + B[3] + C[3]) / 3 / H, rock = hf > ROCK || Math.abs(ny / ln) < STEEP;
+  return rock ? 'boulder' : 'hill'; }
 function hills(K, o, S) { const a = rnd(hash(S.id + 'hills')), land = landTest(S);
-  const na = K.hi ? (o.seg || 64) : K.lo ? 20 : 32, nr = K.hi ? 6 : K.lo ? 3 : 4, r0 = o.r0 || 5000, r1 = o.r1 || 9000, H = o.h || 120;
-  const ph = [a() * 6, a() * 6, a() * 6], from = o.from ?? 0, to = o.to ?? Math.PI * 2;
-  if (o.islets) { for (let i = 0; i < o.islets; i++) { const t = from + (to - from) * a(), r = r0 + (r1 - r0) * a(), x = Math.cos(t) * r, z = Math.sin(t) * r, h = H * (0.4 + 0.6 * a()), w = h * (3 + 3 * a());
-      const ex = SINK * 4 + r * r / (2 * ER), Ht = h + ex, g = new THREE.ConeGeometry(w, Ht, K.lo ? 6 : K.hi ? 12 : 8, K.lo ? 1 : 2), p = g.attributes.position;
-      for (let j = 0; j < p.count; j++) if (p.getY(j) > -Ht / 2 + 0.1 && p.getY(j) < Ht / 2 - 0.1) { const f = 0.8 + 0.4 * a(); p.setX(j, p.getX(j) * f); p.setZ(j, p.getZ(j) * f); } // only the middle ring wobbles (the cone stays watertight)
-      tinted(K, g, 'hill', M([x, h - r * r / (2 * ER) - Ht / 2, z], a() * 6), hex(0x6f8a52, 0.2, a)); } return; }
-  // a ring band, radial rows r0..r1, crest in the middle; heights = summed sines (rolling ridges), zero where the ground is sea
-  const P = [], C = []; const ht = (t, r) => { const u = (r - r0) / (r1 - r0), env = Math.sin(Math.PI * Math.min(1, Math.max(0, u))) ** 0.8;
-    const n = 0.55 + 0.25 * Math.sin(t * 7 + ph[0]) + 0.15 * Math.sin(t * 17 + ph[1] + u * 3) + 0.1 * Math.sin(t * 31 + ph[2]); const x = Math.cos(t) * r, z = Math.sin(t) * r;
-    return (land(x, z, 600) ? 1 : 0) * H * env * n; };
+  const na = K.hi ? (o.seg || 96) : K.lo ? 28 : 48, nr = K.hi ? 9 : K.lo ? 4 : 5, r0 = o.r0 || 5000, r1 = o.r1 || 9000, H = o.h || 120, rg = o.ridge ?? 0.6;
+  const ph = [a() * 6, a() * 6, a() * 6, a() * 6], from = o.from ?? 0, to = o.to ?? Math.PI * 2;
+  if (o.islets) { for (let i = 0; i < o.islets; i++) { const t = from + (to - from) * a(), r = r0 + (r1 - r0) * a(), x = Math.cos(t) * r, z = Math.sin(t) * r, h = H * (0.4 + 0.6 * a()), w = h * (2.2 + 2.5 * a());
+      const ex = SINK * 4 + r * r / (2 * ER), Ht = h + ex, sg = K.lo ? 6 : K.hi ? 12 : 8, g = new THREE.ConeGeometry(w, Ht, sg, K.lo ? 1 : 3, true), p = g.attributes.position;
+      for (let j = 0; j < p.count; j++) if (p.getY(j) > -Ht / 2 + 0.1 && p.getY(j) < Ht / 2 - 0.1) { const f = 0.75 + 0.5 * a(); p.setX(j, p.getX(j) * f); p.setZ(j, p.getZ(j) * f); } // middle rings wobble
+      const m = M([x, h - r * r / (2 * ER) - Ht / 2, z], a() * 6); // green skirts, rocky volcanic crown (top third)
+      const top = g.clone(), bot = g; const cut = (geo, keepTop) => { const q = geo.index ? geo.toNonIndexed() : geo, pp = q.attributes.position, keep = []; for (let j = 0; j < pp.count; j += 3) { const y = (pp.getY(j) + pp.getY(j + 1) + pp.getY(j + 2)) / 3; if ((y > Ht / 2 - Ht * 0.4) === keepTop) keep.push(j); }
+        const out = new Float32Array(keep.length * 9); keep.forEach((j, k) => { for (let v = 0; v < 3; v++) for (let c = 0; c < 3; c++) out[k * 9 + v * 3 + c] = pp.array[(j + v) * 3 + c]; }); const r = new THREE.BufferGeometry(); r.setAttribute('position', new THREE.BufferAttribute(out, 3)); r.computeVertexNormals(); return r; };
+      tinted(K, cut(bot, false), 'hill', m, hex(0x6f8a52, 0.2, a)); tinted(K, cut(top, true), 'boulder', m, hex(0x8a7f72, 0.15, a)); } return; }
+  // a ring band, radial rows r0..r1, crest in the middle; heights = summed sines + ridged (1 - |sin|) crests, zero where the ground is sea
+  const ht = (t, r) => { const u = (r - r0) / (r1 - r0), env = Math.sin(Math.PI * Math.min(1, Math.max(0, u))) ** 0.7;
+    const roll = 0.45 + 0.25 * Math.sin(t * 7 + ph[0]) + 0.15 * Math.sin(t * 17 + ph[1] + u * 3) + 0.1 * Math.sin(t * 31 + ph[2]), ridge = (1 - Math.abs(Math.sin(t * 11 + ph[3] + u * 2))) ** 2;
+    const x = Math.cos(t) * r, z = Math.sin(t) * r; return (land(x, z, 600) ? 1 : 0) * H * env * Math.max(0, (1 - rg) * roll + rg * (0.35 * roll + 0.75 * ridge)); };
+  const Pg = { hill: [], boulder: [] }, Cg = { hill: [], boulder: [] };
   for (let i = 0; i < na; i++) for (let j = 0; j < nr; j++) { const t0 = from + (to - from) * i / na, t1 = from + (to - from) * (i + 1) / na, q0 = r0 + (r1 - r0) * j / nr, q1 = r0 + (r1 - r0) * (j + 1) / nr;
     const v = (t, r) => { const h = ht(t, r); return [Math.cos(t) * r, h - SINK - r * r / (2 * ER) - (h > 1 ? 0 : 4), Math.sin(t) * r, h]; }, A = v(t0, q0), B = v(t1, q0), Cc = v(t1, q1), Dd = v(t0, q1);
-    if (A[3] + B[3] + Cc[3] + Dd[3] < 2) continue; for (const w of [A, Dd, Cc, A, Cc, B]) { P.push(w[0], w[1], w[2]); const k = Math.min(1, w[3] / H); C.push(0.75 + 0.15 * k, 0.8 + 0.1 * k, 0.65 + 0.2 * k); } } // brown-green foot, greener crest
-  if (!P.length) return; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.computeVertexNormals();
-  K.add(g, 'hill'); const gg = K.b.get('hill').at(-1), c = gg.attributes.color.array; for (let i = 0; i < c.length; i++) c[i] *= C[i]; }
+    if (A[3] + B[3] + Cc[3] + Dd[3] < 2) continue;
+    for (const tri of [[A, Dd, Cc], [A, Cc, B]]) { const k = hillFace(K, tri, H); for (const w of tri) { Pg[k].push(w[0], w[1], w[2]); const f = Math.min(1, w[3] / H);
+      if (k === 'hill') Cg[k].push(0.72 + 0.12 * f, 0.8 + 0.12 * f, 0.6 + 0.12 * f); else Cg[k].push(0.78 + 0.3 * f, 0.76 + 0.28 * f, 0.72 + 0.28 * f); } } } // brown-green foot -> greener shoulders; rock darker low, pale scree near the crest
+  for (const k of ['hill', 'boulder']) { if (!Pg[k].length) continue; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(Pg[k], 3)); g.computeVertexNormals();
+    K.add(g, k); const gg = K.b.get(k).at(-1), c = gg.attributes.color.array; for (let i = 0; i < c.length; i++) c[i] = Cg[k][i]; } } // replace the ground-contact AO (hills are km tall) with the gradient
+// world-pop-2: beach strip along the waterline the game shades (coastal sites): o = { z0, z1, w (inland width), out (metres past the waterline), y }
+// One ribbon on the 'sand' photo material, y = 0.3 m (>= 0.3 m over the site ground at -0.05 and well over the sea sheet at -1.0), wet darker sand
+// for the last ~25 m, a pale foam lip on the seaward edge, a ragged inland edge. Kept off roads / buildings by trimming to keep-out.
+function beach(K, o, S) { const cx = coastLine(S); if (!cx) return; const a = rnd(hash(S.id + 'beach')), z0 = o.z0 ?? -1500, z1 = o.z1 ?? 1500, n = K.hi ? 120 : K.lo ? 24 : 48, W = o.w || 160, out = o.out ?? 30, y = o.y ?? 0.3;
+  const cols = [[0.88, 0.84, 0.74], [1, 0.97, 0.9], [1, 0.97, 0.9], [0.62, 0.58, 0.5], [1.25, 1.25, 1.22]], offs = [-1, -0.45, -0.12, -0.02, 0]; // inland edge, dry, dry, wet, foam (fraction of W; 0 = out past the waterline)
+  const P = [], C = [], row = z => { const x = cx(z), jag = W * (0.75 + 0.5 * a()); return offs.map((f, i) => [i === 4 ? x + out : i === 3 ? x - 25 : x + f * jag, y, z]); };
+  let prev = row(z0); for (let i = 1; i <= n; i++) { const z = z0 + (z1 - z0) * i / n, cur = row(z);
+    for (let j = 0; j < 4; j++) { const q = [prev[j], cur[j], cur[j + 1], prev[j], cur[j + 1], prev[j + 1]], qc = [cols[j], cols[j], cols[j + 1], cols[j], cols[j + 1], cols[j + 1]]; q.forEach((p, k) => { P.push(...p); C.push(...qc[k]); }); } prev = cur; }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.computeVertexNormals();
+  K.add(g, 'sand'); const gg = K.b.get('sand').at(-1), c = gg.attributes.color.array; for (let i = 0; i < c.length; i++) c[i] = C[i]; }
 // parking lot with parked vans (support-area clutter)
 function lot(K, o, S) { const w = o.w || 40, d = o.d || 24, a = rnd(hash(S.id + 'lot' + (o.at || []).join()));
   K.flat('asphalt', w, d, [0, 0, 0], 0, 0.03); if (K.lo) return; const nx = Math.floor(w / 4);
@@ -108,4 +130,4 @@ function bld(K, o) { const w = o.w || 40, d = o.d || 30, h = o.h || 12, st = o.s
   if (st === 'blockhouse') { K.box('concrete', w, h * 0.7, d); const g = new THREE.SphereGeometry(Math.max(w, d) * 0.55, K.hi ? 12 : 6, 3, 0, Math.PI * 2, 0, Math.PI / 2); K.add(g, 'concrete', M([0, h * 0.7 - 0.5, 0], 0, [w / Math.max(w, d), (h * 0.5) / (Math.max(w, d) * 0.55), d / Math.max(w, d)]));
     if (!K.lo) { for (const s of [-1, 1]) K.box('win', w * 0.5, 0.5, 0.3, [0, h * 0.5, s * (d / 2 + 0.1)]); K.box('door', 3, 2.6, 0.8, [w * 0.3, 0, d / 2 + 0.2]); K.box('concrete', 5, 3, 1.2, [w * 0.3, 0, d / 2 + 2.6]); /* blast baffle */ K.cyl('steel', 0.12, 0.08, 10, [-w * 0.3, h, 0], 4); } return; }
   K.box('facade', w, h, d); K.box('roof', w + 0.6, 0.6, d + 0.6, [0, h, 0]); if (!K.lo) { K.box('glass', w * 0.25, 3, 0.3, [0, 0, d / 2 + 0.05]); if (o.roof !== false) K.box('dark', w * 0.3, 2, d * 0.3, [w * 0.2, h + 0.6, 0]); } }
-export const WORLD_PARTS = { scatter, hills, lot, belts, bld };
+export const WORLD_PARTS = { scatter, hills, lot, belts, bld, beach };

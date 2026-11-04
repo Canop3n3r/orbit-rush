@@ -3,13 +3,17 @@
 // Run: node tests/world_pop.mjs
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 let pass = 0, fail = 0; const ok = (c, n) => { if (c) pass++; else fail++; console.log((c ? '  ✔ ' : '  ✘ ') + n); };
-import { landTest, keepOut } from '../gfx/sites/worldmask.js';
+import { landTest, keepOut, coastLine } from '../gfx/sites/worldmask.js';
 const W = { 'cape-north': 1, 'cape-heritage': 1, atoll: 1 };
 for (const id of Object.keys(W)) { const S = (await import(`../gfx/sites/site_${id}.js`)).SITE, land = landTest(S), free = keepOut(S);
   const sc = S.layout.find(o => o.k === 'scatter'), hl = S.layout.find(o => o.k === 'hills'), pad = S.layout.find(o => o.k === 'pad');
   ok(!!sc && !!hl, `${id}: has scatter + hills`);
   ok(S.layout.filter(o => o.k === 'bld').every(o => land(...o.at, Math.hypot(o.w, o.d) / 2)), `${id}: world-pop-2 buildings sit on land`);
   ok(S.layout.some(o => o.k === 'bld' && o.style === 'blockhouse') && S.layout.some(o => o.k === 'bld' && o.style === 'hangar'), `${id}: has a blockhouse + hangar`);
+  const be = S.layout.find(o => o.k === 'beach'), cx = coastLine(S); if (id !== 'atoll') { ok(!!be && !!cx, `${id}: has a world-pop-2 beach on the shaded waterline`);
+    let hit = 0; for (let z = be.z0; z <= be.z1; z += 50) for (const f of [-1, -0.5, 0]) if (!free(cx(z) + f * be.w, z)) hit++; ok(hit === 0, `${id}: beach strip clear of pad, roads and buildings (${hit} hits)`);
+    ok(!land(cx(0) + be.out + 1, 0) && land(cx(0) - be.w - 500, 0), `${id}: beach sits between the land and the sea`); ok((be.y ?? 0.3) - (-0.05) >= 0.3, `${id}: beach >= 0.3 m over the site ground`); }
+  if (hl) ok(hl.islets ? hl.h >= 300 : hl.h >= 600, `${id}: world-pop-2 hills are tall (${hl.h} m)`);
   const bl = S.layout.find(o => o.k === 'belts'); ok(!!bl && (bl.road || bl.perimeter || bl.coast) > 0, `${id}: has world-pop-2 belts (road / perimeter / coast tree lines)`);
   if (bl?.perimeter) ok(!free(0, 0) && bl.ring > pad.r * 1.35 + 10, `${id}: belt ring ${bl.ring} m sits outside the pad keep-out`);
   ok(!free(0, 0) && !free(0, pad.r) && !free(pad.r * 1.3, 0) && !free(0, pad.r * 1.2), `${id}: pad, fence and trench exit are keep-out`);

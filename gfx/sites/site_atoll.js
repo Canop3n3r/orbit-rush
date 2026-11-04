@@ -22,6 +22,6 @@ export const SITE = { id: 'atoll', name: 'Atoll Range', body: 'earth', lat: 9.04
     { k: 'bld', style: 'office', at: [-100, -10], w: 16, d: 12, h: 7 },
     { k: 'scatter', seed: 'at', r0: 40, r1: 200, mix: { palm: 90, scrub: 80, grass: 120, rock: 8 }, shore: 50, mid: 0.3 },
     { k: 'belts', seed: 'at', road: 5, perimeter: 12, ring: 120, coast: 40, r1: 210, kinds: { tree: 'palm', under: 'grass' }, coastKinds: { tree: 'palm', under: 'scrub' }, mid: 0.35 }, // world-pop-2: palm lines along the roads and the island rim
-    { k: 'hills', islets: 7, r0: 2500, r1: 7000, h: 220 },
+    { k: 'hills', islets: 9, r0: 2500, r1: 8000, h: 380 }, // world-pop-2: taller volcanic islets, green skirts + rock crowns
   ],
   views: { wide: { eye: [380, 120, 420], at: [0, 0, 0], fov: 50 }, hero: { eye: [95, 30, 120], at: [0, 12, 10] }, top: { eye: [0, 520, 260], at: [0, 0, 40] }, phone: { eye: [90, 40, 120], at: [0, 16, 0] }, night: { eye: [95, 30, 120], at: [0, 12, 10], night: true } } };
