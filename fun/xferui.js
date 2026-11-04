@@ -1,8 +1,8 @@
 // f6.5 Plan transfer (pre-launch): pick a world, see the launch day / time / site, the burns, the Δv bill and whether this rocket can do it.
 // Self-contained: one overlay (#xferPlan), classes prefixed xp-, CSS in one block at the end of style.css. Opened from 🎯 in the Home top bar.
-import * as P from '../physics.js?v=f5.9-20';
-import * as T from '../physics/transfer_plan.js?v=f5.9-20';
-import * as UN from './units.js?v=f5.9-20';
+import * as P from '../physics.js?v=f5.9-21';
+import * as T from '../physics/transfer_plan.js?v=f5.9-21';
+import * as UN from './units.js?v=f5.9-21';
 const D2R = Math.PI / 180, DAY = 86400, esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const MAIN = ['moon', 'mars', 'venus'], MORE = ['mercury', 'jupiter', 'saturn', 'uranus', 'neptune'];
 const utc = d => d.toLocaleString('en-US', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) + ' UTC';
