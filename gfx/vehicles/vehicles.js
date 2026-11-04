@@ -7,6 +7,7 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
+import { pezState } from './pez.js?v=f5.9-20';
 import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=f5.9-20';
 export { dispose, release, geometryCacheSize };
 import * as PR from './profiles.js?v=f5.9-20';
@@ -160,7 +161,7 @@ function ship(detail, y0, L = 52.1, nVac = 3) { const k = new Kit(detail), r = 4
   decal(k, 'ship.side', r, y0 + 20, 6, -PI / 2, 0.9); // leeward steel side
   if (k.hi) { for (const a of [PI * 0.1, -PI * 0.1]) raceway(k, r, y0 + 3, y0 + 2 + cyl, a, 'steel'); for (const y of [y0 + 2.2, y0 + 2 + cyl * 0.42, y0 + 2 + cyl - 0.3]) ring(k, r, y, 0.04, 'grey'); // raceways, aft dome / common dome / forward weld lands
     k.add(new THREE.BoxGeometry(1.6, 1.2, 0.2), 'dark', xf([0, y0 + 2 + cyl - 3, r + 0.05])); } // payload/door hatch outline
-  const g = k.build('upper'); for (const p of flaps) g.add(p); g.userData.top = y0 + 2 + cyl + nose; g.userData.bay = { y: y0 + 2 + cyl - 7.5, r, h: 7.5, cz: 0 }; return g; } // bay: where the payload rides out of the hull (rockets-pass-1)
+  const g = k.build('upper'); for (const p of flaps) g.add(p); g.userData.top = y0 + 2 + cyl + nose; g.userData.bay = { y: y0 + 2 + cyl - 7.5, r, h: 7.5, cz: 0, pez: 4 }; return g; } // bay: where the payload rides out of the hull (rockets-pass-1)
 function colossus(o) { const b = colossusBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1, o.nVac || 3); return group('colossus', [b, s], s.userData.top); }
 // ---- ground systems: catch tower with chopsticks + orbital launch mount ----
 function catchTower(o) { const k = new Kit(o.detail), W = 12, H = 146, TX = -24, lv = 9, n = Math.floor(H / lv);
@@ -271,9 +272,24 @@ export function setPayload(g, id, kind, det = 'hi') {
   if (shell) { const b = new THREE.Box3().setFromObject(shell), sz = b.getSize(new THREE.Vector3()), D = Math.max(sz.x, sz.z);
     const p = buildPayload(kind, { detail: det, r: D * 0.34, h: sz.y * 0.5 }); p.position.set(0, b.min.y + 0.05 * Math.min(1, sz.y / 4), 0); g.add(p); st.sat = p; return p; }
   if (!bay) return null; // no shell and no bay (capsule/lander stacks, whose spacecraft is the payload): nothing to add
+  if (bay.pez) return pezBay(g, st, bay, kind, det);
   const cz = bay.cz || 0, p = buildPayload(kind, { detail: det, r: 1.7, h: bay.h }), zIn = cz + bay.r * 0.3, zOut = cz + bay.r + p.userData.r + 0.5; p.position.set(0, bay.y - 0.05, zIn); g.add(p); st.sat = p;
   const piv = new THREE.Group(); piv.name = 'bay'; piv.position.set(1.4, bay.y + bay.h / 2, cz + bay.r + 0.04); const doorG = new THREE.BoxGeometry(2.8, bay.h + 1.0, 0.14); doorG.computeTangents(); /* f5.9-20 (owner freeze): the shared steel material reads tangents; without them WebGPU (iPhone Safari) rejects the pipeline and every frame after it */ const door = new THREE.Mesh(doorG, mat('steel')); door.position.x = -1.4; piv.add(door); g.add(piv); st.bay = piv;
   g.userData.bayExpose = k => { const e = Math.max(0, Math.min(1, k)), sm = e * e * (3 - 2 * e); piv.rotation.y = -1.9 * sm; p.position.z = zIn + (zOut - zIn) * Math.max(0, Math.min(1, (e - 0.35) / 0.65)); };
+  g.userData.bayExpose(0); return p; }
+// legs-fins-1: slot deploy (the big ship): a stack of flat satellites behind a slot door on the leeward hull; bayExpose(k) runs pezState:
+// door opens, satellites leave one at a time sideways (the stack steps down), door closes. The stack group is what RELEASE detaches.
+function pezBay(g, st, bay, kind, det) {
+  const n = bay.pez, cz = bay.cz || 0, hs = Math.min(1.6, bay.h / n), slotY = bay.y + 0.4, p = new THREE.Group(); p.name = 'sat'; p.userData.pez = n;
+  const one = buildPayload(kind, { detail: det, r: Math.min(2.2, bay.r * 0.5), h: hs * 0.7 }), sats = [one]; for (let i = 1; i < n; i++) sats.push(one.clone(true));
+  const zIn = cz + bay.r * 0.25, zOut = cz + bay.r + (one.userData.r || 2) + 1.2;
+  sats.forEach((x, i) => { x.name = 'sat_' + i; p.add(x); }); g.add(p); st.sat = p;
+  const piv = new THREE.Group(); piv.name = 'bay'; piv.position.set(0, slotY + hs, cz + bay.r + 0.05); const dg = new THREE.BoxGeometry(4.2, hs + 0.2, 0.12); dg.computeTangents(); // tangents: the steel material needs them on WebGPU
+  const door = new THREE.Mesh(dg, mat('steel')); door.position.y = -(hs + 0.2) / 2; piv.add(door);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.18, 0.2), mat('dark')); frame.position.set(0, slotY - 0.12, cz + bay.r + 0.02); g.add(frame); piv.userData.frame = frame; g.add(piv); st.bay = piv;
+  g.userData.bayTime = 4 + 3 * n; // seconds for the whole slot sequence (main.js bayTick)
+  g.userData.bayExpose = k => { const s = pezState(Math.max(0, Math.min(1, k)), n); piv.rotation.x = -1.65 * s.door; // hinged at the top edge, swings up and out
+    sats.forEach((x, i) => { const o = s.out[i]; x.position.set(0, slotY + (i - s.drop[i]) * hs, zIn + (zOut - zIn) * o + (o >= 1 ? 0.6 * i : 0)); x.rotation.y = 0.15 * o * (i % 2 ? 1 : -1); if (o >= 1 && x.userData.deploy) x.userData.deploy(1); }); }; // logos-deploy-1 kinds unfold once clear of the slot
   g.userData.bayExpose(0); return p; }
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi';
   if (o.staged !== false && stagedReady(id, det)) { // f6.0: stages assembled from the rocket's manifest (Blender .glb per stage); same userData shape as the procedural model

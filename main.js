@@ -915,7 +915,7 @@ function heroSyncPayload() { // the mission (and so the payload look) may only b
   for (const o of heroLevels()) { try { heroSetPayload(o, o.userData.id || design.model, k, o.userData.detail || 'hi'); } catch (e) { console.warn('[Orbit Rush] hero payload', e); } } }
 function heroBay(open) { bayTarget = open ? 1 : 0; if (!open) bayK = 0; heroBayApply(); }
 function heroBayApply() { for (const o of heroLevels()) if (o.userData.bayExpose) o.userData.bayExpose(bayK); }
-function bayTick(dt) { if (bayK === bayTarget) return; bayK += Math.sign(bayTarget - bayK) * Math.min(Math.abs(bayTarget - bayK), dt / 2.5); heroBayApply(); }
+function bayTick(dt) { if (bayK === bayTarget) return; const bt = (heroLevels().map(o => o.userData.bayTime).find(Boolean)) || 2.5; bayK += Math.sign(bayTarget - bayK) * Math.min(Math.abs(bayTarget - bayK), dt / bt); /* legs-fins-1: a slot deploy runs longer */ heroBayApply(); }
 function heroTakePayload() { // detach the model's own payload mesh: the SAME object flies on as the released payload (no new mesh appears)
   if (!hero) return null; let src = null; rocketG.updateMatrixWorld(true);
   for (const o of heroLevels()) { const s = (o.userData.stages || {}).sat; if (!s) continue; if (!src) src = s; else s.visible = false; } // lower LODs just hide theirs
