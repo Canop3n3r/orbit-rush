@@ -3,6 +3,7 @@
 // buildCraftStages() gives the per-stage groups the flight uses (origin = bottom of the engine exit plane, +Y up, metres).
 import * as THREE from 'three/webgpu';
 import { registerPayload } from './payloads.js?v=f5.8y';
+import { accordionWing, rollOutWing, boom, hingedDish, flapPanel, rig } from './deploy.js?v=f5.9-20'; // logos-deploy-1: pivoted appendages (lo keeps the static shapes)
 import { PLUME_TABLE } from '../../fun/plumetable.js?v=f5.8y';
 import { typeOf, houseStyle } from '../../data/craft_types.js?v=f5.8y';
 // an ion plume is a faint blue-white thread (added here so the shared plume table stays untouched)
@@ -23,28 +24,39 @@ class B { // tiny group builder
   wing(s, x0, y, n, w, l, z = 0, c = C.blue) { for (let i = 0; i < n; i++) { const cx = s * (x0 + i * (w + 0.04) + w / 2); this.box(w, 0.03, l, i % 2 ? C.cell : c, cx, y, z); this.box(w * 0.94, 0.036, 0.03, C.dark, cx, y, z); } this.box(Math.abs(x0) + 0.01, 0.06, 0.06, C.silver, s * x0 / 2, y, z); }
   bell(r, h, c = C.dark, x = 0, y = 0, z = 0) { return this.cyl(r * 0.35, r, h, c, x, y, z, { m: 0.7, r: 0.35, d: true }); }
 }
+const dep = (g, parts) => { for (const p of parts) g.add(p.group); return rig(parts); };
 const T = { lo: d => (d === 'lo' ? 8 : d === 'mid' ? 12 : 18) };
 export const BUILDERS = {
-  cubesat(det) { const b = new B(T.lo(det)); b.box(0.1, 0.34, 0.1, C.gold, 0, 0, 0); b.box(0.102, 0.02, 0.102, C.dark, 0, 0.0, 0); for (const s of [-1, 1]) { b.box(0.22, 0.012, 0.09, C.blue, s * 0.17, 0.2, 0); b.box(0.22, 0.012, 0.09, C.cell, 0, 0.2 + s * 0.0, s * 0.17, { ry: Math.PI / 2 }); }
-    b.cyl(0.004, 0.004, 0.18, C.silver, 0.04, 0.34, 0.04); b.box(0.03, 0.03, 0.01, C.dark, 0, 0.3, 0.052); return { group: b.g, h: 0.4, r: 0.12 }; },
+  cubesat(det) { const b = new B(T.lo(det)); b.box(0.1, 0.34, 0.1, C.gold, 0, 0, 0); b.box(0.102, 0.02, 0.102, C.dark, 0, 0.0, 0); if (det === 'lo') { for (const s of [-1, 1]) { b.box(0.22, 0.012, 0.09, C.blue, s * 0.17, 0.2, 0); b.box(0.22, 0.012, 0.09, C.cell, 0, 0.2 + s * 0.0, s * 0.17, { ry: Math.PI / 2 }); } b.cyl(0.004, 0.004, 0.18, C.silver, 0.04, 0.34, 0.04); }
+    b.box(0.03, 0.03, 0.01, C.dark, 0, 0.3, 0.052); if (det === 'lo') return { group: b.g, h: 0.4, r: 0.12 };
+    const rg = dep(b.g, [...[0, 1, 2, 3].map(i => flapPanel(1, [0, 0.33, 0], 0.3, 0.09, i * Math.PI / 2)).map((p, i) => { p.group.children[0].position.x = 0.05; return p; }), boom([0.04, 0.34, 0.04], [0, 1, 0], 0.18, 0.004)]);
+    return { group: b.g, h: 0.4, r: 0.12, rig: rg }; },
   geosat(det) { const b = new B(T.lo(det)); b.cyl(0.55, 0.62, 0.3, C.silver, 0, 0, 0); for (const [x, z] of [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]]) b.cyl(0.06, 0.1, 0.22, C.dark, x, -0.02, z, { m: 0.8 });
     b.box(1.5, 1.8, 1.5, C.white, 0, 0.3, 0); b.box(1.54, 0.14, 1.54, C.gold, 0, 0.3, 0); b.box(1.54, 0.14, 1.54, C.gold, 0, 1.96, 0);
-    for (const s of [-1, 1]) { b.wing(s, 0.8, 1.2, 6, 1.1, 2.4, 0); b.box(0.2, 0.3, 0.3, C.dark, s * 0.85, 1.2, 0); }
-    b.cyl(0.04, 0.04, 0.6, C.silver, 0, 2.1, 0.55, { seg: 6 }); b.dish(0.75, C.white, 0, 2.8, 0.55); b.cyl(0.03, 0.03, 0.4, C.grey, 0.5, 2.1, -0.4); return { group: b.g, h: 3.4, r: 1.0 }; },
-  crew(det) { const p = crewParts(det); const g = new THREE.Group(); g.add(p.svc, p.cap); p.cap.position.y = p.svcH; return { group: g, h: p.svcH + p.capH, r: 1.25 }; },
+    for (const s of [-1, 1]) { if (det === 'lo') b.wing(s, 0.8, 1.2, 6, 1.1, 2.4, 0); b.box(0.2, 0.3, 0.3, C.dark, s * 0.85, 1.2, 0); }
+    b.cyl(0.04, 0.04, 0.6, C.silver, 0, 2.1, 0.55, { seg: 6 }); b.dish(0.75, C.white, 0, 2.8, 0.55); b.cyl(0.03, 0.03, 0.4, C.grey, 0.5, 2.1, -0.4); if (det === 'lo') return { group: b.g, h: 3.4, r: 1.0 };
+    const rg = dep(b.g, [accordionWing(1, { x0: 0.8, y: 1.75, n: 6, w: 1.1, l: 1.4 }), accordionWing(-1, { x0: 0.8, y: 1.75, n: 6, w: 1.1, l: 1.4 }), hingedDish([0.78, 1.9, -0.4], 0.6, 0.5, 2.3, Math.PI / 2), hingedDish([-0.78, 1.9, -0.4], 0.6, 0.5, 2.3, -Math.PI / 2), boom([0, 2.0, -0.78], [0, 0.3, -1], 1.4, 0.03)]);
+    return { group: b.g, h: 3.4, r: 1.0, rig: rg }; },
+  crew(det) { const p = crewParts(det); const g = new THREE.Group(); g.add(p.svc, p.cap); p.cap.position.y = p.svcH; return { group: g, h: p.svcH + p.capH, r: 1.25, rig: p.rig }; },
   station(det) { const b = new B(T.lo(det)); b.cyl(1.4, 1.4, 6.2, C.white, 0, 0.7); b.cyl(1.42, 1.42, 0.3, C.gold, 0, 1.6); b.cyl(1.42, 1.42, 0.3, C.gold, 0, 5.0); b.cyl(0.5, 1.0, 0.7, C.grey, 0, 0); b.cyl(0.3, 0.5, 0.3, C.dark, 0, 6.9); b.cyl(0.6, 0.6, 0.2, C.silver, 0, 7.2);
     b.cyl(0.08, 0.08, 7, C.silver, 0, 0, 1.5, { rz: Math.PI / 2 }); // placeholder rotated below
     b.g.children.pop(); const tr = b.box(7.6, 0.18, 0.18, C.silver, 0, 3.6, 0); b.box(0.5, 0.6, 0.5, C.dark, 0, 3.4, 0);
-    for (const s of [-1, 1]) { b.wing(s, 0.35, 3.6, 4, 1.8, 4.8, 0); b.box(0.12, 0.12, 1.4, C.silver, s * 3.8, 3.6, 0); }
-    b.box(2.4, 0.08, 1.0, C.white, 0, 6.3, 2.0, { rx: -0.5 }); b.sph(0.55, C.glass, 0.9, 5.5, 0.95, { m: 0.2, r: 0.15 }); for (const a of [0, 1, 2, 3]) b.box(0.3, 0.3, 0.3, C.dark, Math.cos(a * 1.57) * 1.5, 2.5, Math.sin(a * 1.57) * 1.5); return { group: b.g, h: 7.4, r: 1.4 }; },
+    for (const s of [-1, 1]) { if (det === 'lo') b.wing(s, 0.35, 3.6, 4, 1.8, 4.8, 0); b.box(0.12, 0.12, 1.4, C.silver, s * 3.8, 3.6, 0); }
+    b.box(2.4, 0.08, 1.0, C.white, 0, 6.3, 2.0, { rx: -0.5 }); b.sph(0.55, C.glass, 0.9, 5.5, 0.95, { m: 0.2, r: 0.15 }); for (const a of [0, 1, 2, 3]) b.box(0.3, 0.3, 0.3, C.dark, Math.cos(a * 1.57) * 1.5, 2.5, Math.sin(a * 1.57) * 1.5); if (det === 'lo') return { group: b.g, h: 7.4, r: 1.4 };
+    const rg = dep(b.g, [rollOutWing(1, { x0: 3.9, y: 3.6, len: 6.5, wd: 2.2 }), rollOutWing(-1, { x0: 3.9, y: 3.6, len: 6.5, wd: 2.2 }), boom([0, 6.9, 0.4], [0, 1, 0.3], 2.0, 0.04)]); // roll-out blankets from the truss ends
+    return { group: b.g, h: 7.4, r: 1.4, rig: rg }; },
   lander(det) { const b = new B(T.lo(det)); b.bell(0.55, 0.9, C.dark, 0, 0.5); b.cyl(1.3, 1.5, 1.6, C.gold, 0, 1.0, 0, { seg: 8, m: 0.4 }); b.cyl(1.2, 1.3, 0.9, C.white, 0, 2.5, 0, { seg: 8 }); b.cyl(0.8, 1.2, 0.5, C.silver, 0, 3.3, 0, { seg: 8 });
     for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4, ox = Math.cos(a), oz = Math.sin(a); const leg = b.cyl(0.07, 0.07, 2.6, C.silver, ox * 1.9, 0.9, oz * 1.9, { seg: 6 }); leg.rotation.set(oz * 0.5, 0, -ox * 0.5); leg.position.set(ox * 1.8, 1.4, oz * 1.8);
       b.cyl(0.55, 0.55, 0.08, C.grey, ox * 2.75, 0, oz * 2.75, { seg: 10 }); b.box(0.05, 1.6, 0.05, C.dark, ox * 1.35, 0.9, oz * 1.35).rotation.set(oz * 0.7, 0, -ox * 0.7); }
-    b.box(0.5, 0.5, 0.5, C.dark, 0, 3.5, 1.1); b.cyl(0.03, 0.03, 0.9, C.silver, -0.4, 3.8, -0.3); b.dish(0.4, C.white, -0.4, 4.7, -0.3); b.box(0.9, 0.7, 0.2, C.glass, 0, 2.6, 1.28, { m: 0.2 }); return { group: b.g, h: 4.4, r: 1.5 }; },
+    b.box(0.5, 0.5, 0.5, C.dark, 0, 3.5, 1.1); b.box(0.9, 0.7, 0.2, C.glass, 0, 2.6, 1.28, { m: 0.2 }); if (det === 'lo') { b.cyl(0.03, 0.03, 0.9, C.silver, -0.4, 3.8, -0.3); b.dish(0.4, C.white, -0.4, 4.7, -0.3); return { group: b.g, h: 4.4, r: 1.5 }; }
+    const rg = dep(b.g, [hingedDish([-0.4, 3.8, -0.3], 0.4, 0.9, 2.2, Math.PI), boom([0.6, 3.6, -0.6], [0.5, 1, -0.5], 1.0, 0.02)]); return { group: b.g, h: 4.4, r: 1.5, rig: rg }; },
   tug(det) { const b = new B(T.lo(det)); b.bell(0.75, 1.4, C.dark, 0, 0); b.cyl(1.15, 1.15, 0.4, C.dark, 0, 1.3); b.sph(1.15, C.white, 0, 3.0, 0, { m: 0.3, r: 0.4 }); b.cyl(1.16, 1.16, 1.6, C.white, 0, 1.7, 0, { m: 0.25 }); b.cyl(1.17, 1.17, 0.25, C.red, 0, 2.2); b.sph(1.15, C.white, 0, 3.3, 0); b.cyl(0.9, 1.1, 0.4, C.silver, 0, 4.4); b.cyl(0.9, 0.9, 0.5, C.dark, 0, 4.8);
-    for (const s of [-1, 1]) { b.wing(s, 0.9, 4.6, 2, 0.9, 1.1, 0); b.box(0.2, 0.2, 0.2, C.dark, s * 1.15, 4.3, 0); } b.cyl(0.35, 0.5, 0.4, C.gold, 0, 5.3); return { group: b.g, h: 5.8, r: 1.15 }; },
+    for (const s of [-1, 1]) { if (det === 'lo') b.wing(s, 0.9, 4.6, 2, 0.9, 1.1, 0); b.box(0.2, 0.2, 0.2, C.dark, s * 1.15, 4.3, 0); } b.cyl(0.35, 0.5, 0.4, C.gold, 0, 5.3); if (det === 'lo') return { group: b.g, h: 5.8, r: 1.15 };
+    const rg = dep(b.g, [accordionWing(1, { x0: 0.95, y: 4.9, n: 2, w: 0.9, l: 1.1 }), accordionWing(-1, { x0: 0.95, y: 4.9, n: 2, w: 0.9, l: 1.1 }), hingedDish([0, 5.5, 0.6], 0.35, 0.4, 2.0)]);
+    return { group: b.g, h: 5.8, r: 1.15, rig: rg }; },
   kick(det) { const b = new B(T.lo(det)); b.bell(0.55, 1.0, C.dark, 0, 0); b.cyl(0.62, 0.62, 1.5, C.grey, 0, 0.7, 0, { m: 0.6, r: 0.35 }); b.sph(0.62, C.grey, 0, 2.2, 0, { m: 0.6 }); b.cyl(0.67, 0.67, 0.12, C.gold, 0, 1.0); b.cyl(0.67, 0.67, 0.08, C.dark, 0, 1.9);
-    b.cyl(0.4, 0.5, 0.4, C.silver, 0, 2.6); for (const a of [0, 1, 2, 3]) b.box(0.12, 0.12, 0.12, C.white, Math.cos(a * 1.57) * 0.58, 0.9, Math.sin(a * 1.57) * 0.58); b.box(0.5, 0.5, 0.5, C.goldD, 0, 3.0); return { group: b.g, h: 3.5, r: 0.67 }; },
+    b.cyl(0.4, 0.5, 0.4, C.silver, 0, 2.6); for (const a of [0, 1, 2, 3]) b.box(0.12, 0.12, 0.12, C.white, Math.cos(a * 1.57) * 0.58, 0.9, Math.sin(a * 1.57) * 0.58); b.box(0.5, 0.5, 0.5, C.goldD, 0, 3.0); if (det === 'lo') return { group: b.g, h: 3.5, r: 0.67 };
+    const rg = dep(b.g, [boom([0.25, 3.4, 0.25], [0.4, 1, 0.4], 0.7, 0.015), boom([-0.25, 3.4, -0.25], [-0.4, 1, -0.4], 0.7, 0.015)]); return { group: b.g, h: 3.5, r: 0.67, rig: rg }; }, // whip antennas
 };
 for (const k of Object.keys(BUILDERS)) registerPayload(k, BUILDERS[k]);
 
@@ -53,10 +65,10 @@ function crewParts(det) {
   const lo = T.lo(det), sb = new B(lo), cb = new B(lo), svc = sb.g, cap = cb.g;
   sb.bell(0.5, 0.9, C.dark, 0, 0); sb.cyl(1.25, 1.25, 1.0, C.white, 0, 0.8, 0, { m: 0.3 }); sb.cyl(1.27, 1.27, 0.1, C.dark, 0, 1.0); sb.cyl(1.27, 1.27, 0.08, C.red, 0, 1.55);
   for (const s of [-1, 1]) sb.box(0.05, 1.2, 0.9, C.silver, s * 1.3, 0.9, 0); for (let i = 0; i < 4; i++) sb.box(0.22, 0.22, 0.22, C.dark, Math.cos(i * 1.57 + 0.7) * 1.28, 1.7, Math.sin(i * 1.57 + 0.7) * 1.28);
-  const svcH = 1.8;
+  const svcH = 1.8; const rg = det === 'lo' ? null : dep(svc, [accordionWing(1, { x0: 1.28, y: 1.2, n: 3, w: 0.9, l: 0.8, yk: 0.15 }), accordionWing(-1, { x0: 1.28, y: 1.2, n: 3, w: 0.9, l: 0.8, yk: 0.15 })]); // service-module wings fold out
   cb.cyl(1.25, 1.25, 0.22, C.ablate, 0, 0, 0, { m: 0.1, r: 0.9 }); cb.cyl(0.55, 1.2, 1.7, C.white, 0, 0.22, 0, { m: 0.25 }); cb.cyl(0.4, 0.55, 0.3, C.silver, 0, 1.92); cb.cyl(0.32, 0.4, 0.35, C.gold, 0, 2.22);
   cb.box(0.5, 0.4, 0.04, C.glass, 0, 1.0, 0.8, { m: 0.2, rx: -0.45 }); for (let i = 0; i < 4; i++) cb.box(0.14, 0.14, 0.14, C.dark, Math.cos(i * 1.57) * 0.62, 1.7, Math.sin(i * 1.57) * 0.62);
-  return { svc, cap, svcH, capH: 2.6 };
+  return { svc, cap, svcH, capH: 2.6, rig: rg };
 }
 // a spent rocket stage built from its physics parts: white tank barrels, dark interstage, bell at the bottom
 export function buildStageModel(veh, from = 0) {
@@ -74,9 +86,10 @@ export function buildCraftStages(veh, buildPayload, detail = 'hi') {
   const c = veh.craft, T0 = typeOf(c.type), st = c.house ? houseStyle(c.house) : null;
   if (T0.special || c.type === 'stage') { const m = buildStageModel(veh, 0); return [{ group: m.group, h: m.h }]; }
   if (c.type === 'crew') { const p = crewParts(detail), L0 = veh.stages[0].parts.reduce((t, x) => t + x.h, 0), L1 = veh.stages[1].parts.reduce((t, x) => t + x.h, 0); p.svc.scale.setScalar(L0 / p.svcH); p.cap.scale.setScalar(L1 / p.capH);
+    if (p.rig) p.rig.set(1); // a craft already in space flies with its wings out
     return [{ group: p.svc, h: L0 }, { group: p.cap, h: L1 }]; }
   const L = veh.stages[0].parts.reduce((t, x) => t + x.h, 0), D = Math.max(...veh.stages[0].parts.map(x => x.d)), body = buildPayload(T0.gfx, { detail, r: D / 2 * 1.25, h: L });
-  const g = new THREE.Group(); g.add(body); body.position.y = 0;
+  const g = new THREE.Group(); g.add(body); body.position.y = 0; if (body.userData.deploy) body.userData.deploy(1);
   const eng = veh.stages[0].parts.find(p => p.kind === 'engine'); if (eng && !['cubesat', 'geosat', 'lander', 'tug', 'kick'].includes(c.type)) { const bell = new THREE.Mesh(new THREE.CylinderGeometry(eng.d * 0.18, eng.d * 0.5, eng.h * 1.1, 14, 1, true), mat(C.dark, { m: 0.8, r: 0.3, d: true })); bell.position.y = eng.h * 0.45; g.add(bell); }
   if (st && T0.gfx !== 'roadster') { const band = new THREE.Mesh(new THREE.CylinderGeometry(D / 2 * 1.02, D / 2 * 1.02, Math.max(0.05, L * 0.05), 14, 1, true), mat(st.livery, { m: 0.3, r: 0.5, d: true })); band.position.y = L * (0.3 + 0.1 * st.family); g.add(band); }
   return [{ group: g, h: L, payload: body }];
