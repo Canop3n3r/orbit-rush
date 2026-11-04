@@ -120,7 +120,7 @@ export function buildStaged(id, o = {}) {
   for (const st of m.stages) {
     const url = urlOf(st.asset[tier] || st.asset.lo || st.asset.hi), sc = SCENES.get(url); if (!sc) throw new Error('staged asset not loaded ' + url);
     const grp = new THREE.Group(); grp.name = st.key; grp.userData.top = st.offset[1] + st.size_m.h;
-    const a = instantiate(sc, st.asset[tier] ? tier : 'lo', sootOf(st, m.stages, id)); a.position.set(...st.offset); a.rotation.set(0, st.rotY || 0, 0); a.name = st.key + ':asset'; grp.add(a);
+    const a = instantiate(sc, st.asset[tier] ? tier : 'lo', st.role === 'fairing' ? -1 : sootOf(st, m.stages, id)); a.position.set(...st.offset); a.rotation.set(0, st.rotY || 0, 0); a.name = st.key + ':asset'; grp.add(a);
     const L = legPivots(a); if (L) { a.add(L); grp.userData.legs = L; legsAll.push(L); if (tier !== 'lo' || !st.asset[tier]) addStruts(a, L); }
     grp.userData.nodes = st; stages[st.key] = grp; g.add(grp);
   }

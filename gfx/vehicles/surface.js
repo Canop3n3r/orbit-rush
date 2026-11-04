@@ -32,7 +32,7 @@ export function grime() { return once('grime', () => { const c = document.create
   for (let i = 0; i < 70; i++) { const X = r() * S, L = 20 + r() * 140, Y = r() * S, g = x.createLinearGradient(0, Y, 0, Y + L); g.addColorStop(0, 'rgba(120,110,95,0.35)'); g.addColorStop(1, 'rgba(120,110,95,0)'); x.fillStyle = g; x.fillRect(X, Y, 1 + r() * 3, L); } // run-off streaks
   x.strokeStyle = 'rgba(90,90,90,0.4)'; for (let i = 0; i < 40; i++) { x.lineWidth = 0.5 + r(); x.beginPath(); const X = r() * S, Y = r() * S; x.moveTo(X, Y); x.lineTo(X + (r() - 0.5) * 30, Y + (r() - 0.5) * 8); x.stroke(); } // scuffs
   const d = x.getImageData(0, 0, S, S).data; return dataTex(new Uint8ClampedArray(d), true); }); }
-// per-vertex stage-frame position (m) + biplanar weights + soot weight (z: 1 first stage, ~0.35 upper stages, 0 fairings/payloads), baked once per cloned geometry
+// per-vertex stage-frame position (m) + biplanar weights + soot weight (z: 1 first stage, ~0.35 upper stages, 0 payloads, -1 fairings = clean), baked once per cloned geometry
 export function bakeSurf(geo, m, soot = 1) { const p = geo.attributes.position, n = geo.attributes.normal, N = p.count, s = new Float32Array(N * 3), w = new Float32Array(N * 3), v = new THREE.Vector3(), nm = new THREE.Matrix3().getNormalMatrix(m);
   for (let i = 0; i < N; i++) { v.fromBufferAttribute(p, i).applyMatrix4(m); s.set([v.x, v.y, v.z], i * 3); if (n) { v.fromBufferAttribute(n, i).applyMatrix3(nm).normalize(); } else v.set(1, 0, 0); const a = v.x ** 4, b = v.z ** 4, t = a + b || 1; w[i * 3] = a / t; w[i * 3 + 1] = b / t; w[i * 3 + 2] = soot; }
   geo.setAttribute('surf', new THREE.BufferAttribute(s, 3)); geo.setAttribute('surfw', new THREE.BufferAttribute(w, 3)); return geo; }
@@ -44,8 +44,9 @@ export function surfaceMaterial(src, tier) {
   const m = new THREE.MeshStandardNodeMaterial(base), P = attribute('surf', 'vec3'), W = attribute('surfw', 'vec3'), tile = K.bell ? BELL_M : PANEL_M;
   const uvX = vec2(P.z, P.y).div(tile), uvZ = vec2(P.x, P.y).div(tile), G = grime();
   const g = texture(G, uvX).r.mul(W.x).add(texture(G, uvZ).r.mul(W.y)); // 1 clean .. ~0.45 dirty
-  const sootK = K.soot ? float(1).sub(smoothstep(float(0.0), float(14.0), P.y).oneMinus().mul(W.z).mul(K.soot)).clamp(0.12, 1) : float(1); // engine-soot gradient up from each stage's base
-  const dirt = mix(float(1), g, K.dirt).mul(sootK); m.colorNode = vec3(dirt, dirt, dirt);
+  const sootK = K.soot ? float(1).sub(smoothstep(float(0.0), float(14.0), P.y).oneMinus().mul(W.z.max(0)).mul(K.soot)).clamp(0.12, 1) : float(1);
+  const dirtK = mix(float(K.dirt * 0.3), float(K.dirt), float(-0.5).step(W.z)); // W.z < 0 marks fairings: new, cleaner composite shells (audit #13) // engine-soot gradient up from each stage's base
+  const dirt = mix(float(1), g, dirtK).mul(sootK); m.colorNode = vec3(dirt, dirt, dirt);
   m.roughnessNode = float(src.roughness).add(K.rough[0]).add(g.oneMinus().mul(K.rough[1] * 4)).clamp(0.05, 1);
   if (tier === 'hi') { // biplanar bump with an analytic frame (no UVs/tangents on the assets): X plane uv=(z,y) -> tangent +Z, bitangent +Y; Z plane uv=(x,y) -> +X, +Y
     const NT = K.bell ? tubeNormal() : panelNormal(), k = K.nrm, tX = texture(NT, uvX).xy.mul(2).sub(1).mul(k), tZ = texture(NT, uvZ).xy.mul(2).sub(1).mul(k);
