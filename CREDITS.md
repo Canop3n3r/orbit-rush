@@ -36,3 +36,6 @@ Some stage masses in `vehicles/roster/` come from Jonathan McDowell's General Ca
 
 ## UI icons (assets/icons/, Rocket Art Bot)
 - 15 original 24×24 stroke icons (builder part types, Customize categories, Home Missions/Customize/Settings). Drawn for this project; no third-party icon sets used.
+
+## realism-1 surface detail (gfx/vehicles/surface.js, Rocket Art Bot)
+- Panel/weld/stringer/rivet normal map, bell cooling-tube normal map and grime/scuff map: original, generated at runtime from 256 px canvases in code (no external images). Sky panorama clouds/horizon in gfx/gfx.js envTexture(): original, procedural.
