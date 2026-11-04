@@ -3,6 +3,7 @@ grid fins, landing legs, fairing halves, capsule/heat-shield, solid-motor detail
 import math, random
 from mathutils import Vector, Matrix
 from .geo import *
+from .profile import hull_ys
 
 # ---- tiers: segment counts; `scale` shrinks them when a stage is over its triangle budget
 TIERS = {
@@ -65,18 +66,10 @@ def hull(part, cx, spec, ctx, rel_y0=0.0):
         for i in range(1, n + 1):
             y = sil[0][0] + H * i / (n + 1)
             if abs(interp(sil, y + 0.3) - interp(sil, y - 0.3)) < 0.02 * R and not any(b0 <= y <= b1 and False for b0, b1, _ in bands): grooves.append(y)
-    cuts = sorted(set([sil[0][0], sil[-1][0]] + [p[0] for p in sil] + [b[0] for b in bands] + [b[1] for b in bands]))
-    cuts = [c for c in cuts if sil[0][0] - 1e-6 <= c <= sil[-1][0] + 1e-6]
-    dedup = []
-    for c in cuts:
-        if not dedup or c - dedup[-1] > 0.04: dedup.append(c)
-    # long straight stretches get intermediate rings only when needed for grooves/colour gradients
-    ys = list(dedup)
     soot = max((soot_arg(b[2]) for b in bands), default=0.0)
     soot_h = min(H * 0.22, 9.0)
-    if soot > 0.05 and ctx.detail >= 1:
-        for k in (0.25, 0.5, 0.75): ys.append(sil[0][0] + soot_h * k)
-    ys = sorted(set(round(y, 4) for y in ys))
+    extra = [sil[0][0] + soot_h * k for k in (0.25, 0.5, 0.75)] if soot > 0.05 and ctx.detail >= 1 else []
+    ys = hull_ys(sil, bands, extra)
     def band_at(y):
         for b0, b1, m in bands:
             if b0 - 1e-6 <= y < b1 + 1e-6: return m
