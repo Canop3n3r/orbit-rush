@@ -138,17 +138,25 @@ function ship(detail, y0, L = 52.1, nVac = 3) { const k = new Kit(detail), r = 4
   tube(k, r, r, 2, y0, 'skirt'); tube(k, r, r, cyl, y0 + 2, 'steel'); ogive(k, r, nose, y0 + 2 + cyl, 'steel', 0.12);
   tube(k, r * 1.006, r * 1.006, cyl, y0 + 2, 'tiles', { open: true, t0: PI / 2, tl: PI });
   lathe(k, PR.ogive(r, nose, y0 + 2 + cyl, k.hi ? 18 : 7, 0.12).map(([a, b]) => [a * 1.006, b]), 'tiles', { p0: PI / 2, pl: PI });
-  // flaps: planar, hinged on the tile edge; windward face tiled, steel back; actuator fairing over the hinge
-  const flap = (yb, h, w0, w1, side, rad, lean = 0) => { const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(w0, 0.6); sh.lineTo(w1, h); sh.lineTo(0, h); sh.closePath();
-    const own = detail !== 'lo', kk = own ? new Kit(detail) : k; // legs-fins-1: each flap is its own pivot 'flap_<f|a>_<side>' hinged along its root (rotation.x, articulate.js)
-    kk.push(own ? new THREE.Matrix4() : xf([side * rad, yb, 0], [lean, side < 0 ? PI : 0, 0]));
-    kk.add(new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }), 'steel');
-    kk.add(new THREE.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: false }), 'tiles', xf([0, 0, -0.07]));
-    kk.add(new THREE.CylinderGeometry(0.35, 0.35, h, 10), 'steel', xf([0.1, h / 2, 0.2])); kk.pop();
-    if (own) { const p = new THREE.Group(), hg = new THREE.Group(); p.name = 'flapmount'; hg.name = `flap_${yb > y0 + 10 ? 'f' : 'a'}_${side}`; p.position.set(side * rad, yb, 0); p.rotation.set(lean, side < 0 ? PI : 0, 0); const b = kk.build('flap'); for (const c of [...b.children]) hg.add(c); p.add(hg); flaps.push(p); } }; // hinge line = the flap root (local y): hg.rotation.y swings it
+  // legs-fins-1 flaps: two small swept forward flaps high on the nose, two large aft flaps. Thin rounded steel plates with a heat-tile skin on the
+  // windward face, each on its own root hinge (flap_<f|a>_<side>.rotation.y, articulate.js): 0 deg folded flat along the leeward hull .. 90 deg
+  // straight out. The hinge housing (a faired actuator pod along the root) stays fixed on the hull.
+  const FLAP = { f: [[0, 0], [1.2, 0.3], [3.6, 4.2], [3.3, 5.6], [0.8, 7.5], [0, 7.5]], a: [[0, 0], [5.4, 0.4], [5.6, 8.5], [3.0, 12], [0, 12]] };
+  const flap = (yb, kind, side, rad, lean = 0) => { const pts = FLAP[kind], h = pts[pts.length - 1][1], sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))), t = kind === 'a' ? 0.3 : 0.24;
+    const own = detail !== 'lo', kk = own ? new Kit(detail) : k, hk = own ? new Kit(detail) : k, tz = side > 0 ? -(t / 2 + 0.03) : t / 2 + 0.01;
+    const plate = new THREE.ExtrudeGeometry(sh, k.hi && !k.mid ? { depth: t, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.08, bevelSegments: 1 } : { depth: t, bevelEnabled: false }); plate.translate(0.25, 0, -t / 2);
+    const skin = new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false }); skin.translate(0.25, 0, 0); skin.scale(0.97, 0.985, 1);
+    const place = xf([side * rad, yb, 0], [lean, side < 0 ? PI : 0, 0]);
+    kk.push(own ? new THREE.Matrix4() : place.clone().multiply(new THREE.Matrix4().makeRotationY(-side * PI / 2)));
+    kk.add(plate, 'steel'); kk.add(skin, 'tiles', xf([0, 0, tz])); kk.pop();
+    // hinge housing: faired actuator pod along the root with tapered ends (fixed to the hull)
+    hk.push(own ? new THREE.Matrix4() : place); const hr = kind === 'a' ? 0.62 : 0.5;
+    hk.add(new THREE.CylinderGeometry(hr, hr, h * 0.86, k.hi ? 10 : 6, 1, true), 'steel', xf([0.05, h / 2, 0])); for (const [yy, sg] of [[h * 0.07, -1], [h * 0.93, 1]]) hk.add(new THREE.ConeGeometry(hr, h * 0.07, k.hi ? 10 : 6, 1, true), 'steel', xf([0.05, yy + sg * h * 0.035, 0], [sg > 0 ? 0 : PI, 0, 0])); hk.pop();
+    if (own) { const p = new THREE.Group(), hg = new THREE.Group(); p.name = 'flapmount'; hg.name = `flap_${kind}_${side}`; p.position.set(side * rad, yb, 0); p.rotation.set(lean, side < 0 ? PI : 0, 0); hg.rotation.y = -side * PI / 2; // built folded flat
+      for (const c of [...kk.build('flap').children]) hg.add(c); for (const c of [...hk.build('flaphinge').children]) p.add(c); p.add(hg); flaps.push(p); } };
   const flaps = [];
-  for (const s of [-1, 1]) { flap(y0 + 1.5, 11, 5.0, 3.4, s, r); // aft
-    flap(y0 + 2 + cyl + 3.5, 9, 3.4, 1.6, s, 4.1, 0); } // forward (on the nose, smaller, slightly leeward on v3)
+  for (const s of [-1, 1]) { flap(y0 + 1.5, 'a', s, r); // aft
+    flap(y0 + 2 + cyl + 3.8, 'f', s, 3.9, 0); } // forward (high on the nose, smaller, swept)
   decal(k, 'ship.side', r, y0 + 20, 6, -PI / 2, 0.9); // leeward steel side
   if (k.hi) { for (const a of [PI * 0.1, -PI * 0.1]) raceway(k, r, y0 + 3, y0 + 2 + cyl, a, 'steel'); for (const y of [y0 + 2.2, y0 + 2 + cyl * 0.42, y0 + 2 + cyl - 0.3]) ring(k, r, y, 0.04, 'grey'); // raceways, aft dome / common dome / forward weld lands
     k.add(new THREE.BoxGeometry(1.6, 1.2, 0.2), 'dark', xf([0, y0 + 2 + cyl - 3, r + 0.05])); } // payload/door hatch outline
