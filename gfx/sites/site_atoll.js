@@ -1,6 +1,7 @@
 // Site 'atoll' (fun/ladder.js START site): small island range in the central ocean, low-latitude pad for the
 // first small orbital launchers. Expendable only: no landing zone, no droneship. Local frame: +X east, +Y up, +Z south.
 export const SITE = { id: 'atoll', name: 'Atoll Range', body: 'earth', lat: 9.0477, lon: 167.7433, reuse: false,
+  land: { r: 520, sand: true, wob: 0.3, edge: 160 }, // sites-on-land-1: the ground tile draws the island itself (sand, irregular shore), a little wider than the pad apron
   layout: [
     { k: 'ground', mat: 'sand', r: 420, sea: { w: 14000, d: 14000 } },
     { k: 'pad', at: [0, 0], r: 28, trench: 5, mount: 3, tower: { w: 4, h: 28, x: -14, mast: 10, arms: [{ y: 18, len: 5 }] } },

@@ -1,77 +1,77 @@
 import * as THREE from 'three/webgpu';
-import { createBugReporter } from './fun/bugreport.js?v=f5.9-20';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-20';
+import { createBugReporter } from './fun/bugreport.js?v=f5.9-23';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-23';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.9-20';
-import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-20';
-import * as C from './physics/patched.js?v=f5.9-20';
+import * as P from './physics.js?v=f5.9-23';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-23';
+import * as C from './physics/patched.js?v=f5.9-23';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-20';
-import { createCareerUI } from './fun/career-ui.js?v=f5.9-20';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-20';
-import { createSolarMap } from './solarmap.js?v=f5.9-20';
-import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-20';
-import { FX } from './fx.js?v=f5.9-20';
-import { createAcademy } from './academy-ui.js?v=f5.9-20';
-import { createMobile, isTouch } from './mobile.js?v=f5.9-20';
-import { localize } from './wording.js?v=f5.9-20';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-20';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-20';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-23';
+import { createCareerUI } from './fun/career-ui.js?v=f5.9-23';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-23';
+import { createSolarMap } from './solarmap.js?v=f5.9-23';
+import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-23';
+import { FX } from './fx.js?v=f5.9-23';
+import { createAcademy } from './academy-ui.js?v=f5.9-23';
+import { createMobile, isTouch } from './mobile.js?v=f5.9-23';
+import { localize } from './wording.js?v=f5.9-23';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-23';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-23';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // f5.7q (owner): every HUD/pane/card reads the Units setting
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-20';
-import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-20';
-import { guardToasts } from './fun/toastzone.js?v=f5.9-20';
-import * as GX from './gfx/gfx.js?v=f5.9-20';
-import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-20';
-import * as PR from './fun/progress.js?v=f5.9-20';
-import * as WORLD from './fun/world.js?v=f5.9-20';
-import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-20';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-20';
-import { createAudio } from './fun/audio.js?v=f5.9-20';
-import { createMusic } from './fun/music.js?v=f5.9-20';
-import { createCompact } from './fun/compact.js?v=f5.9-20';
-import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-20';
-import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.9-20';
-import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.9-20';
-import { plumeDims, styleFor, vacFactors } from './gfx/plume_style.js?v=f5.9-20'; // QA plume pass: exhaust style per propellant + size from the engine
-import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.9-20';
-import * as UN from './fun/units.js?v=f5.9-20';
-import { buildEndStats } from './fun/endstats.js?v=f5.9-20';
-import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.9-20';
-import { createHome } from './fun/home.js?v=f5.9-20';
-import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-20';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-20';
-import { createFunUI } from './fun/ui.js?v=f5.9-20';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-20';
-import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-20';
-import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-20'; // f6.2: craft types, switching between vessels
-import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-20';
-import { createVesselUI } from './fun/vesselui.js?v=f5.9-20';
-import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.9-20';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.9-20';
-import { dimsOf } from './vehicles/dims.js?v=f5.9-20';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.9-20';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.9-20';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.9-20';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker, SHORT as SHORT_HOUSE } from './fun/picker.js?v=f5.9-20';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-23';
+import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-23';
+import { guardToasts } from './fun/toastzone.js?v=f5.9-23';
+import * as GX from './gfx/gfx.js?v=f5.9-23';
+import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-23';
+import * as PR from './fun/progress.js?v=f5.9-23';
+import * as WORLD from './fun/world.js?v=f5.9-23';
+import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-23';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-23';
+import { createAudio } from './fun/audio.js?v=f5.9-23';
+import { createMusic } from './fun/music.js?v=f5.9-23';
+import { createCompact } from './fun/compact.js?v=f5.9-23';
+import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-23';
+import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.9-23';
+import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.9-23';
+import { plumeDims, styleFor, vacFactors } from './gfx/plume_style.js?v=f5.9-23'; // QA plume pass: exhaust style per propellant + size from the engine
+import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.9-23';
+import * as UN from './fun/units.js?v=f5.9-23';
+import { buildEndStats } from './fun/endstats.js?v=f5.9-23';
+import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.9-23';
+import { createHome } from './fun/home.js?v=f5.9-23';
+import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-23';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-23';
+import { createFunUI } from './fun/ui.js?v=f5.9-23';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-23';
+import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-23';
+import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-23'; // f6.2: craft types, switching between vessels
+import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-23';
+import { createVesselUI } from './fun/vesselui.js?v=f5.9-23';
+import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.9-23';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.9-23';
+import { dimsOf } from './vehicles/dims.js?v=f5.9-23';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.9-23';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.9-23';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.9-23';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker, SHORT as SHORT_HOUSE } from './fun/picker.js?v=f5.9-23';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-20';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-20';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-20';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-20';
-import { createDock } from './fun/dock.js?v=f5.9-20'; // f5.9a: top bar + bottom bar
-import { createXferPlanner } from './fun/xferui.js?v=f5.9-20'; // f6.5 pre-launch transfer planner
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-23';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-23';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-23';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-23';
+import { createDock } from './fun/dock.js?v=f5.9-23'; // f5.9a: top bar + bottom bar
+import { createXferPlanner } from './fun/xferui.js?v=f5.9-23'; // f6.5 pre-launch transfer planner
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -316,7 +316,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.9-20').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.9-23').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -380,27 +380,29 @@ const tile = new THREE.Mesh(tileGeo, GX.tileMaterial(sunPos, TILE_TIER)); tile.f
 const tileF = new THREE.Mesh(tileGeo, GX.tileMaterial(sunPos, TILE_TIER, true)); tileF.frustumCulled = false; tileF.renderOrder = -1; earth.add(tileF);
 let tileForceOff = false; // test hook (__game.tileOff)
 let tileC = null, earthPx = null; GX.earthPixels(gfxQ).then(px => { earthPx = px; tileC = null; padLandColor(); });
-const tileRGBA = [0, 0, 0, 0], GLOBE_SAG = 600, smooth01 = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+const tileRGBA = [0, 0, 0, 0], GLOBE_SAG = 600, PAD_SINK = 2, smooth01 = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
 // f5.9 terrain: the land colour of the surrounding map (inland Florida, 40-80 km west of the pad), so the pad's shaped coast/scrub is the SAME ground as its neighbours, not a dark patch
 let padLand = null; function padLandColor() { if (padLand || !earthPx) return padLand; const o = [0, 0, 0, 0], a = [0, 0, 0]; let n = 0; for (const [s, nn2] of [[40000, 0], [60000, 15000], [80000, -15000], [55000, -25000], [70000, 25000]]) { const w = s / R, x = nn2 / R, d = V.norm([Math.cos(w), -Math.sin(w), x]); GX.sampleEarth(earthPx, d, o); if (o[3] < 0.5) { a[0] += o[0]; a[1] += o[1]; a[2] += o[2]; n++; } } padLand = n ? [a[0] / n, a[1] / n, a[2] / n] : [0.03, 0.043, 0.02]; GX.padLandU.value.set(padLand[0], padLand[1], padLand[2]); return padLand; }
+const SAND_LIN = [0.16, 0.135, 0.085]; // sites-on-land-1: island sand (linear), before the tile's x2.4 land gain
+const siteLandNow = () => { const S = siteArt.S; return GX.siteLand(S && S.body === 'earth' ? S : null); };
 function updateTile(ef) {
   const siteE = typeof F !== 'undefined' && F && F.homeBody === 'earth' && F.siteEf ? F.siteEf : null; // flight-ground-3: sandbox Earth sites
-  if (tileC && V.dot(tileC, ef) > Math.cos(25000 / R) && updateTile.site === siteE) return; updateTile.site = siteE;
+  const sKey = siteArt.S ? siteArt.S.id : ''; if (tileC && V.dot(tileC, ef) > Math.cos(25000 / R) && updateTile.site === siteE && updateTile.sKey === sKey) return; updateTile.site = siteE; updateTile.sKey = sKey; // rebuild once the site art (its land size) arrives
   const c = V.norm(ef), e = P.eastOf(c), nn = V.cross(c, e), pos = tileGeo.attributes.position.array, col = tileGeo.attributes.color.array, wat = tileGeo.attributes.wat.array, rgb = [0, 0, 0];
   tileC = c; tile.position.set(c[0] * R, c[1] * R, c[2] * R); tileF.position.copy(tile.position);
   const put = (k, th, ph) => {
     const s = Math.sin(th), cm1 = -2 * Math.sin(th / 2) ** 2, dx = Math.cos(ph) * s, dy = Math.sin(ph) * s;
     const off = [c[0] * cm1 + e[0] * dx + nn[0] * dy, c[1] * cm1 + e[1] * dx + nn[1] * dy, c[2] * cm1 + e[2] * dx + nn[2] * dy];
-    const dd = V.norm(V.add(c, off)), drop = GLOBE_SAG * smooth01((th * R - 60000) / 90000); // f5.9 terrain: the globe sphere sits GLOBE_SAG below true sea level, so settle the tile onto it over its outer 90 km: no cliff at the rim
+    const dd = V.norm(V.add(c, off)), drop = GLOBE_SAG * smooth01((th * R - 60000) / 90000) + PAD_SINK * (1 - smooth01((th * R - 14000) / 12000)); /* f5.9-21 (owner: ground under the pad flickered on iPhone): the site's ground disc and sea sheet sat at the same height as this tile and z-fought; settle the tile 2 m under them around the pad */ // f5.9 terrain: the globe sphere sits GLOBE_SAG below true sea level, so settle the tile onto it over its outer 90 km: no cliff at the rim
     pos[k * 3] = off[0] * R - dd[0] * drop; pos[k * 3 + 1] = off[1] * R - dd[1] * drop; pos[k * 3 + 2] = off[2] * R - dd[2] * drop;
-    if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); if (dd[0] > PAD_COAST_COS) { /* flight-ground-2: the 1k mask's ~40 km coastal texel made the pad an island on a beige-grey smear; shape a real coast instead: land (scrub) to the west, a beach, open sea ~1.5 km east of the pad */
-        const eM = dd[1] * R, nM = dd[2] * R, coast = 1500 + 900 * (fbm(nM * 0.00025, 3.1, 7.7) - 0.5) * 2 + 0.25 * Math.max(0, nM) * 0.12, wC = Math.min(1, Math.max(0, (eM - coast) / 300 + 0.5)), blend = 1 - smooth01((Math.acos(Math.min(1, dd[0])) * R - 6000) / 24000); // f5.9: smooth 6->30 km fade (was a linear 5->30 km ramp)
+    if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); let coastW = 0; if (dd[0] > PAD_COAST_COS) { /* flight-ground-2: the 1k mask's ~40 km coastal texel made the pad an island on a beige-grey smear; shape a real coast instead: land (scrub) to the west, a beach, open sea ~1.5 km east of the pad */
+        const eM = dd[1] * R, nM = dd[2] * R, coast = GX.coastEastM(nM) + GX.COAST.wiggle * (fbm(nM * 0.00025, 3.1, 7.7) - 0.5) * 2, /* sites-on-land-1: the coast follows the real NNW-SSE shoreline (earthmap.js) */ wC = Math.min(1, Math.max(0, (eM - coast) / 300 + 0.5)), blend = 1 - smooth01((Math.acos(Math.min(1, dd[0])) * R - 6000) / 24000); // f5.9: smooth 6->30 km fade (was a linear 5->30 km ramp)
         const beach = Math.max(0, 1 - Math.abs(eM - coast + 120) / 160), scrub = 0.85 + 0.3 * fbm(eM * 0.002, nM * 0.002, 2.2), pl = padLandColor() || [0.03, 0.043, 0.02], k0 = 1 / 0.043 * pl[1];
         const lr = pl[0] * scrub + beach * 0.07 * k0, lg = pl[1] * scrub + beach * 0.06 * k0, lb = pl[2] * scrub + beach * 0.045 * k0;
         if (wC < 0.5) { tileRGBA[0] += (lr - tileRGBA[0]) * blend; tileRGBA[1] += (lg - tileRGBA[1]) * blend; tileRGBA[2] += (lb - tileRGBA[2]) * blend; }
-        tileRGBA[3] += (wC * 0.9 + (wC > 0.5 ? 0.1 : 0) - tileRGBA[3]) * blend; }
-      if (siteE) { const dS = Math.acos(Math.min(1, V.dot(dd, siteE))) * R, lk = Math.min(1, Math.max(0, (800 - dS) / 300)); /* the pad complex stands on land: a ~0.5-0.8 km land/scrub apron, then the map's own coast */
-        if (lk > 0) { const sc = 0.85 + 0.3 * fbm(dd[0] * 3000, dd[1] * 3000, dd[2] * 3000); { const pl = padLandColor() || [0.03, 0.043, 0.02]; tileRGBA[0] += (pl[0] * sc - tileRGBA[0]) * lk; tileRGBA[1] += (pl[1] * sc - tileRGBA[1]) * lk; tileRGBA[2] += (pl[2] * sc - tileRGBA[2]) * lk; } tileRGBA[3] *= 1 - lk; } } const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
+        tileRGBA[3] += (wC * 0.9 + (wC > 0.5 ? 0.1 : 0) - tileRGBA[3]) * blend; coastW = wC; }
+      if (siteE) { const sl = siteLandNow(), dS = Math.acos(Math.min(1, V.dot(dd, siteE))) * R, rr = sl.r * (1 + sl.wob * (fbm(dd[0] * 1500, dd[1] * 1500, dd[2] * 1500) - 0.5) * 2), lk = Math.min(1, Math.max(0, (rr - dS) / sl.edge)) * (dd[0] > PAD_COAST_COS && coastW > 0.5 ? 0 : 1); /* sites-on-land-1: the apron is the site's own land size (wobbly edge, no disc), never pushed past the shaped coast */ /* the pad complex stands on land: a ~0.5-0.8 km land/scrub apron, then the map's own coast */
+        if (lk > 0) { const sc = 0.85 + 0.3 * fbm(dd[0] * 3000, dd[1] * 3000, dd[2] * 3000); { const pl = sl.sand ? SAND_LIN : padLandColor() || [0.03, 0.043, 0.02]; tileRGBA[0] += (pl[0] * sc - tileRGBA[0]) * lk; tileRGBA[1] += (pl[1] * sc - tileRGBA[1]) * lk; tileRGBA[2] += (pl[2] * sc - tileRGBA[2]) * lk; } tileRGBA[3] *= 1 - lk; } } const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
       col[k * 4] = tileRGBA[0] * (w > 0.5 ? 1 : f); col[k * 4 + 1] = tileRGBA[1] * (w > 0.5 ? 1 : f); col[k * 4 + 2] = tileRGBA[2] * (w > 0.5 ? 1 : f); wat[k] = w; col[k * 4 + 3] = w; }
     else { planetColor(dd, rgb, true); col[k * 4] = (rgb[0] / 255) ** 2.2; col[k * 4 + 1] = (rgb[1] / 255) ** 2.2; col[k * 4 + 2] = (rgb[2] / 255) ** 2.2; col[k * 4 + 3] = 0; }
   };
@@ -747,7 +749,7 @@ const hooks = {
     for (const p of [b, ...(parts || [])]) if (p && p.mesh) legsOf(p.mesh); // f5.9-14 (QA P3): a detached booster group always lists its leg sets (heron-heavy read null)
     stagingDrama(v.r, v.v, P.noseOf(v)); },
   drop: d => { if (opHooks) try { opHooks.drop(d); } catch (e) {} d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
-  ship: s => { if (s.lz) { if (s.name === 'LZ-2') shipVis2 = makeLZ(s); else shipVis = makeLZ(s); return; } shipVis = makeShip(s); }, // RTLS: the landing zone is the pad area, no droneship
+  ship: s => { if (s.lz) { if (s.name === 'LZ-2') shipVis2 = makeLZ(s); else { if (shipVis) earth.remove(shipVis); shipVis = makeLZ(s); } return; } if (shipVis) earth.remove(shipVis); shipVis = makeShip(s); }, // f5.9-23: a mid-flight recovery switch swaps the target // RTLS: the landing zone is the pad area, no droneship
   shipMoved: s => shipVis && onSurface(shipVis, s.ef, 0),
   jettison: () => { try { spawnFairHalves(); } catch (e) { console.warn('[Orbit Rush] fairing halves', e); } heroFairing(false); heroFairing2(false); const f = SG[SG.length - 1].userData.fair; if (f) f.visible = false; /* fx-1: no white puffs in vacuum at fairing sep (the halves show it) */ beep(990); },
   // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
@@ -810,7 +812,7 @@ function showPreview() {
   if (rocketG) { scene.remove(rocketG); freeGroup(rocketG); } // f5.2.1: the old part-stack meshes were never freed (GPU buffers grew ~30 geometries per rocket swap)
   rocketG = new THREE.Group(); SG = design.parts.length ? makeRocketGroups(design) : []; for (const g of SG) g.traverse(o => { if (o.geometry) o.geometry.userData.own = true; }); // f5.2.2: the part stack (incl. radial copies, chutes) owns these
   let y = 0; for (const g of SG) { g.position.y = y; y += g.userData.h; rocketG.add(g); } scene.add(rocketG);
-  F = new Flight(validate(design).ok ? design : TEMPLATES[0], hooks, { padZ: PAD_Z, earthRot, incl: launchIncl, epoch: EPOCH, ...(opFlightOpts || {}), ...(!opFlightOpts && sbSite && !(typeof academy !== 'undefined' && academy.active) ? siteOpts(sbSite, GX.latLonToGame) : {}), ...(xferPlan && !opFlightOpts && !(typeof academy !== 'undefined' && academy.active) ? { ...siteOpts(xferSite(), GX.latLonToGame), t0: xferPlan.launch.t, realPhase: true, incl: xferPlan.launch.incl } : {}) }); v = F.v;
+  F = new Flight(validate(design).ok ? design : TEMPLATES[0], hooks, { recoveryPref: SET.recovery || 'auto', padZ: PAD_Z, earthRot, incl: launchIncl, epoch: EPOCH, ...(opFlightOpts || {}), ...(!opFlightOpts && sbSite && !(typeof academy !== 'undefined' && academy.active) ? siteOpts(sbSite, GX.latLonToGame) : {}), ...(xferPlan && !opFlightOpts && !(typeof academy !== 'undefined' && academy.active) ? { ...siteOpts(xferSite(), GX.latLonToGame), t0: xferPlan.launch.t, realPhase: true, incl: xferPlan.launch.incl } : {}) }); v = F.v;
   try { F.alt0 = Math.max(0, P.altOf(F.v)); } catch (e) { F.alt0 = 0; } // f5.8f (QA P1): the HUD reads altitude above the launch base (≈0 on the pad), not the stack's centre above sea level
   F.craftHint = craftHintNow(); try { F.seedFleet(WORLD.sats(WORLD.load(localStorage)), w => w.craft || kindTypeOf(w)); } catch (e) { console.warn('[Orbit Rush] fleet', e); }
   syncSiteArt(); // f5.4: the picked site's space center
@@ -1869,25 +1871,31 @@ renderer.setAnimationLoop(() => {
 const cam2 = new THREE.PerspectiveCamera(55, 1, 0.5, 2e9), SPLIT_KEY = 'orbitrush.split';
 const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: localStorage.getItem(SPLIT_KEY) !== '0', yaw: 1.35, pitch: 0.25, dist: 90, userT: -1e9, frame: 0 };
 { const d = document.createElement('div'); d.id = 'split'; d.className = 'hidden';
-  d.innerHTML = '<div id="spPane"><div class="spCard spStrip" id="spCardB"><div class="spL" id="spHud"></div><canvas class="spBall" id="spBallB" width="96" height="96"></canvas><div class="spR" id="spHudR"></div></div><div class="spBtns" data-dock="top-center"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spReset" title="Back to the follow view">⟲ FOLLOW</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div class="spBtns" id="spBtnsU"><button id="spCtlU" title="Switch control">⇄ CONTROL</button><button id="spFullU" title="Focus the upper stage">⤢</button><button id="spCloseU" title="Close the split view">✕</button></div><div class="spCard spStrip" id="spCardU"><div class="spL" id="spHud1"></div><canvas class="spBall" id="spBallU" width="96" height="96"></canvas><div class="spR" id="spHud1R"></div></div></div>';
+  d.innerHTML = '<div id="spPane"><div class="spCard spStrip" id="spCardB"><div class="spL" id="spHud"></div><canvas class="spBall" id="spBallB" width="96" height="96"></canvas><div class="spR" id="spHudR"></div><div class="spRec" id="spRec"><span class="spRecB"><button data-rec="auto">AUTO</button><button data-rec="rtls">RTLS</button><button data-rec="ship">BARGE</button></span><span class="spRecW" id="spRecW"></span></div></div><div class="spBtns" data-dock="top-center"><button id="spCtl" title="Switch control">⇄ CONTROL</button><button id="spReset" title="Back to the follow view">⟲ FOLLOW</button><button id="spFull" title="Full screen">⤢</button><button id="spClose" title="Close the booster view">✕</button></div></div><div id="spMain"><div class="spBtns" id="spBtnsU"><button id="spCtlU" title="Switch control">⇄ CONTROL</button><button id="spFullU" title="Focus the upper stage">⤢</button><button id="spCloseU" title="Close the split view">✕</button></div><div class="spCard spStrip" id="spCardU"><div class="spL" id="spHud1"></div><canvas class="spBall" id="spBallU" width="96" height="96"></canvas><div class="spR" id="spHud1R"></div></div></div>';
   document.body.appendChild(d);
   { const p2 = document.createElement('div'); p2.id = 'spPane2'; p2.className = 'hidden'; p2.innerHTML = '<div class="spCard spStrip" id="spCardB2"><div class="spL" id="spHud2"></div><canvas class="spBall" id="spBallB2" width="96" height="96"></canvas><div class="spR" id="spHud2R"></div></div>'; d.appendChild(p2); } // f4.2: booster B pane
   $('spFull').onclick = e => { e.stopPropagation(); split.full = split.full === 'b' ? null : 'b'; camMode = split.full === 'b' ? 'booster' : 'chase'; if (split.full === 'b') camDist = 90; }; // f5.3: frame the whole booster
   // f4: the booster pane has its own camera: drag orbits, pinch / wheel zooms, a tap (no drag) toggles full screen
-  const pp = $('spPane'), pts = new Map(); let moved = 0, pinch0 = 0, d0 = 90;
+  const pp = $('spPane'), pts = new Map(); let moved = 0, pinch0 = 0, d0 = 90, camD0 = 90;
   const manual = () => { split.manual = true; $('split').classList.add('camMan'); }; // f5.9: the expanded booster view can be dragged / pinched / zoomed; ⟲ FOLLOW goes back
-  $('spReset').onclick = e => { e.stopPropagation(); split.yaw = 1.35; split.pitch = 0.25; split.dist = 90; split.manual = false; split.userT = -1e9; $('split').classList.remove('camMan'); toast('Booster camera: following', '#9cc3ff'); };
+  $('spReset').onclick = e => { e.stopPropagation(); split.yaw = 1.35; split.pitch = 0.25; split.dist = 90; split.manual = false; split.userT = -1e9; if (split.full === 'b') { camDist = 90; camUserT = -1e9; } $('split').classList.remove('camMan'); toast('Booster camera: following', '#9cc3ff'); };
   pp.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; pp.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0;
-    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); d0 = split.dist; } e.stopPropagation(); });
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); d0 = split.dist; camD0 = camDist; } e.stopPropagation(); });
   pp.addEventListener('pointermove', e => { const p = pts.get(e.pointerId); if (!p) return; const dx = e.clientX - p[0], dy = e.clientY - p[1]; pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (split.full === 'b') { /* f5.9-23 (owner): the full-screen booster view is drawn by the main camera: drag orbits it, pinch zooms it */ camUserT = performance.now(); manual();
+      if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) camDist = Math.max(12, Math.min(400, camD0 * pinch0 / Math.max(d, 1))); moved = 99; }
+      else { moved += Math.abs(dx) + Math.abs(dy); const k = SET.sens.cam; camYaw -= dx * 0.006 * k; camPitch = clampCamPitch(camPitch + dy * 0.004 * k); } e.stopPropagation(); return; }
     if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) split.dist = Math.max(25, Math.min(1500, d0 * pinch0 / Math.max(d, 1))); moved = 99; manual(); }
     else { moved += Math.abs(dx) + Math.abs(dy); split.yaw -= dx * 0.008; split.pitch = Math.max(-0.4, Math.min(1.3, split.pitch + dy * 0.006)); split.userT = performance.now(); manual(); } e.stopPropagation(); });
   const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0;
-    if (!pts.size && moved < 8) { if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; camDist = 90; } } e.stopPropagation(); };
+    if (!pts.size && moved < 8) { if (split.full === 'b') { /* f5.9-23: a tap in the full view no longer drops you out of it (⤡ BACK does) */ } else if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; camDist = 90; } } e.stopPropagation(); };
   pp.addEventListener('pointerup', up); pp.addEventListener('pointercancel', up);
-  pp.addEventListener('wheel', e => { split.dist = Math.max(25, Math.min(1500, split.dist * Math.exp(e.deltaY * 0.001))); manual(); e.preventDefault(); e.stopPropagation(); }, { passive: false });
+  pp.addEventListener('wheel', e => { if (split.full === 'b') { camUserT = performance.now(); camDist = Math.max(12, Math.min(400, camDist * Math.exp(e.deltaY * 0.001 * SET.sens.zoom))); manual(); e.preventDefault(); e.stopPropagation(); return; } split.dist = Math.max(25, Math.min(1500, split.dist * Math.exp(e.deltaY * 0.001))); manual(); e.preventDefault(); e.stopPropagation(); }, { passive: false });
   $('spMain').onclick = () => { if (split.full) { split.full = null; camMode = 'chase'; } };
   $('spFullU').onclick = e => { e.stopPropagation(); split.full = split.full === 'u' ? null : 'u'; camMode = 'chase'; }; // f5.3: focus the upper stage (keeps its own card)
+  $('spRec').addEventListener('pointerdown', e => e.stopPropagation()); // f5.9-23: recovery override for this flight (AUTO re-picks from the separation state)
+  $('spRec').addEventListener('click', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt || !F || !booster || !booster.recPlan) return; const w = bt.dataset.rec, rp = booster.recPlan;
+    if (w === 'auto') { if (rp.mode === rp.auto || F.setRecovery(rp.auto)) { rp.pref = 'auto'; rp.why = rp.whyAuto; } } else if (rp.mode === w || F.setRecovery(w)) rp.pref = w; });
   $('spCtl').onclick = e => { e.stopPropagation(); if (booster && booster.state === 'flying' && F.ship && booster.stages[0].fuel > 0) F.toggleBooster(); else toast('The booster is on autopilot', '#9cc3ff'); };
   $('spClose').onclick = e => { e.stopPropagation(); split.closed = true; };
   $('spCloseU').onclick = $('spClose').onclick; $('spCtlU').onclick = $('spCtl').onclick; // f5.6h (QA P2): both halves carry the same buttons
@@ -1932,13 +1940,16 @@ function updateSplit(rdt) {
   { const p2 = $('spPane2'), on2 = nb > 1 && !fb; p2.classList.toggle('hidden', !on2); if (on2) { const r3 = paneRect(1, nb), s2 = p2.style; s2.left = r3.x + 'px'; s2.top = r3.y + 'px'; s2.width = r3.w + 'px'; s2.height = r3.h + 'px'; } }
   { const sf = $('spFull'), lb = fb ? '⤡ BACK' : 'BOOSTER ⤢'; if (sf && sf.textContent !== lb) sf.textContent = lb; } /* f5.9-10: the label follows the view (it was set once) */
   layoutSplitCards(nb, fb);
-  const st = $('spPane').style; if (fb) { st.left = '0'; st.top = '0'; st.width = '100%'; st.height = '100%'; } else { st.left = R2.x + 'px'; st.top = R2.y + 'px'; st.width = R2.w + 'px'; st.height = R2.h + 'px'; }
+  const st = $('spPane').style; if (fb) { /* f5.9-23: the full view's touch surface runs between the two bars, so the split layer can sit above the bottom bar (its strip lives there) without covering a bar button */ const tb = $('topBar'), bb = $('botBar'), t0 = tb && tb.offsetHeight ? Math.round(tb.getBoundingClientRect().bottom) : 0, b0 = bb && bb.offsetHeight ? Math.round(bb.getBoundingClientRect().top) : innerHeight; st.left = '0'; st.top = t0 + 'px'; st.width = '100%'; st.height = Math.max(100, b0 - t0) + 'px'; } else { st.left = R2.x + 'px'; st.top = R2.y + 'px'; st.width = R2.w + 'px'; st.height = R2.h + 'px'; }
   split.frame++; if (b) { // f4.1b: every frame (was every 6th — at low fps the cards lagged by seconds)
     const card = (b, label, hud, ball, rp) => { const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
       const bf = b.stages[0], bs = V.len(bva), bPh = rp ? '⟲ REPLAY' : b.state === 'landed' ? '✔ LANDED' : b.state !== 'flying' ? '✘ LOST' : b.manual ? '🎮 YOU' : 'AUTO · ' + apPill(b.phase);
       spStrip(hud, label.replace(' · ', ' '), bPh.replace('AUTO · ', ''), /BURN|LANDING/.test(bPh), bs, bh, b, 0, false, b.state === 'landed');
       { const cv = $(ball); if (cv) { const ld = b.state !== 'flying'; if (ld) cv.style.visibility = 'hidden'; else miniBall(cv, b.dir, b.r, bva, b.holdDir && b.manual ? b.holdDir : null); } } }; // f5.7e (QA f5.7c P2): a landed booster has no attitude to show (the '- -' ball on a blocky backdrop)
     const bLab = (i, lz) => { const k = 'AB'[i]; return TOUCH ? 'BOOSTER ' + k : 'BOOSTER ' + k + ' · ' + (lz || 'LZ-' + (i + 1)); }; // f5.6u (QA P1): phones drop the pad name (it clipped)
+    { const rp = b.recPlan, el = $('spRec'); el.classList.toggle('hidden', !rp || b.state !== 'flying' || !!booster2); if (rp) { const lab = rp.mode === 'rtls' ? 'RETURN TO SITE' : 'BARGE LANDING';
+      setHTML('spRecW', `<b>${lab}</b> <span>${rp.pref === 'auto' ? 'AUTO: ' : ''}${rp.why}</span> <i>Δv ${UN.dv(rp.have)} / ${UN.dv(rp.need)}</i>`);
+      for (const bt of el.querySelectorAll('button')) { const on = bt.dataset.rec === (rp.pref === 'auto' ? 'auto' : rp.mode); if (bt.classList.contains('on') !== on) bt.classList.toggle('on', on); } } }
     card(b, booster2 ? bLab(0, b.lzName) : 'BOOSTER',
       'spHud', 'spBallB', !!split.replay);
     if (booster2) card(booster2,
@@ -1964,7 +1975,11 @@ function placeIn(el, r, corner) { if (!el) return; const s = el.style, sat = par
 function layoutSplitCards(nb, fb) {
   const bb = document.getElementById('botBar'), bbH = bb && bb.offsetHeight ? Math.round(bb.getBoundingClientRect().height) : 0, full = { x: 0, y: 0, w: innerWidth, h: innerHeight - bbH }, rb = fb ? full : paneRect(0, nb); /* f5.9-10 (QA f5.9-9 P2): the expanded booster card sits on top of the bottom bar, not dimmed under it */
   placeIn($('spCardU'), upperRect(nb), 'strip'); placeIn($('spBtnsU'), upperRect(nb), 'btns');
-  placeIn($('spCardB'), rb, 'strip'); const pb = document.querySelector('.spBtns:not(#spBtnsU)'); if (pb && pb.closest('#topBar')) { for (const k of ['position', 'top', 'bottom', 'left', 'right']) pb.style.removeProperty(k); } else placeIn(pb, rb, 'btns'); // f5.9: the booster buttons live in the top bar
+  let rbS = rb; if (fb && bb && bbH) { const bR = bb.getBoundingClientRect(); let xr = innerWidth; for (const id of ['mright', 'dCtl']) { const el = $(id); if (el && el.offsetWidth && bb.contains(el)) xr = Math.min(xr, el.getBoundingClientRect().left - 6); } rbS = { x: 0, y: Math.round(bR.top), w: Math.max(200, Math.round(xr)), h: Math.round(bR.height) }; } /* f5.9-23 (owner): no dead band: the booster strip lives in the bottom bar beside the thumb controls */
+  { const rc = $('spRec'); if (rc && bb && rc.parentNode !== bb) bb.appendChild(rc); } // f5.9-23: the recovery row is a bar control (f5.9: every button lives in a bar)
+  { const rc = $('spRec'), on = rbS !== rb && rc && !rc.classList.contains('hidden'), wide = rbS.w >= 560; /* wide bars: telemetry left, recovery right; narrow (phone portrait): recovery under the telemetry */ if (on) { const q = rc.style; q.setProperty('left', (wide ? Math.round(rbS.w * 0.56) : 8) + 'px', 'important'); q.setProperty('width', Math.max(160, wide ? Math.round(rbS.w * 0.44) - 8 : rbS.w - 12) + 'px', 'important'); }
+    if (on) { if (wide) rbS = { ...rbS, w: Math.round(rbS.w * 0.56) }; else { const rh = Math.round(rc.getBoundingClientRect().height) || 0; rbS = { ...rbS, h: Math.max(40, rbS.h - rh - 4) }; } } }
+  $('spCardB').classList.toggle('inBar', rbS !== rb); placeIn($('spCardB'), rbS, 'strip'); const pb = document.querySelector('.spBtns:not(#spBtnsU)'); if (pb && pb.closest('#topBar')) { for (const k of ['position', 'top', 'bottom', 'left', 'right']) pb.style.removeProperty(k); } else placeIn(pb, rb, 'btns'); // f5.9: the booster buttons live in the top bar
   if (fb && splitPortrait() && pb && !pb.closest('#topBar')) { const cb = $('spCardB').getBoundingClientRect(); pb.style.setProperty('right', 'auto', 'important'); pb.style.setProperty('left', '10px', 'important'); pb.style.setProperty('top', Math.round(cb.bottom + 8) + 'px', 'important'); } // f5.3: focused on a phone, the pane buttons sit under the card, clear of the top bar's ☰
   // f5.3: in portrait split, RELEASE (worker A) and GROUND sit at the bottom of the upper half, clear of the booster pane and its card
   const ur = upperRect(nb), pinBottom = (el, side) => { if (!el) return; const st = el.style; if (!(!fb && split.full !== 'u')) { /* f5.6h (QA P2): landscape too: RELEASE / GROUND belong to the upper pane */ if (el.dataset.spPin) { for (const k of ['top', 'bottom', 'left', 'right']) st.removeProperty(k); delete el.dataset.spPin; } return; }
@@ -2616,7 +2631,7 @@ window.__game = { get SG() { return SG; }, get viewId() { return viewId; }, flee
     return { id: b.id || 'A', replay: !!(i === 0 && split.replay), state: b.state, phase: b.phase, meshVsDir: +(ny.x * b.dir[0] + ny.y * b.dir[1] + ny.z * b.dir[2]).toFixed(3), dirUp: +V.dot(b.dir, up).toFixed(3), noseScreenUp: +(p1.y - p0.y).toFixed(4), onScreen: Math.abs(p0.x) < 1 && Math.abs(p0.y) < 1 && p0.z < 1, camUpRadial: +(cu.x * up[0] + cu.y * up[1] + cu.z * up[2]).toFixed(3), roll: +(crt.x * up[0] + crt.y * up[1] + crt.z * up[2]).toFixed(3), R2: S.dbg.R2 }; }), dbgLayer: (k, on) => { const o = { atmo, tile, planet, clouds, lod: earthLOD.group }[k]; if (o) { if (on) o.layers.enable(0); else o.layers.disable(0); } if (k === "fog") scene.fog.density = on ? scene.fog.density : 0; return !!o; }, exhaustAudit: () => { // f4.1: live exhaust particles relative to the nozzle plane (along the air-relative velocity; > 0 = ahead)
     const va = V.sub(v.v, siteVel(v)), sp = V.len(va), vh = sp > 1 ? V.scale(va, 1 / sp) : P.noseOf(v), nz = V.sub(v.r, V.scale(P.noseOf(v), P.massProps(v).ycom)); let ahead = 0, maxA = -1e9, n = 0; const dbg = [];
     for (const sys of [fire, smoke]) for (const q of sys.d) { if (q.life <= 0 || Math.hypot(q.x, q.y, q.z) - P.R_E < 300) continue; /* ignore the pad cloud */ const a = V.dot([q.x - nz[0], q.y - nz[1], q.z - nz[2]], vh); if (V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]) > 3000) continue; n++; if (a > maxA) maxA = a; if (a > 2) { ahead++; if (dbg.length < 6) dbg.push({ sys: sys === fire ? 'fire' : 'smoke', a: +a.toFixed(0), age: +(q.max - q.life).toFixed(2), c: q.c0 && q.c0.toString(16), d: q.drag, rva: +V.dot([q.vx - v.v[0], q.vy - v.v[1], q.vz - v.v[2]], vh).toFixed(0), an: +V.dot(P.noseOf(v), vh).toFixed(3), r: +V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]).toFixed(0) }); } }
-    return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, relFrame: () => relFrame(), mapProbe: id => smap.probe(id), mapFocusPx: () => smap.focusPx(), mapFocusId: () => smap.focusId(), mapSetFocus: id => smap.setFocus(id), siteSun: () => siteArt.obj.map(L => ({ el: +(L.userData.sunEl || 0).toFixed(1), night: !!L.userData.night, lights: (() => { let n = 0; L.traverse(o => { if (o.isLight && o.visible) n++; }); return n; })() })), audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, bus: fbus ? fbus.gain.value : -1, crack: crackSrc ? 1 : 0, sfx: sbus ? sbus.gain.value : -1, dist: dbus ? dbus.gain.value : -1, mix: audioMix, music: funMusic.probe(), musicNow: musicMode(), loops: (rumbleSrc ? 1 : 0) + funAudio.liveLoops(), dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, startReplay, get replay() { return replay; }, explode, split, setGroundCam: on => { GCAM.on = !!on; if (on && split.on) split.full = 'u'; camMode = 'chase'; }, get groundCam() { return GCAM.act; }, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, stickCmd: () => ({ ...mobile.input }), get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get camPitch() { return camPitch; }, camInfo: () => { const bR = (P.BODIES[F.body] || {}).R || R, O = shipPos ? null : null; return { pitch: camPitch, dist: camDist, up: camera.up.toArray().map(x => +x.toFixed(3)) }; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, qol, craftDv, sitePicker, get sbSite() { return sbSite; } };
+    return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, relFrame: () => relFrame(), mapProbe: id => smap.probe(id), mapFocusPx: () => smap.focusPx(), mapFocusId: () => smap.focusId(), mapSetFocus: id => smap.setFocus(id), siteSun: () => siteArt.obj.map(L => ({ el: +(L.userData.sunEl || 0).toFixed(1), night: !!L.userData.night, lights: (() => { let n = 0; L.traverse(o => { if (o.isLight && o.visible) n++; }); return n; })() })), audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, bus: fbus ? fbus.gain.value : -1, crack: crackSrc ? 1 : 0, sfx: sbus ? sbus.gain.value : -1, dist: dbus ? dbus.gain.value : -1, mix: audioMix, music: funMusic.probe(), musicNow: musicMode(), loops: (rumbleSrc ? 1 : 0) + funAudio.liveLoops(), dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, startReplay, get replay() { return replay; }, explode, split, setGroundCam: on => { GCAM.on = !!on; if (on && split.on) split.full = 'u'; camMode = 'chase'; }, get groundCam() { return GCAM.act; }, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, stickCmd: () => ({ ...mobile.input }), get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get camPitch() { return camPitch; }, camInfo: () => { const bR = (P.BODIES[F.body] || {}).R || R, O = shipPos ? null : null; return { yaw: camYaw, pitch: camPitch, dist: camDist, up: camera.up.toArray().map(x => +x.toFixed(3)) }; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, qol, craftDv, sitePicker, get sbSite() { return sbSite; } };
 window.__game.tileStats = () => { const w = tileGeo.attributes.wat.array, c = tileGeo.attributes.color.array, h = [0, 0, 0, 0, 0]; for (const x of w) h[Math.min(4, Math.max(0, Math.floor(x * 5)))]++; return { hist: h, vis: tile.visible, c0: [c[0], c[1], c[2]], center: tileC, px: !!earthPx, mat: tile.material.type }; };
 window.__game.craftPx = () => { if (!rocketG) return null; rocketG.updateMatrixWorld(true); camera.updateMatrixWorld(true); const b = new THREE.Box3(), p = new THREE.Vector3(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; // f5.9-18: the craft's on-screen box (px), for the orbit framing smoke
   liveMeshes(o => { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);

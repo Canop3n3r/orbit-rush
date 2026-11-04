@@ -4,8 +4,8 @@
 //      buildSiteLOD(S, { phone }) -> THREE.LOD (near = hi, or mid on phones; mid; lo)
 //      placeSite(obj, S) applies the site's body-frame matrix;  dispose / release free geometry (materials are shared).
 import * as THREE from 'three/webgpu';
-import { weakDisposeListeners, dispose, release } from '../vehicles/kit.js?v=f5.9-20';
-import { siteMatrix, localOffset, localBasis, BODY_R } from './geo.js?v=f5.9-20';
+import { weakDisposeListeners, dispose, release } from '../vehicles/kit.js?v=f5.9-23';
+import { siteMatrix, localOffset, localBasis, BODY_R } from './geo.js?v=f5.9-23';
 export { dispose, release, BODY_R };
 export const PAD_DECK = 0.4; // f5.9-20 (owner): the mount deck top = the rocket base on every pad (main.js PAD_Z); PAD_CLEAR = metres around the pad centre kept free above the deck
 export const PAD_CLEAR = 8;
@@ -103,7 +103,7 @@ function rackPipe(K, x0, x1, z, y = 4, n = 3) { // pipe rack: portal frames ever
 const parts = {
   pad(K, o) { const r = o.r || 60, tw = o.trench || 12; K.disc('concrete', r, [0, 0, 0], K.seg * 2, 0.05); K.ring('mark', r * 0.92, r * 0.95);
     // flame trench: sunken slot with side walls and a wedge deflector under the mount, exiting south
-    K.box('dark', tw, 0.3, r * 1.6, [0, -0.25, r * 0.3]); for (const s of [-1, 1]) K.box('concrete', 1.5, 3, r * 1.05, [s * (tw / 2 + 0.75), 0, PAD_CLEAR + r * 0.525]); /* f5.9-20: the trench walls start outside the rocket's footprint */
+    K.box('dark', tw, 0.3, r * 1.6, [0, -1.6, r * 0.3]); /* f5.9-21 (owner: ground under the pad flickered): the trench floor sat 0.1 m under the deck and z-fought at planet depth range */ for (const s of [-1, 1]) K.box('concrete', 1.5, 3, r * 1.05, [s * (tw / 2 + 0.75), 0, PAD_CLEAR + r * 0.525]); /* f5.9-20: the trench walls start outside the rocket's footprint */
     { const g = new THREE.CylinderGeometry(0.01, tw * 0.45, 7, 3, 1); g.rotateX(Math.PI / 2); g.rotateZ(Math.PI); K.add(g, 'steel', M([0, -tw * 0.5, 3])); } /* f5.9-20: the deflector sits in the trench, below the deck */
     K.box('concrete', tw + 4, 6, 10, [0, 0, -(PAD_CLEAR + 9)]); const m = o.mount || 8; K.cyl('steel', m * 0.55, m * 0.5, 2, [0, PAD_DECK - 2, 0], K.seg); // f5.9-20 (owner): a closed mount deck whose top is the rocket's base (PAD_DECK); nothing on the pad rises inside PAD_CLEAR
     for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; K.box('dark', 1.2, 0.3, 1.2, [Math.cos(a) * m * 0.45, PAD_DECK - 0.29, Math.sin(a) * m * 0.45]); } // hold-down clamp pads, flush on the deck
@@ -178,7 +178,7 @@ const parts = {
     for (const i of [-1, 0, 1]) for (const s of [-1, 1]) { const g = new THREE.CylinderGeometry(0.42, 0.42, 0.35, K.lo ? 6 : K.hi ? 14 : 8); g.rotateX(Math.PI / 2); K.add(g, 'dark', M([i * L * 0.38, 0.42, s * (W / 2 + 0.2)])); }
     if (!K.lo) { K.cyl('steel', 0.06, 0.06, 1.4, [L * 0.35, 1.8, 0], 4); K.box('dark', 0.4, 0.3, 0.3, [L * 0.35, 3.2, 0]); K.box('lamp', 0.12, 0.2, 0.5, [L / 2 + 0.05, 1.3, 0]); if (o.dish) { const g = new THREE.SphereGeometry(0.5, 8, 2, 0, Math.PI * 2, 0, 0.8); g.rotateX(-1); K.add(g, 'white', M([-L * 0.3, 2.3, 0])); } } }, // six-wheel surface rover
   fence(K, o) { fence(K, o.pts, o.h || 2.4); },
-  ground(K, o) { K.disc(o.mat || 'ground', o.r || 2500, [0, 0, 0], K.seg * 3, -0.05); if (o.sea) K.flat('sea', o.sea.w || 12000, o.sea.d || 12000, [o.sea.x || 0, 0, o.sea.z || 0], 0, -0.1); },
+  ground(K, o) { K.disc(o.mat || 'ground', o.r || 2500, [0, 0, 0], K.seg * 3, -0.05); if (o.sea) K.flat('sea', o.sea.w || 12000, o.sea.d || 12000, [o.sea.x || 0, 0, o.sea.z || 0], 0, -1.0) /* f5.9-21: well under the land disc (z-fight) */; },
 };
 export const PART_KINDS = Object.keys(parts);
 // build one placed group (the main complex, or a remote station such as a droneship)
