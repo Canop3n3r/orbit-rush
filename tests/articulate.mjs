@@ -28,10 +28,14 @@ ok(glide.some(r => Math.abs(r.tw[0] - r.tw[1]) > 0.02), 'fins deflect individual
 // ship flaps: belly-flop then flip
 const fl = [['f', 1], ['f', -1], ['a', 1], ['a', -1]].map(([k, s]) => O(`flap_${k}_${s}`)); const ship = O('ship', 0, fl); ship.userData = {}; const sr = rigOf(ship);
 ok(sr.flaps.length === 4, 'rig finds 4 flaps');
-const fr = []; for (let t = 0; t < 300; t += 0.5) { const alt = 80000 - t * 270; applyShip(sr, shipPose({ state: alt > 0 ? 'flying' : 'landed', vr: -80, alt: Math.max(alt, 0), t, rates: [0.08 * Math.sin(t * 0.9), 0, 0.05 * Math.cos(t * 0.6)] }), 0.5); fr.push({ alt, a: sr.flaps.map(f => f.piv.rotation.x) }); }
+const fr = []; for (let t = 0; t < 300; t += 0.5) { const alt = 80000 - t * 270; applyShip(sr, shipPose({ state: alt > 0 ? 'flying' : 'landed', vr: -80, alt: Math.max(alt, 0), t, rates: [0.08 * Math.sin(t * 0.9), 0, 0.05 * Math.cos(t * 0.6)] }), 0.5); fr.push({ alt, a: sr.flaps.map(f => -f.piv.rotation.y * f.side) }); }
 const belly = fr.filter(r => r.alt > 2000 && r.alt < 70000);
 ok(new Set(belly.map(r => r.a[0].toFixed(3))).size > 20, 'forward flap keeps moving in the belly-flop');
 ok(belly.some(r => Math.abs(r.a[0] - r.a[2]) > 0.05), 'forward and aft flaps move differentially (pitch control)');
 ok(belly.some(r => Math.abs(r.a[0] - r.a[1]) > 0.03), 'left and right flaps move differentially (roll control)');
 const flip = fr.filter(r => r.alt < 1000 && r.alt > 0); ok(flip.length && flip[flip.length - 1].a[0] > flip[flip.length - 1].a[2] + 0.3, 'flip: forward flaps up, aft flaps folded');
+// a booster built with its fins open (super-heavy: fixed-out fins) keeps them open; they still twist to steer
+{ const f = [0, 1, 2].map(i => { const o = O('gridfin_' + i, 0, [O('lattice')]); o.userData = { yaw: -i }; o.rotation.z = -FIN_DEPLOY; return o; }); const m = O('b', 0, f); m.userData = {}; const r = rigOf(m, mk);
+  applyBooster(r, boosterPose({ state: 'flying', tSep: 0, alt: 70000, rates: [0.1, 0, 0] }), 0.5); ok(r.fins.every(x => Math.abs(x.piv.rotation.z + FIN_DEPLOY) < 1e-6), 'built-open fins stay open');
+  ok(r.fins.every(x => Math.abs(x.piv.rotation.y + f.indexOf(x.piv)) < 1e-9), 'fin azimuth kept'); }
 console.log(`articulate: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

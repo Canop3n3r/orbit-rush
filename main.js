@@ -52,6 +52,8 @@ import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-20';
 import { createFunUI } from './fun/ui.js?v=f5.9-20';
 import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-20';
 import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-20';
+import { rigOf, boosterPose, applyBooster, shipPose, applyShip } from './gfx/vehicles/articulate.js?v=f5.9-20';
+import { writeStruts } from './gfx/vehicles/staged.js?v=f5.9-20';
 import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-20'; // f6.2: craft types, switching between vessels
 import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-20';
 import { createVesselUI } from './fun/vesselui.js?v=f5.9-20';
@@ -769,6 +771,22 @@ const hooks = {
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
 // f4.2: the detached side pair is one group (both columns + struts). Make one holder per side booster: a deep copy
 // with only that side's meshes visible, re-centred on that column so each sim's r is its own booster's centre.
+// legs-fins-1: drive a recovered booster's leg / grid-fin pivots from its sim state (body rates from the change of its axis, glide command b.fin)
+const _art = new WeakMap();
+function articulateBooster(b, mesh, alt, dt) {
+  const rig = rigOf(mesh, () => new THREE.Group()); if (!rig.legs.length && !rig.fins.length) return;
+  let st = _art.get(b); if (!st) { st = { t0: F.met, dir: b.dir.slice() }; _art.set(b, st); }
+  const up = V.norm(b.r), d = b.dir, cx = V.cross(d, up), e1 = V.len(cx) > 1e-4 ? V.norm(cx) : V.norm(V.cross(d, P.eastOf(b.r))), e2 = V.cross(d, e1), w = V.scale(V.cross(st.dir, d), 1 / Math.max(dt, 1e-3)); st.dir = d.slice();
+  const g = b.fin ? [V.dot(b.fin, e1), 0, V.dot(b.fin, e2)] : null;
+  applyBooster(rig, boosterPose({ state: b.state, phase: b.phase, bbDone: b.bbDone, legs: b.legs, rtls: b.rtls, alt, tSep: F.met - st.t0, fin: g, rates: [V.dot(w, e1), V.dot(w, e2), 0] }), Math.min(dt, 0.5));
+  if (rig.legMoved) for (const m of rig.struts) writeStruts(m);
+}
+const _shipArt = { dir: null };
+function articulateShip(g, nose, dt) {
+  const rig = rigOf(g); if (!rig.flaps.length) return; const up = V.norm(v.r), cx = V.cross(nose, up), e1 = V.len(cx) > 1e-4 ? V.norm(cx) : P.eastOf(v.r), e2 = V.cross(nose, e1);
+  const w = _shipArt.dir ? V.scale(V.cross(_shipArt.dir, nose), 1 / Math.max(dt, 1e-3)) : [0, 0, 0]; _shipArt.dir = nose.slice();
+  applyShip(rig, shipPose({ state: F.flags.landed ? 'landed' : 'flying', vr: V.dot(v.v, up), alt: F.alt, t: F.met, rates: [V.dot(w, e1), V.dot(w, e2), 0] }), Math.min(dt, 0.5));
+}
 function legsOf(m) { const u = m.userData; if (Array.isArray(u.legs) && u.legs.length || u.legs && u.legs.isObject3D) return u.legs; const L = []; m.traverse(o => { if (o !== m && o.userData && o.userData.pivots && !L.includes(o)) L.push(o); }); u.legs = L; return L; }
 function splitSideMesh(g) {
   g.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(g.matrixWorld).invert(), bx = new THREE.Box3(), c = new THREE.Vector3();
@@ -1740,6 +1758,7 @@ renderer.setAnimationLoop(() => {
   worldVis(base, O, nose);
   if (state === 'flight' && !F.flags.dead && SG[v.cur]) emit(v, SG[v.cur], pdt, base, nose);
   else for (let j = v.cur; j < SG.length; j++) SG[j].userData.plume.visible = false;
+  if (state === 'flight' && SG[v.cur]) articulateShip(SG[v.cur], nose, pdt); // legs-fins-1: ship flaps work the belly-flop and flip
   { const lg = v.cur === 0 && SG[0] && SG[0].userData.legs; if (lg) { const on = state === 'flight' && (!!v.legs || !!F.flags.landed); if (lg.visible !== on) { lg.visible = on; lg.traverse(o => { if (o.isMesh) o.visible = on; }); } } } // fx-2: landing legs on the flying rocket (hop)
   if (state === 'flight' && !F.flags.dead && SG[v.cur] && SG[v.cur].userData.radial && SG[v.cur + 1] && parallelCore()) emit(v, SG[v.cur + 1], pdt, base, nose); // fx-1: Heavy core lights with its side boosters (Vehicle Specs: parallel stage)
   const ovl = (SET.overlay && state === 'flight' && !F.flags.dead && camMode !== 'map');
@@ -1756,6 +1775,7 @@ renderer.setAnimationLoop(() => {
   for (const bq of [booster, booster2]) if (bq && bq.mesh && bq.mesh.visible) { // f4.2: each side booster
     setRel(bq.mesh, bq.r, O); dirQ(bq.mesh, bq.dir);
     const bh = V.len(bq.r) - R, legs = bq.mesh.userData.legs; if (legs) { const on = bq.state === 'landed' || (bq.state === 'flying' && (bq.legs || bh < 600)); if (!Array.isArray(legs)) legs.visible = on; } // staged leg sets (arrays) stay visible, folded until deploy;
+    articulateBooster(bq, bq.mesh, bh, pdt); // legs-fins-1: legs swing down, grid fins open after the boostback and steer the descent
     if (bq.state === 'flying') emit(bq, bq.mesh, pdt, bq.r, bq.dir); else bq.mesh.userData.plume.visible = false;
   }
   // ground tile follows the focus (Earth-fixed coordinates)

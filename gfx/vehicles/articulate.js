@@ -3,7 +3,7 @@
 //   legs:  t 0 stowed flush (foot up) -> 1 deployed, a 120 deg swing down about the base hinge (pivot.rotation.z = -t * LEG_SWING)
 //   grid fins: stowed flat along the hull (0) -> deployed out (1) after the boostback / separation coast, then each fin twists about its
 //              own span (defl child rotation.y) to steer: commanded by the glide steering vector and the body rates, plus roll trim
-//   flaps: forward + aft pairs pivot about their hinge line; belly-flop holds them spread, pitch/roll error moves them differentially
+//   flaps: forward + aft pairs pivot about their root hinge line (rotation.y of flap_<f|a>_<side>); belly-flop holds them spread, pitch/roll error moves them differentially
 export const LEG_SWING = 2 * Math.PI / 3;      // 120 deg
 export const FIN_DEPLOY = 88 * Math.PI / 180;  // stowed up -> out from the hull
 export const FIN_MAX = 20 * Math.PI / 180;     // steering twist limit
@@ -34,19 +34,24 @@ export function shipPose(s) {
   return { flap: (fwd, side) => clamp(base + (fwd ? pitch : -pitch) + side * roll + (flip && fwd ? 0.6 : 0), 0, 1) * FLAP_MAX };
 }
 
+const RIGS = new WeakMap(); // rig per model, kept off userData (Object3D.clone JSON-copies userData)
 const ease = (cur, tgt, step) => cur + clamp(tgt - cur, -step, step);
 /** find the movable parts of a built model (staged Blender assets or procedural): leg pivots, grid-fin pivots, flap pivots. */
 export function rigOf(model, mkGroup) {
-  const u = model.userData; if (u.rig) return u.rig;
-  const rig = { legs: [], fins: [], flaps: [], legT: 0, finT: 0 };
-  const walk = (o, f) => { f(o); for (const c of o.children || []) walk(c, f); };
+  const hit = RIGS.get(model); if (hit) return hit;
+  const rig = { legs: [], fins: [], flaps: [], struts: [], legT: 0, finT: 0 };
+  const walk = (o, f) => { if (o.visible === false) return; f(o); for (const c of o.children || []) walk(c, f); }; // hidden copies (the other side booster's half of a split clone) are not ours
   walk(model, o => {
     const n = o.name || '';
     if (/^leg_\d+$/.test(n)) rig.legs.push(o);
+    else if (n === 'legstruts') rig.struts.push(o);
     else if (/^gridfin_\d+$/.test(n)) rig.fins.push(finOf(o, mkGroup));
-    else if (/^flap_(f|a)_(-?1)$/.test(n)) { const m = n.match(/^flap_(f|a)_(-?1)$/); rig.flaps.push({ piv: o, fwd: m[1] === 'f', side: +m[2], rest: o.rotation.x }); }
+    else if (/^flap_(f|a)_(-?1)$/.test(n)) { const m = n.match(/^flap_(f|a)_(-?1)$/); rig.flaps.push({ piv: o, fwd: m[1] === 'f', side: +m[2], rest: o.rotation.y }); }
   });
-  u.rig = rig; return rig;
+  // start from the pose the model was built in (a booster whose fins are built open, like the super-heavy's fixed-out fins, keeps them open)
+  if (rig.fins.length) { rig.finT = clamp(-rig.fins[0].piv.rotation.z / FIN_DEPLOY, 0, 1); rig.finFixed = rig.finT > 0.9; }
+  if (rig.legs.length) rig.legT = clamp(-rig.legs[0].rotation.z / LEG_SWING, 0, 1);
+  RIGS.set(model, rig); return rig;
 }
 // a grid fin twists about its span: put its geometry under a 'defl' child so the twist rides on top of the deploy hinge
 // mkGroup: () => new THREE.Group() (passed in so this module stays three-free). The pivot's euler is rebuilt from its yaw (like the staged legs),
@@ -54,16 +59,17 @@ export function rigOf(model, mkGroup) {
 function finOf(piv, mkGroup) {
   let d = (piv.children || []).find(c => c.name === 'defl');
   if (!d && mkGroup && !piv.isMesh) { d = mkGroup(); d.name = 'defl'; for (const c of [...piv.children]) d.add(c); piv.add(d); }
-  const yaw = piv.quaternion ? 2 * Math.atan2(piv.quaternion.y, piv.quaternion.w) : piv.rotation.y; piv.rotation.set(0, yaw, 0);
+  const yaw = piv.userData && piv.userData.yaw != null ? piv.userData.yaw : piv.quaternion ? 2 * Math.atan2(piv.quaternion.y, piv.quaternion.w) : piv.rotation.y; piv.rotation.set(0, yaw, piv.userData && piv.userData.yaw != null ? piv.rotation.z : 0);
   return { piv, defl: d || { rotation: { y: 0 } }, az: -yaw }; // az: fin azimuth around the hull (pivots were placed with rot_y = -a)
 }
 /** ease the rig toward a booster pose; dt in seconds (dt = Infinity snaps). Returns the rig. */
 export function applyBooster(rig, p, dt) {
-  rig.legT = ease(rig.legT, p.leg, RATE.leg * dt); rig.finT = ease(rig.finT, p.fin, RATE.fin * dt);
+  const l0 = rig.legT; rig.legT = ease(rig.legT, p.leg, RATE.leg * dt); rig.legMoved = rig.legT !== l0 || rig.legMoved === undefined; rig.finT = ease(rig.finT, rig.finFixed ? 1 : p.fin, RATE.fin * dt);
   const lt = smooth(rig.legT); for (const l of rig.legs) l.rotation.z = -lt * LEG_SWING;
   for (const f of rig.fins) { f.piv.rotation.z = -smooth(rig.finT) * FIN_DEPLOY;
     const tw = (Math.sin(f.az) * p.steer[0] - Math.cos(f.az) * p.steer[1] + p.roll) * rig.finT; f.defl.rotation.y = ease(f.defl.rotation.y, tw, RATE.defl * dt); }
   return rig;
 }
-export function applyShip(rig, p, dt) { for (const f of rig.flaps) f.piv.rotation.x = f.rest + ease(f.piv.rotation.x - f.rest, p.flap(f.fwd, f.side), RATE.flap * dt); return rig; }
+// flaps fold toward the leeward side about their root hinge (local y); the mirrored (side -1) mount turns the other way
+export function applyShip(rig, p, dt) { for (const f of rig.flaps) { const cur = -(f.piv.rotation.y - f.rest) * f.side; f.piv.rotation.y = f.rest - f.side * ease(cur, p.flap(f.fwd, f.side), RATE.flap * dt); } return rig; }
 const smooth = t => t * t * (3 - 2 * t);

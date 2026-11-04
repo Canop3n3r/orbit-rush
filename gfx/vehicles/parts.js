@@ -30,9 +30,11 @@ export function bell(k, re, L, x, y, z, o = {}) {
 // a ring layout of engines: [count, radius, angle offset]
 export function ringPos(rings) { const out = []; for (const [n, r, a0 = 0] of rings) for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI; out.push([Math.cos(a) * r, Math.sin(a) * r]); } return out; }
 // grid fins: n lattice panels around radius r at height y (w x h), with titanium frame and hinge
-export function gridFins(k, r, y, w, h, n = 4, a0 = PI / 4, deploy = 1) {
-  for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI; k.push(xf([Math.cos(a) * r, y, Math.sin(a) * r], [0, -a, 0]));
-    k.push(xf([0, 0, 0], [0, 0, -deploy * PI / 2 * 0.98])); // hinged at the hull: stowed points up, deployed sticks out
+// out (legs-fins-1): an array -> each fin is its own pivot Group 'gridfin_<i>' (rotation.z = deploy hinge, animated by articulate.js) pushed to out
+export function gridFins(k, r, y, w, h, n = 4, a0 = PI / 4, deploy = 1, out = null) {
+  const K0 = k; for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI;
+    if (out) { k = new K0.constructor(K0.detail); k.push(new THREE.Matrix4()); k.push(new THREE.Matrix4()); }
+    else { k.push(xf([Math.cos(a) * r, y, Math.sin(a) * r], [0, -a, 0])); k.push(xf([0, 0, 0], [0, 0, -deploy * PI / 2 * 0.98])); } // hinged at the hull: stowed points up, deployed sticks out
     if (k.hi) { // real lattice: +-45 deg blades with depth, so the fin reads as open cells from any angle (edge-on included)
       const d = 0.38, t = 0.045, step = k.mid ? 0.8 : 0.26, y0 = 0.1; // mid: coarse lattice (same silhouette, ~1/3 the blades)
       for (const sg of [1, -1]) for (let c = -(w + h); c <= w + h; c += step) { // blade line: v = sg*u + c, clipped to |u|<=w/2, 0<=v<=h
@@ -43,7 +45,8 @@ export function gridFins(k, r, y, w, h, n = 4, a0 = PI / 4, deploy = 1) {
       }
       const ft = 0.1; for (const [px, py, sx, sy] of [[0, 0.1, w, ft], [0, h + 0.1, w, ft], [-w / 2, h / 2 + 0.1, ft, h], [w / 2, h / 2 + 0.1, ft, h]]) k.add(new THREE.BoxGeometry(0.42, sy, sx), 'tiframe', xf([0, py, px]));
     } else k.add(new THREE.BoxGeometry(0.12, h, w), 'tiframe', xf([0, h / 2 + 0.1, 0]));
-    k.pop(); k.add(new THREE.BoxGeometry(0.5, 0.6, 0.6), 'dark', xf([0.1, 0, 0])); k.pop(); }
+    k.pop(); k.add(new THREE.BoxGeometry(0.5, 0.6, 0.6), out ? 'tiframe' : 'dark', xf([0.1, 0, 0])); k.pop(); // pivoted fins: one material each (one draw call per fin)
+    if (out) { const p = new THREE.Group(); p.name = 'gridfin_' + i; p.position.set(Math.cos(a) * r, y, Math.sin(a) * r); p.rotation.set(0, -a, -deploy * PI / 2 * 0.98); p.userData.yaw = -a; const g = k.build('gridfin'); for (const c of [...g.children]) p.add(c); out.push(p); } }
 }
 // landing legs (brief: carbon/honeycomb, hinge at the base, stowed flush with the foot pad UP, helium telescoping
 // deployment arm from the leg tip to the fuselage, small pusher). Separate animatable group; t=0 stowed, 1 deployed.
@@ -80,7 +83,7 @@ function packWrite(g) { const { mesh, parts } = g.userData.pack, a = mesh.geomet
   for (const p of parts) { p.piv.updateMatrix(); const M = p.piv.matrix, nm = _NM.getNormalMatrix(M);
     for (let v = 0; v < p.nv; v++) { const j = v * 3, o = (p.off + v) * 3; _P.fromArray(p.pos, j).applyMatrix4(M).toArray(P, o); _S2.fromArray(p.nor, j).applyMatrix3(nm).normalize().toArray(N, o); } }
   a.position.needsUpdate = a.normal.needsUpdate = true; mesh.geometry.computeBoundingBox(); mesh.geometry.computeBoundingSphere(); } // bounds follow the deploy (raycast/culling)
-export function setLegs(g, t) { for (const p of g.userData.pivots) p.rotation.z = -t * 2.0; g.userData.t = t; if (g.userData.pack) packWrite(g);
+export function setLegs(g, t) { for (const p of g.userData.pivots) p.rotation.z = -t * 2 * PI / 3; // legs-fins-1: 120 deg swing (articulate.js LEG_SWING) g.userData.t = t; if (g.userData.pack) packWrite(g);
   for (const m of g.userData.arms || []) { m.piv.updateMatrix(); _B.copy(m.tipL).applyMatrix4(m.piv.matrix); _d.subVectors(_B, m.A); const L = _d.length(); _d.normalize();
     const q = new THREE.Quaternion().setFromUnitVectors(_up, _d);
     // rockets-3: arms are 2 InstancedMeshes per leg set (was 2 meshes per leg) -> -6 draw calls on hi

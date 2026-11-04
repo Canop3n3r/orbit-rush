@@ -129,8 +129,8 @@ function colossusBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.
     for (let i = 0; i < 4; i++) { const a = i * PI / 2 + PI / 4; k.add(new THREE.BoxGeometry(1.4, 1.0, 0.25), 'dark', xf([Math.cos(a) * (r + 0.1), 3.6, Math.sin(a) * (r + 0.1)], [0, -a + PI / 2, 0])); } } // QD / ground-service plates
   // vented hot-staging ring
   tube(k, r, r, 1.8, H - 1.8, 'dark'); if (k.hi) for (let i = 0; i < 24; i++) { const a = i / 24 * 2 * PI; k.add(new THREE.BoxGeometry(0.25, 1.4, 0.9), 'steel', xf([Math.cos(a) * r, H - 0.9, Math.sin(a) * r], [0, -a, 0])); }
-  gridFins(k, r + 0.05, H - 5.5, 2.4, 3.2, o.gridFins || 3, PI / 2, o.fins ?? 1); // brief: v3/v4 boosters carry 3 grid fins
-  const g = k.build('booster'); g.userData.height = H; return g; }
+  const fp = detail === 'lo' ? null : []; gridFins(k, r + 0.05, H - 5.5, 2.4, 3.2, o.gridFins || 3, PI / 2, o.fins ?? 1, fp); // brief: v3/v4 boosters carry 3 grid fins; legs-fins-1: own pivots (they move)
+  const g = k.build('booster'); if (fp) for (const p of fp) g.add(p); g.userData.height = H; return g; }
 function ship(detail, y0, L = 52.1, nVac = 3) { const k = new Kit(detail), r = 4.5, nose = 16, cyl = L - nose - 2;
   // windward = -Z half (theta pi/2 .. 3pi/2 in three's cylinder/lathe convention); tile edge lines at +-X
   for (const [x, z] of ringPos([[3, 1.0, PI / 6]])) bell(k, 0.65, 1.6, x, y0 + 0.2, z, { rt: 0.26, head: 0.8 }); // sea-level (gimbaled)
@@ -140,16 +140,19 @@ function ship(detail, y0, L = 52.1, nVac = 3) { const k = new Kit(detail), r = 4
   lathe(k, PR.ogive(r, nose, y0 + 2 + cyl, k.hi ? 18 : 7, 0.12).map(([a, b]) => [a * 1.006, b]), 'tiles', { p0: PI / 2, pl: PI });
   // flaps: planar, hinged on the tile edge; windward face tiled, steel back; actuator fairing over the hinge
   const flap = (yb, h, w0, w1, side, rad, lean = 0) => { const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(w0, 0.6); sh.lineTo(w1, h); sh.lineTo(0, h); sh.closePath();
-    k.push(xf([side * rad, yb, 0], [lean, side < 0 ? PI : 0, 0]));
-    k.add(new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }), 'steel');
-    k.add(new THREE.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: false }), 'tiles', xf([0, 0, -0.07]));
-    k.add(new THREE.CylinderGeometry(0.35, 0.35, h, 10), 'steel', xf([0.1, h / 2, 0.2])); k.pop(); };
+    const own = detail !== 'lo', kk = own ? new Kit(detail) : k; // legs-fins-1: each flap is its own pivot 'flap_<f|a>_<side>' hinged along its root (rotation.x, articulate.js)
+    kk.push(own ? new THREE.Matrix4() : xf([side * rad, yb, 0], [lean, side < 0 ? PI : 0, 0]));
+    kk.add(new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }), 'steel');
+    kk.add(new THREE.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: false }), 'tiles', xf([0, 0, -0.07]));
+    kk.add(new THREE.CylinderGeometry(0.35, 0.35, h, 10), 'steel', xf([0.1, h / 2, 0.2])); kk.pop();
+    if (own) { const p = new THREE.Group(), hg = new THREE.Group(); p.name = 'flapmount'; hg.name = `flap_${yb > y0 + 10 ? 'f' : 'a'}_${side}`; p.position.set(side * rad, yb, 0); p.rotation.set(lean, side < 0 ? PI : 0, 0); const b = kk.build('flap'); for (const c of [...b.children]) hg.add(c); p.add(hg); flaps.push(p); } }; // hinge line = the flap root (local y): hg.rotation.y swings it
+  const flaps = [];
   for (const s of [-1, 1]) { flap(y0 + 1.5, 11, 5.0, 3.4, s, r); // aft
     flap(y0 + 2 + cyl + 3.5, 9, 3.4, 1.6, s, 4.1, 0); } // forward (on the nose, smaller, slightly leeward on v3)
   decal(k, 'ship.side', r, y0 + 20, 6, -PI / 2, 0.9); // leeward steel side
   if (k.hi) { for (const a of [PI * 0.1, -PI * 0.1]) raceway(k, r, y0 + 3, y0 + 2 + cyl, a, 'steel'); for (const y of [y0 + 2.2, y0 + 2 + cyl * 0.42, y0 + 2 + cyl - 0.3]) ring(k, r, y, 0.04, 'grey'); // raceways, aft dome / common dome / forward weld lands
     k.add(new THREE.BoxGeometry(1.6, 1.2, 0.2), 'dark', xf([0, y0 + 2 + cyl - 3, r + 0.05])); } // payload/door hatch outline
-  const g = k.build('upper'); g.userData.top = y0 + 2 + cyl + nose; g.userData.bay = { y: y0 + 2 + cyl - 7.5, r, h: 7.5, cz: 0 }; return g; } // bay: where the payload rides out of the hull (rockets-pass-1)
+  const g = k.build('upper'); for (const p of flaps) g.add(p); g.userData.top = y0 + 2 + cyl + nose; g.userData.bay = { y: y0 + 2 + cyl - 7.5, r, h: 7.5, cz: 0 }; return g; } // bay: where the payload rides out of the hull (rockets-pass-1)
 function colossus(o) { const b = colossusBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1, o.nVac || 3); return group('colossus', [b, s], s.userData.top); }
 // ---- ground systems: catch tower with chopsticks + orbital launch mount ----
 function catchTower(o) { const k = new Kit(o.detail), W = 12, H = 146, TX = -24, lv = 9, n = Math.floor(H / lv);

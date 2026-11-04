@@ -74,7 +74,7 @@ const FOLD = { bellx: 'bell', shield: 'dark', skirt: 'dark', tiframe: 'dark', gr
 export function compactStages(group, keep = ['legs'], fold = true) { for (const c of group.children.slice()) if (!c.isMesh) compact(c, keep, fold); return group; }
 // compact: merge every mesh with the same material (in group space) into one mesh; subtrees named in keep (animated legs) stay
 export function compact(group, keep = ['legs'], fold = false) { const by = new Map(), drop = []; group.updateMatrixWorld(true); const inv = group.matrixWorld.clone().invert();
-  group.traverse(o => { if (o === group) return; let p = o; while (p && p !== group) { if (keep.includes(p.name)) return; p = p.parent; }
+  group.traverse(o => { if (o === group) return; let p = o; while (p && p !== group) { if (keep.includes(p.name) || /^(gridfin|flap)_/.test(p.name)) return; p = p.parent; } // legs-fins-1: moving fins / flaps keep their own pivots
     if (o.isMesh) { const g = o.geometry.clone(); g.applyMatrix4(inv.clone().multiply(o.matrixWorld)); if (g.attributes.tangent) g.deleteAttribute('tangent'); const F = fold === true ? FOLD : fold || {}, nm = o.material.name, to = F[nm] ?? (nm.startsWith('paint:') ? F['paint:*'] : undefined), M = to ? mat(to) : o.material; (by.get(M) || by.set(M, []).get(M)).push(g); drop.push(o); } });
   for (const o of drop) { o.parent.remove(o); if (!o.geometry.userData.shared) o.geometry.dispose(); }
   for (const g of group.children.slice()) if (!g.isMesh && !keep.includes(g.name) && !g.children.some(c => c.isMesh || c.children.length)) { /* emptied stage group: keep as an (empty) handle for userData.stages */ }
