@@ -12,8 +12,8 @@ export const padLandU = uniform(new THREE.Vector3(0.03, 0.043, 0.02)); // linear
 export const tileFadeU = uniform(new THREE.Vector4(0, 0, 1, 0)); // x: camera altitude (m), y: altitude alpha (main.js sets both every frame)
 export { GFX, GFX_ORDER } from './presets.js?v=f5.9-21';
 import { GFX } from './presets.js?v=f5.9-21';
-import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth } from './earthmap.js?v=f5.9-21';
-export { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth };
+import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth, COAST, coastEastM, siteLand } from './earthmap.js?v=f5.9-21';
+export { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth, COAST, coastEastM, siteLand };
 export const earthTexMatrix = () => new THREE.Matrix4().fromArray(EARTH_TEX_M4);
 export function softwareGPU() {
   try { const c = document.createElement('canvas'), gl = c.getContext('webgl2') || c.getContext('webgl'); if (!gl) return true;
@@ -52,7 +52,7 @@ export function earthMaterial(q, sunPos) {
   // f5.9 terrain: the globe shows the SAME launch-site coast/land as the ground tile (main.js updateTile): within 30 km of the pad (smooth 6->30 km fade) the 1k map's
   // coastal texel (which paints the pad as open sea) is replaced by the shaped coast 1.5 km east of the pad and the surrounding inland land colour. Same formulas, same constants.
   const R0 = 6378137, dxm = uv().x.sub(0.27610).mul(2 * Math.PI * R0 * Math.cos(28.6084 * Math.PI / 180)), dym = uv().y.sub(0.65894).mul(Math.PI * R0);
-  const padK = float(1).sub(smoothstep(6000.0, 30000.0, dxm.mul(dxm).add(dym.mul(dym)).sqrt())), coast = float(1500).add(max(dym, 0.0).mul(0.03));
+  const padK = float(1).sub(smoothstep(6000.0, 30000.0, dxm.mul(dxm).add(dym.mul(dym)).sqrt())), coast = float(COAST.e0).add(max(min(dym, COAST.nMax), -COAST.nMax).mul(COAST.k)); // sites-on-land-1: same NNW-SSE coast as the tile (earthmap.js coastEastM)
   const wC = saturate(dxm.sub(coast).div(300).add(0.5)), tgt = wC.mul(0.9).add(select(wC.greaterThan(0.5), float(0.1), float(0))), landK = padK.mul(select(wC.lessThan(0.5), float(1), float(0)));
   const spec = mix(spec0, tgt, padK), day = { rgb: mix(day0.rgb, padLandU, landK) };
   const L = normalize(sunPos.sub(positionWorld)), ndl = dot(normalWorld, L), Vv = normalize(cameraPosition.sub(positionWorld));

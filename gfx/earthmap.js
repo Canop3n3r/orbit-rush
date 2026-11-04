@@ -25,3 +25,13 @@ export function sampleEarth(px, d, out) {
     out[k] = k < 3 ? (v / 255) ** 2.2 : v / 255; }
   return out;
 }
+// sites-on-land-1: the shaped cape coast, shared by the ground tile (main.js), the globe (gfx.js) and the tests. The 1k mask paints
+// the whole cape as one coastal texel, so the coast is shaped here: metres EAST of the heritage pad as a function of metres NORTH of it.
+// The real shoreline runs NNW-SSE (it is ~1.4 km east of the heritage pad and ~1.3 km east of the north coast pad, 5 km further south),
+// so it moves ~0.5 m east per metre south. (The old shape was a fixed line 1.5 km east of the heritage pad, which put the north
+// coast pad ~1.1 km out at sea inside an 800 m land disc.)
+export const COAST = { e0: 1400, k: -0.5, nMax: 20000, wiggle: 300, zone: 30000 };
+export const coastEastM = nM => COAST.e0 + COAST.k * Math.max(-COAST.nMax, Math.min(COAST.nMax, nM));
+// site land apron: radius (m) of guaranteed land around a site's pad in the ground tile, and the edge wobble/blend widths
+export const siteLand = S => { const g = (S && S.layout || []).find(o => o.k === 'ground'), l = (S && S.land) || {};
+  return { r: l.r || Math.max(800, g ? Math.min(g.r || 0, 1600) + 200 : 800), sand: !!l.sand, wob: l.wob ?? 0.18, edge: l.edge || 300 }; };
