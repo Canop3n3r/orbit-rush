@@ -17,7 +17,7 @@ export function keepOut(S) { const D = [], R = [];
       case 'catch': D.push([x, z, (o.r || 70) * 1.3 + 40]); break;
       case 'lz': D.push([x, z, (o.r || 45) * 1.5]); break;
       case 'vab': D.push([x, z, Math.hypot(o.w, o.d) / 2 + 40]); break;
-      case 'hangar': case 'block': case 'lot': D.push([x, z, Math.hypot(o.w || 60, o.d || 90) / 2 + 14]); break;
+      case 'hangar': case 'block': case 'lot': case 'bld': D.push([x, z, Math.hypot(o.w || 60, o.d || 90) / 2 + 14]); break;
       case 'tanks': D.push([x, z, (o.n || 3) * (o.r || 8) * 1.3 + (o.r || 8) * 3 + 12]); break;
       case 'water': case 'dish': D.push([x, z, (o.r || 9) * 1.5 + 10]); break;
       case 'stand': D.push([x, z, 24]); break;

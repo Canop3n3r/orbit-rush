@@ -22,6 +22,13 @@ export const SITE = { id: 'cape-heritage', name: 'Heritage Complex', body: 'eart
     { k: 'block', at: [220, 960], w: 40, h: 10, d: 24, roof: true, mat: 'clad' }, // visitor / press building
     { k: 'lot', at: [60, 960], w: 60, d: 30 },
     { k: 'dish', at: [260, 230], r: 8, h: 10 },
+    // world-pop-2: textured support buildings (gfx/sites/world.js bld)
+    { k: 'bld', style: 'assembly', at: [-420, 420], w: 70, d: 60, h: 62 },
+    { k: 'bld', style: 'blockhouse', at: [-300, -160], w: 28, d: 18, h: 9 },
+    { k: 'bld', style: 'hangar', at: [380, 140], w: 50, d: 80, h: 24 },
+    { k: 'bld', style: 'office', at: [-480, 820], w: 40, d: 26, h: 16 },
+    { k: 'bld', style: 'office', at: [360, 640], w: 34, d: 22, h: 10 },
+    { k: 'tanks', at: [100, -330], n: 3, r: 4, style: 'v', h: 16 },
     { k: 'scatter', seed: 'ch', r0: 80, r1: 2400, mix: { pine: 90, palm: 40, scrub: 140, rock: 24 }, shore: 24, mid: 0.05 } /* phone near tier stays under the 8k site cap */,
     { k: 'belts', seed: 'ch', road: 0.45, perimeter: 24, ring: 260, coast: 50, r1: 2400, mid: 0.3 }, // world-pop-2: crawler-road tree lines, pad hedge ring, shore palms
     { k: 'hills', r0: 7500, r1: 13000, h: 320, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // inland ridges beyond the assembly building

@@ -97,4 +97,15 @@ function belts(K, o, S) { if (K.lo) return; const a = rnd(hash(S.id + 'belts' + 
   if (o.coast) { const n = per(o.coast), r1 = o.r1 || 1500; let placed = 0, tries = 0; // shore band: on land, within ~120 m of the waterline
     while (placed < n && tries++ < n * 200) { const t = a() * Math.PI * 2, r = Math.sqrt(a()) * r1, x = Math.cos(t) * r, z = Math.sin(t) * r; if (!land(x, z, 15) || land(x, z, 120)) continue;
       clump(K, x, z, a, { kinds: o.coastKinds || { tree: 'palm', under: 'grass' } }, ok, ts * 0.5); placed++; } } }
-export const WORLD_PARTS = { scatter, hills, lot, belts };
+// world-pop-2: textured support buildings. o = { style: 'hangar' | 'assembly' | 'blockhouse' | 'office', w, d, h }; boxes and a vault use the
+// facade / roof / stripe canvas maps (kit.js TEXDEF, tiled 8 m by the box-projected UVs) so walls read as panels with window bands.
+function bld(K, o) { const w = o.w || 40, d = o.d || 30, h = o.h || 12, st = o.style || 'office';
+  if (st === 'hangar') { K.box('facade', w, h * 0.45, d); const g = new THREE.CylinderGeometry(w / 2, w / 2, d, K.hi ? 14 : 8, 1, true, Math.PI / 2, Math.PI); g.rotateX(Math.PI / 2); // barrel-vault roof
+    K.add(g, 'roof', M([0, h * 0.45, 0], 0, [1, (h * 0.55) / (w / 2), 1])); if (!K.lo) { K.box('door', w * 0.7, h * 0.42, 0.6, [0, 0, d / 2]); K.box('steel', w * 0.75, 0.8, 1.2, [0, h * 0.43, d / 2 + 0.4]); K.box('lamp', 1.4, 0.4, 0.8, [0, h * 0.47, d / 2 + 0.9]); } return; }
+  if (st === 'assembly') { K.box('facade', w, h, d); K.box('stripe', w + 0.3, h * 0.12, d + 0.3, [0, h * 0.78, 0]); K.box('roof', w + 1, 1, d + 1, [0, h, 0]);
+    if (!K.lo) { K.box('door', w * 0.35, h * 0.75, 0.6, [-w * 0.15, 0, d / 2]); K.box('dark', w * 0.37, h * 0.77, 0.3, [-w * 0.15, 0, d / 2 - 0.1]); K.box('facade', w * 0.5, h * 0.3, d * 0.6, [w * 0.75, 0, 0]); K.box('roof', w * 0.5 + 0.6, 0.6, d * 0.6 + 0.6, [w * 0.75, h * 0.3, 0]);
+      if (K.hi) for (let i = 0; i < 3; i++) K.box('dark', 3, 2.5, 3, [-w * 0.3 + i * w * 0.3, h + 1, 0]); } return; }
+  if (st === 'blockhouse') { K.box('concrete', w, h * 0.7, d); const g = new THREE.SphereGeometry(Math.max(w, d) * 0.55, K.hi ? 12 : 6, 3, 0, Math.PI * 2, 0, Math.PI / 2); K.add(g, 'concrete', M([0, h * 0.7 - 0.5, 0], 0, [w / Math.max(w, d), (h * 0.5) / (Math.max(w, d) * 0.55), d / Math.max(w, d)]));
+    if (!K.lo) { for (const s of [-1, 1]) K.box('win', w * 0.5, 0.5, 0.3, [0, h * 0.5, s * (d / 2 + 0.1)]); K.box('door', 3, 2.6, 0.8, [w * 0.3, 0, d / 2 + 0.2]); K.box('concrete', 5, 3, 1.2, [w * 0.3, 0, d / 2 + 2.6]); /* blast baffle */ K.cyl('steel', 0.12, 0.08, 10, [-w * 0.3, h, 0], 4); } return; }
+  K.box('facade', w, h, d); K.box('roof', w + 0.6, 0.6, d + 0.6, [0, h, 0]); if (!K.lo) { K.box('glass', w * 0.25, 3, 0.3, [0, 0, d / 2 + 0.05]); if (o.roof !== false) K.box('dark', w * 0.3, 2, d * 0.3, [w * 0.2, h + 0.6, 0]); } }
+export const WORLD_PARTS = { scatter, hills, lot, belts, bld };

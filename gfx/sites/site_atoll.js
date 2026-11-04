@@ -16,6 +16,10 @@ export const SITE = { id: 'atoll', name: 'Atoll Range', body: 'earth', lat: 9.04
     // world-pop-1: palms, dune grass, shore boulders, a tracking dish, a crew lot and far volcanic islets (gfx/sites/world.js)
     { k: 'dish', at: [-70, -55], r: 3.5, h: 5 },
     { k: 'lot', at: [-85, 150], w: 24, d: 16, fill: 0.5 },
+    // world-pop-2: textured support buildings (gfx/sites/world.js bld)
+    { k: 'bld', style: 'hangar', at: [-95, 85], w: 18, d: 12, h: 9 },
+    { k: 'bld', style: 'blockhouse', at: [110, 60], w: 14, d: 10, h: 5 },
+    { k: 'bld', style: 'office', at: [-100, -10], w: 16, d: 12, h: 7 },
     { k: 'scatter', seed: 'at', r0: 40, r1: 200, mix: { palm: 90, scrub: 80, grass: 120, rock: 8 }, shore: 50, mid: 0.3 },
     { k: 'belts', seed: 'at', road: 5, perimeter: 12, ring: 120, coast: 40, r1: 210, kinds: { tree: 'palm', under: 'grass' }, coastKinds: { tree: 'palm', under: 'scrub' }, mid: 0.35 }, // world-pop-2: palm lines along the roads and the island rim
     { k: 'hills', islets: 7, r0: 2500, r1: 7000, h: 220 },

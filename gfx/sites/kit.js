@@ -28,6 +28,13 @@ const TEXDEF = {
     const gr = g.createLinearGradient(0, n, 0, n * 0.6); gr.addColorStop(0, 'rgba(80,70,60,0.35)'); gr.addColorStop(1, 'rgba(80,70,60,0)'); g.fillStyle = gr; g.fillRect(0, 0, n, n); }, // ribbed siding + splash grime
   asphalt: (g, n, a) => { g.fillStyle = '#313236'; g.fillRect(0, 0, n, n); speckle(g, n, 2, a, 20, 110); },
   tank: (g, n, a) => { g.fillStyle = '#eceae4'; g.fillRect(0, 0, n, n); speckle(g, n, 2, a, 170, 255); for (let i = 0; i < 10; i++) { g.fillStyle = 'rgba(110,95,80,0.12)'; g.fillRect(a() * n, a() * n * 0.4 + n * 0.6, 3 + 6 * a(), 20 + 60 * a()); } },
+  // world-pop-2: building facade (one 8 m tile = two 4 m storeys: ribbed panels, a window band per storey, a few lit panes) and corrugated roof
+  facade: (g, n, a) => { g.fillStyle = '#c9ccce'; g.fillRect(0, 0, n, n); for (let x = 0; x < n; x += 16) { g.fillStyle = 'rgba(0,0,0,0.09)'; g.fillRect(x, 0, 3, n); } speckle(g, n, 2, a, 120, 230);
+    for (const y0 of [0.18, 0.68]) { g.fillStyle = '#5d6670'; g.fillRect(0, n * y0 - 4, n, 3); for (let x = 6; x < n; x += 32) { const lit = a() < 0.22; g.fillStyle = lit ? '#e9d9a8' : `rgb(${38 + 30 * a()},${48 + 30 * a()},${60 + 30 * a()})`; g.fillRect(x, n * y0, 22, n * 0.16);
+      g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(x, n * y0, 22, 2); g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x + 10, n * y0, 2, n * 0.16); } }
+    const gr = g.createLinearGradient(0, n, 0, n * 0.75); gr.addColorStop(0, 'rgba(70,62,50,0.3)'); gr.addColorStop(1, 'rgba(70,62,50,0)'); g.fillStyle = gr; g.fillRect(0, 0, n, n); },
+  roof: (g, n, a) => { g.fillStyle = '#5b6066'; g.fillRect(0, 0, n, n); for (let x = 0; x < n; x += 8) { g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x, 0, 2, n); g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x + 4, 0, 2, n); } speckle(g, n, 3, a, 60, 160); },
+  stripe: (g, n, a) => { g.fillStyle = '#e8e6e0'; g.fillRect(0, 0, n, n); speckle(g, n, 2, a, 170, 250); g.fillStyle = '#1f4f8a'; g.fillRect(0, n * 0.42, n, n * 0.16); }, // assembly-block flag band
   ground: (g, n, a) => { g.fillStyle = '#6f7452'; g.fillRect(0, 0, n, n); speckle(g, n, 6, a, 50, 140); },
   sand: (g, n, a) => { g.fillStyle = '#c9b68e'; g.fillRect(0, 0, n, n); speckle(g, n, 5, a, 120, 230); },
   regolith: (g, n, a) => { g.fillStyle = '#8d8a84'; g.fillRect(0, 0, n, n); speckle(g, n, 5, a, 50, 190); for (let i = 0; i < 12; i++) { g.strokeStyle = 'rgba(40,40,40,0.25)'; g.beginPath(); g.arc(a() * n, a() * n, 3 + 14 * a(), 0, 7); g.stroke(); } }, // small craters
@@ -38,7 +45,7 @@ const MDEF = { concrete: [0xffffff, 0.95, 0, 'concrete'], apron: [0xc9c6c0, 0.9,
   tank: [0xffffff, 0.4, 0.3, 'tank'], pipe: [0xc4c7ca, 0.4, 0.8, 'steel'], dark: [0x2a2b2e, 0.85, 0.2, 'concrete'], deck: [0x4a4d52, 0.85, 0.5, 'steel'], hull: [0x2e333a, 0.6, 0.5, 'steel'],
   lamp: [0xfff2c8, 0.4, 0, null, 0xffe7a0], flood: [0xffffff, 0.3, 0, null, 0xfff4dc], win: [0x2a2a22, 0.3, 0, null, 0xffc874], beacon: [0xff3020, 0.4, 0, null, 0xff2010], ground: [0xffffff, 1, 0, 'ground'], sand: [0xffffff, 1, 0, 'sand'], sea: [0x15394f, 0.2, 0], regolith: [0xffffff, 1, 0, 'regolith'],
   redsoil: [0xffffff, 1, 0, 'redsoil'], gold: [0xc9a043, 0.35, 1], solar: [0x1d2a4a, 0.3, 0.6], hab: [0xdedbd2, 0.6, 0.2, 'tank'], glass: [0x0c1218, 0.1, 0.3], green: [0x4d5a3a, 1, 0],
-  fence: [0x9da3a8, 0.5, 0.7], red: [0xb3241c, 0.5, 0.2], water: [0x2f6f8f, 0.15, 0], ...WORLD_MDEF }; // world-pop-1: flora / boulder / hill
+  fence: [0x9da3a8, 0.5, 0.7], red: [0xb3241c, 0.5, 0.2], water: [0x2f6f8f, 0.15, 0], facade: [0xffffff, 0.6, 0.2, 'facade'], roof: [0xffffff, 0.7, 0.5, 'roof'], stripe: [0xffffff, 0.6, 0.1, 'stripe'], ...WORLD_MDEF }; // world-pop-1: flora / boulder / hill
 export function smat(k) { if (MATS.has(k)) return MATS.get(k); const d = MDEF[k] || [0xff00ff, 1, 0], map = d[3] ? canvasTex(d[3], TEXDEF[d[3]]) : null;
   const ph = photoMaps(k); // world-pop-1: CC0 photo maps (assets/world) for ground, sand, concrete, gravel aprons, boulders, hills
   const m = new S({ color: ph ? ph.color : d[0], roughness: d[1], metalness: d[2], vertexColors: true, ...(ph ? { map: ph.map, normalMap: ph.normalMap, normalScale: ph.normalScale } : map ? { map } : {}), ...(d[4] ? { emissive: d[4], emissiveIntensity: k === 'flood' ? 4 : k === 'win' ? 1.6 : 2.4 } : {}) });
@@ -184,7 +191,8 @@ const parts = {
   scatter(K, o) { WORLD_PARTS.scatter(K, o, K.S); },
   hills(K, o) { WORLD_PARTS.hills(K, o, K.S); },
   lot(K, o) { WORLD_PARTS.lot(K, o, K.S); },
-  belts(K, o) { WORLD_PARTS.belts(K, o, K.S); }, // world-pop-2: tree lines / hedges along roads, perimeter, coast
+  belts(K, o) { WORLD_PARTS.belts(K, o, K.S); },
+  bld(K, o) { WORLD_PARTS.bld(K, o, K.S); }, // world-pop-2: textured support buildings (hangar, assembly block, blockhouse, office) // world-pop-2: tree lines / hedges along roads, perimeter, coast
   ground(K, o) { K.disc(o.mat || 'ground', o.r || 2500, [0, 0, 0], K.seg * 3, -0.05); if (o.sea) K.flat('sea', o.sea.w || 12000, o.sea.d || 12000, [o.sea.x || 0, 0, o.sea.z || 0], 0, -1.0) /* f5.9-21: well under the land disc (z-fight) */; },
 };
 export const PART_KINDS = Object.keys(parts);

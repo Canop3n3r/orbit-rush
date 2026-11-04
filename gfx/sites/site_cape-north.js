@@ -19,6 +19,12 @@ export const SITE = { id: 'cape-north', name: 'North Coast Complex', body: 'eart
     { k: 'block', at: [230, 220], w: 50, h: 14, d: 30, mat: 'clad' },              // parts warehouse
     { k: 'lot', at: [85, 330], w: 44, d: 24 },
     { k: 'dish', at: [-210, -170], r: 6, h: 8 },
+    // world-pop-2: textured support buildings (gfx/sites/world.js bld: facade / roof / stripe maps)
+    { k: 'bld', style: 'assembly', at: [-380, 120], w: 60, d: 50, h: 55 },  // stage integration block
+    { k: 'bld', style: 'blockhouse', at: [-300, -120], w: 26, d: 18, h: 8 }, // launch control blockhouse
+    { k: 'bld', style: 'hangar', at: [300, -160], w: 46, d: 70, h: 22, rot: Math.PI / 2 }, // booster refurb hangar
+    { k: 'bld', style: 'office', at: [260, 420], w: 30, d: 20, h: 12 },
+    { k: 'tanks', at: [-60, -300], n: 3, r: 4, style: 'v', h: 16 },        // LOX / RP-1 day tanks
     { k: 'scatter', seed: 'cn', r0: 60, r1: 1500, mix: { pine: 150, palm: 50, scrub: 220, rock: 30 }, shore: 50, groves: 40 },
     { k: 'belts', seed: 'cn', road: 4, perimeter: 22, ring: 210, coast: 60, r1: 1500, mid: 0.3 }, // world-pop-2: tree lines along the roads, a hedge ring round the pad fence, palms + dune grass on the shore
     { k: 'hills', r0: 4500, r1: 9000, h: 260, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // rolling inland ridges, south through west to north
