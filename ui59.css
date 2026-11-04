@@ -774,3 +774,63 @@ body.u59.craftOn #bbT #navRd,body.u59.craftOn #bbT #navSasT{display:none!importa
 body.u59 #botBar #plTw[hidden],body.u59 #botBar #plTw [hidden],#navRd .nbTw[hidden]{display:none!important}
 @media (orientation:portrait) and (max-width:600px){body.u59 #botBar :is(#plApT,#plPeT){display:none!important}} /* 390: the apsis timers clipped into the navball and wrapped onto a stray line; the map and AUTO show them */
 @media (orientation:landscape) and (max-height:520px){body.u59.autoOn #botBar #plTw:not([hidden]){display:flex!important;grid-column:2;grid-row:1 / span 2;align-self:end;gap:0 8px;white-space:nowrap} body.u59.autoOn #botBar #plTw [hidden]{display:none!important}} /* 844 AUTO: TWR/P sit where the ΔV row is in manual flight */
+/* ---- f5.9-20 (owner, iPhone): Home is the pad, the rocket's name, Fly and the site. The rocket list opens full screen
+   (search, regions, Sandbox, a grid) and closes once a rocket is picked. Settings is a sheet inside the safe area. ---- */
+html body.u59 #home:not(.allOn) #hGal{display:none!important}
+html body.u59 #home #hGalX{display:none}
+html body.u59 #home.allOn #hGal{display:block!important;position:fixed!important;inset:0!important;z-index:70;max-height:none!important;height:auto!important;overflow:auto;padding:calc(var(--sat) + 56px) 0 var(--sab)!important;border:0!important;background:rgb(9,16,30)!important}
+html body.u59 #home.allOn #hGal #hGalX{display:flex;align-items:center;justify-content:center;position:fixed;top:calc(var(--sat) + 6px);right:calc(var(--sar) + 10px);width:var(--tap);height:var(--tap);z-index:72;border-radius:var(--rad);font-size:20px}
+html body.u59 #home.allOn #hGal::before{content:'Choose a rocket';position:fixed;top:var(--sat);left:0;right:0;height:56px;display:flex;align-items:center;padding-left:calc(var(--sal) + 14px);font:800 var(--t-m) var(--font);background:var(--panel);border-bottom:var(--bw) solid var(--bc);z-index:71;box-sizing:border-box}
+html body.u59 #home.allOn #hGal #picker .pkH{top:0!important}
+html body.u59 #home.allOn #hGal #picker .pkR{display:block!important;width:100%!important}
+html body.u59 #home.allOn #hGal #picker .pkG{display:grid!important;width:100%!important;grid-template-columns:repeat(auto-fill,minmax(104px,1fr))!important;overflow:visible!important;flex:1 1 auto!important}
+html body.u59 #home.allOn #hGal #picker .pkG .pkC{width:auto!important;min-width:0!important}
+html body.u59 #home.allOn #hGal #picker .pkC small{display:block!important}
+/* the rocket card: name row on top, then Fly | Rockets | site, nothing on top of anything */
+html body.u59 #home #hCard{position:static!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important;padding-bottom:calc(8px + var(--sab))!important}
+html body.u59 #home #hCard>.hRow:first-child{min-width:0;grid-column:1}
+html body.u59 #home #hCard #hName{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+html body.u59 #home #hCard .hAct{position:static!important;display:flex!important;flex-wrap:nowrap;min-width:0;grid-column:1}
+html body.u59 #home #hCard .hAct>*{position:static!important;transform:none!important;margin:0!important}
+html body.u59 #home #hCard #hFly{flex:1 1 auto!important;min-width:80px!important}
+html body.u59 #home #hCard #hSite{flex:1 1 0!important;min-width:0!important;max-width:none!important}
+html body.u59 #home #hTop{gap:8px;padding-top:var(--sat)!important;min-width:0}
+html body.u59 #home #hTop .hLogo{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:clip}
+@media (max-width:420px){html body.u59 #home #hTop .hLogo{font-size:18px!important;letter-spacing:.08em}html body.u59 #home #hTop .hTopR{gap:6px}}
+@media (orientation:landscape) and (max-height:520px){
+  html body.u59 #home:not(.hidden){grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1fr) auto!important;grid-template-areas:"top" "." "card"!important}
+  html body.u59 #home #hCard{grid-template-columns:minmax(0,1fr) auto!important;align-items:center;border-right:0!important;padding-left:calc(12px + var(--sal))!important;padding-right:calc(12px + var(--sar))!important}
+  html body.u59 #home #hCard .hAct{grid-column:2}
+  html body.u59 #home #hCard>.hRow:first-child{grid-row:1}
+  html body.u59 #home #hCard #hSite{flex:0 1 220px!important}
+  html body.u59 #home #hCard #hRole{display:block!important}
+}
+@media (orientation:landscape) and (min-height:521px){
+  html body.u59 #home:not(.hidden){grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"top" "." "card"!important}
+  html body.u59 #home #hCard{grid-template-columns:minmax(0,1fr) auto!important;align-items:center}
+  html body.u59 #home #hCard .hAct{grid-column:2}
+  html body.u59 #home #hCard>.hRow:first-child{grid-row:1}
+}
+/* Settings: a bottom sheet on portrait phones, a centred card in landscape; never under the status bar or the notch */
+@media (max-width:899px){
+  html body.u59 #settings:not(.hidden){background:transparent!important}
+  html body.u59 #settings .mbox{top:auto!important;bottom:0!important;left:0!important;right:0!important;transform:none!important;width:100%!important;max-height:calc(100dvh - var(--sat) - 24px)!important;border-radius:16px 16px 0 0!important;padding-bottom:var(--sab)!important;box-sizing:border-box}
+  html body.u59 #settings .mbox>h2{display:flex!important;align-items:center;justify-content:space-between;padding:8px calc(10px + var(--sar)) 8px calc(14px + var(--sal))!important}
+  html body.u59 #settings .mbox>h2 .hx{position:static!important;width:var(--tap);height:var(--tap);flex:none}
+}
+@media (max-width:899px) and (orientation:landscape){
+  html body.u59 #settings .mbox{top:calc(var(--sat) + 10px)!important;bottom:auto!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(560px,100vw - var(--sal) - var(--sar) - 24px)!important;max-height:calc(100dvh - var(--sat) - var(--sab) - 20px)!important;border-radius:14px!important;padding-bottom:0!important}
+}
+/* f5.9-20 (QA f5.9-19 P2/P3): the bug card keeps the screenshot as a thumbnail beside Retake/Remove (≤ ~40% of a phone) */
+#bugCard .bgShot{display:flex;align-items:center;gap:8px;background:transparent;min-height:0}
+#bugCard .bgShot img{width:auto!important;max-width:42%;max-height:min(18dvh,120px)!important;border-radius:6px;background:#000}
+#bugCard .bgSB{position:static!important;flex-direction:column;padding:0!important}
+/* Pause: the core actions stay in one readable column; Photo, Full screen and Bug live under More */
+#pause details.pMore>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:44px;border:var(--bw,1px) solid var(--bc,#2a3c5c);border-radius:var(--rad,12px);background:var(--btn,#16233a);font-weight:700}
+#pause details.pMore>summary::-webkit-details-marker{display:none}
+#pause details.pMore[open]>summary{margin-bottom:6px}
+#pause #qsInfo[hidden]{display:none!important}
+/* f5.9-20 (QA f5.9-19 P1, sim_ui keeps the ΔV row): 844 AUTO puts TWR/P where the manual attitude readout sits, right of the navball above the bar */
+@media (orientation:landscape) and (max-height:520px){html body.u59.autoOn #botBar #plTw:not([hidden]){position:fixed!important;left:calc(50% + 62px);bottom:50px;grid-column:auto!important;grid-row:auto!important;display:flex!important;gap:0 10px;white-space:nowrap;pointer-events:none;font-size:12px;text-shadow:0 1px 2px #000}}
+/* f5.9-20 (QA f5.9-19 P2): 740x360 short phones: the ΔV stages stay on ONE line under Ap/Pe (they wrapped and rose into Pe) */
+@media (orientation:landscape) and (max-height:380px){html body.u59 #botBar #dvStages{white-space:nowrap!important;flex-wrap:nowrap!important;overflow:hidden;font-size:11px!important;line-height:12px!important;max-height:12px}html body.u59 #botBar #dvStages *{white-space:nowrap!important}}

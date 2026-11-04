@@ -15,8 +15,9 @@ const URL = process.env.U || 'http://localhost:8960/', VPS = (process.env.VP || 
     await pg.evaluate(() => document.getElementById('hFly').click()); await pg.waitForTimeout(2500);
     await pg.evaluate(() => { const G = window.__game; G.F.setAuto(true); if (!G.F.ignited) G.press('Space'); for (let i = 0; i < 60 * 60; i++) G.F.advance(1 / 60); }); await pg.waitForTimeout(1500);
     await pg.evaluate(() => window.__game.press('Escape')); await pg.waitForTimeout(800); // ⏸ Pause sheet
+    await pg.evaluate(() => { const d = document.querySelector('#pause details.pMore'); if (d) d.open = true; }); await pg.waitForTimeout(300); // f5.9-20: 🐞 lives under ⋯ More
     const bb = await pg.evaluate(() => { const b = [...document.querySelectorAll('[data-bug]')].find(e => e.offsetWidth > 0); if (!b) return null; const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
-    ok(!!bb, `${vp}: 🐞 Report a bug in the Pause sheet`);
+    ok(!!bb, `${vp}: 🐞 Report a bug in the Pause sheet (under More)`);
     if (bb) { if (touch) await pg.touchscreen.tap(bb[0], bb[1]); else await pg.mouse.click(bb[0], bb[1]); } else await pg.evaluate(() => window.__game.bug.open());
     await pg.waitForFunction(() => !document.getElementById('bugCard').classList.contains('hidden'), null, { timeout: 15000 }).catch(() => { }); await pg.waitForTimeout(600);
     const c = await pg.evaluate(() => { const e = document.getElementById('bugCard'), b = e.querySelector('.bgBox').getBoundingClientRect(), s = window.__game.bug.shot; return { open: !e.classList.contains('hidden'), shot: s ? s.slice(0, 23) : null, len: s ? s.length : 0, box: [b.left, b.top, b.right, b.bottom].map(Math.round), meta: e.querySelector('.bgMeta').textContent }; });
