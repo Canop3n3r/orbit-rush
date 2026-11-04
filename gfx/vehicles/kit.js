@@ -4,7 +4,7 @@ import * as THREE from 'three/webgpu';
 import * as T from './textures.js?v=f5.9-20';
 import { decalTexture } from './decals.js?v=f5.9-20';
 // own merge (all inputs are non-indexed with position/normal/uv), so the module needs no bare 'three' import
-export function mergeGeometries(gs) { const out = new THREE.BufferGeometry(); for (const [a, n] of [['position', 3], ['normal', 3], ['uv', 2]]) { let len = 0; for (const g of gs) len += g.attributes[a].array.length; const arr = new Float32Array(len); let o = 0; for (const g of gs) { arr.set(g.attributes[a].array, o); o += g.attributes[a].array.length; } out.setAttribute(a, new THREE.BufferAttribute(arr, n)); } return out; }
+export function mergeGeometries(gs) { const out = new THREE.BufferGeometry(); for (const [a, n] of [['position', 3], ['normal', 3], ['uv', 2], ...(gs.every(g => g.attributes.surf) ? [['surf', 3], ['surfw', 3]] : [])]) { /* realism-1: staged surface-detail attributes survive compaction */ let len = 0; for (const g of gs) len += g.attributes[a].array.length; const arr = new Float32Array(len); let o = 0; for (const g of gs) { arr.set(g.attributes[a].array, o); o += g.attributes[a].array.length; } out.setAttribute(a, new THREE.BufferAttribute(arr, n)); } return out; }
 const MATS = new Map();
 export function mat(key) {
   if (MATS.has(key)) return MATS.get(key);
