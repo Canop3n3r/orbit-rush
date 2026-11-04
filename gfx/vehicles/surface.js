@@ -8,7 +8,7 @@
 import * as THREE from 'three/webgpu';
 import { texture, attribute, vec2, vec3, float, mix, smoothstep, normalize, normalLocal, transformNormalToView } from 'three/tsl';
 export const PANEL_M = 4, BELL_M = 0.8; // metres covered by one texture tile
-import { heightToNormal } from './surface_math.js?v=f5.9-19';
+import { heightToNormal } from './surface_math.js?v=f5.9-20';
 export { heightToNormal };
 const cache = new Map();
 const once = (k, f) => { if (!cache.has(k)) cache.set(k, f()); return cache.get(k); };
