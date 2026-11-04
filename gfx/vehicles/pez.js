@@ -11,3 +11,8 @@ export function pezState(k, n) {
   const door = k < open ? ss(k / open) : k > close ? 1 - ss((k - close) / (1 - close)) : 1;
   return { door, out, drop };
 }
+/** legs-fins-1: where the stacked satellites sit before the slot opens: pushed toward the slot side but with every corner of a
+ *  sat (half width w) inside 92% of the hull radius R, so nothing shows through the skin until the door opens. */
+export function pezInZ(R, w, cz = 0) { return cz + Math.max(0, Math.sqrt(Math.max(0, (0.92 * R) ** 2 - w * w)) - w); }
+/** max distance from the ship axis of a sat (half width w, centre z) */
+export const pezReach = (z, w) => Math.hypot(w, Math.abs(z) + w);

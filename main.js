@@ -901,7 +901,7 @@ function heroPiece(i) { // a copy of the dropped hero stage rides on the detache
   for (const k of keys) if (st[k]) { const c = st[k].clone(); grp.add(c); }
   if (!grp.children.length) return null; grp.scale.copy(hero.scale); grp.position.y = -y0; return grp;
 }
-function heroFairing(on) { if (!hero) return; heroBay(!on); heroSyncPayload(); for (const lv of hero.levels || [{ object: hero }]) { const ud = lv.object.userData || {}, st = ud.stages || {}; if (st.payload && !ud.fixedNose) st.payload.visible = on; } }
+function heroFairing(on) { if (!hero) return; if (on || !heroPez()) heroBay(!on); /* legs-fins-1: a slot dispenser stays shut at fairing time; it opens on RELEASE */ heroSyncPayload(); for (const lv of hero.levels || [{ object: hero }]) { const ud = lv.object.userData || {}, st = ud.stages || {}; if (st.payload && !ud.fixedNose) st.payload.visible = on; } }
 // rockets-pass-1: the payload is a real mesh on the model from t=0 (under the shell, or in a ship's bay) and the one RELEASE sends away
 const heroLevels = () => hero ? (hero.levels || [{ object: hero }]).map(l => l.object) : [];
 let heroKind = null, bayK = 0, bayTarget = 0; // heroKind: the payload look built into the hero; bayK: ship bay opening 0..1
@@ -913,9 +913,10 @@ function heroSyncPayload() { // the mission (and so the payload look) may only b
   if (F && F.fleet) F.craftHint = craftHintNow();
   if (!hero) return; const k = payloadKind(); if (k === heroKind) return; heroKind = k;
   for (const o of heroLevels()) { try { heroSetPayload(o, o.userData.id || design.model, k, o.userData.detail || 'hi'); } catch (e) { console.warn('[Orbit Rush] hero payload', e); } } }
+function heroPez() { return !!hero && heroLevels().some(o => o.userData.bayTime); }
 function heroBay(open) { bayTarget = open ? 1 : 0; if (!open) bayK = 0; heroBayApply(); }
 function heroBayApply() { for (const o of heroLevels()) if (o.userData.bayExpose) o.userData.bayExpose(bayK); }
-function bayTick(dt) { if (bayK === bayTarget) return; const bt = (heroLevels().map(o => o.userData.bayTime).find(Boolean)) || 2.5; bayK += Math.sign(bayTarget - bayK) * Math.min(Math.abs(bayTarget - bayK), dt / bt); /* legs-fins-1: a slot deploy runs longer */ heroBayApply(); }
+function bayTick(dt) { if (pezRel && bayK >= 1) finishRelease(pezRel); if (bayK === bayTarget) return; const bt = (heroLevels().map(o => o.userData.bayTime).find(Boolean)) || 2.5; bayK += Math.sign(bayTarget - bayK) * Math.min(Math.abs(bayTarget - bayK), dt / bt); /* legs-fins-1: a slot deploy runs longer */ heroBayApply(); }
 function heroTakePayload() { // detach the model's own payload mesh: the SAME object flies on as the released payload (no new mesh appears)
   if (!hero) return null; let src = null; rocketG.updateMatrixWorld(true);
   for (const o of heroLevels()) { const s = (o.userData.stages || {}).sat; if (!s) continue; if (!src) src = s; else s.visible = false; } // lower LODs just hide theirs
@@ -1016,7 +1017,9 @@ function payloadName() { const W0 = WORLD.load(localStorage), c = isConstellatio
 function onRelease(rec) {
   const o = WORLD.add(localStorage, { ...rec, name: payloadName(), group: isConstellation() ? 'constellation' : 'other', model: design.model || null, mission: director ? director.id : null });
   rec.saved = o; try { F.linkReleased(rec); } catch (e) { } if (o) fun.call('🛰', `${o.name} deployed · ${WORLD.count(WORLD.load(localStorage))} in orbit`, '#7dffb0');
-  if (satVis) freeSat(); heroSyncPayload(); const tk = heroTakePayload(); let g, sat, q0 = null;
+  if (satVis) freeSat(); heroSyncPayload(); if (heroPez() && !rec.pezDone) { rec.pezDone = true; heroBay(true); pezRel = rec; return; } finishRelease(rec); }
+let pezRel = null; // legs-fins-1: release waits for the slot sequence, then the same payload object flies on
+function finishRelease(rec) { pezRel = null; const tk = heroTakePayload(); let g, sat, q0 = null;
   if (tk) { g = tk.outer; sat = tk.src; q0 = tk.q0; } else { sat = buildPayload(payloadKind() || 'comsat', { detail: 'hi', r: 1.0, h: 3.0 }); g = new THREE.Group(); sat.position.y = -sat.userData.cy * sat.scale.y; g.add(sat); } // no hero model (custom design): the same payload builder
   scene.add(g); satVis = { g, sat, rec, t: 0, q0 }; updateEndFlightBtn(); }
 // f5.4k: after RELEASE the chase camera frames the sat and the stage together (aim at their midpoint, pull back to fit both)

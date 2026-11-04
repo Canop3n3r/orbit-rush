@@ -7,7 +7,8 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { pezState } from './pez.js?v=f5.9-20';
+import { pezState, pezInZ } from './pez.js?v=f5.9-20';
+import { FLAP_SHAPE, FLAP_ROOT, flapHinge } from './flapgeom.js?v=f5.9-20';
 import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=f5.9-20';
 export { dispose, release, geometryCacheSize };
 import * as PR from './profiles.js?v=f5.9-20';
@@ -142,22 +143,23 @@ function ship(detail, y0, L = 52.1, nVac = 3) { const k = new Kit(detail), r = 4
   // legs-fins-1 flaps: two small swept forward flaps high on the nose, two large aft flaps. Thin rounded steel plates with a heat-tile skin on the
   // windward face, each on its own root hinge (flap_<f|a>_<side>.rotation.y, articulate.js): 0 deg folded flat along the leeward hull .. 90 deg
   // straight out. The hinge housing (a faired actuator pod along the root) stays fixed on the hull.
-  const FLAP = { f: [[0, 0], [1.2, 0.3], [3.6, 4.2], [3.3, 5.6], [0.8, 7.5], [0, 7.5]], a: [[0, 0], [5.4, 0.4], [5.6, 8.5], [3.0, 12], [0, 12]] };
-  const flap = (yb, kind, side, rad, lean = 0) => { const pts = FLAP[kind], h = pts[pts.length - 1][1], sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))), t = kind === 'a' ? 0.3 : 0.24;
-    const own = detail !== 'lo', kk = own ? new Kit(detail) : k, hk = own ? new Kit(detail) : k, tz = side > 0 ? -(t / 2 + 0.03) : t / 2 + 0.01;
-    const plate = new THREE.ExtrudeGeometry(sh, k.hi && !k.mid ? { depth: t, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.08, bevelSegments: 1 } : { depth: t, bevelEnabled: false }); plate.translate(0.25, 0, -t / 2);
-    const skin = new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false }); skin.translate(0.25, 0, 0); skin.scale(0.97, 0.985, 1);
-    const place = xf([side * rad, yb, 0], [lean, side < 0 ? PI : 0, 0]);
+  const shipG = { r, yN: y0 + 2 + cyl, L: nose };
+  const flap = (yb, kind, side) => { const pts = FLAP_SHAPE[kind], h = FLAP_ROOT[kind], sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))), t = kind === 'a' ? 0.3 : 0.24;
+    const H = flapHinge(yb, h, shipG), own = detail !== 'lo', kk = own ? new Kit(detail) : k, hk = own ? new Kit(detail) : k, tz = side > 0 ? -(t / 2 + 0.03) : t / 2 + 0.01;
+    const plate = new THREE.ExtrudeGeometry(sh, k.hi && !k.mid ? { depth: t, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.08, bevelSegments: 1 } : { depth: t, bevelEnabled: false }); plate.translate(0.08, 0, -t / 2); // root edge on the hinge line
+    const skin = new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false }); skin.translate(0.08, 0, 0); skin.scale(0.97, 0.985, 1);
+    // mount: on the hull at the hinge radius, tilted so the hinge line follows the hull (the nose taper); side -1 is the mirror (turned 180 deg)
+    const place = new THREE.Matrix4().makeTranslation(side * H.rad, yb, 0).multiply(new THREE.Matrix4().makeRotationY(side < 0 ? PI : 0)).multiply(new THREE.Matrix4().makeRotationZ(H.tilt));
     kk.push(own ? new THREE.Matrix4() : place.clone().multiply(new THREE.Matrix4().makeRotationY(-side * PI / 2)));
     kk.add(plate, 'steel'); kk.add(skin, 'tiles', xf([0, 0, tz])); kk.pop();
-    // hinge housing: faired actuator pod along the root with tapered ends (fixed to the hull)
-    hk.push(own ? new THREE.Matrix4() : place); const hr = kind === 'a' ? 0.62 : 0.5;
-    hk.add(new THREE.CylinderGeometry(hr, hr, h * 0.86, k.hi ? 10 : 6, 1, true), 'steel', xf([0.05, h / 2, 0])); for (const [yy, sg] of [[h * 0.07, -1], [h * 0.93, 1]]) hk.add(new THREE.ConeGeometry(hr, h * 0.07, k.hi ? 10 : 6, 1, true), 'steel', xf([0.05, yy + sg * h * 0.035, 0], [sg > 0 ? 0 : PI, 0, 0])); hk.pop();
-    if (own) { const p = new THREE.Group(), hg = new THREE.Group(); p.name = 'flapmount'; hg.name = `flap_${kind}_${side}`; p.position.set(side * rad, yb, 0); p.rotation.set(lean, side < 0 ? PI : 0, 0); hg.rotation.y = -side * PI / 2; // built folded flat
+    // hinge housing: faired actuator pod along the root, half sunk into the hull, tapered ends (fixed to the hull)
+    hk.push(own ? new THREE.Matrix4() : place); const hr = kind === 'a' ? 0.5 : 0.4;
+    hk.add(new THREE.CylinderGeometry(hr, hr, h * 0.86, k.hi ? 10 : 6, 1, true), 'steel', xf([0, h / 2, 0])); for (const [yy, sg] of [[h * 0.07, -1], [h * 0.93, 1]]) hk.add(new THREE.ConeGeometry(hr, h * 0.07, k.hi ? 10 : 6, 1, true), 'steel', xf([0, yy + sg * h * 0.035, 0], [sg > 0 ? 0 : PI, 0, 0])); hk.pop();
+    if (own) { const p = new THREE.Group(), hg = new THREE.Group(); p.name = 'flapmount'; hg.name = `flap_${kind}_${side}`; p.matrixAutoUpdate = true; p.position.set(side * H.rad, yb, 0); p.rotation.set(0, side < 0 ? PI : 0, H.tilt); hg.rotation.y = -side * PI / 2; // built folded flat
       for (const c of [...kk.build('flap').children]) hg.add(c); for (const c of [...hk.build('flaphinge').children]) p.add(c); p.add(hg); flaps.push(p); } };
   const flaps = [];
-  for (const s of [-1, 1]) { flap(y0 + 1.5, 'a', s, r); // aft
-    flap(y0 + 2 + cyl + 3.8, 'f', s, 3.9, 0); } // forward (high on the nose, smaller, swept)
+  for (const s of [-1, 1]) { flap(y0 + 1.5, 'a', s); // aft
+    flap(y0 + 2 + cyl + 3.2, 'f', s); } // forward (high on the nose, smaller, tapered)
   decal(k, 'ship.side', r, y0 + 20, 6, -PI / 2, 0.9); // leeward steel side
   if (k.hi) { for (const a of [PI * 0.1, -PI * 0.1]) raceway(k, r, y0 + 3, y0 + 2 + cyl, a, 'steel'); for (const y of [y0 + 2.2, y0 + 2 + cyl * 0.42, y0 + 2 + cyl - 0.3]) ring(k, r, y, 0.04, 'grey'); // raceways, aft dome / common dome / forward weld lands
     k.add(new THREE.BoxGeometry(1.6, 1.2, 0.2), 'dark', xf([0, y0 + 2 + cyl - 3, r + 0.05])); } // payload/door hatch outline
@@ -269,7 +271,7 @@ export function setPayload(g, id, kind, det = 'hi') {
   const host = [st.upper, st.orbiter].find(x => x && x.userData.bay), bay = host && host.userData.bay;
   if (!kind || g.userData.fixedNose || /^(payload-|catch-tower)/.test(id) || (!bay && Object.keys(st).some(k => OWN_PAYLOAD.test(k)))) return null;
   const shell = st.payload || st.fairing; g.updateMatrixWorld(true);
-  if (shell) { const b = new THREE.Box3().setFromObject(shell), sz = b.getSize(new THREE.Vector3()), D = Math.max(sz.x, sz.z);
+  if (shell && !bay) { /* legs-fins-1: a ship with its own bay (the slot dispenser) never gets the generic payload-at-the-shell placement */ const b = new THREE.Box3().setFromObject(shell), sz = b.getSize(new THREE.Vector3()), D = Math.max(sz.x, sz.z);
     const p = buildPayload(kind, { detail: det, r: D * 0.34, h: sz.y * 0.5 }); p.position.set(0, b.min.y + 0.05 * Math.min(1, sz.y / 4), 0); g.add(p); st.sat = p; return p; }
   if (!bay) return null; // no shell and no bay (capsule/lander stacks, whose spacecraft is the payload): nothing to add
   if (bay.pez) return pezBay(g, st, bay, kind, det);
@@ -282,7 +284,7 @@ export function setPayload(g, id, kind, det = 'hi') {
 function pezBay(g, st, bay, kind, det) {
   const n = bay.pez, cz = bay.cz || 0, hs = Math.min(1.6, bay.h / n), slotY = bay.y + 0.4, p = new THREE.Group(); p.name = 'sat'; p.userData.pez = n;
   const one = buildPayload(kind, { detail: det, r: Math.min(2.2, bay.r * 0.5), h: hs * 0.7 }), sats = [one]; for (let i = 1; i < n; i++) sats.push(one.clone(true));
-  const zIn = cz + bay.r * 0.25, zOut = cz + bay.r + (one.userData.r || 2) + 1.2;
+  const w = Math.max(one.userData.r || 2, Math.min(2.2, bay.r * 0.5)), zIn = pezInZ(bay.r, w, cz), zOut = cz + bay.r + (one.userData.r || 2) + 1.2;
   sats.forEach((x, i) => { x.name = 'sat_' + i; p.add(x); }); g.add(p); st.sat = p;
   const piv = new THREE.Group(); piv.name = 'bay'; piv.position.set(0, slotY + hs, cz + bay.r + 0.05); const dg = new THREE.BoxGeometry(4.2, hs + 0.2, 0.12); dg.computeTangents(); // tangents: the steel material needs them on WebGPU
   const door = new THREE.Mesh(dg, mat('steel')); door.position.y = -(hs + 0.2) / 2; piv.add(door);
