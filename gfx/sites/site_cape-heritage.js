@@ -22,8 +22,8 @@ export const SITE = { id: 'cape-heritage', name: 'Heritage Complex', body: 'eart
     { k: 'block', at: [220, 960], w: 40, h: 10, d: 24, roof: true, mat: 'clad' }, // visitor / press building
     { k: 'lot', at: [60, 960], w: 60, d: 30 },
     { k: 'dish', at: [260, 230], r: 8, h: 10 },
-    { k: 'scatter', seed: 'ch', r0: 80, r1: 2400, mix: { pine: 240, palm: 80, scrub: 400, rock: 40 }, shore: 40 },
-    { k: 'hills', r0: 8000, r1: 13000, h: 180, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // inland ridges beyond the assembly building
+    { k: 'scatter', seed: 'ch', r0: 80, r1: 2400, mix: { pine: 200, palm: 70, scrub: 300, rock: 30 }, shore: 30, mid: 0.05 } /* phone near tier stays under the 8k site cap */,
+    { k: 'hills', r0: 7500, r1: 13000, h: 320, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // inland ridges beyond the assembly building
   ],
   stations: [{ id: 'droneship', name: 'Droneship holding area', lat: 29.8, lon: -76.0, layout: [{ k: 'droneship' }] }],
   views: { wide: { eye: [900, 300, 1100], at: [-2500, 0, 0], fov: 50 }, hero: { eye: [190, 70, 250], at: [-10, 45, 0] }, top: { eye: [-2200, 5200, 5200], at: [-2200, 0, 1200], fov: 45 }, vab: { eye: [-4200, 120, 2900], at: [-4555, 70, 2470] }, phone: { eye: [190, 80, 250], at: [0, 55, 20] } } };

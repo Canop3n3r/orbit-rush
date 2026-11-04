@@ -180,14 +180,17 @@ const parts = {
     for (const i of [-1, 0, 1]) for (const s of [-1, 1]) { const g = new THREE.CylinderGeometry(0.42, 0.42, 0.35, K.lo ? 6 : K.hi ? 14 : 8); g.rotateX(Math.PI / 2); K.add(g, 'dark', M([i * L * 0.38, 0.42, s * (W / 2 + 0.2)])); }
     if (!K.lo) { K.cyl('steel', 0.06, 0.06, 1.4, [L * 0.35, 1.8, 0], 4); K.box('dark', 0.4, 0.3, 0.3, [L * 0.35, 3.2, 0]); K.box('lamp', 0.12, 0.2, 0.5, [L / 2 + 0.05, 1.3, 0]); if (o.dish) { const g = new THREE.SphereGeometry(0.5, 8, 2, 0, Math.PI * 2, 0, 0.8); g.rotateX(-1); K.add(g, 'white', M([-L * 0.3, 2.3, 0])); } } }, // six-wheel surface rover
   fence(K, o) { fence(K, o.pts, o.h || 2.4); },
+  // world-pop-1 (gfx/sites/world.js): trees / scrub / boulders, far hills or islets, parking lots
+  scatter(K, o) { WORLD_PARTS.scatter(K, o, K.S); },
+  hills(K, o) { WORLD_PARTS.hills(K, o, K.S); },
+  lot(K, o) { WORLD_PARTS.lot(K, o, K.S); },
   ground(K, o) { K.disc(o.mat || 'ground', o.r || 2500, [0, 0, 0], K.seg * 3, -0.05); if (o.sea) K.flat('sea', o.sea.w || 12000, o.sea.d || 12000, [o.sea.x || 0, 0, o.sea.z || 0], 0, -1.0) /* f5.9-21: well under the land disc (z-fight) */; },
 };
-Object.assign(parts, WORLD_PARTS); // world-pop-1: scatter, hills, lot (gfx/sites/world.js)
 export const PART_KINDS = Object.keys(parts);
 // build one placed group (the main complex, or a remote station such as a droneship)
-function buildGroup(S, items, detail, name, opts) { const K = new SK(detail);
+function buildGroup(S, items, detail, name, opts) { const K = new SK(detail); K.S = S; // world-pop-1: dressing parts read the site (land mask, keep-out)
   for (const o of items) { if (o.k === 'ground' && !opts.ground) continue; if (o.min && ['lo', 'mid', 'hi'].indexOf(detail) < ['lo', 'mid', 'hi'].indexOf(o.min)) continue;
-    const [x, z] = o.at || [0, 0]; K.base = o.y || 0; K.push(M([x, o.y || 0, z], o.rot || 0)); parts[o.k](K, o, S); K.pop(); }
+    const [x, z] = o.at || [0, 0]; K.base = o.y || 0; K.push(M([x, o.y || 0, z], o.rot || 0)); parts[o.k](K, o); K.pop(); }
   const grp = K.build(name); grp.userData.lights = K.lights; return grp; }
 export function buildSite(S, { detail = 'hi', ground = false } = {}) { const g = new THREE.Group(); g.name = 'site:' + S.id;
   const main = buildGroup(S, S.layout, detail, S.id, { ground }); g.add(main); let tris = main.userData.tris;

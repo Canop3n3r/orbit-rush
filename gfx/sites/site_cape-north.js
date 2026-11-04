@@ -19,8 +19,8 @@ export const SITE = { id: 'cape-north', name: 'North Coast Complex', body: 'eart
     { k: 'block', at: [230, 220], w: 50, h: 14, d: 30, mat: 'clad' },              // parts warehouse
     { k: 'lot', at: [85, 330], w: 44, d: 24 },
     { k: 'dish', at: [-210, -170], r: 6, h: 8 },
-    { k: 'scatter', seed: 'cn', r0: 60, r1: 1500, mix: { pine: 220, palm: 90, scrub: 380, rock: 40 }, shore: 60 },
-    { k: 'hills', r0: 5000, r1: 9000, h: 140, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // rolling inland ridges, south through west to north
+    { k: 'scatter', seed: 'cn', r0: 60, r1: 1500, mix: { pine: 260, palm: 80, scrub: 380, rock: 40 }, shore: 60, groves: 40 },
+    { k: 'hills', r0: 4500, r1: 9000, h: 260, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // rolling inland ridges, south through west to north
   ],
   stations: [{ id: 'droneship', name: 'Droneship holding area', lat: 30.5, lon: -74.5, layout: [{ k: 'droneship' }] }],
   views: { wide: { eye: [900, 260, 900], at: [-1500, 0, -200], fov: 50 }, hero: { eye: [170, 60, 220], at: [-10, 32, 20] }, top: { eye: [0, 900, 420], at: [0, 0, 90] }, phone: { eye: [150, 70, 200], at: [0, 45, 20] } } };

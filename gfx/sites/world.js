@@ -12,7 +12,7 @@ const ER = 6378137, SINK = 2.5;
 function rnd(seed) { let x = (seed >>> 0) || 1; return () => ((x = (x * 1664525 + 1013904223) >>> 0) / 4294967296); }
 const hash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
 // ---------- photo textures (browser only) ----------
-const PHOTO = { ground: ['grass', 0.25, 0xb9bfa0], sand: ['sand', 0.4, 0xf2ead8], concrete: ['concrete', 0.5, 0xe4e1da], apron: ['gravel', 0.6, 0xd8d4cc], boulder: ['rock', 0.5, 0xb8b2a8], hill: ['grass', 0.02, 0x9aa486] };
+const PHOTO = { ground: ['grass', 0.25, 0xe2e8c4], sand: ['sand', 0.4, 0xf2ead8], concrete: ['concrete', 0.5, 0xe4e1da], apron: ['gravel', 0.6, 0xd8d4cc], boulder: ['rock', 0.5, 0xb8b2a8], hill: ['grass', 0.02, 0xc4cca8] };
 const PT = new Map(), PEND = []; let loader = null;
 export const photosReady = () => Promise.all(PEND); // viewer: wait for the photo maps before the hero shot
 function photoTex(name, rep, srgb) { const key = name + (srgb ? ':c' : ':n') + rep; if (PT.has(key)) return PT.get(key); if (typeof document === 'undefined') return null;
@@ -29,14 +29,14 @@ const _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector
 const M = (p, ry = 0, s = [1, 1, 1], rx = 0, rz = 0) => { _e.set(rx, ry, rz); return new THREE.Matrix4().compose(_v.set(...p), _q.setFromEuler(_e), _s.set(...s)); };
 // ---------- plant / rock models (flat-shaded low poly, one 'flora' material, colour by vertex) ----------
 const PLANTS = {
-  pine(K, x, z, s, a) { const h = (14 + 8 * a()) * s, seg = K.hi ? 6 : 4; // slash pine: tall bare trunk, flat high crown
+  pine(K, x, z, s, a) { const h = (16 + 10 * a()) * s, seg = K.hi ? 6 : 4; // slash pine: tall bare trunk, flat high crown
     tinted(K, new THREE.CylinderGeometry(0.25 * s, 0.4 * s, h + SINK, 3, 1, true), 'flora', M([x, (h - SINK) / 2, z]), hex(0x5a4330, 0.2, a));
-    tinted(K, new THREE.ConeGeometry(3.6 * s, 4.5 * s, seg), 'flora', M([x, h, z], a() * 6), hex(0x3f5a2c, 0.25, a));
-    if (K.hi) tinted(K, new THREE.ConeGeometry(2.6 * s, 3.5 * s, seg), 'flora', M([x + 0.4, h + 2.6 * s, z], a() * 6), hex(0x4a6a33, 0.25, a)); },
+    tinted(K, new THREE.ConeGeometry(4.2 * s, 6 * s, seg), 'flora', M([x, h, z], a() * 6), hex(0x3f5a2c, 0.25, a));
+    if (K.hi) tinted(K, new THREE.ConeGeometry(3 * s, 4.5 * s, seg), 'flora', M([x + 0.4, h + 2.6 * s, z], a() * 6), hex(0x4a6a33, 0.25, a)); },
   palm(K, x, z, s, a) { const h = (7 + 5 * a()) * s, lean = (a() - 0.5) * 0.35, ry = a() * 6; // cabbage / coconut palm: thin leaning trunk, drooping star crown
     tinted(K, new THREE.CylinderGeometry(0.22 * s, 0.32 * s, h + SINK, 3, 1, true), 'flora', M([x, (h - SINK) / 2, z], ry, [1, 1, 1], lean), hex(0x7a6650, 0.2, a));
-    const top = [x, h * Math.cos(lean), z + h * Math.sin(lean)], c = new THREE.ConeGeometry(4.2 * s, 2.2 * s, K.hi ? 7 : 5); c.rotateX(Math.PI);
-    tinted(K, c, 'flora', M([top[0], top[1] - 0.4 * s, top[2] - h * 0.5 * Math.sin(lean)], ry), hex(0x4f7a35, 0.25, a)); },
+    const top = [x, h * Math.cos(lean), z + h * Math.sin(lean)], c = K.hi ? new THREE.IcosahedronGeometry(1, 0) : new THREE.OctahedronGeometry(1, 0);
+    tinted(K, c, 'flora', M(top, ry, [4.2 * s, 1.5 * s, 4.2 * s], (a() - 0.5) * 0.4), hex(0x3d6b2a, 0.25, a)); }, // fronds: a flattened spiky star
   scrub(K, x, z, s, a) { const g = K.hi ? new THREE.IcosahedronGeometry(1.6 * s, 0) : new THREE.OctahedronGeometry(1.6 * s, 0); // saw palmetto / beach scrub
     tinted(K, g, 'flora', M([x, 0.35 * s, z], a() * 6, [1.3 + 0.5 * a(), 0.55 + 0.3 * a(), 1.2 + 0.4 * a()]), hex([0x58693a, 0x6b7340, 0x4c6236, 0x7d7a48][(a() * 4) | 0], 0.25, a)); },
   grass(K, x, z, s, a) { const g = new THREE.ConeGeometry(0.9 * s, 1.4 * s, 3, 1, true); tinted(K, g, 'flora', M([x, 0.5 * s, z], a() * 6), hex(0x9a9558, 0.3, a)); }, // dune grass tuft
@@ -47,11 +47,13 @@ const PLANTS = {
 // counts are the hi tier; mid keeps o.mid (default 0.25) of each, lo none
 function scatter(K, o, S) { if (K.lo) return; const a = rnd(hash(S.id + (o.seed || ''))), land = landTest(S), free = keepOut(S), f = K.hi ? 1 : (o.mid ?? 0.25);
   const r0 = o.r0 || 60, r1 = o.r1 || 900, ok = (x, z, m) => land(x, z, m) && free(x, z, m);
-  for (const [kind, n0] of Object.entries(o.mix || {})) { const n = Math.round(n0 * f), cl = kind === 'pine' || kind === 'palm' ? 0.55 : 0.35; let placed = 0, tries = 0, cx = 0, cz = 0;
-    while (placed < n && tries++ < n * 40) { // clumped: half the plants grow near the previous one
-      let x, z; if (placed && a() < cl) { x = cx + (a() - 0.5) * 40; z = cz + (a() - 0.5) * 40; } else { const t = a() * Math.PI * 2, r = Math.sqrt(r0 * r0 + a() * (r1 * r1 - r0 * r0)); x = Math.cos(t) * r; z = Math.sin(t) * r; }
+  const groves = []; for (let i = 0, t = 0; groves.length < (o.groves || 36) && t < 4000; t++) { const q = a() * Math.PI * 2, r = Math.sqrt(r0 * r0 + a() * (r1 * r1 - r0 * r0)), x = Math.cos(q) * r, z = Math.sin(q) * r; if (ok(x, z, 20)) groves.push([x, z, 25 + 45 * a()]); }
+  const gauss = () => (a() + a() + a() - 1.5) * 1.4;
+  for (const [kind, n0] of Object.entries(o.mix || {})) { const n = Math.round(n0 * f), tree = kind === 'pine' || kind === 'palm', cl = tree ? 0.85 : 0.6; let placed = 0, tries = 0;
+    while (placed < n && tries++ < n * 40) { // most plants grow in groves (and scrub around their edges), the rest anywhere on free land
+      let x, z; if (groves.length && a() < cl) { const [gx, gz, gr] = groves[(a() * groves.length) | 0], k = tree ? 1 : 1.8; x = gx + gauss() * gr * k; z = gz + gauss() * gr * k; } else { const t = a() * Math.PI * 2, r = Math.sqrt(r0 * r0 + a() * (r1 * r1 - r0 * r0)); x = Math.cos(t) * r; z = Math.sin(t) * r; }
       if (Math.hypot(x, z) < r0 || Math.hypot(x, z) > r1 || !ok(x, z, kind === 'pine' ? 4 : 2)) continue;
-      PLANTS[kind](K, x, z, 0.75 + 0.5 * a(), a); placed++; cx = x; cz = z; } }
+      PLANTS[kind](K, x, z, 0.8 + 0.6 * a(), a); placed++; } }
   if (o.shore) { const n = Math.round(o.shore * f); let placed = 0, tries = 0; // boulders strung along the shoreline (just inside the land edge)
     while (placed < n && tries++ < n * 60) { const t = a() * Math.PI * 2, r = r0 + a() * (r1 - r0), x = Math.cos(t) * r, z = Math.sin(t) * r;
       if (!land(x, z, 0) || land(x, z, 45) || !free(x, z, 2)) continue; PLANTS.rock(K, x, z, 1.2 + 1.8 * a(), a); placed++; } } }
