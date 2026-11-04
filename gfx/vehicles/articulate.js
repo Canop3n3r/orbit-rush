@@ -1,11 +1,11 @@
 // legs-fins-1: moving landing hardware. Landing legs, grid fins and ship flaps are pivots on the model; this module turns the booster /
 // ship flight state into target angles (pure, no three.js import, so tests run in node) and eases the pivots toward them every frame.
 //   legs:  t 0 stowed flush (foot up) -> 1 deployed, a 120 deg swing down about the base hinge (pivot.rotation.z = -t * LEG_SWING)
-//   grid fins: stowed flat along the hull (0) -> deployed out (1) after the boostback / separation coast, then each fin twists about its
+//   grid fins: stowed hanging down flat on the hull, lattice aft (0) -> hinged up 90 deg to stand out (1) after the boostback / separation coast, then each fin twists about its
 //              own span (defl child rotation.y) to steer: commanded by the glide steering vector and the body rates, plus roll trim
 //   flaps: forward + aft pairs pivot about their root hinge line (rotation.y of flap_<f|a>_<side>); belly-flop holds them spread, pitch/roll error moves them differentially
 export const LEG_SWING = 2 * Math.PI / 3;      // 120 deg
-export const FIN_DEPLOY = 88 * Math.PI / 180;  // stowed up -> out from the hull
+export const FIN_DEPLOY = Math.PI / 2;        // stowed hanging down flat on the hull -> hinged up 90 deg to stand straight out
 export const FIN_MAX = 20 * Math.PI / 180;     // steering twist limit
 export const FLAP_MAX = 55 * Math.PI / 180;    // flap travel from the fully folded (leeward) stop
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -50,7 +50,7 @@ export function rigOf(model, mkGroup) {
     else if (/^flap_(f|a)_(-?1)$/.test(n)) { const m = n.match(/^flap_(f|a)_(-?1)$/); rig.flaps.push({ piv: o, fwd: m[1] === 'f', side: +m[2], rest: o.rotation.y }); }
   });
   // start from the pose the model was built in (a booster whose fins are built open, like the super-heavy's fixed-out fins, keeps them open)
-  if (rig.fins.length) { rig.finT = clamp(-rig.fins[0].piv.rotation.z / FIN_DEPLOY, 0, 1); rig.finFixed = rig.finT > 0.9; }
+  if (rig.fins.length) { rig.finT = clamp(rig.fins[0].piv.rotation.z / FIN_DEPLOY, 0, 1); rig.finFixed = rig.finT > 0.9; }
   if (rig.legs.length) rig.legT = clamp(-rig.legs[0].rotation.z / legSwing(rig.legs[0]), 0, 1);
   RIGS.set(model, rig); return rig;
 }
@@ -67,7 +67,7 @@ function finOf(piv, mkGroup) {
 export function applyBooster(rig, p, dt) {
   const l0 = rig.legT; rig.legT = ease(rig.legT, p.leg, RATE.leg * dt); rig.legMoved = rig.legT !== l0 || rig.legMoved === undefined; rig.finT = ease(rig.finT, rig.finFixed ? 1 : p.fin, RATE.fin * dt);
   const lt = smooth(rig.legT); for (const l of rig.legs) l.rotation.z = -lt * legSwing(l);
-  for (const f of rig.fins) { f.piv.rotation.z = -smooth(rig.finT) * FIN_DEPLOY;
+  for (const f of rig.fins) { f.piv.rotation.z = smooth(rig.finT) * FIN_DEPLOY;
     const tw = (Math.sin(f.az) * p.steer[0] - Math.cos(f.az) * p.steer[1] + p.roll) * rig.finT; f.defl.rotation.y = ease(f.defl.rotation.y, tw, RATE.defl * dt); }
   return rig;
 }

@@ -187,11 +187,12 @@ def rcs_quads(part, ctx, cx, r, y):
             for k in (-1, 0, 1): cyl(part.buf('metal'), r * 0.012, r * 0.02, r * 0.05, 6, srgb(0x9A9CA2), xf((px + math.cos(a) * r * 0.04, y + k * r * 0.05, pz + math.sin(a) * r * 0.04), (0, 0, -PI / 2)) @ Matrix.Identity(4))
 
 def grid_fins(part, ctx, cx, r, fins):
-    """lattice grid fins as animatable pivots (stowed pointing up along the hull, hinge at the base: same convention as the procedural model)."""
+    """lattice grid fins as animatable pivots: stowed hanging DOWN flat against the hull (lattice pointing aft), hinged at the top edge; deploy =
+    rotation.z +90 deg (articulate.js) swings them up to stand straight out, then each twists about its span to steer."""
     n = fins.get('n', 4); y = fins['y']; w = fins.get('w', 1.6); h = fins.get('h', 1.8); a0 = fins.get('a0', PI / 4)
     for i in range(n):
         a = a0 + i / n * TAU
-        s = part.sub(f'gridfin_{i}', (cx[0] + math.cos(a) * (r + 0.05), y, cx[1] + math.sin(a) * (r + 0.05)), rot_y=-a, kind='gridfin', deploy_axis='z', deploy_deg=-88)
+        s = part.sub(f'gridfin_{i}', (cx[0] + math.cos(a) * (r + 0.05), y, cx[1] + math.sin(a) * (r + 0.05)), rot_y=-a, kind='gridfin', deploy_axis='z', deploy_deg=90)
         col = srgb(0xA9A49C); b = s.buf('metal'); bf = s.buf('metal', 0.012 if ctx.detail >= 1 else 0.0)
         t = 0.05
         # frame (beveled) + lattice blades (plain boxes)
@@ -212,6 +213,7 @@ def grid_fins(part, ctx, cx, r, fins):
         else:
             box(b, (0.2, h, w), col, xf((0, h / 2 + 0.1, 0)))
         box(s.buf('dark', 0.02 if ctx.detail >= 1 else 0.0), (0.5, 0.5, 0.5), srgb(0x2A2B2F), xf((0.08, 0, 0)))
+        for bb in s.bufs.values(): bb.v[:] = [(x, -y, -z) for (x, y, z) in bb.v]  # hang down from the hinge (stowed, lattice aft)
 
 def legs(part, ctx, cx, spec_legs, hull_r=None, exit_y=0.0):
     """landing legs as animatable pivots `leg_i` (rotation.z = -t * 120 deg deploys them; gfx/vehicles/articulate.js). Stowed = foot up, flush.

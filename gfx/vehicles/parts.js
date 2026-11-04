@@ -33,8 +33,8 @@ export function ringPos(rings) { const out = []; for (const [n, r, a0 = 0] of ri
 // out (legs-fins-1): an array -> each fin is its own pivot Group 'gridfin_<i>' (rotation.z = deploy hinge, animated by articulate.js) pushed to out
 export function gridFins(k, r, y, w, h, n = 4, a0 = PI / 4, deploy = 1, out = null) {
   const K0 = k; for (let i = 0; i < n; i++) { const a = a0 + i / n * 2 * PI;
-    if (out) { k = new K0.constructor(K0.detail); k.push(new THREE.Matrix4()); k.push(new THREE.Matrix4()); }
-    else { k.push(xf([Math.cos(a) * r, y, Math.sin(a) * r], [0, -a, 0])); k.push(xf([0, 0, 0], [0, 0, -deploy * PI / 2 * 0.98])); } // hinged at the hull: stowed points up, deployed sticks out
+    if (out) { k = new K0.constructor(K0.detail); k.push(new THREE.Matrix4()); k.push(xf([0, 0, 0], [PI, 0, 0])); }
+    else { k.push(xf([Math.cos(a) * r, y, Math.sin(a) * r], [0, -a, 0])); k.push(xf([0, 0, 0], [0, 0, deploy * PI / 2])); k.push(xf([0, 0, 0], [PI, 0, 0])); } // legs-fins-1: hinged at its top edge, stowed hanging down flat on the hull (lattice aft), deployed swings up to stick straight out
     if (k.hi) { // real lattice: +-45 deg blades with depth, so the fin reads as open cells from any angle (edge-on included)
       const d = 0.38, t = 0.045, step = k.mid ? 0.8 : 0.26, y0 = 0.1; // mid: coarse lattice (same silhouette, ~1/3 the blades)
       for (const sg of [1, -1]) for (let c = -(w + h); c <= w + h; c += step) { // blade line: v = sg*u + c, clipped to |u|<=w/2, 0<=v<=h
@@ -45,8 +45,8 @@ export function gridFins(k, r, y, w, h, n = 4, a0 = PI / 4, deploy = 1, out = nu
       }
       const ft = 0.1; for (const [px, py, sx, sy] of [[0, 0.1, w, ft], [0, h + 0.1, w, ft], [-w / 2, h / 2 + 0.1, ft, h], [w / 2, h / 2 + 0.1, ft, h]]) k.add(new THREE.BoxGeometry(0.42, sy, sx), 'tiframe', xf([0, py, px]));
     } else k.add(new THREE.BoxGeometry(0.12, h, w), 'tiframe', xf([0, h / 2 + 0.1, 0]));
-    k.pop(); k.add(new THREE.BoxGeometry(0.5, 0.6, 0.6), out ? 'tiframe' : 'dark', xf([0.1, 0, 0])); k.pop(); // pivoted fins: one material each (one draw call per fin)
-    if (out) { const p = new THREE.Group(); p.name = 'gridfin_' + i; p.position.set(Math.cos(a) * r, y, Math.sin(a) * r); p.rotation.set(0, -a, -deploy * PI / 2 * 0.98); p.userData.yaw = -a; const g = k.build('gridfin'); for (const c of [...g.children]) p.add(c); out.push(p); } }
+    k.pop(); k.add(new THREE.BoxGeometry(0.5, 0.6, 0.6), out ? 'tiframe' : 'dark', xf([0.1, 0, 0])); k.pop(); if (!out) k.pop(); // pivoted fins: one material each (one draw call per fin)
+    if (out) { const p = new THREE.Group(); p.name = 'gridfin_' + i; p.position.set(Math.cos(a) * r, y, Math.sin(a) * r); p.rotation.set(0, -a, deploy * PI / 2); p.userData.yaw = -a; const g = k.build('gridfin'); for (const c of [...g.children]) p.add(c); out.push(p); } }
 }
 // landing legs (brief: carbon/honeycomb, hinge at the base, stowed flush with the foot pad UP, helium telescoping
 // deployment arm from the leg tip to the fuselage, small pusher). Separate animatable group; t=0 stowed, 1 deployed.

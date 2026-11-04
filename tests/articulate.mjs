@@ -16,7 +16,7 @@ const rec = []; for (const { t, s } of tl) { applyBooster(rig, boosterPose(s), 0
 const at = t => rec.find(r => r.t >= t);
 ok(at(0).leg === 0 && at(0).fin === 0, 'legs and fins stowed at separation');
 ok(at(20).fin === 0, 'grid fins stay stowed during the boostback');
-ok(at(60).fin < -FIN_DEPLOY * 0.99, 'grid fins deployed after the boostback: ' + at(60).fin.toFixed(2));
+ok(at(60).fin > FIN_DEPLOY * 0.99, 'grid fins deployed after the boostback: ' + at(60).fin.toFixed(2));
 ok(rec.filter(r => r.alt > 600).every(r => r.leg === 0), 'legs stay folded until the landing burn (600 m)');
 ok(Math.abs(rec[rec.length - 1].leg + LEG_SWING) < 1e-6, 'legs end fully deployed: 120 deg swing');
 const mids = rec.filter(r => r.leg < 0 && r.leg > -LEG_SWING); ok(mids.length >= 6, 'legs swing over several frames (animated, not a pop): ' + mids.length);
@@ -35,8 +35,8 @@ ok(belly.some(r => Math.abs(r.a[0] - r.a[2]) > 0.05), 'forward and aft flaps mov
 ok(belly.some(r => Math.abs(r.a[0] - r.a[1]) > 0.03), 'left and right flaps move differentially (roll control)');
 const flip = fr.filter(r => r.alt < 1000 && r.alt > 0); ok(flip.length && flip[flip.length - 1].a[0] > flip[flip.length - 1].a[2] + 0.3, 'flip: forward flaps up, aft flaps folded');
 // a booster built with its fins open (super-heavy: fixed-out fins) keeps them open; they still twist to steer
-{ const f = [0, 1, 2].map(i => { const o = O('gridfin_' + i, 0, [O('lattice')]); o.userData = { yaw: -i }; o.rotation.z = -FIN_DEPLOY; return o; }); const m = O('b', 0, f); m.userData = {}; const r = rigOf(m, mk);
-  applyBooster(r, boosterPose({ state: 'flying', tSep: 0, alt: 70000, rates: [0.1, 0, 0] }), 0.5); ok(r.fins.every(x => Math.abs(x.piv.rotation.z + FIN_DEPLOY) < 1e-6), 'built-open fins stay open');
+{ const f = [0, 1, 2].map(i => { const o = O('gridfin_' + i, 0, [O('lattice')]); o.userData = { yaw: -i }; o.rotation.z = FIN_DEPLOY; return o; }); const m = O('b', 0, f); m.userData = {}; const r = rigOf(m, mk);
+  applyBooster(r, boosterPose({ state: 'flying', tSep: 0, alt: 70000, rates: [0.1, 0, 0] }), 0.5); ok(r.fins.every(x => Math.abs(x.piv.rotation.z - FIN_DEPLOY) < 1e-6), 'built-open fins stay open');
   ok(r.fins.every(x => Math.abs(x.piv.rotation.y + f.indexOf(x.piv)) < 1e-9), 'fin azimuth kept'); }
 // a baked per-stage swing (Blender deploy_rad) wins over the default 120 deg
 { const l = O('leg_0'); l.userData = { deploy_rad: -1.85 }; const m = O('b', 0, [l]); m.userData = {}; const r = rigOf(m, mk); applyBooster(r, boosterPose({ state: 'landed', alt: 0 }), Infinity); ok(Math.abs(l.rotation.z + 1.85) < 1e-9, 'leg uses its baked swing'); }
@@ -49,4 +49,8 @@ const flip = fr.filter(r => r.alt < 1000 && r.alt > 0); ok(flip.length && flip[f
   ok(d(rotY(tipA, fA.a[fwd]), rotY(tipA, fB.a[fwd])) > 2, 'forward flap tip sweeps > 2 m from belly-flop to flip: ' + d(rotY(tipA, fA.a[fwd]), rotY(tipA, fB.a[fwd])).toFixed(2));
   ok(Math.max(...fr.map(r => r.a[fwd])) > 0.8, 'forward flap travel > 45 deg');
   ok(sr.flaps.every(f => Math.abs(f.piv.rotation.y) <= 55 * Math.PI / 180 + 1e-9), 'flap travel within the 55 deg stop'); }
+// grid fin hinge: a fin hangs down (span -y) when stowed and stands straight out (+x, radial) after the +90 deg hinge
+{ const rz = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)], tip = [0, -1.9];
+  const s0 = rz(tip, 0), s1 = rz(tip, FIN_DEPLOY); ok(s0[1] < -1.8 && Math.abs(s0[0]) < 1e-9, 'stowed fin hangs down along the hull'); ok(s1[0] > 1.8 && Math.abs(s1[1]) < 1e-9, 'deployed fin stands straight out');
+  ok(rec.every(r => r.fin >= -1e-9 && r.fin <= FIN_DEPLOY + 1e-9), 'fin hinge only swings up (0..90 deg)'); }
 console.log(`articulate: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
