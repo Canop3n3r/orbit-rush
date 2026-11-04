@@ -1,5 +1,5 @@
 // f5.4 sandbox launch-from-anywhere picker (Home 📍 button): world → preset base or tap a spot on the map.
-import { SITES, GAS } from '../sites.js?v=f5.9-19';
+import { SITES, GAS } from '../sites.js?v=f5.9-20';
 const KEY = 'orbitRush.site.v1';
 export function loadSite() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && s.body ? s : null; } catch (e) { return null; } }
 export function saveSite(s) { try { s ? localStorage.setItem(KEY, JSON.stringify(s)) : localStorage.removeItem(KEY); } catch (e) { } }
@@ -35,6 +35,10 @@ export function createSitePicker({ BODIES, onPick }) {
   const anchor = () => { /* f5.8m/n: the sheet opens right at the 📍 button: beside it in landscape, under the hero button on desktop, bottom sheet pulled up to within ~70 px on a portrait phone */
     const box = q('.spBox'), b = document.getElementById('hSite'); if (!box) return; for (const k of ['max-width', 'position', 'left', 'top', 'bottom', 'right', 'margin', 'height', 'max-height', 'margin-bottom']) box.style.removeProperty(k);
     if (!b || !b.offsetWidth) return; const r = b.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight, im = 'important', land = matchMedia('(orientation:landscape)').matches, set = (k, v) => box.style.setProperty(k, v, im);
+    { const cd = document.getElementById('hCard'), cr = cd && cd.offsetHeight ? cd.getBoundingClientRect() : null; if (cr && cr.top > innerHeight / 2) { /* f5.9-20: Home is pad + one card at the bottom; the sheet sits just above that card, never over Fly or the name */
+      set('position', 'fixed'); set('margin', '0'); set('top', 'auto'); set('bottom', Math.round(innerHeight - cr.top + 8) + 'px'); set('max-height', Math.round(Math.max(120, cr.top - 64)) + 'px');
+      if (land) { set('max-width', Math.min(380, Math.round(innerWidth * 0.45)) + 'px'); set('max-height', Math.round(Math.max(120, Math.min(cr.top - 64, innerHeight * 0.5))) + 'px'); set('right', Math.round(innerWidth - r.right) + 'px'); set('left', 'auto'); } else { set('left', '8px'); set('right', '8px'); }
+      return; } }
     if (!land) { if (box.getBoundingClientRect().top > r.bottom + 70) { const cur = box.getBoundingClientRect().top - (r.bottom + 70); set('margin-bottom', Math.round(cur) + 'px'); } return; }
     set('position', 'fixed'); set('margin', '0');
     if (innerHeight < 501 && r.right + 8 + w <= innerWidth) { set('left', Math.round(r.right + 8) + 'px'); set('top', Math.round(Math.max(8, Math.min(r.top, innerHeight - h - 8))) + 'px'); set('bottom', 'auto'); return; }
