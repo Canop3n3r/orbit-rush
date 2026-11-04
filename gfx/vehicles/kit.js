@@ -1,8 +1,8 @@
 // Geometry kit: every part is added with a local transform and baked into ONE merged mesh per material
 // (a whole vehicle stage = a handful of draw calls). Materials are shared across all vehicles.
 import * as THREE from 'three/webgpu';
-import * as T from './textures.js?v=f5.9-24';
-import { decalTexture } from './decals.js?v=f5.9-24';
+import * as T from './textures.js?v=f5.9-25';
+import { decalTexture } from './decals.js?v=f5.9-25';
 // own merge (all inputs are non-indexed with position/normal/uv), so the module needs no bare 'three' import
 export function mergeGeometries(gs) { const out = new THREE.BufferGeometry(); for (const [a, n] of [['position', 3], ['normal', 3], ['uv', 2], ...(gs.every(g => g.attributes.surf) ? [['surf', 3], ['surfw', 3]] : [])]) { /* realism-1: staged surface-detail attributes survive compaction */ let len = 0; for (const g of gs) len += g.attributes[a].array.length; const arr = new Float32Array(len); let o = 0; for (const g of gs) { arr.set(g.attributes[a].array, o); o += g.attributes[a].array.length; } out.setAttribute(a, new THREE.BufferAttribute(arr, n)); } return out; }
 const MATS = new Map();
@@ -74,7 +74,7 @@ const FOLD = { bellx: 'bell', shield: 'dark', skirt: 'dark', tiframe: 'dark', gr
 export function compactStages(group, keep = ['legs'], fold = true) { for (const c of group.children.slice()) if (!c.isMesh) compact(c, keep, fold); return group; }
 // compact: merge every mesh with the same material (in group space) into one mesh; subtrees named in keep (animated legs) stay
 export function compact(group, keep = ['legs'], fold = false) { const by = new Map(), drop = []; group.updateMatrixWorld(true); const inv = group.matrixWorld.clone().invert();
-  group.traverse(o => { if (o === group) return; let p = o; while (p && p !== group) { if (keep.includes(p.name)) return; p = p.parent; }
+  group.traverse(o => { if (o === group) return; let p = o; while (p && p !== group) { if (keep.includes(p.name) || /^(gridfin|flap)_/.test(p.name)) return; p = p.parent; } // legs-fins-1: moving fins / flaps keep their own pivots
     if (o.isMesh) { const g = o.geometry.clone(); g.applyMatrix4(inv.clone().multiply(o.matrixWorld)); if (g.attributes.tangent) g.deleteAttribute('tangent'); const F = fold === true ? FOLD : fold || {}, nm = o.material.name, to = F[nm] ?? (nm.startsWith('paint:') ? F['paint:*'] : undefined), M = to ? mat(to) : o.material; (by.get(M) || by.set(M, []).get(M)).push(g); drop.push(o); } });
   for (const o of drop) { o.parent.remove(o); if (!o.geometry.userData.shared) o.geometry.dispose(); }
   for (const g of group.children.slice()) if (!g.isMesh && !keep.includes(g.name) && !g.children.some(c => c.isMesh || c.children.length)) { /* emptied stage group: keep as an (empty) handle for userData.stages */ }
@@ -86,7 +86,7 @@ export function compact(group, keep = ['legs'], fold = false) { const by = new M
 // geometries are refcounted and freed when the last user goes.
 // f5.2.2: `live` = geometries/materials still drawn elsewhere in the scene (pad, other heroes, piece clones); never freed here.
 // Cached geometries go through this module's refcount (GEO). f5.2.1 called dispose from a second copy of this module
-// (main imported kit.js?v=f5.2.1, the art kit.js?v=f5.9-24), whose empty GEO made every cached geometry look owned: freed
+// (main imported kit.js?v=f5.2.1, the art kit.js?v=f5.9-25), whose empty GEO made every cached geometry look owned: freed
 // while other heroes/LODs still drew it (black Home on iOS). main now imports dispose/release via vehicles.js.
 export function liveSet(scene) { const s = new Set(); if (scene) scene.traverse(o => { if (o.geometry) s.add(o.geometry); for (const m of [].concat(o.material || [])) { s.add(m); for (const v of Object.values(m)) if (v && v.isTexture) s.add(v); } }); return s; }
 export function dispose(group, live = new Set()) { const seen = new Set(); group.traverse(o => { if (!o.isMesh && !o.isSprite) return; if (o.isInstancedMesh) o.dispose(); const g = o.geometry;

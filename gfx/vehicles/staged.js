@@ -7,8 +7,8 @@
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { surfaceMaterial, bakeSurf } from './surface.js?v=f5.9-24';
-import { sootOf } from './surface_math.js?v=f5.9-24';
+import { surfaceMaterial, bakeSurf } from './surface.js?v=f5.9-25';
+import { sootOf } from './surface_math.js?v=f5.9-25';
 
 const BASE = new URL('../../assets/rockets/', import.meta.url).href;
 const Q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
@@ -82,6 +82,36 @@ function legPivots(root) { // setLegs() animates pivots[i].rotation.z; rebuild e
   root.traverse(o => { if (/^leg_\d+$/.test(o.name)) { const yaw = 2 * Math.atan2(o.quaternion.y, o.quaternion.w); o.rotation.set(0, yaw, 0); L.userData.pivots.push(o); } });
   return L.userData.pivots.length ? L : null;
 }
+// legs-fins-1: telescoping leg struts. One mesh per leg set (phone-light: 3 six-sided sleeves per leg, one draw call), spanning the hull anchor
+// and the leg's strut lug; its vertices are rewritten while the legs move (writeStruts), so the struts extend as the legs swing down.
+const SLEEVE_R = [0.15, 0.115, 0.085], SIDES = 6;
+let UNIT = null; // open 6-sided tube, y 0..1, radius 1 (non-indexed)
+function unitTube() { if (!UNIT) { UNIT = new THREE.CylinderGeometry(1, 1, 1, SIDES, 1, true).toNonIndexed(); UNIT.translate(0, 0.5, 0); } return UNIT; }
+function addStruts(a, L) {
+  const legs = L.userData.pivots.filter(p => p.userData && p.userData.strut_lug); if (!legs.length) return null;
+  const u = unitTube(), nv = u.attributes.position.count, n = legs.length * SLEEVE_R.length, geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * nv * 3), 3)); geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(n * nv * 3), 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * nv * 2), 2)); geo.userData.own = true; geo.userData.noShare = true;
+  const m = new THREE.Mesh(geo, strutMat()); m.name = 'legstruts'; m.frustumCulled = false; a.add(m);
+  a.updateMatrixWorld(true); const inv = a.matrixWorld.clone().invert(), V = new THREE.Vector3();
+  // hull anchors are fixed on the stage: computed once with the legs stowed (in the asset frame)
+  m.userData.legs = legs.map(p => { const z = p.rotation.z; p.rotation.z = 0; p.updateMatrixWorld(true); const A = V.fromArray(p.userData.strut_hull).applyMatrix4(p.matrixWorld).applyMatrix4(inv).toArray(); p.rotation.z = z; p.updateMatrixWorld(true); return { name: p.name, A, lug: p.userData.strut_lug }; });
+  writeStruts(m); return m;
+}
+const PIVC = new WeakMap(); let STRUT_MAT = null; function strutMat() { return STRUT_MAT || (STRUT_MAT = new THREE.MeshStandardMaterial({ color: 0x9a9ea6, roughness: 0.3, metalness: 0.9, name: 'legstruts' })); }
+const _A = new THREE.Vector3(), _B = new THREE.Vector3(), _D = new THREE.Vector3(), _Q = new THREE.Quaternion(), _UP = new THREE.Vector3(0, 1, 0), _M4 = new THREE.Matrix4(), _S3 = new THREE.Vector3(), _P3 = new THREE.Vector3(), _N3 = new THREE.Matrix3();
+/** rewrite the telescoping struts of one leg set from the current leg pivot angles (call after the pivots move). */
+export function writeStruts(m) {
+  const a = m.parent; if (!a) return; a.updateMatrixWorld(true); const inv = a.matrixWorld.clone().invert(), u = unitTube(), up = u.attributes.position.array, un = u.attributes.normal.array, nv = u.attributes.position.count;
+  const P = m.geometry.attributes.position.array, N = m.geometry.attributes.normal.array; let c = 0;
+  let pv = PIVC.get(m); if (!pv) { pv = m.userData.legs.map(l => a.getObjectByName(l.name)); PIVC.set(m, pv); } // refs kept off userData (clone() JSON-copies it)
+  for (let li = 0; li < m.userData.legs.length; li++) { const l = m.userData.legs[li], p = pv[li]; if (!p) { c += SLEEVE_R.length; continue; }
+    _A.fromArray(l.A); _B.fromArray(l.lug).applyMatrix4(p.matrixWorld).applyMatrix4(inv); _D.subVectors(_B, _A); const d = _D.length(); _D.normalize(); _Q.setFromUnitVectors(_UP, _D);
+    const k = SLEEVE_R.length, s = Math.max(d / k + 0.35, d * 0.42); // sleeve length: overlapping when extended, nested when stowed
+    for (let i = 0; i < k; i++) { const off = k > 1 ? i * (d - s) / (k - 1) : 0; _P3.copy(_A).addScaledVector(_D, off); _M4.compose(_P3, _Q, _S3.set(SLEEVE_R[i], s, SLEEVE_R[i])); _N3.getNormalMatrix(_M4);
+      for (let v = 0; v < nv; v++) { const j = v * 3, o = (c * nv + v) * 3; _P3.fromArray(up, j).applyMatrix4(_M4).toArray(P, o); _S3.fromArray(un, j).applyMatrix3(_N3).normalize().toArray(N, o); } c++; } }
+  m.geometry.attributes.position.needsUpdate = m.geometry.attributes.normal.needsUpdate = true;
+}
 // realism-1: engine soot only on stages that fire near the ground or carry engines: none on fairings/payloads/crew, full on first-stage cores and boosters
 /** assemble a staged model (sync; the assets must be preloaded). detail: 'hi' | 'mid' | 'lo'. */
 export function buildStaged(id, o = {}) {
@@ -91,7 +121,7 @@ export function buildStaged(id, o = {}) {
     const url = urlOf(st.asset[tier] || st.asset.lo || st.asset.hi), sc = SCENES.get(url); if (!sc) throw new Error('staged asset not loaded ' + url);
     const grp = new THREE.Group(); grp.name = st.key; grp.userData.top = st.offset[1] + st.size_m.h;
     const a = instantiate(sc, st.asset[tier] ? tier : 'lo', st.role === 'fairing' ? -1 : sootOf(st, m.stages, id)); a.position.set(...st.offset); a.rotation.set(0, st.rotY || 0, 0); a.name = st.key + ':asset'; grp.add(a);
-    const L = legPivots(a); if (L) { a.add(L); grp.userData.legs = L; legsAll.push(L); }
+    const L = legPivots(a); if (L) { a.add(L); grp.userData.legs = L; legsAll.push(L); if (tier !== 'lo' || !st.asset[tier]) addStruts(a, L); }
     grp.userData.nodes = st; stages[st.key] = grp; g.add(grp);
   }
   g.userData.legs = legsAll; return g;

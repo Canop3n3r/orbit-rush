@@ -16,13 +16,13 @@
    "prop": "kerolox",
    "asset": {
     "hi": "assets/rockets/heron-9-crew/booster.hi.glb",
-    "mid": "assets/rockets/heron-9-crew/booster.mid.glb",
-    "lo": "assets/rockets/heron-9-crew/booster.lo.glb"
+    "mid": "assets/rockets/_shared/50e971b61b.mid.glb",
+    "lo": "assets/rockets/_shared/3c962ae6b5.lo.glb"
    },
    "tris": {
-    "hi": 12174,
-    "mid": 5468,
-    "lo": 1216
+    "hi": 12894,
+    "mid": 5420,
+    "lo": 1264
    },
    "offset": [
     0,
@@ -196,9 +196,9 @@
    "legs": 4,
    "grid_fins": 4,
    "bytes": {
-    "hi": 100620,
-    "mid": 51488,
-    "lo": 26200
+    "hi": 102864,
+    "mid": 52516,
+    "lo": 26560
    }
   },
   {
@@ -339,8 +339,8 @@
   "payload"
  ],
  "bytes": {
-  "hi": 155160,
-  "mid": 79776,
-  "lo": 42268
+  "hi": 157404,
+  "mid": 80804,
+  "lo": 42628
  }
 }

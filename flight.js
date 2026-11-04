@@ -1,12 +1,12 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.9-24';
-import * as C from './physics/patched.js?v=f5.9-24';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.9-24';
-import { designReusable } from './vehicles/reusable.js?v=f5.9-24';
-import { newStats, trackStats } from './fun/endstats.js?v=f5.9-24';
-import { installVessels } from './fun/vessels.js?v=f5.9-24'; // f6.2: switching between vessels left in space, craft power, deployed payloads
+import * as P from './physics.js?v=f5.9-25';
+import * as C from './physics/patched.js?v=f5.9-25';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.9-25';
+import { designReusable } from './vehicles/reusable.js?v=f5.9-25';
+import { newStats, trackStats } from './fun/endstats.js?v=f5.9-25';
+import { installVessels } from './fun/vessels.js?v=f5.9-25'; // f6.2: switching between vessels left in space, craft power, deployed payloads
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -55,7 +55,7 @@ const fmtKm = m => (m / 1000).toFixed(0) + ' km';
 export const shipPos = (ship, t, rot = true) => V.rotZ(V.scale(ship.ef, R + DECK), rot ? P.OMEGA_E * t : 0);
 const surfDist = (a, b) => R * Math.acos(Math.max(-1, Math.min(1, V.dot(V.norm(a), V.norm(b)))));
 
-// f5.9-23: AUTO recovery: return to the launch site when the boostback Δv (kill the downrange ground speed, then fly
+// f5.9-25: AUTO recovery: return to the launch site when the boostback Δv (kill the downrange ground speed, then fly
 // back the downrange distance plus what it still travels) fits in the propellant left after an entry + landing reserve.
 export function recoveryPlan(b, lzEf, rot = true) {
   const s = b.stages[0], g0 = 9.80665, isp = (s.eng && (s.eng.ispVac || s.eng.isp)) || 300, dry = Math.max(0.1, s.dry || 1), fuel = Math.max(0, s.fuel || 0);
@@ -185,7 +185,7 @@ export function applySpec(v, sp) { if (!sp || !sp.stages || sp.stages.length !==
 export class Flight {
   constructor(design, hooks = {}, opts = {}) {
     this.reusable = opts.reusable ?? designReusable(design); // f5.3: only reusable boosters fly back (heron/colossus house, new-glendale)
-    this.recovery = !this.reusable ? 'none' : opts.recovery || design.recovery || 'ship'; this.recoveryPref = opts.recoveryPref || 'design'; // f5.9-23: 'auto' | 'rtls' | 'ship' (barge) | 'design' // f4: 'rtls' = boostback to the landing zone at the launch site
+    this.recovery = !this.reusable ? 'none' : opts.recovery || design.recovery || 'ship'; this.recoveryPref = opts.recoveryPref || 'design'; // f5.9-25: 'auto' | 'rtls' | 'ship' (barge) | 'design' // f4: 'rtls' = boostback to the landing zone at the launch site
     if (typeof opts === 'number') opts = { padZ: opts };
     this.design = cloneDesign(design); this.h = hooks; this.stats = designStats(design);
     const v = buildVehicle(design); v.earthRot = opts.earthRot !== false;
@@ -466,7 +466,7 @@ export class Flight {
     this.shiftCom(() => { v.cur = 1; }); this.flags.stagedFuel = b.stages[0].fuel; this.flags.stagedAlt = bh;
     this.call('stage', b);
     const fuel = b.stages[0].fuel;
-    if (fuel > 0.3 && bh > 2000) { // f5.9-23: recovery autopilot: RTLS or barge, picked by the setting (or AUTO from the state at separation)
+    if (fuel > 0.3 && bh > 2000) { // f5.9-25: recovery autopilot: RTLS or barge, picked by the setting (or AUTO from the state at separation)
       const pref = this.recoveryPref || 'design', plan = recoveryPlan(b, this.lzEf, v.earthRot !== false);
       const mode = pref === 'rtls' || pref === 'ship' ? pref : pref === 'auto' ? plan.mode : this.recovery === 'rtls' ? 'rtls' : 'ship';
       b.recPlan = { ...plan, auto: plan.mode, whyAuto: plan.why, pref, mode, why: pref === 'auto' ? plan.why : pref === 'design' ? 'rocket default' : 'your setting' };
@@ -519,7 +519,7 @@ export class Flight {
   setSAS(mode) { const v = this.v; v.sas = mode; v.sasHold = null; v.holdAtt = null; if (this.autoOn && mode !== 'stab') this.setAuto(false, true); if (this.ret && this.ret.auto) this.setAuto(false); this.toast('SAS: ' + P.SAS_LABEL[mode], '#9cc3ff'); }
   toggleRCS() { const v = this.v; v.rcsOn = !v.rcsOn; const has = v.stages.slice(v.cur).some(s => s.parts.some(p => p.kind === 'rcs')); this.toast(v.rcsOn ? (has ? `RCS on (${(v.rcsFuel * 1000).toFixed(0)} kg monoprop)` : 'RCS on — but this rocket has no RCS ring') : 'RCS off', '#9cc3ff'); }
   takeOverUpper() { const v = this.v; if (v.auto) { v.auto = false; this.autoOn = false; v.steerDir = null; v.sasHold = null; v.holdAtt = null; v.ut = v.throttle; this.toast('You have the upper stage', '#9cc3ff'); } }
-  // f5.9-23: point the booster at the landing zone (boostback) or a droneship on its downrange track; quiet=false is a mid-flight override
+  // f5.9-25: point the booster at the landing zone (boostback) or a droneship on its downrange track; quiet=false is a mid-flight override
   armRecovery(b, mode, sep) { const v = this.v, fuel = b.stages[0].fuel;
     if (!sep) { if (!b || b.state !== 'flying' || b.manual) return false; if (mode === 'rtls' && V.len(b.r) - R < 15000) { this.toast('Too low to boost back: staying on the barge', '#ffb35c'); return false; } }
     if (mode === 'rtls') { b.rtls = true; b.bbDone = false; b._bbE = null; b.canLand = true; this.ship = { ef: this.lzEf.slice(), moved: true, lz: true }; this.call('ship', this.ship);

@@ -1,78 +1,80 @@
 import * as THREE from 'three/webgpu';
-import { createBugReporter } from './fun/bugreport.js?v=f5.9-24';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-24';
+import { createBugReporter } from './fun/bugreport.js?v=f5.9-25';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-25';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.9-24';
-import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-24';
-import * as C from './physics/patched.js?v=f5.9-24';
+import * as P from './physics.js?v=f5.9-25';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-25';
+import * as C from './physics/patched.js?v=f5.9-25';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-24';
-import { createCareerUI } from './fun/career-ui.js?v=f5.9-24';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-24';
-import { createSolarMap } from './solarmap.js?v=f5.9-24';
-import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-24';
-import { FX } from './fx.js?v=f5.9-24';
-import { createAcademy } from './academy-ui.js?v=f5.9-24';
-import { createMobile, isTouch, thrFromY } from './mobile.js?v=f5.9-24';
-import { localize } from './wording.js?v=f5.9-24';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-24';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-24';
-import { createTankViz } from './fun/tankviz.js?v=f5.9-24';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-25';
+import { createCareerUI } from './fun/career-ui.js?v=f5.9-25';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-25';
+import { createSolarMap } from './solarmap.js?v=f5.9-25';
+import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-25';
+import { FX } from './fx.js?v=f5.9-25';
+import { createAcademy } from './academy-ui.js?v=f5.9-25';
+import { createMobile, isTouch, thrFromY } from './mobile.js?v=f5.9-25';
+import { localize } from './wording.js?v=f5.9-25';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-25';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-25';
+import { createTankViz } from './fun/tankviz.js?v=f5.9-25';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // f5.7q (owner): every HUD/pane/card reads the Units setting
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-24';
-import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-24';
-import { guardToasts } from './fun/toastzone.js?v=f5.9-24';
-import * as GX from './gfx/gfx.js?v=f5.9-24';
-import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-24';
-import * as PR from './fun/progress.js?v=f5.9-24';
-import * as WORLD from './fun/world.js?v=f5.9-24';
-import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-24';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-24';
-import { createAudio } from './fun/audio.js?v=f5.9-24';
-import { createMusic } from './fun/music.js?v=f5.9-24';
-import { createCompact } from './fun/compact.js?v=f5.9-24';
-import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-24';
-import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.9-24';
-import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.9-24';
-import { plumeDims, styleFor, vacFactors } from './gfx/plume_style.js?v=f5.9-24'; // QA plume pass: exhaust style per propellant + size from the engine
-import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.9-24';
-import * as UN from './fun/units.js?v=f5.9-24';
-import { buildEndStats } from './fun/endstats.js?v=f5.9-24';
-import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.9-24';
-import { createHome } from './fun/home.js?v=f5.9-24';
-import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-24';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-24';
-import { createFunUI } from './fun/ui.js?v=f5.9-24';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-24';
-import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-24';
-import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-24'; // f6.2: craft types, switching between vessels
-import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-24';
-import { createVesselUI } from './fun/vesselui.js?v=f5.9-24';
-import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.9-24';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.9-24';
-import { dimsOf } from './vehicles/dims.js?v=f5.9-24';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.9-24';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.9-24';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.9-24';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker, SHORT as SHORT_HOUSE } from './fun/picker.js?v=f5.9-24';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-25';
+import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-25';
+import { guardToasts } from './fun/toastzone.js?v=f5.9-25';
+import * as GX from './gfx/gfx.js?v=f5.9-25';
+import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-25';
+import * as PR from './fun/progress.js?v=f5.9-25';
+import * as WORLD from './fun/world.js?v=f5.9-25';
+import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-25';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-25';
+import { createAudio } from './fun/audio.js?v=f5.9-25';
+import { createMusic } from './fun/music.js?v=f5.9-25';
+import { createCompact } from './fun/compact.js?v=f5.9-25';
+import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-25';
+import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.9-25';
+import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.9-25';
+import { plumeDims, styleFor, vacFactors } from './gfx/plume_style.js?v=f5.9-25'; // QA plume pass: exhaust style per propellant + size from the engine
+import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.9-25';
+import * as UN from './fun/units.js?v=f5.9-25';
+import { buildEndStats } from './fun/endstats.js?v=f5.9-25';
+import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.9-25';
+import { createHome } from './fun/home.js?v=f5.9-25';
+import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-25';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-25';
+import { createFunUI } from './fun/ui.js?v=f5.9-25';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-25';
+import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-25';
+import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-25'; // f6.2: craft types, switching between vessels
+import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-25';
+import { createVesselUI } from './fun/vesselui.js?v=f5.9-25';
+import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.9-25';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.9-25';
+import { dimsOf } from './vehicles/dims.js?v=f5.9-25';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.9-25';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.9-25';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.9-25';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker, SHORT as SHORT_HOUSE } from './fun/picker.js?v=f5.9-25';
+import { rigOf, boosterPose, applyBooster, shipPose, applyShip } from './gfx/vehicles/articulate.js?v=f5.9-25';
+import { writeStruts } from './gfx/vehicles/staged.js?v=f5.9-25';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-24';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-24';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-24';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-24';
-import { createDock } from './fun/dock.js?v=f5.9-24'; // f5.9a: top bar + bottom bar
-import { createXferPlanner } from './fun/xferui.js?v=f5.9-24'; // f6.5 pre-launch transfer planner
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-25';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-25';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-25';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-25';
+import { createDock } from './fun/dock.js?v=f5.9-25'; // f5.9a: top bar + bottom bar
+import { createXferPlanner } from './fun/xferui.js?v=f5.9-25'; // f6.5 pre-launch transfer planner
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -317,7 +319,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.9-24').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.9-25').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -750,7 +752,7 @@ const hooks = {
     for (const p of [b, ...(parts || [])]) if (p && p.mesh) legsOf(p.mesh); // f5.9-14 (QA P3): a detached booster group always lists its leg sets (heron-heavy read null)
     stagingDrama(v.r, v.v, P.noseOf(v)); },
   drop: d => { if (opHooks) try { opHooks.drop(d); } catch (e) {} d.mesh = detachStage(d.stageIndex); d.t = 0; d.spin = [rnd(0.6), rnd(0.6)]; debris.push(d); stagingDrama(v.r, v.v, P.noseOf(v)); },
-  ship: s => { if (s.lz) { if (s.name === 'LZ-2') shipVis2 = makeLZ(s); else { if (shipVis) earth.remove(shipVis); shipVis = makeLZ(s); } return; } if (shipVis) earth.remove(shipVis); shipVis = makeShip(s); }, // f5.9-23: a mid-flight recovery switch swaps the target // RTLS: the landing zone is the pad area, no droneship
+  ship: s => { if (s.lz) { if (s.name === 'LZ-2') shipVis2 = makeLZ(s); else { if (shipVis) earth.remove(shipVis); shipVis = makeLZ(s); } return; } if (shipVis) earth.remove(shipVis); shipVis = makeShip(s); }, // f5.9-25: a mid-flight recovery switch swaps the target // RTLS: the landing zone is the pad area, no droneship
   shipMoved: s => shipVis && onSurface(shipVis, s.ef, 0),
   jettison: () => { try { spawnFairHalves(); } catch (e) { console.warn('[Orbit Rush] fairing halves', e); } heroFairing(false); heroFairing2(false); const f = SG[SG.length - 1].userData.fair; if (f) f.visible = false; /* fx-1: no white puffs in vacuum at fairing sep (the halves show it) */ beep(990); },
   // keys held for the booster must not leak into the upper stage (and vice versa) when control switches
@@ -772,6 +774,22 @@ const hooks = {
 // Move a spent stage out of the rocket into the world; the rest of the stack drops down to the new bottom.
 // f4.2: the detached side pair is one group (both columns + struts). Make one holder per side booster: a deep copy
 // with only that side's meshes visible, re-centred on that column so each sim's r is its own booster's centre.
+// legs-fins-1: drive a recovered booster's leg / grid-fin pivots from its sim state (body rates from the change of its axis, glide command b.fin)
+const _art = new WeakMap();
+function articulateBooster(b, mesh, alt, dt) {
+  const rig = rigOf(mesh, () => new THREE.Group()); if (!rig.legs.length && !rig.fins.length) return;
+  let st = _art.get(b); if (!st) { st = { t0: F.met, dir: b.dir.slice() }; _art.set(b, st); }
+  const up = V.norm(b.r), d = b.dir, cx = V.cross(d, up), e1 = V.len(cx) > 1e-4 ? V.norm(cx) : V.norm(V.cross(d, P.eastOf(b.r))), e2 = V.cross(d, e1), w = V.scale(V.cross(st.dir, d), 1 / Math.max(dt, 1e-3)); st.dir = d.slice();
+  const g = b.fin ? [V.dot(b.fin, e1), 0, V.dot(b.fin, e2)] : null;
+  applyBooster(rig, boosterPose({ state: b.state, phase: b.phase, bbDone: b.bbDone, legs: b.legs, rtls: b.rtls, alt, tSep: F.met - st.t0, fin: g, rates: [V.dot(w, e1), V.dot(w, e2), 0] }), Math.min(dt, 0.5));
+  if (rig.legMoved) for (const m of rig.struts) writeStruts(m);
+}
+const _shipArt = { dir: null };
+function articulateShip(g, nose, dt) {
+  const rig = rigOf(g); if (!rig.flaps.length) return; const up = V.norm(v.r), cx = V.cross(nose, up), e1 = V.len(cx) > 1e-4 ? V.norm(cx) : P.eastOf(v.r), e2 = V.cross(nose, e1);
+  const w = _shipArt.dir ? V.scale(V.cross(_shipArt.dir, nose), 1 / Math.max(dt, 1e-3)) : [0, 0, 0]; _shipArt.dir = nose.slice();
+  applyShip(rig, shipPose({ state: F.flags.landed ? 'landed' : 'flying', vr: V.dot(v.v, up), alt: F.alt, t: F.met, rates: [V.dot(w, e1), V.dot(w, e2), 0] }), Math.min(dt, 0.5));
+}
 function legsOf(m) { const u = m.userData; if (Array.isArray(u.legs) && u.legs.length || u.legs && u.legs.isObject3D) return u.legs; const L = []; m.traverse(o => { if (o !== m && o.userData && o.userData.pivots && !L.includes(o)) L.push(o); }); u.legs = L; return L; }
 function splitSideMesh(g) {
   g.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(g.matrixWorld).invert(), bx = new THREE.Box3(), c = new THREE.Vector3();
@@ -886,7 +904,7 @@ function heroPiece(i) { // a copy of the dropped hero stage rides on the detache
   for (const k of keys) if (st[k]) { const c = st[k].clone(); grp.add(c); }
   if (!grp.children.length) return null; grp.scale.copy(hero.scale); grp.position.y = -y0; return grp;
 }
-function heroFairing(on) { if (!hero) return; heroBay(!on); heroSyncPayload(); for (const lv of hero.levels || [{ object: hero }]) { const ud = lv.object.userData || {}, st = ud.stages || {}; if (st.payload && !ud.fixedNose) st.payload.visible = on; } }
+function heroFairing(on) { if (!hero) return; if (on || !heroPez()) heroBay(!on); /* legs-fins-1: a slot dispenser stays shut at fairing time; it opens on RELEASE */ heroSyncPayload(); for (const lv of hero.levels || [{ object: hero }]) { const ud = lv.object.userData || {}, st = ud.stages || {}; if (st.payload && !ud.fixedNose) st.payload.visible = on; } }
 // rockets-pass-1: the payload is a real mesh on the model from t=0 (under the shell, or in a ship's bay) and the one RELEASE sends away
 const heroLevels = () => hero ? (hero.levels || [{ object: hero }]).map(l => l.object) : [];
 let heroKind = null, bayK = 0, bayTarget = 0; // heroKind: the payload look built into the hero; bayK: ship bay opening 0..1
@@ -898,9 +916,10 @@ function heroSyncPayload() { // the mission (and so the payload look) may only b
   if (F && F.fleet) F.craftHint = craftHintNow();
   if (!hero) return; const k = payloadKind(); if (k === heroKind) return; heroKind = k;
   for (const o of heroLevels()) { try { heroSetPayload(o, o.userData.id || design.model, k, o.userData.detail || 'hi'); } catch (e) { console.warn('[Orbit Rush] hero payload', e); } } }
+function heroPez() { return !!hero && heroLevels().some(o => o.userData.bayTime); }
 function heroBay(open) { bayTarget = open ? 1 : 0; if (!open) bayK = 0; heroBayApply(); }
 function heroBayApply() { for (const o of heroLevels()) if (o.userData.bayExpose) o.userData.bayExpose(bayK); }
-function bayTick(dt) { if (bayK === bayTarget) return; bayK += Math.sign(bayTarget - bayK) * Math.min(Math.abs(bayTarget - bayK), dt / 2.5); heroBayApply(); }
+function bayTick(dt) { if (pezRel && bayK >= 1) finishRelease(pezRel); if (bayK === bayTarget) return; const bt = (heroLevels().map(o => o.userData.bayTime).find(Boolean)) || 2.5; bayK += Math.sign(bayTarget - bayK) * Math.min(Math.abs(bayTarget - bayK), dt / bt); /* legs-fins-1: a slot deploy runs longer */ heroBayApply(); }
 function heroTakePayload() { // detach the model's own payload mesh: the SAME object flies on as the released payload (no new mesh appears)
   if (!hero) return null; let src = null; rocketG.updateMatrixWorld(true);
   for (const o of heroLevels()) { const s = (o.userData.stages || {}).sat; if (!s) continue; if (!src) src = s; else s.visible = false; } // lower LODs just hide theirs
@@ -1001,7 +1020,9 @@ function payloadName() { const W0 = WORLD.load(localStorage), c = isConstellatio
 function onRelease(rec) {
   const o = WORLD.add(localStorage, { ...rec, name: payloadName(), group: isConstellation() ? 'constellation' : 'other', model: design.model || null, mission: director ? director.id : null });
   rec.saved = o; try { F.linkReleased(rec); } catch (e) { } if (o) fun.call('🛰', `${o.name} deployed · ${WORLD.count(WORLD.load(localStorage))} in orbit`, '#7dffb0');
-  if (satVis) freeSat(); heroSyncPayload(); const tk = heroTakePayload(); let g, sat, q0 = null;
+  if (satVis) freeSat(); heroSyncPayload(); if (heroPez() && !rec.pezDone) { rec.pezDone = true; heroBay(true); pezRel = rec; return; } finishRelease(rec); }
+let pezRel = null; // legs-fins-1: release waits for the slot sequence, then the same payload object flies on
+function finishRelease(rec) { pezRel = null; const tk = heroTakePayload(); let g, sat, q0 = null;
   if (tk) { g = tk.outer; sat = tk.src; q0 = tk.q0; } else { sat = buildPayload(payloadKind() || 'comsat', { detail: 'hi', r: 1.0, h: 3.0 }); g = new THREE.Group(); sat.position.y = -sat.userData.cy * sat.scale.y; g.add(sat); } // no hero model (custom design): the same payload builder
   scene.add(g); satVis = { g, sat, rec, t: 0, q0 }; updateEndFlightBtn(); }
 // f5.4k: after RELEASE the chase camera frames the sat and the stage together (aim at their midpoint, pull back to fit both)
@@ -1749,6 +1770,7 @@ renderer.setAnimationLoop(() => {
   worldVis(base, O, nose);
   if (state === 'flight' && !F.flags.dead && SG[v.cur]) emit(v, SG[v.cur], pdt, base, nose);
   else for (let j = v.cur; j < SG.length; j++) SG[j].userData.plume.visible = false;
+  if (state === 'flight' && SG[v.cur]) articulateShip(SG[v.cur], nose, pdt); // legs-fins-1: ship flaps work the belly-flop and flip
   { const lg = v.cur === 0 && SG[0] && SG[0].userData.legs; if (lg) { const on = state === 'flight' && (!!v.legs || !!F.flags.landed); if (lg.visible !== on) { lg.visible = on; lg.traverse(o => { if (o.isMesh) o.visible = on; }); } } } // fx-2: landing legs on the flying rocket (hop)
   if (state === 'flight' && !F.flags.dead && SG[v.cur] && SG[v.cur].userData.radial && SG[v.cur + 1] && parallelCore()) emit(v, SG[v.cur + 1], pdt, base, nose); // fx-1: Heavy core lights with its side boosters (Vehicle Specs: parallel stage)
   const ovl = (SET.overlay && state === 'flight' && !F.flags.dead && camMode !== 'map');
@@ -1765,6 +1787,7 @@ renderer.setAnimationLoop(() => {
   for (const bq of [booster, booster2]) if (bq && bq.mesh && bq.mesh.visible) { // f4.2: each side booster
     setRel(bq.mesh, bq.r, O); dirQ(bq.mesh, bq.dir);
     const bh = V.len(bq.r) - R, legs = bq.mesh.userData.legs; if (legs) { const on = bq.state === 'landed' || (bq.state === 'flying' && (bq.legs || bh < 600)); if (!Array.isArray(legs)) legs.visible = on; } // staged leg sets (arrays) stay visible, folded until deploy;
+    articulateBooster(bq, bq.mesh, bh, pdt); // legs-fins-1: legs swing down, grid fins open after the boostback and steer the descent
     if (bq.state === 'flying') emit(bq, bq.mesh, pdt, bq.r, bq.dir); else bq.mesh.userData.plume.visible = false;
   }
   // ground tile follows the focus (Earth-fixed coordinates)
@@ -1883,18 +1906,18 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
   pp.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; pp.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0;
     if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); d0 = split.dist; camD0 = camDist; } e.stopPropagation(); });
   pp.addEventListener('pointermove', e => { const p = pts.get(e.pointerId); if (!p) return; const dx = e.clientX - p[0], dy = e.clientY - p[1]; pts.set(e.pointerId, [e.clientX, e.clientY]);
-    if (split.full === 'b') { /* f5.9-23 (owner): the full-screen booster view is drawn by the main camera: drag orbits it, pinch zooms it */ camUserT = performance.now(); manual();
+    if (split.full === 'b') { /* f5.9-25 (owner): the full-screen booster view is drawn by the main camera: drag orbits it, pinch zooms it */ camUserT = performance.now(); manual();
       if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) camDist = Math.max(12, Math.min(400, camD0 * pinch0 / Math.max(d, 1))); moved = 99; }
       else { moved += Math.abs(dx) + Math.abs(dy); const k = SET.sens.cam; camYaw -= dx * 0.006 * k; camPitch = clampCamPitch(camPitch + dy * 0.004 * k); } e.stopPropagation(); return; }
     if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) split.dist = Math.max(25, Math.min(1500, d0 * pinch0 / Math.max(d, 1))); moved = 99; manual(); }
     else { moved += Math.abs(dx) + Math.abs(dy); split.yaw -= dx * 0.008; split.pitch = Math.max(-0.4, Math.min(1.3, split.pitch + dy * 0.006)); split.userT = performance.now(); manual(); } e.stopPropagation(); });
   const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0;
-    if (!pts.size && moved < 8) { if (split.full === 'b') { /* f5.9-23: a tap in the full view no longer drops you out of it (⤡ BACK does) */ } else if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; camDist = 90; } } e.stopPropagation(); };
+    if (!pts.size && moved < 8) { if (split.full === 'b') { /* f5.9-25: a tap in the full view no longer drops you out of it (⤡ BACK does) */ } else if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; camDist = 90; } } e.stopPropagation(); };
   pp.addEventListener('pointerup', up); pp.addEventListener('pointercancel', up);
   pp.addEventListener('wheel', e => { if (split.full === 'b') { camUserT = performance.now(); camDist = Math.max(12, Math.min(400, camDist * Math.exp(e.deltaY * 0.001 * SET.sens.zoom))); manual(); e.preventDefault(); e.stopPropagation(); return; } split.dist = Math.max(25, Math.min(1500, split.dist * Math.exp(e.deltaY * 0.001))); manual(); e.preventDefault(); e.stopPropagation(); }, { passive: false });
   $('spMain').onclick = () => { if (split.full) { split.full = null; camMode = 'chase'; } };
   $('spFullU').onclick = e => { e.stopPropagation(); split.full = split.full === 'u' ? null : 'u'; camMode = 'chase'; }; // f5.3: focus the upper stage (keeps its own card)
-  $('spRec').addEventListener('pointerdown', e => e.stopPropagation()); // f5.9-23: recovery override for this flight (AUTO re-picks from the separation state)
+  $('spRec').addEventListener('pointerdown', e => e.stopPropagation()); // f5.9-25: recovery override for this flight (AUTO re-picks from the separation state)
   $('spRec').addEventListener('click', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt || !F || !booster || !booster.recPlan) return; const w = bt.dataset.rec, rp = booster.recPlan;
     if (w === 'auto') { if (rp.mode === rp.auto || F.setRecovery(rp.auto)) { rp.pref = 'auto'; rp.why = rp.whyAuto; } } else if (rp.mode === w || F.setRecovery(w)) rp.pref = w; });
   $('spCtl').onclick = e => { e.stopPropagation(); if (booster && booster.state === 'flying' && F.ship && booster.stages[0].fuel > 0) F.toggleBooster(); else toast('The booster is on autopilot', '#9cc3ff'); };
@@ -1934,14 +1957,14 @@ function updateSplit(rdt) {
   if (flying) split.landT = 0;
   if (!want) document.body.classList.remove('pip');
   if (want !== split.on) { split.on = want; $('split').classList.toggle('hidden', !want); if (!want && camMode !== 'map') { split.full = null; if (camMode === 'booster' && !(b && b.state === 'flying')) camMode = 'chase'; split.replay = null; } }
-  if (!split.on) { const sp = $('split'); if (sp.classList.contains('fullB') || sp.classList.contains('fullU')) { sp.classList.remove('fullB', 'fullU'); document.body.classList.remove('pip'); } return; } // f5.9-22 (QA f5.9-23 P1): leaving the booster view clears .fullB, so the navball and telemetry come back
+  if (!split.on) { const sp = $('split'); if (sp.classList.contains('fullB') || sp.classList.contains('fullU')) { sp.classList.remove('fullB', 'fullU'); document.body.classList.remove('pip'); } return; } // f5.9-22 (QA f5.9-25 P1): leaving the booster view clears .fullB, so the navball and telemetry come back
   const nb = 1, R2 = paneRect(0, nb), fb = split.full === 'b'; // f5.6e (QA): two panes max on every screen (Heavy's 2nd booster has no pane)
   $('split').classList.toggle('portrait', splitPortrait()); $('split').classList.toggle('pipM', true); document.body.classList.toggle('pip', split.full !== 'b'); /* f5.7m (QA f5.7j P1): Heron Heavy uses the same inset */  // f5.6u (QA P1): at orbit the phone's upper pane drops its empty card + label
  $('split').classList.toggle('fullB', fb); $('split').classList.toggle('fullU', split.full === 'u'); $('split').classList.toggle('tri', nb > 1);
   { const p2 = $('spPane2'), on2 = nb > 1 && !fb; p2.classList.toggle('hidden', !on2); if (on2) { const r3 = paneRect(1, nb), s2 = p2.style; s2.left = r3.x + 'px'; s2.top = r3.y + 'px'; s2.width = r3.w + 'px'; s2.height = r3.h + 'px'; } }
   { const sf = $('spFull'), lb = fb ? '⤡ BACK' : 'BOOSTER ⤢'; if (sf && sf.textContent !== lb) sf.textContent = lb; } /* f5.9-10: the label follows the view (it was set once) */
   layoutSplitCards(nb, fb);
-  const st = $('spPane').style; if (fb) { /* f5.9-23: the full view's touch surface runs between the two bars, so the split layer can sit above the bottom bar (its strip lives there) without covering a bar button */ const tb = $('topBar'), bb = $('botBar'), t0 = tb && tb.offsetHeight ? Math.round(tb.getBoundingClientRect().bottom) : 0, b0 = bb && bb.offsetHeight ? Math.round(bb.getBoundingClientRect().top) : innerHeight; st.left = '0'; st.top = t0 + 'px'; st.width = '100%'; st.height = Math.max(100, b0 - t0) + 'px'; } else { st.left = R2.x + 'px'; st.top = R2.y + 'px'; st.width = R2.w + 'px'; st.height = R2.h + 'px'; }
+  const st = $('spPane').style; if (fb) { /* f5.9-25: the full view's touch surface runs between the two bars, so the split layer can sit above the bottom bar (its strip lives there) without covering a bar button */ const tb = $('topBar'), bb = $('botBar'), t0 = tb && tb.offsetHeight ? Math.round(tb.getBoundingClientRect().bottom) : 0, b0 = bb && bb.offsetHeight ? Math.round(bb.getBoundingClientRect().top) : innerHeight; st.left = '0'; st.top = t0 + 'px'; st.width = '100%'; st.height = Math.max(100, b0 - t0) + 'px'; } else { st.left = R2.x + 'px'; st.top = R2.y + 'px'; st.width = R2.w + 'px'; st.height = R2.h + 'px'; }
   split.frame++; if (b) { // f4.1b: every frame (was every 6th — at low fps the cards lagged by seconds)
     const card = (b, label, hud, ball, rp) => { const bh = V.len(b.r) - R, bu = V.norm(b.r), bva = P.airVel(b, b.r, b.v), vs = V.dot(bva, bu);
       const bf = b.stages[0], bs = V.len(bva), bPh = rp ? '⟲ REPLAY' : b.state === 'landed' ? '✔ LANDED' : b.state !== 'flying' ? '✘ LOST' : b.manual ? '🎮 YOU' : 'AUTO · ' + apPill(b.phase);
@@ -1976,8 +1999,8 @@ function placeIn(el, r, corner) { if (!el) return; const s = el.style, sat = par
 function layoutSplitCards(nb, fb) {
   const bb = document.getElementById('botBar'), bbH = bb && bb.offsetHeight ? Math.round(bb.getBoundingClientRect().height) : 0, full = { x: 0, y: 0, w: innerWidth, h: innerHeight - bbH }, rb = fb ? full : paneRect(0, nb); /* f5.9-10 (QA f5.9-9 P2): the expanded booster card sits on top of the bottom bar, not dimmed under it */
   placeIn($('spCardU'), upperRect(nb), 'strip'); placeIn($('spBtnsU'), upperRect(nb), 'btns');
-  let rbS = rb; if (fb && bb && bbH) { const bR = bb.getBoundingClientRect(); let xr = innerWidth; for (const id of ['mright', 'dCtl']) { const el = $(id); if (el && el.offsetWidth && bb.contains(el)) xr = Math.min(xr, el.getBoundingClientRect().left - 6); } rbS = { x: 0, y: Math.round(bR.top), w: Math.max(200, Math.round(xr)), h: Math.round(bR.height) }; } /* f5.9-23 (owner): no dead band: the booster strip lives in the bottom bar beside the thumb controls */
-  { const rc = $('spRec'); if (rc && bb && rc.parentNode !== bb) bb.appendChild(rc); } // f5.9-23: the recovery row is a bar control (f5.9: every button lives in a bar)
+  let rbS = rb; if (fb && bb && bbH) { const bR = bb.getBoundingClientRect(); let xr = innerWidth; for (const id of ['mright', 'dCtl']) { const el = $(id); if (el && el.offsetWidth && bb.contains(el)) xr = Math.min(xr, el.getBoundingClientRect().left - 6); } rbS = { x: 0, y: Math.round(bR.top), w: Math.max(200, Math.round(xr)), h: Math.round(bR.height) }; } /* f5.9-25 (owner): no dead band: the booster strip lives in the bottom bar beside the thumb controls */
+  { const rc = $('spRec'); if (rc && bb && rc.parentNode !== bb) bb.appendChild(rc); } // f5.9-25: the recovery row is a bar control (f5.9: every button lives in a bar)
   { const rc = $('spRec'), on = rbS !== rb && rc && !rc.classList.contains('hidden'), wide = rbS.w >= 560; /* wide bars: telemetry left, recovery right; narrow (phone portrait): recovery under the telemetry */ if (on) { const q = rc.style; q.setProperty('left', (wide ? Math.round(rbS.w * 0.56) : 8) + 'px', 'important'); q.setProperty('width', Math.max(160, wide ? Math.round(rbS.w * 0.44) - 8 : rbS.w - 12) + 'px', 'important'); }
     if (on) { if (wide) rbS = { ...rbS, w: Math.round(rbS.w * 0.56) }; else { const rh = Math.round(rc.getBoundingClientRect().height) || 0; rbS = { ...rbS, h: Math.max(40, rbS.h - rh - 4) }; } } }
   $('spCardB').classList.toggle('inBar', rbS !== rb); placeIn($('spCardB'), rbS, 'strip'); const pb = document.querySelector('.spBtns:not(#spBtnsU)'); if (pb && pb.closest('#topBar')) { for (const k of ['position', 'top', 'bottom', 'left', 'right']) pb.style.removeProperty(k); } else placeIn(pb, rb, 'btns'); // f5.9: the booster buttons live in the top bar

@@ -20,9 +20,9 @@
     "lo": "assets/rockets/heron-9-v11/booster.lo.glb"
    },
    "tris": {
-    "hi": 11054,
-    "mid": 4540,
-    "lo": 1272
+    "hi": 12510,
+    "mid": 5228,
+    "lo": 1200
    },
    "offset": [
     0,
@@ -196,9 +196,9 @@
    "legs": 4,
    "grid_fins": 4,
    "bytes": {
-    "hi": 97252,
-    "mid": 48632,
-    "lo": 26752
+    "hi": 101236,
+    "mid": 51352,
+    "lo": 26084
    }
   },
   {
@@ -207,8 +207,8 @@
    "prop": "kerolox",
    "asset": {
     "hi": "assets/rockets/heron-9-v11/upper.hi.glb",
-    "mid": "assets/rockets/heron-9-v11/upper.mid.glb",
-    "lo": "assets/rockets/heron-9-v11/upper.lo.glb"
+    "mid": "assets/rockets/_shared/4af595f6fd.mid.glb",
+    "lo": "assets/rockets/_shared/1707bdd22a.lo.glb"
    },
    "tris": {
     "hi": 2142,
@@ -275,9 +275,9 @@
    "role": "fairing",
    "prop": "kerolox",
    "asset": {
-    "hi": "assets/rockets/heron-9-v11/payload.hi.glb",
-    "mid": "assets/rockets/heron-9-v11/payload.mid.glb",
-    "lo": "assets/rockets/heron-9-v11/payload.lo.glb"
+    "hi": "assets/rockets/_shared/986a2baf45.hi.glb",
+    "mid": "assets/rockets/_shared/84c4b667f3.mid.glb",
+    "lo": "assets/rockets/_shared/b452a6436f.lo.glb"
    },
    "tris": {
     "hi": 4304,
@@ -339,8 +339,8 @@
   "payload"
  ],
  "bytes": {
-  "hi": 154940,
-  "mid": 78180,
-  "lo": 43072
+  "hi": 158924,
+  "mid": 80900,
+  "lo": 42404
  }
 }

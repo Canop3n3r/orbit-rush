@@ -1,4 +1,4 @@
-// f5.9-23: booster recovery autopilot: AUTO picks return-to-site when the boostback fits in the propellant left at
+// f5.9-25: booster recovery autopilot: AUTO picks return-to-site when the boostback fits in the propellant left at
 // separation, else a barge on the downrange track; a setting forces either, and setRecovery switches mid-flight.
 import { Flight } from '../flight.js';
 import { SHOWROOM } from '../fun/showroom.js';

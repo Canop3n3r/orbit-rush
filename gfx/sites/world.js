@@ -6,7 +6,7 @@
 // Trunks, rocks and hill skirts reach 2.5 m below y = 0 so they meet the game's ground tile (main.js PAD_SINK 2 m) without floating.
 // Photo textures (CC0, assets/world/*.webp, see CREDITS.md) replace the procedural canvas maps in the browser only (node tests: none).
 import * as THREE from 'three/webgpu';
-import { landTest, keepOut } from './worldmask.js?v=f5.9-24';
+import { landTest, keepOut } from './worldmask.js?v=f5.9-25';
 export { landTest, keepOut };
 const ER = 6378137, SINK = 2.5;
 function rnd(seed) { let x = (seed >>> 0) || 1; return () => ((x = (x * 1664525 + 1013904223) >>> 0) / 4294967296); }

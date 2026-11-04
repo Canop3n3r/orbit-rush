@@ -1,4 +1,4 @@
-// f5.9-23: full-screen booster view: the strip sits in the bottom bar band, a drag / wheel moves the main camera, and the
+// f5.9-25: full-screen booster view: the strip sits in the bottom bar band, a drag / wheel moves the main camera, and the
 // recovery autopilot row (AUTO / RTLS / BARGE) shows the picked mode and why, and switches it for this flight.
 //   U=http://localhost:8982/ [VP=390x844] [OUT=/workspace/shots] node tests/smoke/boost_recovery.cjs
 const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-core'); const { CHECK } = require('./ui_walk.cjs');

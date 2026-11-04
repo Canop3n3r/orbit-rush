@@ -1,6 +1,6 @@
 // world-pop-1: pure (node-testable) land and keep-out masks for site dressing, in the site's local frame (+X east, +Z south, metres
 // from the pad). Coastal sites use the same shaped coast + margin as tests/sites_on_land.mjs; islands use the site's land apron / sand disc.
-import { latLonToGame, coastEastM, COAST } from '../earthmap.js?v=f5.9-24';
+import { latLonToGame, coastEastM, COAST } from '../earthmap.js?v=f5.9-25';
 const ER = 6378137;
 export function landTest(S) { const L = S.land, g = (S.layout || []).find(o => o.k === 'ground');
   if (S.body !== 'earth') return () => true;

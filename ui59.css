@@ -835,7 +835,7 @@ html body.u59 #home #hTop .hLogo{min-width:0;overflow:hidden;white-space:nowrap;
 /* f5.9-20 (QA f5.9-19 P2): 740x360 short phones: the ΔV stages stay on ONE line under Ap/Pe (they wrapped and rose into Pe) */
 @media (orientation:landscape) and (max-height:380px){html body.u59 #botBar #dvStages{white-space:nowrap!important;flex-wrap:nowrap!important;overflow:hidden;font-size:11px!important;line-height:12px!important;max-height:12px}html body.u59 #botBar #dvStages *{white-space:nowrap!important}}
 
-/* f5.9-23 (owner): full-screen booster view: the strip sits in the bottom bar band (no dead band), with the recovery autopilot row */
+/* f5.9-25 (owner): full-screen booster view: the strip sits in the bottom bar band (no dead band), with the recovery autopilot row */
 #spRec{display:none}
 body.u59 #split.fullB:has(#spCardB.inBar){z-index:61}
 body.u59:has(#split.fullB #spCardB.inBar) #topBar{z-index:62}
@@ -887,7 +887,7 @@ html body.u59 #botBar :is(#mThr,#dThr) u{font-size:12px!important;font-weight:80
 html body.u59 #tbC #hintS{align-self:center}
 /* f5.9-22 (owner): after a separation or craft switch the active craft keeps the same controls: STAGE stays, greyed, when nothing is left to stage */
 html body.u59.noStage #botBar :is(#mStage,#dStage){display:inline-flex!important;align-items:center;justify-content:center;pointer-events:none}
-/* f5.9-22 (QA f5.9-23 P2): the top bar stays above the full booster view; the recovery "why" line wraps instead of clipping */
+/* f5.9-22 (QA f5.9-25 P2): the top bar stays above the full booster view; the recovery "why" line wraps instead of clipping */
 body.u59:has(#split.fullB:not(.hidden)) #topBar{z-index:62}
 @media (max-width:560px){#spRec .spRecW{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:100%}}
 /* f5.9-22 (QA P2): on a 390 phone the Pause bar is two rows of three, with room around Quicksave / Quickload */

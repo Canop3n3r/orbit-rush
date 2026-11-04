@@ -7,68 +7,70 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=f5.9-24';
+import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=f5.9-25';
+import { pezState, pezInZ } from './pez.js?v=f5.9-25';
+import { FLAP_SHAPE, FLAP_ROOT, flapHinge } from './flapgeom.js?v=f5.9-25';
 export { dispose, release, geometryCacheSize };
-import * as PR from './profiles.js?v=f5.9-24';
-import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f5.9-24';
+import * as PR from './profiles.js?v=f5.9-25';
+import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f5.9-25';
 export { setLegs, mat };
-import { buildPayload, registerPayload } from './payloads.js?v=f5.9-24';
-import { stagedReady, buildStaged, preloadStaged, stagedEnabled, loadIndex as stagedIndex } from './staged.js?v=f5.9-24'; // f6.0: Blender stage assets (one .glb per stage); procedural fallback when a rocket has none
+import { buildPayload, registerPayload } from './payloads.js?v=f5.9-25';
+import { stagedReady, buildStaged, preloadStaged, stagedEnabled, loadIndex as stagedIndex } from './staged.js?v=f5.9-25'; // f6.0: Blender stage assets (one .glb per stage); procedural fallback when a rocket has none
 export { preloadStaged, stagedReady, stagedEnabled, stagedIndex };
-import { CRYO } from './cryo.js?v=f5.9-24';
-import { dressStages } from './dress.js?v=f5.9-24';
-import { OWN_PAYLOAD } from './payload_kinds.js?v=f5.9-24';
-import { applyLivery } from './logos.js?v=f5.9-24'; // logos-deploy-1: house logo decals
-import './craft_models.js?v=f5.9-24'; // f6.2: registers the craft shapes (cubesat, geosat, crew, station, lander, tug, kick) as payload kinds
+import { CRYO } from './cryo.js?v=f5.9-25';
+import { dressStages } from './dress.js?v=f5.9-25';
+import { OWN_PAYLOAD } from './payload_kinds.js?v=f5.9-25';
+import { applyLivery } from './logos.js?v=f5.9-25'; // logos-deploy-1: house logo decals
+import './craft_models.js?v=f5.9-25'; // f6.2: registers the craft shapes (cubesat, geosat, crew, station, lander, tug, kick) as payload kinds
 export { buildPayload };
-import { CO_CIVSPACE } from './co_civspace.js?v=f5.9-24'; // co-civspace-1: NOSA heritage vehicles
-import { CO_SOUTHSTAR_B } from './co_ssb.js?v=f5.9-24';
-import { CO_KOMETA } from './co_kometa.js?v=f5.9-24';
-import { CO_ALBION } from './co_albion.js?v=f5.9-24';
-import { CO_EUROPIA } from './co_europia.js?v=f5.9-24';
-import { CO_VEGARA } from './co_vegara.js?v=f5.9-24';
-import { CO_ARION } from './co_arion.js?v=f5.9-24';
-import { CO_BLUEHZ } from './co_bluehz.js?v=f5.9-24';
-import { CO_BOLT } from './co_bolt.js?v=f5.9-24';
-import { CO_CONVEX } from './co_convex.js?v=f5.9-24';
-import { CO_DOUGWING } from './co_dougwing.js?v=f5.9-24';
-import { CO_CNFOLL } from './co_cnfoll.js?v=f5.9-24';
-import { CO_ORBITRON_B } from './co_orbitron_b.js?v=f5.9-24';
-import { CO_ISRA_B } from './co_isra_b.js?v=f5.9-24';
-import { CO_LEVANT } from './co_levant.js?v=f5.9-24';
-import { CO_SKYLAND } from './co_skyland.js?v=f5.9-24';
-import { CO_SOUTHSTAR_C } from './co_southstar_c.js?v=f5.9-24';
-import { CO_JAXO_B } from './co_jaxo_b.js?v=f5.9-24';
-import { CO_MARTELL_B } from './co_martell_b.js?v=f5.9-24';
-import { CO_CONVEX_B } from './co_convex_b.js?v=f5.9-24';
-import { CO_JADE_B } from './co_jade_b.js?v=f5.9-24';
-import { CO_KRUNOV_B } from './co_krunov_b.js?v=f5.9-24';
-import { CO_EXPL } from './co_expl.js?v=f5.9-24';
-import { CO_GALEN } from './co_galen.js?v=f5.9-24';
-import { CO_DOUGWING_B } from './co_dougwing_b.js?v=f5.9-24';
-import { CO_GAULOIS } from './co_gaulois.js?v=f5.9-24';
-import { CO_JADELANTERN2 } from './co_jadelantern2.js?v=f5.9-24';
-import { CO_JADELANTERN } from './co_jadelantern.js?v=f5.9-24';
-import { CO_IRG } from './co_irg.js?v=f5.9-24';
-import { CO_ISRA } from './co_isra.js?v=f5.9-24';
-import { CO_TSURUGI } from './co_tsurugi.js?v=f5.9-24';
-import { CO_JAXO } from './co_jaxo.js?v=f5.9-24';
-import { CO_MOGUTNY } from './co_mogutny.js?v=f5.9-24';
-import { CO_MOONHAMMER } from './co_moonhammer.js?v=f5.9-24';
-import { CO_KRASNAYA } from './co_krasnaya.js?v=f5.9-24'; // co-krasnaya-1: early-rocketry family
-import { CO_TAIGA } from './co_taiga.js?v=f5.9-24';
-import { CO_KRUNOV } from './co_krunov.js?v=f5.9-24';
-import { CO_LINGVOLT } from './co_lingvolt.js?v=f5.9-24';
-import { CO_MARTELL } from './co_martell.js?v=f5.9-24';
-import { CO_VANTGUARD } from './co_vantguard.js?v=f5.9-24';
-import { CO_CIVSPACE2 } from './co_civspace2.js?v=f5.9-24';
-import { CO_ORBITRON } from './co_orbitron.js?v=f5.9-24';
-import { CO_ORIGINALS } from './co_originals.js?v=f5.9-24';
-import { CO_ROCKETWELL } from './co_rocketwell.js?v=f5.9-24'; // co-rocketwell-1
-import { CO_SOUTHSTAR } from './co_southstar.js?v=f5.9-24';
-import { CO_VULC } from './co_vulc.js?v=f5.9-24';
-import { CO_ULX, ULX_IDS } from './co_ulx.js?v=f5.9-24';
-import { CO_BALTIC } from './co_baltic.js?v=f5.9-24';
+import { CO_CIVSPACE } from './co_civspace.js?v=f5.9-25'; // co-civspace-1: NOSA heritage vehicles
+import { CO_SOUTHSTAR_B } from './co_ssb.js?v=f5.9-25';
+import { CO_KOMETA } from './co_kometa.js?v=f5.9-25';
+import { CO_ALBION } from './co_albion.js?v=f5.9-25';
+import { CO_EUROPIA } from './co_europia.js?v=f5.9-25';
+import { CO_VEGARA } from './co_vegara.js?v=f5.9-25';
+import { CO_ARION } from './co_arion.js?v=f5.9-25';
+import { CO_BLUEHZ } from './co_bluehz.js?v=f5.9-25';
+import { CO_BOLT } from './co_bolt.js?v=f5.9-25';
+import { CO_CONVEX } from './co_convex.js?v=f5.9-25';
+import { CO_DOUGWING } from './co_dougwing.js?v=f5.9-25';
+import { CO_CNFOLL } from './co_cnfoll.js?v=f5.9-25';
+import { CO_ORBITRON_B } from './co_orbitron_b.js?v=f5.9-25';
+import { CO_ISRA_B } from './co_isra_b.js?v=f5.9-25';
+import { CO_LEVANT } from './co_levant.js?v=f5.9-25';
+import { CO_SKYLAND } from './co_skyland.js?v=f5.9-25';
+import { CO_SOUTHSTAR_C } from './co_southstar_c.js?v=f5.9-25';
+import { CO_JAXO_B } from './co_jaxo_b.js?v=f5.9-25';
+import { CO_MARTELL_B } from './co_martell_b.js?v=f5.9-25';
+import { CO_CONVEX_B } from './co_convex_b.js?v=f5.9-25';
+import { CO_JADE_B } from './co_jade_b.js?v=f5.9-25';
+import { CO_KRUNOV_B } from './co_krunov_b.js?v=f5.9-25';
+import { CO_EXPL } from './co_expl.js?v=f5.9-25';
+import { CO_GALEN } from './co_galen.js?v=f5.9-25';
+import { CO_DOUGWING_B } from './co_dougwing_b.js?v=f5.9-25';
+import { CO_GAULOIS } from './co_gaulois.js?v=f5.9-25';
+import { CO_JADELANTERN2 } from './co_jadelantern2.js?v=f5.9-25';
+import { CO_JADELANTERN } from './co_jadelantern.js?v=f5.9-25';
+import { CO_IRG } from './co_irg.js?v=f5.9-25';
+import { CO_ISRA } from './co_isra.js?v=f5.9-25';
+import { CO_TSURUGI } from './co_tsurugi.js?v=f5.9-25';
+import { CO_JAXO } from './co_jaxo.js?v=f5.9-25';
+import { CO_MOGUTNY } from './co_mogutny.js?v=f5.9-25';
+import { CO_MOONHAMMER } from './co_moonhammer.js?v=f5.9-25';
+import { CO_KRASNAYA } from './co_krasnaya.js?v=f5.9-25'; // co-krasnaya-1: early-rocketry family
+import { CO_TAIGA } from './co_taiga.js?v=f5.9-25';
+import { CO_KRUNOV } from './co_krunov.js?v=f5.9-25';
+import { CO_LINGVOLT } from './co_lingvolt.js?v=f5.9-25';
+import { CO_MARTELL } from './co_martell.js?v=f5.9-25';
+import { CO_VANTGUARD } from './co_vantguard.js?v=f5.9-25';
+import { CO_CIVSPACE2 } from './co_civspace2.js?v=f5.9-25';
+import { CO_ORBITRON } from './co_orbitron.js?v=f5.9-25';
+import { CO_ORIGINALS } from './co_originals.js?v=f5.9-25';
+import { CO_ROCKETWELL } from './co_rocketwell.js?v=f5.9-25'; // co-rocketwell-1
+import { CO_SOUTHSTAR } from './co_southstar.js?v=f5.9-25';
+import { CO_VULC } from './co_vulc.js?v=f5.9-25';
+import { CO_ULX, ULX_IDS } from './co_ulx.js?v=f5.9-25';
+import { CO_BALTIC } from './co_baltic.js?v=f5.9-25';
 const PI = Math.PI;
 // ---- kerolox booster core (9 engines, octaweb, legs, grid fins) ----
 function core9(detail, o = {}) {
@@ -130,8 +132,8 @@ function colossusBooster(detail, o) { const k = new Kit(detail), r = 4.5, H = o.
     for (let i = 0; i < 4; i++) { const a = i * PI / 2 + PI / 4; k.add(new THREE.BoxGeometry(1.4, 1.0, 0.25), 'dark', xf([Math.cos(a) * (r + 0.1), 3.6, Math.sin(a) * (r + 0.1)], [0, -a + PI / 2, 0])); } } // QD / ground-service plates
   // vented hot-staging ring
   tube(k, r, r, 1.8, H - 1.8, 'dark'); if (k.hi) for (let i = 0; i < 24; i++) { const a = i / 24 * 2 * PI; k.add(new THREE.BoxGeometry(0.25, 1.4, 0.9), 'steel', xf([Math.cos(a) * r, H - 0.9, Math.sin(a) * r], [0, -a, 0])); }
-  gridFins(k, r + 0.05, H - 5.5, 2.4, 3.2, o.gridFins || 3, PI / 2, o.fins ?? 1); // brief: v3/v4 boosters carry 3 grid fins
-  const g = k.build('booster'); g.userData.height = H; return g; }
+  const fp = detail === 'lo' ? null : []; gridFins(k, r + 0.05, H - 5.5, 2.4, 3.2, o.gridFins || 3, PI / 2, o.fins ?? 1, fp); // brief: v3/v4 boosters carry 3 grid fins; legs-fins-1: own pivots (they move)
+  const g = k.build('booster'); if (fp) for (const p of fp) g.add(p); g.userData.height = H; return g; }
 function ship(detail, y0, L = 52.1, nVac = 3) { const k = new Kit(detail), r = 4.5, nose = 16, cyl = L - nose - 2;
   // windward = -Z half (theta pi/2 .. 3pi/2 in three's cylinder/lathe convention); tile edge lines at +-X
   for (const [x, z] of ringPos([[3, 1.0, PI / 6]])) bell(k, 0.65, 1.6, x, y0 + 0.2, z, { rt: 0.26, head: 0.8 }); // sea-level (gimbaled)
@@ -139,18 +141,30 @@ function ship(detail, y0, L = 52.1, nVac = 3) { const k = new Kit(detail), r = 4
   tube(k, r, r, 2, y0, 'skirt'); tube(k, r, r, cyl, y0 + 2, 'steel'); ogive(k, r, nose, y0 + 2 + cyl, 'steel', 0.12);
   tube(k, r * 1.006, r * 1.006, cyl, y0 + 2, 'tiles', { open: true, t0: PI / 2, tl: PI });
   lathe(k, PR.ogive(r, nose, y0 + 2 + cyl, k.hi ? 18 : 7, 0.12).map(([a, b]) => [a * 1.006, b]), 'tiles', { p0: PI / 2, pl: PI });
-  // flaps: planar, hinged on the tile edge; windward face tiled, steel back; actuator fairing over the hinge
-  const flap = (yb, h, w0, w1, side, rad, lean = 0) => { const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(w0, 0.6); sh.lineTo(w1, h); sh.lineTo(0, h); sh.closePath();
-    k.push(xf([side * rad, yb, 0], [lean, side < 0 ? PI : 0, 0]));
-    k.add(new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }), 'steel');
-    k.add(new THREE.ExtrudeGeometry(sh, { depth: 0.06, bevelEnabled: false }), 'tiles', xf([0, 0, -0.07]));
-    k.add(new THREE.CylinderGeometry(0.35, 0.35, h, 10), 'steel', xf([0.1, h / 2, 0.2])); k.pop(); };
-  for (const s of [-1, 1]) { flap(y0 + 1.5, 11, 5.0, 3.4, s, r); // aft
-    flap(y0 + 2 + cyl + 3.5, 9, 3.4, 1.6, s, 4.1, 0); } // forward (on the nose, smaller, slightly leeward on v3)
+  // legs-fins-1 flaps: two small swept forward flaps high on the nose, two large aft flaps. Thin rounded steel plates with a heat-tile skin on the
+  // windward face, each on its own root hinge (flap_<f|a>_<side>.rotation.y, articulate.js): 0 deg folded flat along the leeward hull .. 90 deg
+  // straight out. The hinge housing (a faired actuator pod along the root) stays fixed on the hull.
+  const shipG = { r, yN: y0 + 2 + cyl, L: nose };
+  const flap = (yb, kind, side) => { const pts = FLAP_SHAPE[kind], h = FLAP_ROOT[kind], sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))), t = kind === 'a' ? 0.3 : 0.24;
+    const H = flapHinge(yb, h, shipG), own = detail !== 'lo', kk = own ? new Kit(detail) : k, hk = own ? new Kit(detail) : k, tz = side > 0 ? -(t / 2 + 0.03) : t / 2 + 0.01;
+    const plate = new THREE.ExtrudeGeometry(sh, k.hi && !k.mid ? { depth: t, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.08, bevelSegments: 1 } : { depth: t, bevelEnabled: false }); plate.translate(0.08, 0, -t / 2); // root edge on the hinge line
+    const skin = new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false }); skin.translate(0.08, 0, 0); skin.scale(0.97, 0.985, 1);
+    // mount: on the hull at the hinge radius, tilted so the hinge line follows the hull (the nose taper); side -1 is the mirror (turned 180 deg)
+    const place = new THREE.Matrix4().makeTranslation(side * H.rad, yb, 0).multiply(new THREE.Matrix4().makeRotationY(side < 0 ? PI : 0)).multiply(new THREE.Matrix4().makeRotationZ(H.tilt));
+    kk.push(own ? new THREE.Matrix4() : place.clone().multiply(new THREE.Matrix4().makeRotationY(-side * PI / 2)));
+    kk.add(plate, 'steel'); kk.add(skin, 'tiles', xf([0, 0, tz])); kk.pop();
+    // hinge housing: faired actuator pod along the root, half sunk into the hull, tapered ends (fixed to the hull)
+    hk.push(own ? new THREE.Matrix4() : place); const hr = kind === 'a' ? 0.5 : 0.4;
+    hk.add(new THREE.CylinderGeometry(hr, hr, h * 0.86, k.hi ? 10 : 6, 1, true), 'steel', xf([0, h / 2, 0])); for (const [yy, sg] of [[h * 0.07, -1], [h * 0.93, 1]]) hk.add(new THREE.ConeGeometry(hr, h * 0.07, k.hi ? 10 : 6, 1, true), 'steel', xf([0, yy + sg * h * 0.035, 0], [sg > 0 ? 0 : PI, 0, 0])); hk.pop();
+    if (own) { const p = new THREE.Group(), hg = new THREE.Group(); p.name = 'flapmount'; hg.name = `flap_${kind}_${side}`; p.matrixAutoUpdate = true; p.position.set(side * H.rad, yb, 0); p.rotation.set(0, side < 0 ? PI : 0, H.tilt); hg.rotation.y = -side * PI / 2; // built folded flat
+      for (const c of [...kk.build('flap').children]) hg.add(c); for (const c of [...hk.build('flaphinge').children]) p.add(c); p.add(hg); flaps.push(p); } };
+  const flaps = [];
+  for (const s of [-1, 1]) { flap(y0 + 1.5, 'a', s); // aft
+    flap(y0 + 2 + cyl + 3.2, 'f', s); } // forward (high on the nose, smaller, tapered)
   decal(k, 'ship.side', r, y0 + 20, 6, -PI / 2, 0.9); // leeward steel side
   if (k.hi) { for (const a of [PI * 0.1, -PI * 0.1]) raceway(k, r, y0 + 3, y0 + 2 + cyl, a, 'steel'); for (const y of [y0 + 2.2, y0 + 2 + cyl * 0.42, y0 + 2 + cyl - 0.3]) ring(k, r, y, 0.04, 'grey'); // raceways, aft dome / common dome / forward weld lands
     k.add(new THREE.BoxGeometry(1.6, 1.2, 0.2), 'dark', xf([0, y0 + 2 + cyl - 3, r + 0.05])); } // payload/door hatch outline
-  const g = k.build('upper'); g.userData.top = y0 + 2 + cyl + nose; g.userData.bay = { y: y0 + 2 + cyl - 7.5, r, h: 7.5, cz: 0 }; return g; } // bay: where the payload rides out of the hull (rockets-pass-1)
+  const g = k.build('upper'); for (const p of flaps) g.add(p); g.userData.top = y0 + 2 + cyl + nose; g.userData.bay = { y: y0 + 2 + cyl - 7.5, r, h: 7.5, cz: 0, pez: 4 }; return g; } // bay: where the payload rides out of the hull (rockets-pass-1)
 function colossus(o) { const b = colossusBooster(o.detail, o), s = ship(o.detail, b.userData.height, o.shipH || 52.1, o.nVac || 3); return group('colossus', [b, s], s.userData.top); }
 // ---- ground systems: catch tower with chopsticks + orbital launch mount ----
 function catchTower(o) { const k = new Kit(o.detail), W = 12, H = 146, TX = -24, lv = 9, n = Math.floor(H / lv);
@@ -219,17 +233,17 @@ export const VEHICLES = {
   'payload-flatsat-stack': { height: 5.6, build: satStack, src: 'specs sheet flatsat-style flat-pack stack (art)', est: ['plate size'] },
 };
 // f5.1h: the grouped rocket picker (fun/picker.js) lists the art sets per house; keys match fun/picker.js HOUSES
-import { NAMES as N_EUROPIA } from './co_europia.js?v=f5.9-24';
-import { NAMES as N_GAULOIS } from './co_gaulois.js?v=f5.9-24';
-import { NAMES as N_IRG } from './co_irg.js?v=f5.9-24';
-import { NAMES as N_JADELANTERN } from './co_jadelantern.js?v=f5.9-24';
-import { NAMES as N_JADELANTERN2 } from './co_jadelantern2.js?v=f5.9-24';
-import { NAMES as N_JAXO } from './co_jaxo.js?v=f5.9-24';
-import { NAMES as N_LINGVOLT } from './co_lingvolt.js?v=f5.9-24';
-import { NAMES as N_MOONHAMMER } from './co_moonhammer.js?v=f5.9-24';
-import { NAMES as N_TAIGA } from './co_taiga.js?v=f5.9-24';
-import { NAMES as N_TSURUGI } from './co_tsurugi.js?v=f5.9-24';
-import { NAMES as N_VANTGUARD } from './co_vantguard.js?v=f5.9-24';
+import { NAMES as N_EUROPIA } from './co_europia.js?v=f5.9-25';
+import { NAMES as N_GAULOIS } from './co_gaulois.js?v=f5.9-25';
+import { NAMES as N_IRG } from './co_irg.js?v=f5.9-25';
+import { NAMES as N_JADELANTERN } from './co_jadelantern.js?v=f5.9-25';
+import { NAMES as N_JADELANTERN2 } from './co_jadelantern2.js?v=f5.9-25';
+import { NAMES as N_JAXO } from './co_jaxo.js?v=f5.9-25';
+import { NAMES as N_LINGVOLT } from './co_lingvolt.js?v=f5.9-25';
+import { NAMES as N_MOONHAMMER } from './co_moonhammer.js?v=f5.9-25';
+import { NAMES as N_TAIGA } from './co_taiga.js?v=f5.9-25';
+import { NAMES as N_TSURUGI } from './co_tsurugi.js?v=f5.9-25';
+import { NAMES as N_VANTGUARD } from './co_vantguard.js?v=f5.9-25';
 export const ART_NAMES = { ...N_EUROPIA, ...N_GAULOIS, ...N_IRG, ...N_JADELANTERN, ...N_JADELANTERN2, ...N_JAXO, ...N_LINGVOLT, ...N_MOONHAMMER, ...N_TAIGA, ...N_TSURUGI, ...N_VANTGUARD };
 const K = (...o) => o.flatMap(x => Object.keys(x));
 export const HOUSE_SETS = { originals: K(CO_ORIGINALS), spacey: ['sparrow-1', 'heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'colossus-v3', 'colossus-v4'],
@@ -261,12 +275,27 @@ export function setPayload(g, id, kind, det = 'hi') {
   const host = [st.upper, st.orbiter].find(x => x && x.userData.bay), bay = host && host.userData.bay;
   if (!kind || g.userData.fixedNose || /^(payload-|catch-tower)/.test(id) || (!bay && Object.keys(st).some(k => OWN_PAYLOAD.test(k)))) return null;
   const shell = st.payload || st.fairing; g.updateMatrixWorld(true);
-  if (shell) { const b = new THREE.Box3().setFromObject(shell), sz = b.getSize(new THREE.Vector3()), D = Math.max(sz.x, sz.z);
+  if (shell && !bay) { /* legs-fins-1: a ship with its own bay (the slot dispenser) never gets the generic payload-at-the-shell placement */ const b = new THREE.Box3().setFromObject(shell), sz = b.getSize(new THREE.Vector3()), D = Math.max(sz.x, sz.z);
     const p = buildPayload(kind, { detail: det, r: D * 0.34, h: sz.y * 0.5 }); p.position.set(0, b.min.y + 0.05 * Math.min(1, sz.y / 4), 0); g.add(p); st.sat = p; return p; }
   if (!bay) return null; // no shell and no bay (capsule/lander stacks, whose spacecraft is the payload): nothing to add
+  if (bay.pez) return pezBay(g, st, bay, kind, det);
   const cz = bay.cz || 0, p = buildPayload(kind, { detail: det, r: 1.7, h: bay.h }), zIn = cz + bay.r * 0.3, zOut = cz + bay.r + p.userData.r + 0.5; p.position.set(0, bay.y - 0.05, zIn); g.add(p); st.sat = p;
   const piv = new THREE.Group(); piv.name = 'bay'; piv.position.set(1.4, bay.y + bay.h / 2, cz + bay.r + 0.04); const doorG = new THREE.BoxGeometry(2.8, bay.h + 1.0, 0.14); doorG.computeTangents(); /* f5.9-20 (owner freeze): the shared steel material reads tangents; without them WebGPU (iPhone Safari) rejects the pipeline and every frame after it */ const door = new THREE.Mesh(doorG, mat('steel')); door.position.x = -1.4; piv.add(door); g.add(piv); st.bay = piv;
   g.userData.bayExpose = k => { const e = Math.max(0, Math.min(1, k)), sm = e * e * (3 - 2 * e); piv.rotation.y = -1.9 * sm; p.position.z = zIn + (zOut - zIn) * Math.max(0, Math.min(1, (e - 0.35) / 0.65)); };
+  g.userData.bayExpose(0); return p; }
+// legs-fins-1: slot deploy (the big ship): a stack of flat satellites behind a slot door on the leeward hull; bayExpose(k) runs pezState:
+// door opens, satellites leave one at a time sideways (the stack steps down), door closes. The stack group is what RELEASE detaches.
+function pezBay(g, st, bay, kind, det) {
+  const n = bay.pez, cz = bay.cz || 0, hs = Math.min(1.6, bay.h / n), slotY = bay.y + 0.4, p = new THREE.Group(); p.name = 'sat'; p.userData.pez = n;
+  const one = buildPayload(kind, { detail: det, r: Math.min(2.2, bay.r * 0.5), h: hs * 0.7 }), sats = [one]; for (let i = 1; i < n; i++) sats.push(one.clone(true));
+  const w = Math.max(one.userData.r || 2, Math.min(2.2, bay.r * 0.5)), zIn = pezInZ(bay.r, w, cz), zOut = cz + bay.r + (one.userData.r || 2) + 1.2;
+  sats.forEach((x, i) => { x.name = 'sat_' + i; p.add(x); }); g.add(p); st.sat = p;
+  const piv = new THREE.Group(); piv.name = 'bay'; piv.position.set(0, slotY + hs, cz + bay.r + 0.05); const dg = new THREE.BoxGeometry(4.2, hs + 0.2, 0.12); dg.computeTangents(); // tangents: the steel material needs them on WebGPU
+  const door = new THREE.Mesh(dg, mat('steel')); door.position.y = -(hs + 0.2) / 2; piv.add(door);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.18, 0.2), mat('dark')); frame.position.set(0, slotY - 0.12, cz + bay.r + 0.02); g.add(frame); piv.userData.frame = frame; g.add(piv); st.bay = piv;
+  g.userData.bayTime = 4 + 3 * n; // seconds for the whole slot sequence (main.js bayTick)
+  g.userData.bayExpose = k => { const s = pezState(Math.max(0, Math.min(1, k)), n); piv.rotation.x = -1.65 * s.door; // hinged at the top edge, swings up and out
+    sats.forEach((x, i) => { const o = s.out[i]; x.position.set(0, slotY + (i - s.drop[i]) * hs, zIn + (zOut - zIn) * o + 2.8 * s.out.slice(i + 1).reduce((a, b) => a + b, 0)); /* each departed satellite drifts clear as the next one comes out */ x.rotation.y = 0.15 * o * (i % 2 ? 1 : -1); if (o >= 1 && x.userData.deploy) x.userData.deploy(1); }); }; // logos-deploy-1 kinds unfold once clear of the slot
   g.userData.bayExpose(0); return p; }
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi';
   if (o.staged !== false && stagedReady(id, det)) { // f6.0: stages assembled from the rocket's manifest (Blender .glb per stage); same userData shape as the procedural model
