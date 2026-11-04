@@ -16,8 +16,8 @@
    "prop": "kerolox",
    "asset": {
     "hi": "assets/rockets/heron-9-crew/booster.hi.glb",
-    "mid": "assets/rockets/_shared/155f03cd3e.mid.glb",
-    "lo": "assets/rockets/_shared/f8e3e8cb16.lo.glb"
+    "mid": "assets/rockets/_shared/50e971b61b.mid.glb",
+    "lo": "assets/rockets/_shared/3c962ae6b5.lo.glb"
    },
    "tris": {
     "hi": 12894,
@@ -196,9 +196,9 @@
    "legs": 4,
    "grid_fins": 4,
    "bytes": {
-    "hi": 102872,
-    "mid": 52524,
-    "lo": 26300
+    "hi": 102864,
+    "mid": 52516,
+    "lo": 26560
    }
   },
   {
@@ -339,8 +339,8 @@
   "payload"
  ],
  "bytes": {
-  "hi": 157412,
-  "mid": 80812,
-  "lo": 42368
+  "hi": 157404,
+  "mid": 80804,
+  "lo": 42628
  }
 }
