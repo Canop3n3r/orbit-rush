@@ -289,7 +289,7 @@ function pezBay(g, st, bay, kind, det) {
   const frame = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.18, 0.2), mat('dark')); frame.position.set(0, slotY - 0.12, cz + bay.r + 0.02); g.add(frame); piv.userData.frame = frame; g.add(piv); st.bay = piv;
   g.userData.bayTime = 4 + 3 * n; // seconds for the whole slot sequence (main.js bayTick)
   g.userData.bayExpose = k => { const s = pezState(Math.max(0, Math.min(1, k)), n); piv.rotation.x = -1.65 * s.door; // hinged at the top edge, swings up and out
-    sats.forEach((x, i) => { const o = s.out[i]; x.position.set(0, slotY + (i - s.drop[i]) * hs, zIn + (zOut - zIn) * o + (o >= 1 ? 0.6 * i : 0)); x.rotation.y = 0.15 * o * (i % 2 ? 1 : -1); if (o >= 1 && x.userData.deploy) x.userData.deploy(1); }); }; // logos-deploy-1 kinds unfold once clear of the slot
+    sats.forEach((x, i) => { const o = s.out[i]; x.position.set(0, slotY + (i - s.drop[i]) * hs, zIn + (zOut - zIn) * o + 2.8 * s.out.slice(i + 1).reduce((a, b) => a + b, 0)); /* each departed satellite drifts clear as the next one comes out */ x.rotation.y = 0.15 * o * (i % 2 ? 1 : -1); if (o >= 1 && x.userData.deploy) x.userData.deploy(1); }); }; // logos-deploy-1 kinds unfold once clear of the slot
   g.userData.bayExpose(0); return p; }
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi';
   if (o.staged !== false && stagedReady(id, det)) { // f6.0: stages assembled from the rocket's manifest (Blender .glb per stage); same userData shape as the procedural model
