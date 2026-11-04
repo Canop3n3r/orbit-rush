@@ -1696,7 +1696,13 @@ let last = performance.now(), slowT = 0, pixR = Math.min(devicePixelRatio, TOUCH
 const U = new THREE.Vector3(), E = new THREE.Vector3(), N = new THREE.Vector3(), tgtV = new THREE.Vector3(), offV = new THREE.Vector3(), tq = new THREE.Quaternion(), dv3 = new THREE.Vector3();
 const setRel = (obj, p, O) => obj.position.set(p[0] - O[0], p[1] - O[1], p[2] - O[2]);
 const dirQ = (obj, d) => obj.quaternion.setFromUnitVectors(Y_AXIS, dv3.set(d[0], d[1], d[2]));
-await renderer.compileAsync(scene, camera).catch(() => {});
+performance.mark('or:compile0');
+// f5.9-21 (owner: desktop loads far slower than phone): the high tier's shader compile (huge on Windows WebGPU) used to hold the
+// loading screen until every material was built. Wait at most 2.5 s, then show Home and let the rest finish in the background.
+{ const done = renderer.compileAsync(scene, camera).catch(() => {}).then(() => performance.mark('or:compileAll'));
+  await Promise.race([done, new Promise(r => setTimeout(r, 2500))]); }
+performance.mark('or:compile1');
+if (params.get('perf')) { const t = s => (s / 1000).toFixed(1) + ' s'; toast('Ready in ' + t(performance.now()), '#7fd1ff'); setTimeout(() => { const a = performance.getEntriesByName('or:compileAll')[0]; toast('Ready in ' + t(performance.getEntriesByName('or:compile1')[0].startTime) + (a ? ' · all shaders ' + t(a.startTime) : ' · shaders still compiling'), '#7fd1ff'); }, 15000); }
 $('loading') && $('loading').remove();
 // f5.6 (owner): no Academy / welcome card
 renderer.setAnimationLoop(() => {
@@ -2576,7 +2582,8 @@ const xferUI = createXferPlanner({ getEpoch: () => EPOCH, getDvAvail: () => { tr
   const top = document.querySelector('#hTop .hTopR'), act = document.querySelector('#hCard .hAct');
   if (top && !$('hAtlasB')) { const ab = document.createElement('button'); ab.id = 'hAtlasB'; ab.textContent = '🪐'; ab.title = ab.ariaLabel = 'Planetary Atlas'; ab.onclick = () => fun.openAtlas(); top.insertBefore(ab, top.firstChild); } } // f5.9: Atlas has its own Home button; the ⚙ drawer that repeated Atlas / Settings is gone
 { const top = document.querySelector('#hTop .hTopR'); if (top && !$('hXfer')) { const xb = document.createElement('button'); xb.id = 'hXfer'; xb.textContent = '🎯'; xb.title = xb.ariaLabel = 'Plan a transfer to another world'; xb.onclick = e => { e.currentTarget.blur(); xferUI.show(true); }; top.insertBefore(xb, top.firstChild); } } // f5.9-13: the transfer planner lives in the top bar
-setTimeout(prewarmHeavy, 1500);
+// f5.9-21: heavy hero LODs wait for the background shader compile and an idle moment, so they don't slow the first screen
+setTimeout(() => (window.requestIdleCallback || setTimeout)(prewarmHeavy, { timeout: 8000 }), 6000);
 { // f5.9-0: ?hangar (old Build deep link) now just opens Home
  const d0 = Math.max(0, SHOW.findIndex(x => x.id === DEFAULT_ID)); let i0 = d0; try { const v = localStorage.getItem(HOME_KEY); if (v !== null && v !== '') i0 = +v; } catch (e) { } if (!(i0 >= 0 && i0 < SHOW.length) || RETIRED.has(SHOW[i0].id)) i0 = d0; home.set(i0); /* fleet-1: retired/unknown saves fall back to Heron-9 */ siteDefault(); home.show(true); }
 addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e.preventDefault(); }, true);
