@@ -4,9 +4,11 @@
 //      buildSiteLOD(S, { phone }) -> THREE.LOD (near = hi, or mid on phones; mid; lo)
 //      placeSite(obj, S) applies the site's body-frame matrix;  dispose / release free geometry (materials are shared).
 import * as THREE from 'three/webgpu';
-import { weakDisposeListeners, dispose, release } from '../vehicles/kit.js?v=f5.9-19';
-import { siteMatrix, localOffset, localBasis, BODY_R } from './geo.js?v=f5.9-19';
+import { weakDisposeListeners, dispose, release } from '../vehicles/kit.js?v=f5.9-20';
+import { siteMatrix, localOffset, localBasis, BODY_R } from './geo.js?v=f5.9-20';
 export { dispose, release, BODY_R };
+export const PAD_DECK = 0.4; // f5.9-20 (owner): the mount deck top = the rocket base on every pad (main.js PAD_Z); PAD_CLEAR = metres around the pad centre kept free above the deck
+export const PAD_CLEAR = 8;
 export const LOD_DIST = { mid: 1500, lo: 6000 }; // metres from the camera
 const MATS = new Map(), TEX = new Map(), S = THREE.MeshStandardMaterial;
 // procedural PBR detail maps (canvas, cached, tiled in world space by SK.add's box-projected UVs, 8 m per tile)
@@ -101,14 +103,13 @@ function rackPipe(K, x0, x1, z, y = 4, n = 3) { // pipe rack: portal frames ever
 const parts = {
   pad(K, o) { const r = o.r || 60, tw = o.trench || 12; K.disc('concrete', r, [0, 0, 0], K.seg * 2, 0.05); K.ring('mark', r * 0.92, r * 0.95);
     // flame trench: sunken slot with side walls and a wedge deflector under the mount, exiting south
-    K.box('dark', tw, 0.3, r * 1.6, [0, -0.25, r * 0.3]); for (const s of [-1, 1]) K.box('concrete', 1.5, 3, r * 1.4, [s * (tw / 2 + 0.75), 0, r * 0.35]);
-    { const g = new THREE.CylinderGeometry(0.01, tw * 0.45, 7, 3, 1); g.rotateX(Math.PI / 2); g.rotateZ(Math.PI); K.add(g, 'steel', M([0, 1.5, 3])); }
-    K.box('concrete', tw + 4, 6, 10, [0, 0, -6]); const m = o.mount || 8; K.cyl('steel', m * 0.55, m * 0.5, 2, [0, 6, 0], K.seg, true); // mount ring on the plinth
-    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; K.box('steel', 1.2, 6, 1.2, [Math.cos(a) * m * 0.45, 0, Math.sin(a) * m * 0.45]); if (!K.lo) K.box('dark', 0.8, 1.6, 0.8, [Math.cos(a) * m * 0.45, 8, Math.sin(a) * m * 0.45]); } // hold-down clamps
+    K.box('dark', tw, 0.3, r * 1.6, [0, -0.25, r * 0.3]); for (const s of [-1, 1]) K.box('concrete', 1.5, 3, r * 1.05, [s * (tw / 2 + 0.75), 0, PAD_CLEAR + r * 0.525]); /* f5.9-20: the trench walls start outside the rocket's footprint */
+    { const g = new THREE.CylinderGeometry(0.01, tw * 0.45, 7, 3, 1); g.rotateX(Math.PI / 2); g.rotateZ(Math.PI); K.add(g, 'steel', M([0, -tw * 0.5, 3])); } /* f5.9-20: the deflector sits in the trench, below the deck */
+    K.box('concrete', tw + 4, 6, 10, [0, 0, -(PAD_CLEAR + 9)]); const m = o.mount || 8; K.cyl('steel', m * 0.55, m * 0.5, 2, [0, PAD_DECK - 2, 0], K.seg); // f5.9-20 (owner): a closed mount deck whose top is the rocket's base (PAD_DECK); nothing on the pad rises inside PAD_CLEAR
+    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; K.box('dark', 1.2, 0.3, 1.2, [Math.cos(a) * m * 0.45, PAD_DECK - 0.29, Math.sin(a) * m * 0.45]); } // hold-down clamp pads, flush on the deck
     if (!K.lo) { // pad deluge: header ring with nozzle risers + feed main to the water tower side
-      K.add(new THREE.TorusGeometry(m * 0.85, 0.3, 4, K.hi ? 24 : 12).rotateX(Math.PI / 2), 'pipe', M([0, 6.4, 0]));
-      for (let i = 0; i < (K.hi ? 12 : 6); i++) { const a = i / (K.hi ? 12 : 6) * Math.PI * 2; K.cyl('pipe', 0.2, 0.2, 1.4, [Math.cos(a) * m * 0.85, 6.4, Math.sin(a) * m * 0.85], 4); }
-      const g = new THREE.CylinderGeometry(0.6, 0.6, r, 6, 1, true); g.rotateZ(Math.PI / 2); K.add(g, 'pipe', M([r / 2 + m * 0.6, 1, -m])); }
+      K.add(new THREE.TorusGeometry(Math.max(m * 0.85, PAD_CLEAR + 0.5), 0.3, 4, K.hi ? 24 : 12).rotateX(Math.PI / 2), 'pipe', M([0, PAD_DECK - 0.3, 0])); /* f5.9-20: deluge ring below the deck, no risers into the rocket */
+      const g = new THREE.CylinderGeometry(0.6, 0.6, r, 6, 1, true); g.rotateZ(Math.PI / 2); K.add(g, 'pipe', M([r / 2 + PAD_CLEAR, 1, -PAD_CLEAR - 1])); }
     if (o.tower) { const t = o.tower, tx = t.x ?? -(r * 0.4), tz = t.z ?? 0, w = t.w || 10; lattice(K, w, t.h, 'tower', [tx, 0, tz]);
       K.cyl('steel', 0.5, 0.15, t.mast || 20, [tx, t.h, tz], 6); catenary(K, tx, t.h + (t.mast || 20), tz, r * 0.9); // lightning mast + catenary
       for (const a of t.arms || []) trussArm(K, tx + w / 2, a.y, tz, a.len, 2.6); }
@@ -125,7 +126,7 @@ const parts = {
       const n = K.hi ? 10 : 3; for (let i = 0; i < n; i++) { const z0 = w / 2 + 2 + L * i / n, z1 = w / 2 + 2 + L * (i + 1) / n; K.beam('steel', [x, ay - 4 + 2.5 * i / n, z0], [x, ay, z1], 0.3); }
       K.box('dark', 0.8, 1.0, L * 0.6, [x - s * 1.6, ay - 1.5, w / 2 + 2 + L * 0.35]); K.box('red', 1.2, 1.2, 1.6, [x - s * 1.8, ay - 1.2, zc]); }
     if (o.qd) trussArm(K, 0, o.qdY || h * 0.6, w / 2, o.qd, 3, 'steel', 1); // ship arm (built along +x, then reads as a side arm)
-    const r = o.mountR || 12; K.cyl('concrete', r * 1.1, r, 18, [0, 0, zc], K.seg); K.cyl('steel', r * 0.75, r * 0.8, 1.5, [0, 18, zc], K.seg, true); if (!K.lo) K.cyl('dark', r * 0.6, r * 0.6, 0.4, [0, 18.2, zc], K.seg); // mount + flame opening
+    const r = o.mountR || 12; K.cyl('concrete', r * 1.1, r, 18, [0, 0, zc], K.seg); K.cyl('steel', r * 0.75, r * 0.8, 1.5, [0, 18, zc], K.seg, true); K.cyl('dark', r * 0.74, r * 0.74, 0.4, [0, 19.1, zc], K.seg); /* f5.9-20: a closed deck flush with the ring top (19.5 m) */ // mount + flame opening
     if (!K.lo) for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; K.box('concrete', 2.5, 18, 2.5, [Math.cos(a) * r * 1.15, 0, zc + Math.sin(a) * r * 1.15]); }
     if (!K.lo) { K.add(new THREE.TorusGeometry(r * 0.8, 0.35, 4, K.hi ? 24 : 12).rotateX(Math.PI / 2), 'pipe', M([0, 19.6, zc])); K.disc('water', r * 0.3, [0, 0, zc], 12, 0.08); } // deluge ring
     K.disc('concrete', o.r || 70, [0, 0, w / 2 + L * 0.5], K.seg * 2, 0.05); const f = (o.r || 70) * 1.05; fence(K, [[-f, -f + 20], [f, -f + 20], [f, f + 20], [-f, f + 20], [-f, -f + 20]]); },
@@ -158,7 +159,7 @@ const parts = {
   water(K, o) { const h = o.h || 60, r = o.r || 9; if (!K.lo) { for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; K.beam('steel', [Math.cos(a) * r * 0.9, 0, Math.sin(a) * r * 0.9], [Math.cos(a) * r * 0.35, h, Math.sin(a) * r * 0.35], 0.9); }
       for (let j = 1; j < (K.hi ? 4 : 2) + 1; j++) { const t = j / ((K.hi ? 4 : 2) + 1), rr = r * (0.9 - 0.55 * t); K.add(new THREE.TorusGeometry(rr, 0.2, 3, 8).rotateX(Math.PI / 2), 'steel', M([0, h * t, 0])); } } // tension rings
     K.cyl('pipe', 1.2, 1.2, h, [0, 0, 0], 6); K.sph('white', r, [0, h + r * 0.6, 0]); if (!K.lo) { K.add(new THREE.TorusGeometry(r * 0.95, 0.3, 3, K.hi ? 20 : 10).rotateX(Math.PI / 2), 'steel', M([0, h + r * 0.6, 0])); K.cyl('pipe', 0.8, 0.8, 30, [0, 0, 0], 6); } },
-  lz(K, o) { const r = o.r || 45; K.disc('concrete', r); K.ring('mark', r * 0.8, r * 0.86); const t = r * 0.06; K.flat('mark', t * 2, r * 1.2, [0, 0, 0], Math.PI / 4, 0.045); K.flat('mark', t * 2, r * 1.2, [0, 0, 0], -Math.PI / 4, 0.045);
+  lz(K, o) { const r = o.r || 45; K.disc('concrete', r); if (o.deck !== false) K.cyl('steel', 4.2, 4.6, 2, [0, PAD_DECK - 2, 0], K.seg); /* f5.9-20: a launch deck at the rocket's base */ K.ring('mark', r * 0.8, r * 0.86); const t = r * 0.06; K.flat('mark', t * 2, r * 1.2, [0, 0, 0], Math.PI / 4, 0.045); K.flat('mark', t * 2, r * 1.2, [0, 0, 0], -Math.PI / 4, 0.045);
     if (!K.lo) { K.disc('apron', r * 1.35, [0, 0, 0], K.seg * 2, 0.01); for (let i = 0; i < (K.hi ? 16 : 8); i++) { const a = i / (K.hi ? 16 : 8) * Math.PI * 2; K.box('lamp', 0.6, 0.3, 0.6, [Math.cos(a) * r * 1.02, 0, Math.sin(a) * r * 1.02]); } } }, // edge lights
   droneship(K, o) { const L = 92, W = 52; K.box('hull', W, 6, L, [0, -4, 0]); K.box('deck', W - 2, 0.4, L - 2, [0, 2, 0]); K.disc('sea', 900, [0, 0, 0], K.seg * 2, -0.2);
     K.ring('mark', 13, 14.5, [0, 2.4, 0]); K.flat('mark', 2.2, 24, [0, 2.4, 0], Math.PI / 4, 0.05); K.flat('mark', 2.2, 24, [0, 2.4, 0], -Math.PI / 4, 0.05);

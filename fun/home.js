@@ -18,7 +18,10 @@ export function createHome({ list, onSelect, onFly, onMission, onMissions, onAtl
     if (!quiet) onSelect(i); };
   const tap = (id, fn) => { $(id).onclick = e => { e.currentTarget.blur(); fn(); }; };
   tap('hFly', () => onFly(i)); tap('hMis', () => { if (list[i].mission) onMission(i); });
-  tap('hAll', () => { const on = !el.classList.contains('allOn'); el.classList.toggle('allOn', on); $('hAll').classList.toggle('on', on); }); tap('hnFly', () => {}); tap('hnMis', () => onMissions()); tap('hnAtlas', () => onAtlas()); tap('hnCareer', () => onCareer()); tap('hGear', () => onGear());
+  const allSet = on => { el.classList.toggle('allOn', on); $('hAll').classList.toggle('on', on); document.body.classList.toggle('pickOn', on); };
+  tap('hAll', () => allSet(!el.classList.contains('allOn')));
+  { const x = document.createElement('button'); x.id = 'hGalX'; x.type = 'button'; x.textContent = '✕'; x.title = 'Close'; x.setAttribute('aria-label', 'Close rocket list'); $('hGal').prepend(x); x.onclick = () => allSet(false); }
+  $('hGal').addEventListener('click', e => { if (e.target.closest && e.target.closest('.pkC')) setTimeout(() => allSet(false), 0); }); /* f5.9-20 (owner): the rocket list is full screen while choosing and gone once a rocket is picked */ tap('hnFly', () => {}); tap('hnMis', () => onMissions()); tap('hnAtlas', () => onAtlas()); tap('hnCareer', () => onCareer()); tap('hGear', () => onGear());
   document.addEventListener('keydown', e => { if (!on || e.target.closest && e.target.closest('input,select,textarea')) return; if (e.code === 'Enter') onFly(i); });
   return { el, set, refresh: () => set(i, true), get index() { return i; }, get on() { return on; },
     show(v) { on = !!v; el.classList.toggle('hidden', !on); document.body.classList.toggle('home', on); } };

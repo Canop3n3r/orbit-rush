@@ -1,8 +1,8 @@
 // Milestone Q UI: pause menu, settings (key remap, sensitivity, units, overlays), the Δv map and rich part
 // tooltips. DOM only; the logic it shows lives in settings.js, physics/dvmap.js and parts.js.
-import * as UN from './fun/units.js?v=f5.9-19';
-import { ACTIONS, keyOf, bindKey, resetKeys, saveSettings, DEFAULT_KEYS } from './settings.js?v=f5.9-19';
-import { dvMap, ORBIT_DV, LEO } from './physics/dvmap.js?v=f5.9-19';
+import * as UN from './fun/units.js?v=f5.9-20';
+import { ACTIONS, keyOf, bindKey, resetKeys, saveSettings, DEFAULT_KEYS } from './settings.js?v=f5.9-20';
+import { dvMap, ORBIT_DV, LEO } from './physics/dvmap.js?v=f5.9-20';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 export const keyName = c => !c ? '—' : c.startsWith('Key') ? c.slice(3) : c.startsWith('Digit') ? c.slice(5) : ({ Space: 'Space', ShiftLeft: 'Shift', ControlLeft: 'Ctrl', Comma: ',', Period: '.', Slash: '/', Backquote: '`', Backslash: '\\', Escape: 'Esc', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Minus: '−', Equal: '=' })[c] || c;
 const fdv = x => x === null || x === undefined ? '—' : (x / 1000).toFixed(2);
@@ -23,7 +23,7 @@ export function createQoL(api) {
   const root = document.createElement('div'); root.id = 'qol';
   root.innerHTML = `<div id="pause" class="modal hidden"><div class="mbox"><h2>⏸ Paused</h2>
       <div class="col"><button data-q="resume" class="big">▶ Resume<kbd> (Esc)</kbd></button><button data-q="save">💾 Quicksave<kbd> (F5)</kbd></button><button data-q="load">📂 Quickload<kbd> (F9)</kbd></button>
-      <button data-q="revertLaunch">↺ Restart</button><button data-q="settings">⚙ Settings</button><button data-q="photo">📸 Photo</button><button data-q="full">⛶ Full screen</button><button data-bug="1" title="Report a bug" aria-label="Report a bug">🐞 Bug</button></div>
+      <button data-q="revertLaunch">↺ Restart</button><button data-q="settings">⚙ Settings</button><details class="pMore"><summary>⋯ More</summary><div class="col"><button data-q="photo">📸 Photo</button><button data-q="full">⛶ Full screen</button><button data-bug="1" title="Report a bug" aria-label="Report a bug">🐞 Bug</button></div></details></div>
       <p id="qsInfo" class="sm"></p></div></div>
     <div id="settings" class="modal hidden"><div class="mbox wide"><h2><span>⚙ Settings</span><button data-q="closeSet" class="hx" aria-label="Close settings" title="Close">✕</button></h2><div id="setBody"></div></div></div>
     <div id="dvModal" class="modal hidden"><div class="mbox wide"><h2>Δv map</h2><div id="dvBody"></div><div class="row"><button data-q="closeDv" class="big">Close</button></div></div></div>
@@ -66,7 +66,7 @@ export function createQoL(api) {
   function commit(soft) { saveSettings(localStorage, S()); api.onSettings(S()); if (!soft) renderSettings(); }
   // capture the next key while remapping (before the game sees it)
   addEventListener('keydown', e => { if (!listening) return; e.preventDefault(); e.stopImmediatePropagation(); if (e.code !== 'Escape') bindKey(S(), listening, e.code); listening = null; commit(); }, true);
-  function info() { const q = api.quickInfo(); $('qsInfo').textContent = q ? `Quicksave: ${q}` : 'No quicksave yet'; }
+  function info() { const q = api.quickInfo(); $('qsInfo').textContent = q ? `Quicksave: ${q}` : ''; $('qsInfo').hidden = !q; /* f5.9-20 (QA P3): no pill when there is nothing to say */ }
   function openDv() { $('dvBody').innerHTML = api.dvTable(); show('dvModal', true); }
   // ---------- tooltips (hover on desktop; the ⓘ button on touch) ----------
   const tip = $('tip'); let tipFor = null;

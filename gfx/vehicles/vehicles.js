@@ -7,67 +7,67 @@
 // Every vehicle: origin at the bottom of the lowest engine exit, +Y up. Each stage is a named child group
 // (e.g. 'booster', 'upper', 'payload', 'side0') so a game can detach stages; userData.legs groups take setLegs(g, t).
 import * as THREE from 'three/webgpu';
-import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=f5.9-19';
+import { Kit, xf, mat, compact, compactStages, shareGeometries, dispose, release, geometryCacheSize } from './kit.js?v=f5.9-20';
 export { dispose, release, geometryCacheSize };
-import * as PR from './profiles.js?v=f5.9-19';
-import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f5.9-19';
+import * as PR from './profiles.js?v=f5.9-20';
+import { lathe, tube, ogive, bell, ringPos, gridFins, legs, setLegs, decal, raceway, ring, strut } from './parts.js?v=f5.9-20';
 export { setLegs, mat };
-import { buildPayload, registerPayload } from './payloads.js?v=f5.9-19';
-import { stagedReady, buildStaged, preloadStaged, stagedEnabled, loadIndex as stagedIndex } from './staged.js?v=f5.9-19'; // f6.0: Blender stage assets (one .glb per stage); procedural fallback when a rocket has none
+import { buildPayload, registerPayload } from './payloads.js?v=f5.9-20';
+import { stagedReady, buildStaged, preloadStaged, stagedEnabled, loadIndex as stagedIndex } from './staged.js?v=f5.9-20'; // f6.0: Blender stage assets (one .glb per stage); procedural fallback when a rocket has none
 export { preloadStaged, stagedReady, stagedEnabled, stagedIndex };
-import { CRYO } from './cryo.js?v=f5.9-19';
-import { dressStages } from './dress.js?v=f5.9-19';
-import { OWN_PAYLOAD } from './payload_kinds.js?v=f5.9-19';
-import './craft_models.js?v=f5.9-19'; // f6.2: registers the craft shapes (cubesat, geosat, crew, station, lander, tug, kick) as payload kinds
+import { CRYO } from './cryo.js?v=f5.9-20';
+import { dressStages } from './dress.js?v=f5.9-20';
+import { OWN_PAYLOAD } from './payload_kinds.js?v=f5.9-20';
+import './craft_models.js?v=f5.9-20'; // f6.2: registers the craft shapes (cubesat, geosat, crew, station, lander, tug, kick) as payload kinds
 export { buildPayload };
-import { CO_CIVSPACE } from './co_civspace.js?v=f5.9-19'; // co-civspace-1: NOSA heritage vehicles
-import { CO_SOUTHSTAR_B } from './co_ssb.js?v=f5.9-19';
-import { CO_KOMETA } from './co_kometa.js?v=f5.9-19';
-import { CO_ALBION } from './co_albion.js?v=f5.9-19';
-import { CO_EUROPIA } from './co_europia.js?v=f5.9-19';
-import { CO_VEGARA } from './co_vegara.js?v=f5.9-19';
-import { CO_ARION } from './co_arion.js?v=f5.9-19';
-import { CO_BLUEHZ } from './co_bluehz.js?v=f5.9-19';
-import { CO_BOLT } from './co_bolt.js?v=f5.9-19';
-import { CO_CONVEX } from './co_convex.js?v=f5.9-19';
-import { CO_DOUGWING } from './co_dougwing.js?v=f5.9-19';
-import { CO_CNFOLL } from './co_cnfoll.js?v=f5.9-19';
-import { CO_ORBITRON_B } from './co_orbitron_b.js?v=f5.9-19';
-import { CO_ISRA_B } from './co_isra_b.js?v=f5.9-19';
-import { CO_LEVANT } from './co_levant.js?v=f5.9-19';
-import { CO_SKYLAND } from './co_skyland.js?v=f5.9-19';
-import { CO_SOUTHSTAR_C } from './co_southstar_c.js?v=f5.9-19';
-import { CO_JAXO_B } from './co_jaxo_b.js?v=f5.9-19';
-import { CO_MARTELL_B } from './co_martell_b.js?v=f5.9-19';
-import { CO_CONVEX_B } from './co_convex_b.js?v=f5.9-19';
-import { CO_JADE_B } from './co_jade_b.js?v=f5.9-19';
-import { CO_KRUNOV_B } from './co_krunov_b.js?v=f5.9-19';
-import { CO_EXPL } from './co_expl.js?v=f5.9-19';
-import { CO_GALEN } from './co_galen.js?v=f5.9-19';
-import { CO_DOUGWING_B } from './co_dougwing_b.js?v=f5.9-19';
-import { CO_GAULOIS } from './co_gaulois.js?v=f5.9-19';
-import { CO_JADELANTERN2 } from './co_jadelantern2.js?v=f5.9-19';
-import { CO_JADELANTERN } from './co_jadelantern.js?v=f5.9-19';
-import { CO_IRG } from './co_irg.js?v=f5.9-19';
-import { CO_ISRA } from './co_isra.js?v=f5.9-19';
-import { CO_TSURUGI } from './co_tsurugi.js?v=f5.9-19';
-import { CO_JAXO } from './co_jaxo.js?v=f5.9-19';
-import { CO_MOGUTNY } from './co_mogutny.js?v=f5.9-19';
-import { CO_MOONHAMMER } from './co_moonhammer.js?v=f5.9-19';
-import { CO_KRASNAYA } from './co_krasnaya.js?v=f5.9-19'; // co-krasnaya-1: early-rocketry family
-import { CO_TAIGA } from './co_taiga.js?v=f5.9-19';
-import { CO_KRUNOV } from './co_krunov.js?v=f5.9-19';
-import { CO_LINGVOLT } from './co_lingvolt.js?v=f5.9-19';
-import { CO_MARTELL } from './co_martell.js?v=f5.9-19';
-import { CO_VANTGUARD } from './co_vantguard.js?v=f5.9-19';
-import { CO_CIVSPACE2 } from './co_civspace2.js?v=f5.9-19';
-import { CO_ORBITRON } from './co_orbitron.js?v=f5.9-19';
-import { CO_ORIGINALS } from './co_originals.js?v=f5.9-19';
-import { CO_ROCKETWELL } from './co_rocketwell.js?v=f5.9-19'; // co-rocketwell-1
-import { CO_SOUTHSTAR } from './co_southstar.js?v=f5.9-19';
-import { CO_VULC } from './co_vulc.js?v=f5.9-19';
-import { CO_ULX, ULX_IDS } from './co_ulx.js?v=f5.9-19';
-import { CO_BALTIC } from './co_baltic.js?v=f5.9-19';
+import { CO_CIVSPACE } from './co_civspace.js?v=f5.9-20'; // co-civspace-1: NOSA heritage vehicles
+import { CO_SOUTHSTAR_B } from './co_ssb.js?v=f5.9-20';
+import { CO_KOMETA } from './co_kometa.js?v=f5.9-20';
+import { CO_ALBION } from './co_albion.js?v=f5.9-20';
+import { CO_EUROPIA } from './co_europia.js?v=f5.9-20';
+import { CO_VEGARA } from './co_vegara.js?v=f5.9-20';
+import { CO_ARION } from './co_arion.js?v=f5.9-20';
+import { CO_BLUEHZ } from './co_bluehz.js?v=f5.9-20';
+import { CO_BOLT } from './co_bolt.js?v=f5.9-20';
+import { CO_CONVEX } from './co_convex.js?v=f5.9-20';
+import { CO_DOUGWING } from './co_dougwing.js?v=f5.9-20';
+import { CO_CNFOLL } from './co_cnfoll.js?v=f5.9-20';
+import { CO_ORBITRON_B } from './co_orbitron_b.js?v=f5.9-20';
+import { CO_ISRA_B } from './co_isra_b.js?v=f5.9-20';
+import { CO_LEVANT } from './co_levant.js?v=f5.9-20';
+import { CO_SKYLAND } from './co_skyland.js?v=f5.9-20';
+import { CO_SOUTHSTAR_C } from './co_southstar_c.js?v=f5.9-20';
+import { CO_JAXO_B } from './co_jaxo_b.js?v=f5.9-20';
+import { CO_MARTELL_B } from './co_martell_b.js?v=f5.9-20';
+import { CO_CONVEX_B } from './co_convex_b.js?v=f5.9-20';
+import { CO_JADE_B } from './co_jade_b.js?v=f5.9-20';
+import { CO_KRUNOV_B } from './co_krunov_b.js?v=f5.9-20';
+import { CO_EXPL } from './co_expl.js?v=f5.9-20';
+import { CO_GALEN } from './co_galen.js?v=f5.9-20';
+import { CO_DOUGWING_B } from './co_dougwing_b.js?v=f5.9-20';
+import { CO_GAULOIS } from './co_gaulois.js?v=f5.9-20';
+import { CO_JADELANTERN2 } from './co_jadelantern2.js?v=f5.9-20';
+import { CO_JADELANTERN } from './co_jadelantern.js?v=f5.9-20';
+import { CO_IRG } from './co_irg.js?v=f5.9-20';
+import { CO_ISRA } from './co_isra.js?v=f5.9-20';
+import { CO_TSURUGI } from './co_tsurugi.js?v=f5.9-20';
+import { CO_JAXO } from './co_jaxo.js?v=f5.9-20';
+import { CO_MOGUTNY } from './co_mogutny.js?v=f5.9-20';
+import { CO_MOONHAMMER } from './co_moonhammer.js?v=f5.9-20';
+import { CO_KRASNAYA } from './co_krasnaya.js?v=f5.9-20'; // co-krasnaya-1: early-rocketry family
+import { CO_TAIGA } from './co_taiga.js?v=f5.9-20';
+import { CO_KRUNOV } from './co_krunov.js?v=f5.9-20';
+import { CO_LINGVOLT } from './co_lingvolt.js?v=f5.9-20';
+import { CO_MARTELL } from './co_martell.js?v=f5.9-20';
+import { CO_VANTGUARD } from './co_vantguard.js?v=f5.9-20';
+import { CO_CIVSPACE2 } from './co_civspace2.js?v=f5.9-20';
+import { CO_ORBITRON } from './co_orbitron.js?v=f5.9-20';
+import { CO_ORIGINALS } from './co_originals.js?v=f5.9-20';
+import { CO_ROCKETWELL } from './co_rocketwell.js?v=f5.9-20'; // co-rocketwell-1
+import { CO_SOUTHSTAR } from './co_southstar.js?v=f5.9-20';
+import { CO_VULC } from './co_vulc.js?v=f5.9-20';
+import { CO_ULX, ULX_IDS } from './co_ulx.js?v=f5.9-20';
+import { CO_BALTIC } from './co_baltic.js?v=f5.9-20';
 const PI = Math.PI;
 // ---- kerolox booster core (9 engines, octaweb, legs, grid fins) ----
 function core9(detail, o = {}) {
@@ -218,17 +218,17 @@ export const VEHICLES = {
   'payload-flatsat-stack': { height: 5.6, build: satStack, src: 'specs sheet flatsat-style flat-pack stack (art)', est: ['plate size'] },
 };
 // f5.1h: the grouped rocket picker (fun/picker.js) lists the art sets per house; keys match fun/picker.js HOUSES
-import { NAMES as N_EUROPIA } from './co_europia.js?v=f5.9-19';
-import { NAMES as N_GAULOIS } from './co_gaulois.js?v=f5.9-19';
-import { NAMES as N_IRG } from './co_irg.js?v=f5.9-19';
-import { NAMES as N_JADELANTERN } from './co_jadelantern.js?v=f5.9-19';
-import { NAMES as N_JADELANTERN2 } from './co_jadelantern2.js?v=f5.9-19';
-import { NAMES as N_JAXO } from './co_jaxo.js?v=f5.9-19';
-import { NAMES as N_LINGVOLT } from './co_lingvolt.js?v=f5.9-19';
-import { NAMES as N_MOONHAMMER } from './co_moonhammer.js?v=f5.9-19';
-import { NAMES as N_TAIGA } from './co_taiga.js?v=f5.9-19';
-import { NAMES as N_TSURUGI } from './co_tsurugi.js?v=f5.9-19';
-import { NAMES as N_VANTGUARD } from './co_vantguard.js?v=f5.9-19';
+import { NAMES as N_EUROPIA } from './co_europia.js?v=f5.9-20';
+import { NAMES as N_GAULOIS } from './co_gaulois.js?v=f5.9-20';
+import { NAMES as N_IRG } from './co_irg.js?v=f5.9-20';
+import { NAMES as N_JADELANTERN } from './co_jadelantern.js?v=f5.9-20';
+import { NAMES as N_JADELANTERN2 } from './co_jadelantern2.js?v=f5.9-20';
+import { NAMES as N_JAXO } from './co_jaxo.js?v=f5.9-20';
+import { NAMES as N_LINGVOLT } from './co_lingvolt.js?v=f5.9-20';
+import { NAMES as N_MOONHAMMER } from './co_moonhammer.js?v=f5.9-20';
+import { NAMES as N_TAIGA } from './co_taiga.js?v=f5.9-20';
+import { NAMES as N_TSURUGI } from './co_tsurugi.js?v=f5.9-20';
+import { NAMES as N_VANTGUARD } from './co_vantguard.js?v=f5.9-20';
 export const ART_NAMES = { ...N_EUROPIA, ...N_GAULOIS, ...N_IRG, ...N_JADELANTERN, ...N_JADELANTERN2, ...N_JAXO, ...N_LINGVOLT, ...N_MOONHAMMER, ...N_TAIGA, ...N_TSURUGI, ...N_VANTGUARD };
 const K = (...o) => o.flatMap(x => Object.keys(x));
 export const HOUSE_SETS = { originals: K(CO_ORIGINALS), spacey: ['sparrow-1', 'heron-9', 'heron-9-v11', 'heron-9-crew', 'heron-heavy', 'colossus-v3', 'colossus-v4'],
@@ -261,7 +261,7 @@ export function setPayload(g, id, kind, det = 'hi') {
     const p = buildPayload(kind, { detail: det, r: D * 0.34, h: sz.y * 0.5 }); p.position.set(0, b.min.y + 0.05 * Math.min(1, sz.y / 4), 0); g.add(p); st.sat = p; return p; }
   if (!bay) return null; // no shell and no bay (capsule/lander stacks, whose spacecraft is the payload): nothing to add
   const cz = bay.cz || 0, p = buildPayload(kind, { detail: det, r: 1.7, h: bay.h }), zIn = cz + bay.r * 0.3, zOut = cz + bay.r + p.userData.r + 0.5; p.position.set(0, bay.y - 0.05, zIn); g.add(p); st.sat = p;
-  const piv = new THREE.Group(); piv.name = 'bay'; piv.position.set(1.4, bay.y + bay.h / 2, cz + bay.r + 0.04); const door = new THREE.Mesh(new THREE.BoxGeometry(2.8, bay.h + 1.0, 0.14), mat('steel')); door.position.x = -1.4; piv.add(door); g.add(piv); st.bay = piv;
+  const piv = new THREE.Group(); piv.name = 'bay'; piv.position.set(1.4, bay.y + bay.h / 2, cz + bay.r + 0.04); const doorG = new THREE.BoxGeometry(2.8, bay.h + 1.0, 0.14); doorG.computeTangents(); /* f5.9-20 (owner freeze): the shared steel material reads tangents; without them WebGPU (iPhone Safari) rejects the pipeline and every frame after it */ const door = new THREE.Mesh(doorG, mat('steel')); door.position.x = -1.4; piv.add(door); g.add(piv); st.bay = piv;
   g.userData.bayExpose = k => { const e = Math.max(0, Math.min(1, k)), sm = e * e * (3 - 2 * e); piv.rotation.y = -1.9 * sm; p.position.z = zIn + (zOut - zIn) * Math.max(0, Math.min(1, (e - 0.35) / 0.65)); };
   g.userData.bayExpose(0); return p; }
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi';
