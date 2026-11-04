@@ -8,6 +8,8 @@ const W = { 'cape-north': 1, 'cape-heritage': 1, atoll: 1 };
 for (const id of Object.keys(W)) { const S = (await import(`../gfx/sites/site_${id}.js`)).SITE, land = landTest(S), free = keepOut(S);
   const sc = S.layout.find(o => o.k === 'scatter'), hl = S.layout.find(o => o.k === 'hills'), pad = S.layout.find(o => o.k === 'pad');
   ok(!!sc && !!hl, `${id}: has scatter + hills`);
+  const bl = S.layout.find(o => o.k === 'belts'); ok(!!bl && (bl.road || bl.perimeter || bl.coast) > 0, `${id}: has world-pop-2 belts (road / perimeter / coast tree lines)`);
+  if (bl?.perimeter) ok(!free(0, 0) && bl.ring > pad.r * 1.35 + 10, `${id}: belt ring ${bl.ring} m sits outside the pad keep-out`);
   ok(!free(0, 0) && !free(0, pad.r) && !free(pad.r * 1.3, 0) && !free(0, pad.r * 1.2), `${id}: pad, fence and trench exit are keep-out`);
   for (const o of S.layout.filter(o => o.k === 'road')) { const [a, b] = o.pts; ok(!free((a[0] + b[0]) / 2, (a[1] + b[1]) / 2), `${id}: road ${JSON.stringify(a)} is keep-out`); }
   for (const o of S.layout.filter(o => ['hangar', 'block', 'tanks', 'lot', 'vab'].includes(o.k))) ok(!free(...o.at), `${id}: ${o.k} at ${o.at} is keep-out`);

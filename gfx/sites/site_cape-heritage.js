@@ -22,7 +22,8 @@ export const SITE = { id: 'cape-heritage', name: 'Heritage Complex', body: 'eart
     { k: 'block', at: [220, 960], w: 40, h: 10, d: 24, roof: true, mat: 'clad' }, // visitor / press building
     { k: 'lot', at: [60, 960], w: 60, d: 30 },
     { k: 'dish', at: [260, 230], r: 8, h: 10 },
-    { k: 'scatter', seed: 'ch', r0: 80, r1: 2400, mix: { pine: 200, palm: 70, scrub: 300, rock: 30 }, shore: 30, mid: 0.05 } /* phone near tier stays under the 8k site cap */,
+    { k: 'scatter', seed: 'ch', r0: 80, r1: 2400, mix: { pine: 90, palm: 40, scrub: 140, rock: 24 }, shore: 24, mid: 0.05 } /* phone near tier stays under the 8k site cap */,
+    { k: 'belts', seed: 'ch', road: 0.45, perimeter: 24, ring: 260, coast: 50, r1: 2400, mid: 0.3 }, // world-pop-2: crawler-road tree lines, pad hedge ring, shore palms
     { k: 'hills', r0: 7500, r1: 13000, h: 320, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // inland ridges beyond the assembly building
   ],
   stations: [{ id: 'droneship', name: 'Droneship holding area', lat: 29.8, lon: -76.0, layout: [{ k: 'droneship' }] }],

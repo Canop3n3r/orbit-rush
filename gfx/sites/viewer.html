@@ -17,5 +17,6 @@ const g = buildSite(S, { detail, ground: true }); setSiteNight(g, !!V.night); sc
 const cam = new THREE.PerspectiveCamera(V.fov || (view === 'phone' ? 55 : 40), W / H, 1, 60000); cam.position.set(...V.eye); cam.lookAt(...V.at);
 await (await import('./world.js?v=f5.9-23')).photosReady(); // world-pop-1: photo ground/concrete maps load async
 for (let i = 0; i < 3; i++) { renderer.render(scene, cam); await new Promise(r => requestAnimationFrame(r)); }
-window.__ready = { tris: g.userData.tris, meshes: g.children.reduce((n, c) => n + c.children.length, 0) }; document.title = 'ready';
+const byMat = {}; g.traverse(o => { if (o.isMesh) byMat[o.material.name] = (byMat[o.material.name] || 0) + (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; });
+window.__ready = { tris: g.userData.tris, meshes: g.children.reduce((n, c) => n + c.children.length, 0), byMat }; // byMat: per-material tris (world dressing budget checks) document.title = 'ready';
 </script></body></html>

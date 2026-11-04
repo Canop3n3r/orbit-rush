@@ -27,12 +27,12 @@ function tinted(K, geo, k, m, rgb) { K.add(geo, k, m); const g = K.b.get(k).at(-
 const hex = (h, j = 0, a = Math.random) => { const f = 1 + (a() - 0.5) * j; return [((h >> 16) & 255) / 255 * f, ((h >> 8) & 255) / 255 * f, (h & 255) / 255 * f]; };
 const _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
 const M = (p, ry = 0, s = [1, 1, 1], rx = 0, rz = 0) => { _e.set(rx, ry, rz); return new THREE.Matrix4().compose(_v.set(...p), _q.setFromEuler(_e), _s.set(...s)); };
-// ---------- plant / rock models (flat-shaded low poly, one 'flora' material, colour by vertex) ----------
+// ---------- plant / rock models (flat-shaded low poly, one 'flora' material, colour by vertex; world-pop-2: crowns open-ended, rocks icosahedra = fewer tris per plant) ----------
 const PLANTS = {
   pine(K, x, z, s, a) { const h = (16 + 10 * a()) * s, seg = K.hi ? 6 : 4; // slash pine: tall bare trunk, flat high crown
     tinted(K, new THREE.CylinderGeometry(0.25 * s, 0.4 * s, h + SINK, 3, 1, true), 'flora', M([x, (h - SINK) / 2, z]), hex(0x5a4330, 0.2, a));
-    tinted(K, new THREE.ConeGeometry(4.2 * s, 6 * s, seg), 'flora', M([x, h, z], a() * 6), hex(0x3f5a2c, 0.25, a));
-    if (K.hi) tinted(K, new THREE.ConeGeometry(3 * s, 4.5 * s, seg), 'flora', M([x + 0.4, h + 2.6 * s, z], a() * 6), hex(0x4a6a33, 0.25, a)); },
+    tinted(K, new THREE.ConeGeometry(4.2 * s, 6 * s, seg, 1, true), 'flora', M([x, h, z], a() * 6), hex(0x3f5a2c, 0.25, a));
+    if (K.hi) tinted(K, new THREE.ConeGeometry(3 * s, 4.5 * s, seg, 1, true), 'flora', M([x + 0.4, h + 2.6 * s, z], a() * 6), hex(0x4a6a33, 0.25, a)); },
   palm(K, x, z, s, a) { const h = (7 + 5 * a()) * s, lean = (a() - 0.5) * 0.35, ry = a() * 6; // cabbage / coconut palm: thin leaning trunk, drooping star crown
     tinted(K, new THREE.CylinderGeometry(0.22 * s, 0.32 * s, h + SINK, 3, 1, true), 'flora', M([x, (h - SINK) / 2, z], ry, [1, 1, 1], lean), hex(0x7a6650, 0.2, a));
     const top = [x, h * Math.cos(lean), z + h * Math.sin(lean)], c = K.hi ? new THREE.IcosahedronGeometry(1, 0) : new THREE.OctahedronGeometry(1, 0);
@@ -40,7 +40,7 @@ const PLANTS = {
   scrub(K, x, z, s, a) { const g = K.hi ? new THREE.IcosahedronGeometry(1.6 * s, 0) : new THREE.OctahedronGeometry(1.6 * s, 0); // saw palmetto / beach scrub
     tinted(K, g, 'flora', M([x, 0.35 * s, z], a() * 6, [1.3 + 0.5 * a(), 0.55 + 0.3 * a(), 1.2 + 0.4 * a()]), hex([0x58693a, 0x6b7340, 0x4c6236, 0x7d7a48][(a() * 4) | 0], 0.25, a)); },
   grass(K, x, z, s, a) { const g = new THREE.ConeGeometry(0.9 * s, 1.4 * s, 3, 1, true); tinted(K, g, 'flora', M([x, 0.5 * s, z], a() * 6), hex(0x9a9558, 0.3, a)); }, // dune grass tuft
-  rock(K, x, z, s, a) { const g = K.hi ? new THREE.DodecahedronGeometry(1.2 * s, 0) : new THREE.OctahedronGeometry(1.2 * s, 0);
+  rock(K, x, z, s, a) { const g = K.hi ? new THREE.IcosahedronGeometry(1.2 * s, 0) : new THREE.OctahedronGeometry(1.2 * s, 0);
     tinted(K, g, 'boulder', M([x, 0.35 * s - 0.6, z], a() * 6, [1 + 0.6 * a(), 0.6 + 0.5 * a(), 1 + 0.5 * a()], (a() - 0.5) * 0.5, (a() - 0.5) * 0.5), hex(0xd8d2c6, 0.3, a)); },
 };
 // scatter: o = { at, seed, r0, r1, mix: { pine: n, palm: n, scrub: n, grass: n, rock: n }, shore: n (boulders along the coast / island rim) }
@@ -79,4 +79,22 @@ function lot(K, o, S) { const w = o.w || 40, d = o.d || 24, a = rnd(hash(S.id + 
   K.flat('asphalt', w, d, [0, 0, 0], 0, 0.03); if (K.lo) return; const nx = Math.floor(w / 4);
   for (const row of [-1, 1]) for (let i = 0; i < nx; i++) { const x = -w / 2 + 2 + i * 4; if (K.hi) K.flat('white', 0.15, 5, [x - 2, 0, row * (d / 2 - 3)], 0, 0.06);
     if (a() < (o.fill ?? 0.6)) { const k = ['white', 'clad', 'band', 'red'][(a() * 4) | 0]; K.box(k, 2, 1.6, 4.6, [x, 0, row * (d / 2 - 3)]); if (K.hi) K.box('glass', 1.9, 0.7, 2, [x, 1.6, row * (d / 2 - 3) - row * 0.4]); } } }
-export const WORLD_PARTS = { scatter, hills, lot };
+// world-pop-2: belts = dense, clumped tree lines and scrub hedges along the roads, the pad perimeter and the coast.
+// o = { seed, road: clumps per 100 m of road (each side), perimeter: clumps on a ring at o.ring m, coast: clumps along the shore band,
+//       kinds: { tree: 'pine'|'palm', under: 'scrub'|'grass' }, mid (phone share, default 0.25) }. Same land / keep-out rules as scatter.
+// Each clump = 1..4 trees of one size class + an under-storey of 2..5 shrubs, tinted together (a clump shares a hue shift).
+const TINTS = [[1, 1, 1], [0.86, 0.95, 0.8], [1.12, 1.06, 0.82], [0.78, 0.86, 0.72], [1.05, 1.1, 0.9], [1.2, 1.02, 0.7]]; // base, dark, olive-dry, deep, fresh, sun-scorched
+function clump(K, x, z, a, o, ok, treeShare) { const tint = TINTS[(a() * TINTS.length) | 0], sz = 0.6 + 1.1 * a() ** 1.5, tree = o.kinds?.tree || 'pine', under = o.kinds?.under || 'scrub';
+  const nt = a() < treeShare ? 1 + ((a() * 4) | 0) : 0, nu = 2 + ((a() * 4) | 0), put = (kind, px, pz, s) => { if (!ok(px, pz, kind === 'pine' ? 3 : 1.5)) return; const n0 = K.b.get('flora')?.length || 0; PLANTS[kind](K, px, pz, s, a);
+    for (const g of (K.b.get('flora') || []).slice(n0)) { const c = g.attributes.color.array; for (let i = 0; i < c.length; i += 3) { c[i] *= tint[0]; c[i + 1] *= tint[1]; c[i + 2] *= tint[2]; } } };
+  for (let i = 0; i < nt; i++) put(tree, x + (a() - 0.5) * 14 * sz, z + (a() - 0.5) * 14 * sz, sz * (0.8 + 0.4 * a()));
+  for (let i = 0; i < nu; i++) put(under, x + (a() - 0.5) * 18, z + (a() - 0.5) * 18, (0.6 + 0.8 * a()) * (nt ? 1 : 1.3)); }
+function belts(K, o, S) { if (K.lo) return; const a = rnd(hash(S.id + 'belts' + (o.seed || ''))), land = landTest(S), free = keepOut(S), f = K.hi ? 1 : (o.mid ?? 0.25), ok = (x, z, m) => land(x, z, m) && free(x, z, m);
+  const per = n => Math.max(0, Math.round(n * f)), ts = o.trees ?? 0.6;
+  if (o.road) for (const r of S.layout.filter(q => q.k === 'road')) for (let i = 1; i < r.pts.length; i++) { const [x0, z0] = r.pts[i - 1], [x1, z1] = r.pts[i], L = Math.hypot(x1 - x0, z1 - z0), ux = (x1 - x0) / L, uz = (z1 - z0) / L;
+    for (const side of [-1, 1]) { const n = per(o.road * L / 100); for (let j = 0; j < n; j++) { const t = (j + a()) / n, off = (r.w || 10) / 2 + 18 + 22 * a(); clump(K, x0 + ux * L * t - uz * off * side, z0 + uz * L * t + ux * off * side, a, o, ok, ts); } } }
+  if (o.perimeter) { const n = per(o.perimeter), R = o.ring || 200; for (let j = 0; j < n; j++) { const t = (j + a() * 0.6) / n * Math.PI * 2, r = R + (a() - 0.5) * 30; clump(K, Math.cos(t) * r, Math.sin(t) * r, a, o, ok, ts * 0.6); } }
+  if (o.coast) { const n = per(o.coast), r1 = o.r1 || 1500; let placed = 0, tries = 0; // shore band: on land, within ~120 m of the waterline
+    while (placed < n && tries++ < n * 200) { const t = a() * Math.PI * 2, r = Math.sqrt(a()) * r1, x = Math.cos(t) * r, z = Math.sin(t) * r; if (!land(x, z, 15) || land(x, z, 120)) continue;
+      clump(K, x, z, a, { kinds: o.coastKinds || { tree: 'palm', under: 'grass' } }, ok, ts * 0.5); placed++; } } }
+export const WORLD_PARTS = { scatter, hills, lot, belts };
