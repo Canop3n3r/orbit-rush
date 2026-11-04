@@ -50,5 +50,7 @@ export function oceanLook({ vc, w0, w, sunPos, tier = 'med' }) {
 export function oceanDisplace(w0Attr, tier) {
   if (!(OCEAN_TIERS[tier] || {}).displace) return null;
   const dist = length(positionWorld.sub(cameraPosition)), { h } = waveTerms(positionLocal, dist, [0, 1]);
-  return positionLocal.add(normalLocal.mul(h.mul(smoothstep(0.6, 0.9, w0Attr)).mul(smoothstep(6000.0, 1500.0, dist))));
+  // f5.9-21 (owner: the ground under the pad flickered): waves near the launch site rose through the deck and shore; calm water within ~250 m of the pad
+  const padCalm = smoothstep(250.0, 600.0, length(positionLocal.xz));
+  return positionLocal.add(normalLocal.mul(h.mul(smoothstep(0.6, 0.9, w0Attr)).mul(smoothstep(6000.0, 1500.0, dist)).mul(padCalm)));
 }

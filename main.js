@@ -380,7 +380,7 @@ const tile = new THREE.Mesh(tileGeo, GX.tileMaterial(sunPos, TILE_TIER)); tile.f
 const tileF = new THREE.Mesh(tileGeo, GX.tileMaterial(sunPos, TILE_TIER, true)); tileF.frustumCulled = false; tileF.renderOrder = -1; earth.add(tileF);
 let tileForceOff = false; // test hook (__game.tileOff)
 let tileC = null, earthPx = null; GX.earthPixels(gfxQ).then(px => { earthPx = px; tileC = null; padLandColor(); });
-const tileRGBA = [0, 0, 0, 0], GLOBE_SAG = 600, smooth01 = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+const tileRGBA = [0, 0, 0, 0], GLOBE_SAG = 600, PAD_SINK = 2, smooth01 = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
 // f5.9 terrain: the land colour of the surrounding map (inland Florida, 40-80 km west of the pad), so the pad's shaped coast/scrub is the SAME ground as its neighbours, not a dark patch
 let padLand = null; function padLandColor() { if (padLand || !earthPx) return padLand; const o = [0, 0, 0, 0], a = [0, 0, 0]; let n = 0; for (const [s, nn2] of [[40000, 0], [60000, 15000], [80000, -15000], [55000, -25000], [70000, 25000]]) { const w = s / R, x = nn2 / R, d = V.norm([Math.cos(w), -Math.sin(w), x]); GX.sampleEarth(earthPx, d, o); if (o[3] < 0.5) { a[0] += o[0]; a[1] += o[1]; a[2] += o[2]; n++; } } padLand = n ? [a[0] / n, a[1] / n, a[2] / n] : [0.03, 0.043, 0.02]; GX.padLandU.value.set(padLand[0], padLand[1], padLand[2]); return padLand; }
 function updateTile(ef) {
@@ -391,7 +391,7 @@ function updateTile(ef) {
   const put = (k, th, ph) => {
     const s = Math.sin(th), cm1 = -2 * Math.sin(th / 2) ** 2, dx = Math.cos(ph) * s, dy = Math.sin(ph) * s;
     const off = [c[0] * cm1 + e[0] * dx + nn[0] * dy, c[1] * cm1 + e[1] * dx + nn[1] * dy, c[2] * cm1 + e[2] * dx + nn[2] * dy];
-    const dd = V.norm(V.add(c, off)), drop = GLOBE_SAG * smooth01((th * R - 60000) / 90000); // f5.9 terrain: the globe sphere sits GLOBE_SAG below true sea level, so settle the tile onto it over its outer 90 km: no cliff at the rim
+    const dd = V.norm(V.add(c, off)), drop = GLOBE_SAG * smooth01((th * R - 60000) / 90000) + PAD_SINK * (1 - smooth01((th * R - 14000) / 12000)); /* f5.9-21 (owner: ground under the pad flickered on iPhone): the site's ground disc and sea sheet sat at the same height as this tile and z-fought; settle the tile 2 m under them around the pad */ // f5.9 terrain: the globe sphere sits GLOBE_SAG below true sea level, so settle the tile onto it over its outer 90 km: no cliff at the rim
     pos[k * 3] = off[0] * R - dd[0] * drop; pos[k * 3 + 1] = off[1] * R - dd[1] * drop; pos[k * 3 + 2] = off[2] * R - dd[2] * drop;
     if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); if (dd[0] > PAD_COAST_COS) { /* flight-ground-2: the 1k mask's ~40 km coastal texel made the pad an island on a beige-grey smear; shape a real coast instead: land (scrub) to the west, a beach, open sea ~1.5 km east of the pad */
         const eM = dd[1] * R, nM = dd[2] * R, coast = 1500 + 900 * (fbm(nM * 0.00025, 3.1, 7.7) - 0.5) * 2 + 0.25 * Math.max(0, nM) * 0.12, wC = Math.min(1, Math.max(0, (eM - coast) / 300 + 0.5)), blend = 1 - smooth01((Math.acos(Math.min(1, dd[0])) * R - 6000) / 24000); // f5.9: smooth 6->30 km fade (was a linear 5->30 km ramp)
