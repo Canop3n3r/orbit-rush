@@ -197,8 +197,9 @@ def grid_fins(part, ctx, cx, r, fins):
         # frame (beveled) + lattice blades (plain boxes)
         for (py, sy) in ((0.1, 0.1), (h + 0.1, 0.1)): box(bf, (0.4, sy, w), col, xf((0, py, 0)))
         for sx in (-1, 1): box(bf, (0.4, h, 0.1), col, xf((0, h / 2 + 0.1, sx * w / 2)))
-        if ctx.detail >= 2:
-            step = 0.3
+        if ctx.detail >= 1:
+            # real lattice: +-45 deg blades with depth (open cells read from every angle); phones get a coarser pitch, same silhouette
+            step = 0.3 if ctx.detail >= 2 else 0.55
             for sgn in (1, -1):
                 c = -(w + h)
                 while c <= w + h:
@@ -208,31 +209,55 @@ def grid_fins(part, ctx, cx, r, fins):
                         um = (u0 + u1) / 2; L = (u1 - u0) * math.sqrt(2); vm = sgn * um + c
                         box(b, (0.36, L, t), col, xf((0, 0.1 + vm, um), (sgn * PI / 4, 0, 0)))
                     c += step
-        elif ctx.detail == 1:
-            box(b, (0.36, h * 0.9, 0.05), col, xf((0, h / 2 + 0.1, 0), (0, 0, 0)))
-            box(b, (0.36, 0.05, w * 0.95), col, xf((0, h / 2 + 0.1, 0)))
-            for sgn in (1, -1): box(b, (0.3, math.hypot(w, h) * 0.9, 0.04), col, xf((0, h / 2 + 0.1, 0), (sgn * math.atan2(w, h), 0, 0)))
         else:
             box(b, (0.2, h, w), col, xf((0, h / 2 + 0.1, 0)))
         box(s.buf('dark', 0.02 if ctx.detail >= 1 else 0.0), (0.5, 0.5, 0.5), srgb(0x2A2B2F), xf((0.08, 0, 0)))
 
-def legs(part, ctx, cx, spec_legs):
-    """landing legs: tapered hinged struts as animatable pivots `leg_i` (rotation.z = -t*2 rad deploys them, like setLegs). Stowed = pointing up."""
+def legs(part, ctx, cx, spec_legs, hull_r=None):
+    """landing legs as animatable pivots `leg_i` (rotation.z = -t * 120 deg deploys them; gfx/vehicles/articulate.js). Stowed = foot up, flush.
+    Each leg: a curved carbon fairing shell that sits flush on the hull when stowed (its inner face follows the hull curvature), a carbon
+    A-frame (two tapered struts + cross brace) under it, a hinge clevis with pin, the telescoping-strut lug at 0.86 L and a crushable foot pad.
+    The telescoping strut itself is built at runtime (it spans the hull and the moving leg)."""
     piv = spec_legs['pivots']; ln = spec_legs.get('len') or 9.0; n = len(piv)
     for i, (px, py, pz) in enumerate(piv):
-        a = math.atan2(pz - cx[1], px - cx[0])
-        s = part.sub(f'leg_{i}', (px, py, pz), rot_y=-a, kind='leg', deploy_axis='z', deploy_rad=-2.0)
-        col = srgb(0x2F3034); b = s.buf('dark', 0.015 if ctx.detail >= 1 else 0.0); L = ln
-        # A-frame: two struts splayed at the hinge (z = +-w) converging at the foot, a crossbar and a crush-core rod (real 3D, not a plate)
-        w = 0.55 * min(1.0, ln / 7) + 0.1; rr = max(0.07, 0.011 * ln); sd = 6 if ctx.detail >= 1 else 4
-        for sg in (-1, 1): rod(b, (0.02, 0.0, sg * w), (0.34, L, sg * 0.07), rr, sd, col)
-        rod(b, (0.02, L * 0.38, -w * 0.62), (0.02, L * 0.38, w * 0.62), rr * 0.7, sd, col)
-        rod(s.buf('metal'), (0.34, L * 0.15, 0.0), (0.34, L * 0.95, 0.0), rr * 0.8, sd, srgb(0x8A8F96))
+        a = math.atan2(pz - cx[1], px - cx[0]); rp = math.hypot(px - cx[0], pz - cx[1]); R = hull_r or rp
+        s = part.sub(f'leg_{i}', (px, py, pz), rot_y=-a, kind='leg', deploy_axis='z', deploy_rad=-2.0944, strut_lug=[0.34, 0.86 * ln, 0.0], strut_hull=[-0.05, 0.42 * ln, 0.0])
+        carbon = srgb(0x2A2B2F); edge = srgb(0x3A3B40); L = ln
+        b = s.buf('dark', 0.012 if ctx.detail >= 2 else 0.0)
+        # fairing shell: curved panel, wide at the hinge (hw0) tapering to the foot (hw1); inner face 4 cm off the hull, 22 cm deep
+        hw0 = min(1.05, 0.62 * R); hw1 = 0.42 * hw0 / 0.95 * 0.95; na = 4 if ctx.detail >= 2 else 2; nv = 3 if ctx.detail >= 1 else 2
+        ri, ro = R + 0.04, R + 0.26
+        def pt(rr, u, v):  # u in [-1, 1] across, v in [0, 1] along
+            hw = hw0 + (hw1 - hw0) * v; ph = u * hw / R
+            return (rr * math.cos(ph) - rp + (0.0 if rr == ri else 0.0), 0.35 + v * (L - 0.35), rr * math.sin(ph))
+        grid = {}
+        for side, rr in (('o', ro), ('i', ri)):
+            for j in range(nv + 1):
+                for k in range(na + 1): grid[side, j, k] = b.vert(pt(rr, -1 + 2 * k / na, j / nv))
+        for j in range(nv):
+            for k in range(na):
+                o = lambda jj, kk: grid['o', jj, kk]; ii = lambda jj, kk: grid['i', jj, kk]
+                b.face((o(j, k), o(j, k + 1), o(j + 1, k + 1), o(j + 1, k)), carbon)
+                b.face((ii(j + 1, k), ii(j + 1, k + 1), ii(j, k + 1), ii(j, k)), mulc(carbon, 0.8))
+        for j in range(nv):  # side walls
+            b.face((grid['i', j, 0], grid['o', j, 0], grid['o', j + 1, 0], grid['i', j + 1, 0]), edge)
+            b.face((grid['o', j, na], grid['i', j, na], grid['i', j + 1, na], grid['o', j + 1, na]), edge)
+        for k in range(na):  # end caps (hinge end and foot end)
+            b.face((grid['i', 0, k], grid['i', 0, k + 1], grid['o', 0, k + 1], grid['o', 0, k]), edge)
+            b.face((grid['o', nv, k], grid['o', nv, k + 1], grid['i', nv, k + 1], grid['i', nv, k]), edge)
+        sd = 6 if ctx.detail >= 1 else 4; rr_ = max(0.08, 0.012 * ln); w = hw0 * 0.7
         if ctx.detail >= 1:
-            cyl(s.buf('dark'), 0.62, 0.72, 0.26, 12 if ctx.detail >= 2 else 8, srgb(0x25262A), xf((0.2, L + 0.02, 0), (0, 0, PI / 2)))  # foot pad
-            box(s.buf('dark', 0.01), (0.3, 0.5, 1.2), srgb(0x25262A), xf((0.1, 0.25, 0)))                     # hinge clevis
-        if ctx.detail >= 2:
-            for sg in (-1, 1): box(s.buf('metal'), (0.03, L * 0.85, 0.12), srgb(0x6E7178), xf((0.52, L * 0.45, sg * 0.28), (0, 0, 0.0)))
+            # A-frame under the shell (seen once the leg is down): two struts hinge -> foot + cross brace, and a raised centre spine on the shell
+            for sg in (-1, 1): rod(b, (ri - rp - 0.02, 0.3, sg * w), (ri - rp + 0.02, L * 0.97, sg * 0.1), rr_, sd, carbon)
+            rod(b, (ri - rp - 0.02, L * 0.45, -w * 0.62), (ri - rp - 0.02, L * 0.45, w * 0.62), rr_ * 0.7, sd, carbon)
+            box(b, (0.06, L * 0.86, 0.16), edge, xf((ro - rp + 0.02, 0.35 + L * 0.45, 0)))
+        # hinge clevis + pin (metal), strut lug, foot pad with crush core
+        m = s.buf('metal'); grey = srgb(0x8A8F96)
+        box(m, (0.34, 0.5, hw0 * 1.6), srgb(0x55585E), xf((ri - rp + 0.08, 0.25, 0)))
+        if ctx.detail >= 1: cyl(m, 0.09, 0.09, hw0 * 1.9, sd, grey, xf((ri - rp + 0.08, 0.2, -hw0 * 0.95), (PI / 2, 0, 0)))
+        if ctx.detail >= 1: box(m, (0.3, 0.4, 0.3), grey, xf((0.34, 0.86 * L, 0)))
+        cyl(s.buf('dark'), 0.7, 0.62, 0.22, 12 if ctx.detail >= 2 else 8, srgb(0x25262A), xf((ri - rp + 0.16, L + 0.02, 0), (0, 0, -PI / 2)))
+        if ctx.detail >= 2: cyl(m, 0.32, 0.32, 0.2, 8, grey, xf((ri - rp - 0.04, L - 0.02, 0), (0, 0, -PI / 2)))
 
 def solid_details(part, ctx, cx, spec):
     """casting-segment joints are grooves (done by hull()); here: aft skirt lip + nozzle flex-seal ring + forward attach ring."""
