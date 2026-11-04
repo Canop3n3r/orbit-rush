@@ -1,12 +1,12 @@
 // Orbit Rush flight logic: one flight from the pad to the end screen, with no DOM or rendering, so the
 // browser game (main.js) and the headless tests (tests/*.mjs) run exactly the same rules on the
 // full-scale 6-DOF physics (physics.js). main.js passes hooks for sounds, toasts and visuals.
-import * as P from './physics.js?v=f5.9-21';
-import * as C from './physics/patched.js?v=f5.9-21';
-import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.9-21';
-import { designReusable } from './vehicles/reusable.js?v=f5.9-21';
-import { newStats, trackStats } from './fun/endstats.js?v=f5.9-21';
-import { installVessels } from './fun/vessels.js?v=f5.9-21'; // f6.2: switching between vessels left in space, craft power, deployed payloads
+import * as P from './physics.js?v=f5.9-23';
+import * as C from './physics/patched.js?v=f5.9-23';
+import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.9-23';
+import { designReusable } from './vehicles/reusable.js?v=f5.9-23';
+import { newStats, trackStats } from './fun/endstats.js?v=f5.9-23';
+import { installVessels } from './fun/vessels.js?v=f5.9-23'; // f6.2: switching between vessels left in space, craft power, deployed payloads
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -55,6 +55,17 @@ const fmtKm = m => (m / 1000).toFixed(0) + ' km';
 export const shipPos = (ship, t, rot = true) => V.rotZ(V.scale(ship.ef, R + DECK), rot ? P.OMEGA_E * t : 0);
 const surfDist = (a, b) => R * Math.acos(Math.max(-1, Math.min(1, V.dot(V.norm(a), V.norm(b)))));
 
+// f5.9-23: AUTO recovery: return to the launch site when the boostback Δv (kill the downrange ground speed, then fly
+// back the downrange distance plus what it still travels) fits in the propellant left after an entry + landing reserve.
+export function recoveryPlan(b, lzEf, rot = true) {
+  const s = b.stages[0], g0 = 9.80665, isp = (s.eng && (s.eng.ispVac || s.eng.isp)) || 300, dry = Math.max(0.1, s.dry || 1), fuel = Math.max(0, s.fuel || 0);
+  const have = isp * g0 * Math.log((dry + fuel) / dry), reserve = 1300, up = V.norm(b.r), h = V.len(b.r) - R, g = 9.81;
+  const lz = V.rotZ(V.scale(lzEf || PAD_EF, R), rot ? P.OMEGA_E * (b.clock || 0) : 0), down = surfDist(b.r, lz);
+  const vg = rot ? V.sub(b.v, V.cross([0, 0, P.OMEGA_E], b.r)) : b.v, vr = V.dot(vg, up), vh = V.len(V.sub(vg, V.scale(up, vr)));
+  const tf = Math.max(60, (Math.max(vr, 0) + Math.sqrt(Math.max(vr, 0) ** 2 + 2 * g * Math.max(h, 0))) / g), need = vh + (down + vh * tf * 0.25) / tf + reserve;
+  const mode = have >= need * 1.05 ? 'rtls' : 'ship', km = Math.round(down / 1000);
+  return { mode, need: Math.round(need), have: Math.round(have), down: Math.round(down), why: mode === 'rtls' ? `${km} km out, fuel covers boostback` : `${km} km out, boostback needs more fuel` };
+}
 // Would a booster released in this state land on its own (auto-land) with the fuel it has?
 export function landingCheck(b0) {
   const b = { ...b0, r: [...b0.r], v: [...b0.v], stages: b0.stages.map(s => ({ ...s })), manual: false, landing: false, entryDone: false, state: 'flying' };
@@ -174,7 +185,7 @@ export function applySpec(v, sp) { if (!sp || !sp.stages || sp.stages.length !==
 export class Flight {
   constructor(design, hooks = {}, opts = {}) {
     this.reusable = opts.reusable ?? designReusable(design); // f5.3: only reusable boosters fly back (heron/colossus house, new-glendale)
-    this.recovery = !this.reusable ? 'none' : opts.recovery || design.recovery || 'ship'; // f4: 'rtls' = boostback to the landing zone at the launch site
+    this.recovery = !this.reusable ? 'none' : opts.recovery || design.recovery || 'ship'; this.recoveryPref = opts.recoveryPref || 'design'; // f5.9-23: 'auto' | 'rtls' | 'ship' (barge) | 'design' // f4: 'rtls' = boostback to the landing zone at the launch site
     if (typeof opts === 'number') opts = { padZ: opts };
     this.design = cloneDesign(design); this.h = hooks; this.stats = designStats(design);
     const v = buildVehicle(design); v.earthRot = opts.earthRot !== false;
@@ -455,13 +466,11 @@ export class Flight {
     this.shiftCom(() => { v.cur = 1; }); this.flags.stagedFuel = b.stages[0].fuel; this.flags.stagedAlt = bh;
     this.call('stage', b);
     const fuel = b.stages[0].fuel;
-    if (fuel > 0.3 && bh > 2000 && this.recovery === 'rtls') { b.rtls = true; b.canLand = true; this.ship = { ef: this.lzEf.slice(), moved: true, lz: true }; this.call('ship', this.ship); this.toast(`STAGE SEP — booster boosting back to the landing zone (${fuel.toFixed(1)} t)`, '#fff'); }
-    else if (fuel > 0.3 && bh > 2000) {
-      // the droneship waits where the auto-land profile (entry burn + landing burn) touches down
-      const lc = landingCheck(b), ok = lc.lands; b.canLand = ok;
-      const pi = lc.r ? null : P.predictImpact(b), imp = lc.r ? { r: lc.r, t: lc.clock - b.clock } : pi && { r: pi.r, t: pi.t - b.clock };
-      if (imp) { this.ship = { ef: V.norm(V.rotZ(imp.r, v.earthRot ? -P.OMEGA_E * (b.clock + imp.t) : 0)), moved: false }; this.call('ship', this.ship); }
-      this.toast(ok ? `STAGE SEP — booster has ${fuel.toFixed(1)} t. Press Y to fly it!` : `STAGE SEP — only ${fuel.toFixed(1)} t left: not enough for auto-landing (Y to try by hand)`, ok ? '#fff' : '#ffb35c');
+    if (fuel > 0.3 && bh > 2000) { // f5.9-23: recovery autopilot: RTLS or barge, picked by the setting (or AUTO from the state at separation)
+      const pref = this.recoveryPref || 'design', plan = recoveryPlan(b, this.lzEf, v.earthRot !== false);
+      const mode = pref === 'rtls' || pref === 'ship' ? pref : pref === 'auto' ? plan.mode : this.recovery === 'rtls' ? 'rtls' : 'ship';
+      b.recPlan = { ...plan, auto: plan.mode, whyAuto: plan.why, pref, mode, why: pref === 'auto' ? plan.why : pref === 'design' ? 'rocket default' : 'your setting' };
+      this.armRecovery(b, mode, true);
     } else this.toast(bh <= 2000 ? 'STAGE SEP — too low for booster recovery' : 'STAGE SEP — booster is dry', '#fff');
   }
   // Drop the bottom stage (fn) and move r to the new, higher centre of mass so nothing jumps on screen.
@@ -510,6 +519,20 @@ export class Flight {
   setSAS(mode) { const v = this.v; v.sas = mode; v.sasHold = null; v.holdAtt = null; if (this.autoOn && mode !== 'stab') this.setAuto(false, true); if (this.ret && this.ret.auto) this.setAuto(false); this.toast('SAS: ' + P.SAS_LABEL[mode], '#9cc3ff'); }
   toggleRCS() { const v = this.v; v.rcsOn = !v.rcsOn; const has = v.stages.slice(v.cur).some(s => s.parts.some(p => p.kind === 'rcs')); this.toast(v.rcsOn ? (has ? `RCS on (${(v.rcsFuel * 1000).toFixed(0)} kg monoprop)` : 'RCS on — but this rocket has no RCS ring') : 'RCS off', '#9cc3ff'); }
   takeOverUpper() { const v = this.v; if (v.auto) { v.auto = false; this.autoOn = false; v.steerDir = null; v.sasHold = null; v.holdAtt = null; v.ut = v.throttle; this.toast('You have the upper stage', '#9cc3ff'); } }
+  // f5.9-23: point the booster at the landing zone (boostback) or a droneship on its downrange track; quiet=false is a mid-flight override
+  armRecovery(b, mode, sep) { const v = this.v, fuel = b.stages[0].fuel;
+    if (!sep) { if (!b || b.state !== 'flying' || b.manual) return false; if (mode === 'rtls' && V.len(b.r) - R < 15000) { this.toast('Too low to boost back: staying on the barge', '#ffb35c'); return false; } }
+    if (mode === 'rtls') { b.rtls = true; b.bbDone = false; b._bbE = null; b.canLand = true; this.ship = { ef: this.lzEf.slice(), moved: true, lz: true }; this.call('ship', this.ship);
+      this.toast(sep ? `STAGE SEP — booster boosting back to the landing zone (${fuel.toFixed(1)} t)` : 'Booster recovery: return to launch site', '#fff'); }
+    else { b.rtls = false; b.bbDone = true;
+      // the droneship waits where the auto-land profile (entry burn + landing burn) touches down
+      const lc = landingCheck(b), ok = lc.lands; b.canLand = ok;
+      const pi = lc.r ? null : P.predictImpact(b), imp = lc.r ? { r: lc.r, t: lc.clock - b.clock } : pi && { r: pi.r, t: pi.t - b.clock };
+      if (imp) { this.ship = { ef: V.norm(V.rotZ(imp.r, v.earthRot ? -P.OMEGA_E * (b.clock + imp.t) : 0)), moved: false }; this.call('ship', this.ship); }
+      this.toast(!sep ? 'Booster recovery: barge landing downrange' : ok ? `STAGE SEP — booster has ${fuel.toFixed(1)} t. Press Y to fly it!` : `STAGE SEP — only ${fuel.toFixed(1)} t left: not enough for auto-landing (Y to try by hand)`, ok ? '#fff' : '#ffb35c'); }
+    if (b.recPlan) { b.recPlan.mode = mode; if (!sep) b.recPlan.why = 'changed this flight'; }
+    return true; }
+  setRecovery(mode) { const b = this.booster; return b && !b.lzName ? this.armRecovery(b, mode, false) : false; }
   flyingBooster() { const b = this.booster; return !!(b && b.state === 'flying' && b.manual); }
   toggleBooster() {
     const b = this.booster;

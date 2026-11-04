@@ -15,7 +15,7 @@ const OUT = process.env.OUT || '', URL = process.env.U || 'http://localhost:8982
     await pg.waitForFunction(() => { const s = document.getElementById('split'); return s && !s.classList.contains('hidden'); }, null, { timeout: 600000 });
     const pip = await shot('pip') || await pg.evaluate(CHECK, { state: 'booster-pip', flight: true }); ok(!pip.fails.length, `${vp} booster PIP layout (${pip.n} controls) ${pip.fails.join('; ')}`);
     { const c = await pg.evaluate(() => { const r = document.getElementById('spPane').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }); await pg.mouse.click(c[0], c[1]); } /* a tap on the PiP expands it; the button only appears in the expanded view (⤡ BACK) */ await pg.waitForFunction(() => document.getElementById('split').classList.contains('fullB'), null, { timeout: 600000 });
-    const rs = () => pg.evaluate(() => { const r = document.getElementById('spReset'), s = window.__game.split; return { shown: !!r.offsetParent, manual: !!s.manual, yaw: +s.yaw.toFixed(3), dist: +s.dist.toFixed(1) }; });
+    const rs = () => pg.evaluate(() => { const r = document.getElementById('spReset'), s = window.__game.split; const c = window.__game.camInfo(), fb = s.full === 'b'; return { shown: !!r.offsetParent, manual: !!s.manual, yaw: +(fb ? c.yaw : s.yaw).toFixed(3), dist: +(fb ? c.dist : s.dist).toFixed(1) }; }); // f5.9-23: the full view is the main camera
     const r0 = await rs(); ok(!r0.shown && !r0.manual, `${vp} expanded booster view starts following (no reset button)`);
     const full = await shot('full') || await pg.evaluate(CHECK, { state: 'booster-full', flight: true }); ok(!full.fails.length, `${vp} expanded booster view layout (${full.n} controls) ${full.fails.join('; ')}`);
     const box = await pg.evaluate(() => { const r = document.getElementById('spPane').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
@@ -23,7 +23,7 @@ const OUT = process.env.OUT || '', URL = process.env.U || 'http://localhost:8982
     await pg.mouse.move(box[0], box[1]); await pg.mouse.wheel(0, 500);
     await pg.waitForFunction(() => window.__game.split.manual, null, { timeout: 600000 });
     const r1 = await rs(); ok(r1.manual && r1.shown && r1.yaw !== r0.yaw, `${vp} drag orbits the booster camera and shows ⟲ FOLLOW (yaw ${r0.yaw} -> ${r1.yaw})`);
-    const z = await pg.evaluate(() => { document.getElementById('spPane').dispatchEvent(new WheelEvent('wheel', { deltaY: 600, bubbles: true, cancelable: true })); return window.__game.split.dist; });
+    const z = await pg.evaluate(() => { document.getElementById('spPane').dispatchEvent(new WheelEvent('wheel', { deltaY: 600, bubbles: true, cancelable: true })); const G = window.__game; return G.split.full === 'b' ? G.camInfo().dist : G.split.dist; });
     ok(z > r1.dist || z >= 1500 || r1.dist !== r0.dist, `${vp} wheel zooms the booster camera (dist ${r0.dist} -> ${r1.dist} -> ${z})`);
     const man = await shot('man') || await pg.evaluate(CHECK, { state: 'booster-manual', flight: true }); ok(!man.fails.length, `${vp} layout with the reset button showing ${man.fails.join('; ')}`);
     await pg.click('#spReset'); const r2 = await rs(); ok(!r2.manual && !r2.shown && r2.dist === 90, `${vp} ⟲ FOLLOW resets the camera (dist ${r2.dist}, manual ${r2.manual})`);

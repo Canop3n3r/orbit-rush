@@ -17,6 +17,13 @@ export const SITE = { id: 'cape-heritage', name: 'Heritage Complex', body: 'eart
     { k: 'road', pts: [[-15, 95], [-15, 700], [-2200, 1700], [-4440, 2300]], w: 12 },
     { k: 'road', pts: [[15, 95], [15, 700], [-2170, 1730], [-4410, 2330]], w: 12 },
     { k: 'road', pts: [[-120, 440], [-120, 900], [600, 900]], w: 9, line: true },
+    // world-pop-1: support area + dressing (gfx/sites/world.js)
+    { k: 'lot', at: [-290, 200], w: 48, d: 28 },
+    { k: 'block', at: [220, 960], w: 40, h: 10, d: 24, roof: true, mat: 'clad' }, // visitor / press building
+    { k: 'lot', at: [60, 960], w: 60, d: 30 },
+    { k: 'dish', at: [260, 230], r: 8, h: 10 },
+    { k: 'scatter', seed: 'ch', r0: 80, r1: 2400, mix: { pine: 200, palm: 70, scrub: 300, rock: 30 }, shore: 30, mid: 0.05 } /* phone near tier stays under the 8k site cap */,
+    { k: 'hills', r0: 7500, r1: 13000, h: 320, from: Math.PI * 0.5, to: Math.PI * 1.5 }, // inland ridges beyond the assembly building
   ],
   stations: [{ id: 'droneship', name: 'Droneship holding area', lat: 29.8, lon: -76.0, layout: [{ k: 'droneship' }] }],
-  views: { hero: { eye: [190, 70, 250], at: [-10, 45, 0] }, top: { eye: [-2200, 5200, 5200], at: [-2200, 0, 1200], fov: 45 }, vab: { eye: [-4200, 120, 2900], at: [-4555, 70, 2470] }, phone: { eye: [190, 80, 250], at: [0, 55, 20] } } };
+  views: { wide: { eye: [900, 300, 1100], at: [-2500, 0, 0], fov: 50 }, hero: { eye: [190, 70, 250], at: [-10, 45, 0] }, top: { eye: [-2200, 5200, 5200], at: [-2200, 0, 1200], fov: 45 }, vab: { eye: [-4200, 120, 2900], at: [-4555, 70, 2470] }, phone: { eye: [190, 80, 250], at: [0, 55, 20] } } };
