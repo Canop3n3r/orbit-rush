@@ -85,7 +85,7 @@ def build_stage(vid, st, tier, ov, scale=1.0):
                 K.interstage_details(part, ctx, cx, top_r, H, H)
             if not re.match(r'^(s1|booster|core|ccb|cbc|stage1|first)$', key, re.I): K.rcs_quads(part, ctx, cx, top_r, H - max(0.5, 0.06 * H))
         if role == 'solid': K.solid_details(part, ctx, cx, L)
-        if L.get('legs') and ctx.detail >= 0: K.legs(part, ctx, cx, L['legs'], interp_r(sil, 2.0))
+        if L.get('legs') and ctx.detail >= 0: K.legs(part, ctx, cx, L['legs'], interp_r(sil, 2.0), min([n[1] for n in L['noz']] or [0.0]))
         if L.get('fins') and ctx.detail >= 0: K.grid_fins(part, ctx, cx, interp_r(sil, L['fins']['y']), L['fins'])
         if L.get('strakes'): K.strakes(part, ctx, cx, sil, L['strakes'])
         if role in ('solid', 'strap'):

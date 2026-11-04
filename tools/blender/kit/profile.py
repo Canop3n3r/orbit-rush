@@ -17,3 +17,10 @@ def hull_ys(sil, bands, extra=()):
     for c in sorted(set(x for b in bands for x in b[:2])):
         if lo <= c <= hi and all(abs(c - d) > 0.04 for d in dedup): dedup.append(c)
     return sorted(set(round(y, 4) for y in list(dedup) + list(extra)))
+
+import math
+def leg_deploy(py, L, exit_y, below=1.5, lo=100.0, hi=145.0):
+    """deploy swing (rad, positive) so a leg hinged at height py with its foot pad L out lands `below` m under the lowest bell exit
+    (a recovered booster stands on its feet ~1-2 m below the engines). Clamped to 100-145 deg (a leg hinged high, like the 7 m wide booster, swings further)."""
+    c = max(-1.0, min(1.0, (exit_y - below - py) / L))
+    return math.radians(max(lo, min(hi, math.degrees(math.acos(c)))))

@@ -3,7 +3,7 @@ grid fins, landing legs, fairing halves, capsule/heat-shield, solid-motor detail
 import math, random
 from mathutils import Vector, Matrix
 from .geo import *
-from .profile import hull_ys
+from .profile import hull_ys, leg_deploy
 
 # ---- tiers: segment counts; `scale` shrinks them when a stage is over its triangle budget
 TIERS = {
@@ -213,7 +213,7 @@ def grid_fins(part, ctx, cx, r, fins):
             box(b, (0.2, h, w), col, xf((0, h / 2 + 0.1, 0)))
         box(s.buf('dark', 0.02 if ctx.detail >= 1 else 0.0), (0.5, 0.5, 0.5), srgb(0x2A2B2F), xf((0.08, 0, 0)))
 
-def legs(part, ctx, cx, spec_legs, hull_r=None):
+def legs(part, ctx, cx, spec_legs, hull_r=None, exit_y=0.0):
     """landing legs as animatable pivots `leg_i` (rotation.z = -t * 120 deg deploys them; gfx/vehicles/articulate.js). Stowed = foot up, flush.
     Each leg: a curved carbon fairing shell that sits flush on the hull when stowed (its inner face follows the hull curvature), a carbon
     A-frame (two tapered struts + cross brace) under it, a hinge clevis with pin, the telescoping-strut lug at 0.86 L and a crushable foot pad.
@@ -221,7 +221,7 @@ def legs(part, ctx, cx, spec_legs, hull_r=None):
     piv = spec_legs['pivots']; ln = spec_legs.get('len') or 9.0; n = len(piv)
     for i, (px, py, pz) in enumerate(piv):
         a = math.atan2(pz - cx[1], px - cx[0]); rp = math.hypot(px - cx[0], pz - cx[1]); R = hull_r or rp
-        s = part.sub(f'leg_{i}', (px, py, pz), rot_y=-a, kind='leg', deploy_axis='z', deploy_rad=-2.0944, strut_lug=[0.34, 0.86 * ln, 0.0], strut_hull=[-0.05, 0.42 * ln, 0.0])
+        s = part.sub(f'leg_{i}', (px, py, pz), rot_y=-a, kind='leg', deploy_axis='z', deploy_rad=-leg_deploy(py, ln, exit_y), strut_lug=[0.34, 0.86 * ln, 0.0], strut_hull=[-0.05, 0.42 * ln, 0.0])
         carbon = srgb(0x2A2B2F); edge = srgb(0x3A3B40); L = ln
         b = s.buf('dark', 0.012 if ctx.detail >= 2 else 0.0)
         # fairing shell: curved panel, wide at the hinge (hw0) tapering to the foot (hw1); inner face 4 cm off the hull, 22 cm deep

@@ -28,10 +28,11 @@ export function boosterPose(s) {
 /** ship pose: belly-flop (horizontal fall, flaps spread and working), flip (aft flaps fold, forward flaps up), landing (folded). */
 export function shipPose(s) {
   const descending = s.state === 'flying' && s.vr < 0 && s.alt < 85000, flip = descending && s.alt < 1200, landed = s.state === 'landed';
-  const r = s.rates || [0, 0, 0], base = landed ? 0 : flip ? 0.15 : descending ? 0.55 : 0.1; // fraction of FLAP_MAX
-  const pitch = descending && !flip ? clamp(-1.2 * r[0] + 0.12 * Math.sin((s.t || 0) * 1.7), -0.35, 0.35) : 0, roll = descending && !flip ? clamp(-1.5 * r[2], -0.25, 0.25) : 0;
-  // per flap: [forward?, side]: pitch moves forward vs aft pairs opposite, roll moves left vs right opposite
-  return { flap: (fwd, side) => clamp(base + (fwd ? pitch : -pitch) + side * roll + (flip && fwd ? 0.6 : 0), 0, 1) * FLAP_MAX };
+  const r = s.rates || [0, 0, 0], base = landed ? 0 : descending && !flip ? 0.25 : 0.1; // fraction of FLAP_MAX: belly-flop works around a 14 deg fold
+  const pitch = descending && !flip ? clamp(-1.2 * r[0] + 0.25 * Math.sin((s.t || 0) * 1.7), -0.3, 0.3) : 0, roll = descending && !flip ? clamp(-1.5 * r[2], -0.25, 0.25) : 0;
+  // per flap: [forward?, side]: pitch moves forward vs aft pairs opposite, roll moves left vs right opposite; flip: forward flaps fold fully, aft spread
+  if (flip) return { flap: fwd => (fwd ? 1 : 0) * FLAP_MAX };
+  return { flap: (fwd, side) => clamp(base + (fwd ? pitch : -pitch) + side * roll, 0, 1) * FLAP_MAX };
 }
 
 const RIGS = new WeakMap(); // rig per model, kept off userData (Object3D.clone JSON-copies userData)
@@ -50,7 +51,7 @@ export function rigOf(model, mkGroup) {
   });
   // start from the pose the model was built in (a booster whose fins are built open, like the super-heavy's fixed-out fins, keeps them open)
   if (rig.fins.length) { rig.finT = clamp(-rig.fins[0].piv.rotation.z / FIN_DEPLOY, 0, 1); rig.finFixed = rig.finT > 0.9; }
-  if (rig.legs.length) rig.legT = clamp(-rig.legs[0].rotation.z / LEG_SWING, 0, 1);
+  if (rig.legs.length) rig.legT = clamp(-rig.legs[0].rotation.z / legSwing(rig.legs[0]), 0, 1);
   RIGS.set(model, rig); return rig;
 }
 // a grid fin twists about its span: put its geometry under a 'defl' child so the twist rides on top of the deploy hinge
@@ -65,11 +66,13 @@ function finOf(piv, mkGroup) {
 /** ease the rig toward a booster pose; dt in seconds (dt = Infinity snaps). Returns the rig. */
 export function applyBooster(rig, p, dt) {
   const l0 = rig.legT; rig.legT = ease(rig.legT, p.leg, RATE.leg * dt); rig.legMoved = rig.legT !== l0 || rig.legMoved === undefined; rig.finT = ease(rig.finT, rig.finFixed ? 1 : p.fin, RATE.fin * dt);
-  const lt = smooth(rig.legT); for (const l of rig.legs) l.rotation.z = -lt * LEG_SWING;
+  const lt = smooth(rig.legT); for (const l of rig.legs) l.rotation.z = -lt * legSwing(l);
   for (const f of rig.fins) { f.piv.rotation.z = -smooth(rig.finT) * FIN_DEPLOY;
     const tw = (Math.sin(f.az) * p.steer[0] - Math.cos(f.az) * p.steer[1] + p.roll) * rig.finT; f.defl.rotation.y = ease(f.defl.rotation.y, tw, RATE.defl * dt); }
   return rig;
 }
 // flaps fold toward the leeward side about their root hinge (local y); the mirrored (side -1) mount turns the other way
 export function applyShip(rig, p, dt) { for (const f of rig.flaps) { const cur = -(f.piv.rotation.y - f.rest) * f.side; f.piv.rotation.y = f.rest - f.side * ease(cur, p.flap(f.fwd, f.side), RATE.flap * dt); } return rig; }
+/** a leg's full swing: the Blender kit bakes it per stage (deploy_rad extra: feet land 1-2 m below the bells), else 120 deg */
+export const legSwing = l => (l.userData && Number.isFinite(l.userData.deploy_rad) ? Math.abs(l.userData.deploy_rad) : LEG_SWING);
 const smooth = t => t * t * (3 - 2 * t);

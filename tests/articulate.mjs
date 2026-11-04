@@ -38,4 +38,15 @@ const flip = fr.filter(r => r.alt < 1000 && r.alt > 0); ok(flip.length && flip[f
 { const f = [0, 1, 2].map(i => { const o = O('gridfin_' + i, 0, [O('lattice')]); o.userData = { yaw: -i }; o.rotation.z = -FIN_DEPLOY; return o; }); const m = O('b', 0, f); m.userData = {}; const r = rigOf(m, mk);
   applyBooster(r, boosterPose({ state: 'flying', tSep: 0, alt: 70000, rates: [0.1, 0, 0] }), 0.5); ok(r.fins.every(x => Math.abs(x.piv.rotation.z + FIN_DEPLOY) < 1e-6), 'built-open fins stay open');
   ok(r.fins.every(x => Math.abs(x.piv.rotation.y + f.indexOf(x.piv)) < 1e-9), 'fin azimuth kept'); }
+// a baked per-stage swing (Blender deploy_rad) wins over the default 120 deg
+{ const l = O('leg_0'); l.userData = { deploy_rad: -1.85 }; const m = O('b', 0, [l]); m.userData = {}; const r = rigOf(m, mk); applyBooster(r, boosterPose({ state: 'landed', alt: 0 }), Infinity); ok(Math.abs(l.rotation.z + 1.85) < 1e-9, 'leg uses its baked swing'); }
+// flaps: the hinge is the flap root (local y axis, x = 0): the root stays put, the tip sweeps several metres over the belly-flop -> flip travel
+{ const rotY = (p, a) => [p[0] * Math.cos(a) + p[2] * Math.sin(a), p[1], -p[0] * Math.sin(a) + p[2] * Math.cos(a)];
+  const tipA = [5.0, 0.6, 0], rootTop = [0, 11, 0], fA = fr.find(r => r.alt < 60000 && r.alt > 50000), fB = fr.filter(r => r.alt < 1000 && r.alt > 0).pop();
+  const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  ok(d(rotY(rootTop, 0), rotY(rootTop, 0.7)) < 1e-9, 'flap root lies on the hinge axis');
+  const aft = sr.flaps.findIndex(f => !f.fwd), fwd = sr.flaps.findIndex(f => f.fwd);
+  ok(d(rotY(tipA, fA.a[fwd]), rotY(tipA, fB.a[fwd])) > 2, 'forward flap tip sweeps > 2 m from belly-flop to flip: ' + d(rotY(tipA, fA.a[fwd]), rotY(tipA, fB.a[fwd])).toFixed(2));
+  ok(Math.max(...fr.map(r => r.a[fwd])) > 0.8, 'forward flap travel > 45 deg');
+  ok(sr.flaps.every(f => Math.abs(f.piv.rotation.y) <= 55 * Math.PI / 180 + 1e-9), 'flap travel within the 55 deg stop'); }
 console.log(`articulate: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
