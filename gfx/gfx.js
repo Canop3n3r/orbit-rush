@@ -119,6 +119,11 @@ export function envTexture() {
   const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#3d6fb8'); g.addColorStop(0.45, '#b9d4f0'); g.addColorStop(0.5, '#e8eef2'); g.addColorStop(0.52, '#6f6a58'); g.addColorStop(1, '#2a2a24');
   x.fillStyle = g; x.fillRect(0, 0, W, H);
   const s = x.createRadialGradient(W * 0.3, H * 0.28, 0, W * 0.3, H * 0.28, 40); s.addColorStop(0, 'rgba(255,255,240,1)'); s.addColorStop(1, 'rgba(255,255,240,0)'); x.fillStyle = s; x.fillRect(0, 0, W, H);
+  { // realism-1: reflections need structure, not a bare gradient: soft cloud banks above the horizon, a distant tree/hill line, a bright ground bounce strip
+    let q = 41; const r = () => (q = (q * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 46; i++) { const cx = r() * W, cy = H * (0.26 + r() * 0.2), rw = 20 + r() * 60, cl = x.createRadialGradient(cx, cy, 0, cx, cy, rw); cl.addColorStop(0, 'rgba(255,255,255,0.45)'); cl.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = cl; x.fillRect(cx - rw, cy - rw, rw * 2, rw * 2); }
+    x.fillStyle = '#4c5446'; for (let X = 0; X < W; X += 4) { const h = 2 + r() * 5; x.fillRect(X, H * 0.5 - h, 4, h); }
+    x.fillStyle = 'rgba(200,196,180,0.35)'; x.fillRect(0, H * 0.53, W, 6); }
   const t = new THREE.CanvasTexture(c); t.mapping = THREE.EquirectangularReflectionMapping; t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 // procedural panel/weld normal map for tanks (original): horizontal weld rings + vertical stringers

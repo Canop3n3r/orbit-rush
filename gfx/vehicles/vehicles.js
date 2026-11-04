@@ -18,6 +18,7 @@ export { preloadStaged, stagedReady, stagedEnabled, stagedIndex };
 import { CRYO } from './cryo.js?v=f5.9-23';
 import { dressStages } from './dress.js?v=f5.9-23';
 import { OWN_PAYLOAD } from './payload_kinds.js?v=f5.9-23';
+import { applyLivery } from './logos.js?v=f5.9-23'; // logos-deploy-1: house logo decals
 import './craft_models.js?v=f5.9-23'; // f6.2: registers the craft shapes (cubesat, geosat, crew, station, lander, tug, kick) as payload kinds
 export { buildPayload };
 import { CO_CIVSPACE } from './co_civspace.js?v=f5.9-23'; // co-civspace-1: NOSA heritage vehicles
@@ -237,6 +238,9 @@ export const HOUSE_SETS = { originals: K(CO_ORIGINALS), spacey: ['sparrow-1', 'h
   krasnaya: K(CO_KOMETA, CO_KRASNAYA, CO_MOGUTNY, CO_MOONHAMMER), krunov: K(CO_KRUNOV_B, CO_KRUNOV, CO_TAIGA), lingvolt: K(CO_LINGVOLT), martell: K(CO_MARTELL_B, CO_MARTELL), orbitron: K(CO_ORBITRON_B, CO_ORBITRON),
   rocketwell: K(CO_ROCKETWELL), skyland: K(CO_SKYLAND), southstar: K(CO_SOUTHSTAR_B, CO_SOUTHSTAR_C, CO_SOUTHSTAR), unilift: K(CO_ULX, CO_VULC),
   cnfoll: K(CO_CNFOLL), expl: K(CO_EXPL), galen: K(CO_GALEN), levant: K(CO_LEVANT) };
+// logos-deploy-1: launch house of a model id (first set that lists it; anything unlisted flies the game's own Originals livery)
+const HOUSE_OF = new Map(); for (const [h, ids] of Object.entries(HOUSE_SETS)) for (const i of ids) if (!HOUSE_OF.has(i)) HOUSE_OF.set(i, h);
+export const houseOf = id => (/^(payload-|catch-tower)/.test(id) ? null : HOUSE_OF.get(id) || 'originals');
 // detail: 'hi' | 'mid' (phones: hi features, fewer segments; titan ~15k) | 'lo'. lo (and heron-heavy hi) are merged per material.
 // ---- payload under the shell (rockets-pass-1) ----
 // The payload exists from t=0 inside the fairing (hidden by the opaque shell), is exposed when the shell goes, and is the object that is
@@ -267,6 +271,7 @@ export function setPayload(g, id, kind, det = 'hi') {
 export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail || 'hi';
   if (o.staged !== false && stagedReady(id, det)) { // f6.0: stages assembled from the rocket's manifest (Blender .glb per stage); same userData shape as the procedural model
     const g = buildStaged(id, { detail: det }); g.userData.id = id; g.userData.detail = det; if (o.payload !== false) setPayload(g, id, o.payload || 'comsat', det);
+    if (o.livery !== false && houseOf(id)) applyLivery(g, houseOf(id), det);
     let tris = 0; g.traverse(m => { if (m.isMesh) tris += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; }); g.userData.tris = tris; return g; }
   const g = V.build({ ...o, detail: det }); g.userData.id = id; g.userData.detail = det;
   if (det === 'lo' || det === 'mid' || id === 'heron-heavy') compactStages(g, ['legs'], det !== 'hi' || id === 'heron-heavy');
@@ -303,6 +308,7 @@ export function build(id, o = {}) { const V = VEHICLES[id]; const det = o.detail
   shareGeometries(g); // merged per material inside each stage; stages + legs stay separate
   dressStages(g, id, det); frostCryo(g, id, det);
   if (o.payload !== false) setPayload(g, id, o.payload || 'comsat', det);
+  if (o.livery !== false && houseOf(id)) applyLivery(g, houseOf(id), det);
   let tris = 0; g.traverse(m => { if (m.isMesh) tris += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3; }); g.userData.tris = tris; return g; }
 // hi until the vehicle spans < ~1/6 of the view at 55° FOV, then lo (no lattice/decals/powerheads)
 // o.phone: the near level uses 'mid' (titan ~11k instead of ~53k tris)
