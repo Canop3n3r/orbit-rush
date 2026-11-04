@@ -6,6 +6,7 @@
 import * as THREE from 'three/webgpu';
 import { weakDisposeListeners, dispose, release } from '../vehicles/kit.js?v=f5.9-23';
 import { siteMatrix, localOffset, localBasis, BODY_R } from './geo.js?v=f5.9-23';
+import { WORLD_PARTS, WORLD_MDEF, photoMaps } from './world.js?v=f5.9-23';
 export { dispose, release, BODY_R };
 export const PAD_DECK = 0.4; // f5.9-20 (owner): the mount deck top = the rocket base on every pad (main.js PAD_Z); PAD_CLEAR = metres around the pad centre kept free above the deck
 export const PAD_CLEAR = 8;
@@ -37,9 +38,10 @@ const MDEF = { concrete: [0xffffff, 0.95, 0, 'concrete'], apron: [0xc9c6c0, 0.9,
   tank: [0xffffff, 0.4, 0.3, 'tank'], pipe: [0xc4c7ca, 0.4, 0.8, 'steel'], dark: [0x2a2b2e, 0.85, 0.2, 'concrete'], deck: [0x4a4d52, 0.85, 0.5, 'steel'], hull: [0x2e333a, 0.6, 0.5, 'steel'],
   lamp: [0xfff2c8, 0.4, 0, null, 0xffe7a0], flood: [0xffffff, 0.3, 0, null, 0xfff4dc], win: [0x2a2a22, 0.3, 0, null, 0xffc874], beacon: [0xff3020, 0.4, 0, null, 0xff2010], ground: [0xffffff, 1, 0, 'ground'], sand: [0xffffff, 1, 0, 'sand'], sea: [0x15394f, 0.2, 0], regolith: [0xffffff, 1, 0, 'regolith'],
   redsoil: [0xffffff, 1, 0, 'redsoil'], gold: [0xc9a043, 0.35, 1], solar: [0x1d2a4a, 0.3, 0.6], hab: [0xdedbd2, 0.6, 0.2, 'tank'], glass: [0x0c1218, 0.1, 0.3], green: [0x4d5a3a, 1, 0],
-  fence: [0x9da3a8, 0.5, 0.7], red: [0xb3241c, 0.5, 0.2], water: [0x2f6f8f, 0.15, 0] };
+  fence: [0x9da3a8, 0.5, 0.7], red: [0xb3241c, 0.5, 0.2], water: [0x2f6f8f, 0.15, 0], ...WORLD_MDEF }; // world-pop-1: flora / boulder / hill
 export function smat(k) { if (MATS.has(k)) return MATS.get(k); const d = MDEF[k] || [0xff00ff, 1, 0], map = d[3] ? canvasTex(d[3], TEXDEF[d[3]]) : null;
-  const m = new S({ color: d[0], roughness: d[1], metalness: d[2], vertexColors: true, ...(map ? { map } : {}), ...(d[4] ? { emissive: d[4], emissiveIntensity: k === 'flood' ? 4 : k === 'win' ? 1.6 : 2.4 } : {}) });
+  const ph = photoMaps(k); // world-pop-1: CC0 photo maps (assets/world) for ground, sand, concrete, gravel aprons, boulders, hills
+  const m = new S({ color: ph ? ph.color : d[0], roughness: d[1], metalness: d[2], vertexColors: true, ...(ph ? { map: ph.map, normalMap: ph.normalMap, normalScale: ph.normalScale } : map ? { map } : {}), ...(d[4] ? { emissive: d[4], emissiveIntensity: k === 'flood' ? 4 : k === 'win' ? 1.6 : 2.4 } : {}) });
   if (k === 'mark') Object.assign(m, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   m.name = 'site:' + k; m.userData.cached = true; weakDisposeListeners(m); MATS.set(k, m); return m; }
 // merge non-indexed geometries with position/normal/uv/color
@@ -49,7 +51,7 @@ export const SEG = { hi: 20, mid: 8, lo: 6 };
 const _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
 const M = (p = [0, 0, 0], ry = 0, s = [1, 1, 1]) => { _e.set(0, ry, 0); return new THREE.Matrix4().compose(_v.set(...p), _q.setFromEuler(_e), _s.set(...s)); };
 // merge buffer: per material key; `tf` stack of placement matrices
-export class SK { constructor(detail) { this.detail = detail; this.seg = SEG[detail]; this.hi = detail === 'hi'; this.lo = detail === 'lo'; this.b = new Map(); this.T = [new THREE.Matrix4()]; this.base = 0; this.lights = []; this.noAO = new Set(['mark', 'lamp', 'flood', 'win', 'beacon', 'sea', 'ground', 'sand', 'regolith', 'redsoil', 'asphalt', 'water']); }
+export class SK { constructor(detail) { this.detail = detail; this.seg = SEG[detail]; this.hi = detail === 'hi'; this.lo = detail === 'lo'; this.b = new Map(); this.T = [new THREE.Matrix4()]; this.base = 0; this.lights = []; this.noAO = new Set(['mark', 'lamp', 'flood', 'win', 'beacon', 'sea', 'ground', 'sand', 'regolith', 'redsoil', 'asphalt', 'water', 'hill']); }
   push(m) { this.T.push(this.T.at(-1).clone().multiply(m)); return this; } pop() { this.T.pop(); return this; }
   add(geo, k, m) { const g = geo.index ? geo.toNonIndexed() : geo; if (g !== geo) geo.dispose(); for (const a of Object.keys(g.attributes)) if (!['position', 'normal'].includes(a)) g.deleteAttribute(a);
     g.applyMatrix4(m ? this.T.at(-1).clone().multiply(m) : this.T.at(-1)); const P = g.attributes.position.array, N = g.attributes.normal.array, c = P.length / 3, uv = new Float32Array(c * 2), col = new Float32Array(c * 3), T = 8;
@@ -180,11 +182,12 @@ const parts = {
   fence(K, o) { fence(K, o.pts, o.h || 2.4); },
   ground(K, o) { K.disc(o.mat || 'ground', o.r || 2500, [0, 0, 0], K.seg * 3, -0.05); if (o.sea) K.flat('sea', o.sea.w || 12000, o.sea.d || 12000, [o.sea.x || 0, 0, o.sea.z || 0], 0, -1.0) /* f5.9-21: well under the land disc (z-fight) */; },
 };
+Object.assign(parts, WORLD_PARTS); // world-pop-1: scatter, hills, lot (gfx/sites/world.js)
 export const PART_KINDS = Object.keys(parts);
 // build one placed group (the main complex, or a remote station such as a droneship)
 function buildGroup(S, items, detail, name, opts) { const K = new SK(detail);
   for (const o of items) { if (o.k === 'ground' && !opts.ground) continue; if (o.min && ['lo', 'mid', 'hi'].indexOf(detail) < ['lo', 'mid', 'hi'].indexOf(o.min)) continue;
-    const [x, z] = o.at || [0, 0]; K.base = o.y || 0; K.push(M([x, o.y || 0, z], o.rot || 0)); parts[o.k](K, o); K.pop(); }
+    const [x, z] = o.at || [0, 0]; K.base = o.y || 0; K.push(M([x, o.y || 0, z], o.rot || 0)); parts[o.k](K, o, S); K.pop(); }
   const grp = K.build(name); grp.userData.lights = K.lights; return grp; }
 export function buildSite(S, { detail = 'hi', ground = false } = {}) { const g = new THREE.Group(); g.name = 'site:' + S.id;
   const main = buildGroup(S, S.layout, detail, S.id, { ground }); g.add(main); let tris = main.userData.tris;

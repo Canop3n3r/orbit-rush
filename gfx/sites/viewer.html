@@ -15,6 +15,7 @@ scene.add(new THREE.HemisphereLight(V.night ? 0x1a2238 : S.body === 'moon' ? 0x3
 const sun = new THREE.DirectionalLight(V.night ? 0x8fa6d8 : 0xfff4e0, V.night ? 0.12 : S.body === 'mars' ? 2.2 : 3); sun.position.set(...(S.sun || [-600, 500, 300])); scene.add(sun);
 const g = buildSite(S, { detail, ground: true }); setSiteNight(g, !!V.night); scene.add(g);
 const cam = new THREE.PerspectiveCamera(V.fov || (view === 'phone' ? 55 : 40), W / H, 1, 60000); cam.position.set(...V.eye); cam.lookAt(...V.at);
+await (await import('./world.js?v=f5.9-23')).photosReady(); // world-pop-1: photo ground/concrete maps load async
 for (let i = 0; i < 3; i++) { renderer.render(scene, cam); await new Promise(r => requestAnimationFrame(r)); }
 window.__ready = { tris: g.userData.tris, meshes: g.children.reduce((n, c) => n + c.children.length, 0) }; document.title = 'ready';
 </script></body></html>

@@ -13,5 +13,10 @@ export const SITE = { id: 'atoll', name: 'Atoll Range', body: 'earth', lat: 9.04
     { k: 'masts', pts: [[-45, -40], [45, -45], [45, 45], [-45, 45]], h: 26 },
     { k: 'road', pts: [[0, 25], [-20, 70], [-20, 160], [70, 160], [70, 120]], w: 7 },
     { k: 'road', pts: [[25, 0], [50, 0]], w: 5 },
+    // world-pop-1: palms, dune grass, shore boulders, a tracking dish, a crew lot and far volcanic islets (gfx/sites/world.js)
+    { k: 'dish', at: [-70, -55], r: 3.5, h: 5 },
+    { k: 'lot', at: [-85, 150], w: 24, d: 16, fill: 0.5 },
+    { k: 'scatter', seed: 'at', r0: 40, r1: 200, mix: { palm: 90, scrub: 80, grass: 120, rock: 8 }, shore: 50, mid: 0.3 },
+    { k: 'hills', islets: 7, r0: 3000, r1: 8000, h: 160 },
   ],
-  views: { hero: { eye: [95, 30, 120], at: [0, 12, 10] }, top: { eye: [0, 520, 260], at: [0, 0, 40] }, phone: { eye: [90, 40, 120], at: [0, 16, 0] }, night: { eye: [95, 30, 120], at: [0, 12, 10], night: true } } };
+  views: { wide: { eye: [380, 120, 420], at: [0, 0, 0], fov: 50 }, hero: { eye: [95, 30, 120], at: [0, 12, 10] }, top: { eye: [0, 520, 260], at: [0, 0, 40] }, phone: { eye: [90, 40, 120], at: [0, 16, 0] }, night: { eye: [95, 30, 120], at: [0, 12, 10], night: true } } };

@@ -1,0 +1,80 @@
+// world-pop-1: dressing around the launch sites (pure layout -> kit parts). Adds three merged-mesh parts to gfx/sites/kit.js:
+//   scatter  trees / scrub / boulders around a site, kept off the pad, trench, roads, buildings and water (2 draw calls: flora, boulder)
+//   hills    a far ring of low rolling hills or volcanic islets (1 draw call: hill), kept on land for coastal sites
+//   lot      a small parking lot with parked vans (reuses asphalt / white / clad / dark: no extra draw call)
+// Scatter is deterministic (seeded) and LOD'd by count: hi = full, mid (phone near) = ~1/4, lo = none (hills only, coarse).
+// Trunks, rocks and hill skirts reach 2.5 m below y = 0 so they meet the game's ground tile (main.js PAD_SINK 2 m) without floating.
+// Photo textures (CC0, assets/world/*.webp, see CREDITS.md) replace the procedural canvas maps in the browser only (node tests: none).
+import * as THREE from 'three/webgpu';
+import { landTest, keepOut } from './worldmask.js?v=f5.9-23';
+export { landTest, keepOut };
+const ER = 6378137, SINK = 2.5;
+function rnd(seed) { let x = (seed >>> 0) || 1; return () => ((x = (x * 1664525 + 1013904223) >>> 0) / 4294967296); }
+const hash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+// ---------- photo textures (browser only) ----------
+const PHOTO = { ground: ['grass', 0.25, 0xb9bfa0], sand: ['sand', 0.4, 0xf2ead8], concrete: ['concrete', 0.5, 0xe4e1da], apron: ['gravel', 0.6, 0xd8d4cc], boulder: ['rock', 0.5, 0xb8b2a8], hill: ['grass', 0.02, 0x9aa486] };
+const PT = new Map(), PEND = []; let loader = null;
+export const photosReady = () => Promise.all(PEND); // viewer: wait for the photo maps before the hero shot
+function photoTex(name, rep, srgb) { const key = name + (srgb ? ':c' : ':n') + rep; if (PT.has(key)) return PT.get(key); if (typeof document === 'undefined') return null;
+  loader ||= new THREE.TextureLoader(); let done; PEND.push(new Promise(r => (done = r))); const t = loader.load(new URL(`../../assets/world/${name}_${srgb ? 'col' : 'nor'}.webp`, import.meta.url).href, done, undefined, done);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep); t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; t.anisotropy = 4; t.userData.cached = true; PT.set(key, t); return t; }
+// called by kit.js smat(): returns the photo-map overrides for material key k (or null)
+export function photoMaps(k) { const p = PHOTO[k]; if (!p) return null; const map = photoTex(p[0], p[1], true); if (!map) return null;
+  return { map, normalMap: photoTex(p[0], p[1], false), normalScale: new THREE.Vector2(0.6, 0.6), color: p[2] }; }
+export const WORLD_MDEF = { flora: [0xffffff, 0.9, 0], boulder: [0xffffff, 0.95, 0], hill: [0xffffff, 1, 0] };
+// ---------- vertex tint (kit SK.add bakes AO into the colour attribute; multiply our tint into the last added geometry) ----------
+function tinted(K, geo, k, m, rgb) { K.add(geo, k, m); const g = K.b.get(k).at(-1), c = g.attributes.color.array; for (let i = 0; i < c.length; i += 3) { c[i] *= rgb[0]; c[i + 1] *= rgb[1]; c[i + 2] *= rgb[2]; } }
+const hex = (h, j = 0, a = Math.random) => { const f = 1 + (a() - 0.5) * j; return [((h >> 16) & 255) / 255 * f, ((h >> 8) & 255) / 255 * f, (h & 255) / 255 * f]; };
+const _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
+const M = (p, ry = 0, s = [1, 1, 1], rx = 0, rz = 0) => { _e.set(rx, ry, rz); return new THREE.Matrix4().compose(_v.set(...p), _q.setFromEuler(_e), _s.set(...s)); };
+// ---------- plant / rock models (flat-shaded low poly, one 'flora' material, colour by vertex) ----------
+const PLANTS = {
+  pine(K, x, z, s, a) { const h = (14 + 8 * a()) * s, seg = K.hi ? 6 : 4; // slash pine: tall bare trunk, flat high crown
+    tinted(K, new THREE.CylinderGeometry(0.25 * s, 0.4 * s, h + SINK, 3, 1, true), 'flora', M([x, (h - SINK) / 2, z]), hex(0x5a4330, 0.2, a));
+    tinted(K, new THREE.ConeGeometry(3.6 * s, 4.5 * s, seg), 'flora', M([x, h, z], a() * 6), hex(0x3f5a2c, 0.25, a));
+    if (K.hi) tinted(K, new THREE.ConeGeometry(2.6 * s, 3.5 * s, seg), 'flora', M([x + 0.4, h + 2.6 * s, z], a() * 6), hex(0x4a6a33, 0.25, a)); },
+  palm(K, x, z, s, a) { const h = (7 + 5 * a()) * s, lean = (a() - 0.5) * 0.35, ry = a() * 6; // cabbage / coconut palm: thin leaning trunk, drooping star crown
+    tinted(K, new THREE.CylinderGeometry(0.22 * s, 0.32 * s, h + SINK, 3, 1, true), 'flora', M([x, (h - SINK) / 2, z], ry, [1, 1, 1], lean), hex(0x7a6650, 0.2, a));
+    const top = [x, h * Math.cos(lean), z + h * Math.sin(lean)], c = new THREE.ConeGeometry(4.2 * s, 2.2 * s, K.hi ? 7 : 5); c.rotateX(Math.PI);
+    tinted(K, c, 'flora', M([top[0], top[1] - 0.4 * s, top[2] - h * 0.5 * Math.sin(lean)], ry), hex(0x4f7a35, 0.25, a)); },
+  scrub(K, x, z, s, a) { const g = K.hi ? new THREE.IcosahedronGeometry(1.6 * s, 0) : new THREE.OctahedronGeometry(1.6 * s, 0); // saw palmetto / beach scrub
+    tinted(K, g, 'flora', M([x, 0.35 * s, z], a() * 6, [1.3 + 0.5 * a(), 0.55 + 0.3 * a(), 1.2 + 0.4 * a()]), hex([0x58693a, 0x6b7340, 0x4c6236, 0x7d7a48][(a() * 4) | 0], 0.25, a)); },
+  grass(K, x, z, s, a) { const g = new THREE.ConeGeometry(0.9 * s, 1.4 * s, 3, 1, true); tinted(K, g, 'flora', M([x, 0.5 * s, z], a() * 6), hex(0x9a9558, 0.3, a)); }, // dune grass tuft
+  rock(K, x, z, s, a) { const g = K.hi ? new THREE.DodecahedronGeometry(1.2 * s, 0) : new THREE.OctahedronGeometry(1.2 * s, 0);
+    tinted(K, g, 'boulder', M([x, 0.35 * s - 0.6, z], a() * 6, [1 + 0.6 * a(), 0.6 + 0.5 * a(), 1 + 0.5 * a()], (a() - 0.5) * 0.5, (a() - 0.5) * 0.5), hex(0xd8d2c6, 0.3, a)); },
+};
+// scatter: o = { at, seed, r0, r1, mix: { pine: n, palm: n, scrub: n, grass: n, rock: n }, shore: n (boulders along the coast / island rim) }
+// counts are the hi tier; mid keeps o.mid (default 0.25) of each, lo none
+function scatter(K, o, S) { if (K.lo) return; const a = rnd(hash(S.id + (o.seed || ''))), land = landTest(S), free = keepOut(S), f = K.hi ? 1 : (o.mid ?? 0.25);
+  const r0 = o.r0 || 60, r1 = o.r1 || 900, ok = (x, z, m) => land(x, z, m) && free(x, z, m);
+  for (const [kind, n0] of Object.entries(o.mix || {})) { const n = Math.round(n0 * f), cl = kind === 'pine' || kind === 'palm' ? 0.55 : 0.35; let placed = 0, tries = 0, cx = 0, cz = 0;
+    while (placed < n && tries++ < n * 40) { // clumped: half the plants grow near the previous one
+      let x, z; if (placed && a() < cl) { x = cx + (a() - 0.5) * 40; z = cz + (a() - 0.5) * 40; } else { const t = a() * Math.PI * 2, r = Math.sqrt(r0 * r0 + a() * (r1 * r1 - r0 * r0)); x = Math.cos(t) * r; z = Math.sin(t) * r; }
+      if (Math.hypot(x, z) < r0 || Math.hypot(x, z) > r1 || !ok(x, z, kind === 'pine' ? 4 : 2)) continue;
+      PLANTS[kind](K, x, z, 0.75 + 0.5 * a(), a); placed++; cx = x; cz = z; } }
+  if (o.shore) { const n = Math.round(o.shore * f); let placed = 0, tries = 0; // boulders strung along the shoreline (just inside the land edge)
+    while (placed < n && tries++ < n * 60) { const t = a() * Math.PI * 2, r = r0 + a() * (r1 - r0), x = Math.cos(t) * r, z = Math.sin(t) * r;
+      if (!land(x, z, 0) || land(x, z, 45) || !free(x, z, 2)) continue; PLANTS.rock(K, x, z, 1.2 + 1.8 * a(), a); placed++; } } }
+// hills: o = { r0, r1, h, seg, from, to (bearing range, radians, 0 = east, pi/2 = south), islets: n }
+function hills(K, o, S) { const a = rnd(hash(S.id + 'hills')), land = landTest(S);
+  const na = K.hi ? (o.seg || 64) : K.lo ? 20 : 32, nr = K.hi ? 6 : K.lo ? 3 : 4, r0 = o.r0 || 5000, r1 = o.r1 || 9000, H = o.h || 120;
+  const ph = [a() * 6, a() * 6, a() * 6], from = o.from ?? 0, to = o.to ?? Math.PI * 2;
+  if (o.islets) { for (let i = 0; i < o.islets; i++) { const t = from + (to - from) * a(), r = r0 + (r1 - r0) * a(), x = Math.cos(t) * r, z = Math.sin(t) * r, h = H * (0.4 + 0.6 * a()), w = h * (3 + 3 * a());
+      const ex = SINK * 4 + r * r / (2 * ER), Ht = h + ex, g = new THREE.ConeGeometry(w, Ht, K.lo ? 6 : K.hi ? 12 : 8, K.lo ? 1 : 2), p = g.attributes.position;
+      for (let j = 0; j < p.count; j++) if (p.getY(j) > -Ht / 2 + 0.1 && p.getY(j) < Ht / 2 - 0.1) { const f = 0.8 + 0.4 * a(); p.setX(j, p.getX(j) * f); p.setZ(j, p.getZ(j) * f); } // only the middle ring wobbles (the cone stays watertight)
+      tinted(K, g, 'hill', M([x, h - r * r / (2 * ER) - Ht / 2, z], a() * 6), hex(0x6f8a52, 0.2, a)); } return; }
+  // a ring band, radial rows r0..r1, crest in the middle; heights = summed sines (rolling ridges), zero where the ground is sea
+  const P = [], C = []; const ht = (t, r) => { const u = (r - r0) / (r1 - r0), env = Math.sin(Math.PI * Math.min(1, Math.max(0, u))) ** 0.8;
+    const n = 0.55 + 0.25 * Math.sin(t * 7 + ph[0]) + 0.15 * Math.sin(t * 17 + ph[1] + u * 3) + 0.1 * Math.sin(t * 31 + ph[2]); const x = Math.cos(t) * r, z = Math.sin(t) * r;
+    return (land(x, z, 600) ? 1 : 0) * H * env * n; };
+  for (let i = 0; i < na; i++) for (let j = 0; j < nr; j++) { const t0 = from + (to - from) * i / na, t1 = from + (to - from) * (i + 1) / na, q0 = r0 + (r1 - r0) * j / nr, q1 = r0 + (r1 - r0) * (j + 1) / nr;
+    const v = (t, r) => { const h = ht(t, r); return [Math.cos(t) * r, h - SINK - r * r / (2 * ER) - (h > 1 ? 0 : 4), Math.sin(t) * r, h]; }, A = v(t0, q0), B = v(t1, q0), Cc = v(t1, q1), Dd = v(t0, q1);
+    if (A[3] + B[3] + Cc[3] + Dd[3] < 2) continue; for (const w of [A, Dd, Cc, A, Cc, B]) { P.push(w[0], w[1], w[2]); const k = Math.min(1, w[3] / H); C.push(0.75 + 0.15 * k, 0.8 + 0.1 * k, 0.65 + 0.2 * k); } } // brown-green foot, greener crest
+  if (!P.length) return; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.computeVertexNormals();
+  K.add(g, 'hill'); const gg = K.b.get('hill').at(-1), c = gg.attributes.color.array; for (let i = 0; i < c.length; i++) c[i] *= C[i]; }
+// parking lot with parked vans (support-area clutter)
+function lot(K, o, S) { const w = o.w || 40, d = o.d || 24, a = rnd(hash(S.id + 'lot' + (o.at || []).join()));
+  K.flat('asphalt', w, d, [0, 0, 0], 0, 0.03); if (K.lo) return; const nx = Math.floor(w / 4);
+  for (const row of [-1, 1]) for (let i = 0; i < nx; i++) { const x = -w / 2 + 2 + i * 4; if (K.hi) K.flat('white', 0.15, 5, [x - 2, 0, row * (d / 2 - 3)], 0, 0.06);
+    if (a() < (o.fill ?? 0.6)) { const k = ['white', 'clad', 'band', 'red'][(a() * 4) | 0]; K.box(k, 2, 1.6, 4.6, [x, 0, row * (d / 2 - 3)]); if (K.hi) K.box('glass', 1.9, 0.7, 2, [x, 1.6, row * (d / 2 - 3) - row * 0.4]); } } }
+export const WORLD_PARTS = { scatter, hills, lot };

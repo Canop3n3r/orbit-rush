@@ -43,3 +43,16 @@ Some stage masses in `vehicles/roster/` come from Jonathan McDowell's General Ca
 - Solar-cell texture and deployable arrays, booms and antennas (`gfx/vehicles/deploy.js`): original, generated at runtime.
 ## realism-1 surface detail (gfx/vehicles/surface.js, Rocket Art Bot)
 - Panel/weld/stringer/rivet normal map, bell cooling-tube normal map and grime/scuff map: original, generated at runtime from 256 px canvases in code (no external images). Sky panorama clouds/horizon in gfx/gfx.js envTexture(): original, procedural.
+## Launch-site world dressing (world-pop-1)
+Photo textures in `assets/world/` (resized to 1024 px colour / 512 px normal, re-encoded as WebP). All **CC0 1.0** (public domain, no attribution
+required; listed for provenance). Found through the free-asset-index (https://canop3n3r.github.io/free-asset-index/).
+
+| File | Asset | Creator / source | License |
+|---|---|---|---|
+| grass_col.webp, grass_nor.webp | Grass 004 | ambientCG, https://ambientcg.com/view?id=Grass004 | CC0 |
+| gravel_col.webp, gravel_nor.webp | Gravel 023 | ambientCG, https://ambientcg.com/view?id=Gravel023 | CC0 |
+| concrete_col.webp, concrete_nor.webp | Concrete 034 | ambientCG, https://ambientcg.com/view?id=Concrete034 | CC0 |
+| rock_col.webp, rock_nor.webp | Rock 030 | ambientCG, https://ambientcg.com/view?id=Rock030 | CC0 |
+| sand_col.webp, sand_nor.webp | Coast Sand 01 | Poly Haven, https://polyhaven.com/a/coast_sand_01 | CC0 |
+
+Trees, palms, scrub, dune grass, boulders, far hills / islets and parking lots (`gfx/sites/world.js`) are original procedural low-poly work for Orbit Rush.
