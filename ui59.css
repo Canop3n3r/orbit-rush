@@ -838,6 +838,7 @@ html body.u59 #home #hTop .hLogo{min-width:0;overflow:hidden;white-space:nowrap;
 /* f5.9-23 (owner): full-screen booster view: the strip sits in the bottom bar band (no dead band), with the recovery autopilot row */
 #spRec{display:none}
 body.u59 #split.fullB:has(#spCardB.inBar){z-index:61}
+body.u59:has(#split.fullB #spCardB.inBar) #topBar{z-index:62}
 body.u59 #split.fullB #spCardB.inBar .spT b{display:none}
 body.u59 #split.fullB #spCardB.inBar :is(.spL,.spR){font-size:11px!important}
 body.u59 #split.fullB #spCardB.inBar .spBall{width:56px!important;height:56px!important}
