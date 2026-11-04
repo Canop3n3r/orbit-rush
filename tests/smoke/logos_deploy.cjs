@@ -7,12 +7,12 @@ const U = process.env.U || 'http://localhost:8958/', SH = process.env.SHOTS || '
 (async () => { const br = await pw.chromium.launch({ executablePath: '/usr/bin/google-chrome', args: GPU }); let bad = 0; const ok = (t, m) => { console.log((t ? 'ok   ' : 'FAIL ') + m); if (!t) bad++; };
   try { const pg = await br.newPage({ viewport: { width: 720, height: 900 } }); pg.setDefaultTimeout(300000); const errs = []; pg.on('pageerror', e => errs.push(e.message));
     await pg.goto(U + 'gfx/vehicles/viewer.html?webgl&id=heron-9'); await pg.waitForFunction(() => window.__viewer && window.__viewer.ready);
-    const sets = await pg.evaluate(async () => { const V = await import(new URL('vehicles.js?v=f5.9-20', location.href).href); return Object.fromEntries(Object.entries(V.HOUSE_SETS).map(([h, ids]) => [h, ids.filter(i => V.VEHICLES[i])])); });
+    const sets = await pg.evaluate(async () => { const V = await import(new URL('vehicles.js?v=f5.9-21', location.href).href); return Object.fromEntries(Object.entries(V.HOUSE_SETS).map(([h, ids]) => [h, ids.filter(i => V.VEHICLES[i])])); });
     for (const [h, ids] of Object.entries(sets)) { if (!ids.length) { ok(false, `${h}: no models`); continue; } let got = null, used = null;
       for (const id of ids.slice(0, 3)) { const r = await pg.evaluate(async id => { await window.__viewer.showStaged(id); const c = window.__viewer.cur; const L = []; c.traverse(m => { if (m.isMesh && /^logo:/.test(m.name)) L.push(m.name); }); return { L, house: c.userData.house }; }, id); if (r.L.length) { got = r; used = id; break; } got = got || r; used = used || id; }
       ok(got.L.length >= 1 && got.L.every(n => n.startsWith('logo:' + h + ':')), `${h}: ${used} carries ${got.L.length} logo decals (${[...new Set(got.L.map(n => n.split(':')[2]))].join(',')})`);
       if (SH) { await pg.waitForTimeout(600); await pg.screenshot({ path: `${SH}/logos_${h}.png` }); } }
-    const kinds = await pg.evaluate(async () => { const P = await import(new URL('payloads.js?v=f5.9-20', location.href).href); const out = {};
+    const kinds = await pg.evaluate(async () => { const P = await import(new URL('payloads.js?v=f5.9-21', location.href).href); const out = {};
       for (const k of P.KINDS) { if (k === 'roadster') continue; const s = P.buildPayload(k, { detail: 'hi' }), u = s.userData, snap = () => u.pivots.map(p => [p.rotation.x, p.rotation.y, p.rotation.z, p.position.y, p.scale.x].map(v => +v.toFixed(4)).join());
         u.deploy(0); const a = snap(); u.deploy(0.5); const b = snap(); u.deploy(1); const c = snap(); out[k] = { n: u.pivots.length, mid: a.filter((x, i) => x !== b[i]).length, end: a.filter((x, i) => x !== c[i]).length }; }
       return out; });

@@ -4,8 +4,8 @@
 // exposed when the shell opens and released as the same object (no new mesh appears at RELEASE).
 // Colours are vertex colours on two shared materials; geometry is built per payload (never InstancedMesh).
 import * as THREE from 'three/webgpu';
-import { KINDS } from './payload_kinds.js?v=f5.9-20';
-import { accordionWing, rollOutWing, boom, hingedDish, rig } from './deploy.js?v=f5.9-20';
+import { KINDS } from './payload_kinds.js?v=f5.9-21';
+import { accordionWing, rollOutWing, boom, hingedDish, rig } from './deploy.js?v=f5.9-21';
 export { KINDS };
 const BODY = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.42, metalness: 0.62 });
 for (const m of [BODY]) { m.userData.cached = true; m.name = 'payload'; }

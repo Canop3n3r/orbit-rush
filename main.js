@@ -1,77 +1,77 @@
 import * as THREE from 'three/webgpu';
-import { createBugReporter } from './fun/bugreport.js?v=f5.9-20';
-import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-20';
+import { createBugReporter } from './fun/bugreport.js?v=f5.9-21';
+import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-21';
 import { uniform } from 'three/tsl';
-import * as P from './physics.js?v=f5.9-20';
-import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-20';
-import * as C from './physics/patched.js?v=f5.9-20';
+import * as P from './physics.js?v=f5.9-21';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-21';
+import * as C from './physics/patched.js?v=f5.9-21';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
 var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
-import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-20';
-import { createCareerUI } from './fun/career-ui.js?v=f5.9-20';
-import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-20';
-import { createSolarMap } from './solarmap.js?v=f5.9-20';
-import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-20';
-import { FX } from './fx.js?v=f5.9-20';
-import { createAcademy } from './academy-ui.js?v=f5.9-20';
-import { createMobile, isTouch } from './mobile.js?v=f5.9-20';
-import { localize } from './wording.js?v=f5.9-20';
-import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-20';
-import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-20';
+import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-21';
+import { createCareerUI } from './fun/career-ui.js?v=f5.9-21';
+import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-21';
+import { createSolarMap } from './solarmap.js?v=f5.9-21';
+import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-21';
+import { FX } from './fx.js?v=f5.9-21';
+import { createAcademy } from './academy-ui.js?v=f5.9-21';
+import { createMobile, isTouch } from './mobile.js?v=f5.9-21';
+import { localize } from './wording.js?v=f5.9-21';
+import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-21';
+import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-21';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // f5.7q (owner): every HUD/pane/card reads the Units setting
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-20';
-import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-20';
-import { guardToasts } from './fun/toastzone.js?v=f5.9-20';
-import * as GX from './gfx/gfx.js?v=f5.9-20';
-import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-20';
-import * as PR from './fun/progress.js?v=f5.9-20';
-import * as WORLD from './fun/world.js?v=f5.9-20';
-import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-20';
-import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-20';
-import { createAudio } from './fun/audio.js?v=f5.9-20';
-import { createMusic } from './fun/music.js?v=f5.9-20';
-import { createCompact } from './fun/compact.js?v=f5.9-20';
-import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-20';
-import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.9-20';
-import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.9-20';
-import { plumeDims, styleFor, vacFactors } from './gfx/plume_style.js?v=f5.9-20'; // QA plume pass: exhaust style per propellant + size from the engine
-import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.9-20';
-import * as UN from './fun/units.js?v=f5.9-20';
-import { buildEndStats } from './fun/endstats.js?v=f5.9-20';
-import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.9-20';
-import { createHome } from './fun/home.js?v=f5.9-20';
-import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-20';
-import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-20';
-import { createFunUI } from './fun/ui.js?v=f5.9-20';
-import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-20';
-import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-20';
-import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-20'; // f6.2: craft types, switching between vessels
-import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-20';
-import { createVesselUI } from './fun/vesselui.js?v=f5.9-20';
-import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.9-20';
-import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.9-20';
-import { dimsOf } from './vehicles/dims.js?v=f5.9-20';
-import { EXTRA_STACKS } from './fun/showroom.js?v=f5.9-20';
-import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.9-20';
-import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.9-20';
-import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker, SHORT as SHORT_HOUSE } from './fun/picker.js?v=f5.9-20';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-21';
+import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-21';
+import { guardToasts } from './fun/toastzone.js?v=f5.9-21';
+import * as GX from './gfx/gfx.js?v=f5.9-21';
+import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-21';
+import * as PR from './fun/progress.js?v=f5.9-21';
+import * as WORLD from './fun/world.js?v=f5.9-21';
+import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-21';
+import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-21';
+import { createAudio } from './fun/audio.js?v=f5.9-21';
+import { createMusic } from './fun/music.js?v=f5.9-21';
+import { createCompact } from './fun/compact.js?v=f5.9-21';
+import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-21';
+import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.9-21';
+import { thrustScale, plumeLayout } from './fun/plumetable.js?v=f5.9-21';
+import { plumeDims, styleFor, vacFactors } from './gfx/plume_style.js?v=f5.9-21'; // QA plume pass: exhaust style per propellant + size from the engine
+import { NOZZLES } from './gfx/vehicles/nozzles.js?v=f5.9-21';
+import * as UN from './fun/units.js?v=f5.9-21';
+import { buildEndStats } from './fun/endstats.js?v=f5.9-21';
+import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid } from './fun/plainhud.js?v=f5.9-21';
+import { createHome } from './fun/home.js?v=f5.9-21';
+import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-21';
+import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-21';
+import { createFunUI } from './fun/ui.js?v=f5.9-21';
+import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-21';
+import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-21';
+import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-21'; // f6.2: craft types, switching between vessels
+import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-21';
+import { createVesselUI } from './fun/vesselui.js?v=f5.9-21';
+import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.9-21';
+import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.9-21';
+import { dimsOf } from './vehicles/dims.js?v=f5.9-21';
+import { EXTRA_STACKS } from './fun/showroom.js?v=f5.9-21';
+import { specFor, specDesign, payloadT, specStages } from './fun/specstack.js?v=f5.9-21';
+import { qualifying, launchPlan, autoNote, cardChoice } from './fun/mispick.js?v=f5.9-21';
+import { pickerHTML, baseFor, roleFor, CLASS_OF, filterPicker, SHORT as SHORT_HOUSE } from './fun/picker.js?v=f5.9-21';
 import { createClouds as w1Clouds, cloudUniforms as w1CU } from './gfx/world/clouds.js?v=w1';
 import { worldTier } from './gfx/world/tiers.js?v=w1';
 import { WS as W1_WS } from './gfx/world/common.js?v=w1';
 import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMaterial as w1Mars } from './gfx/world/surfaces.js?v=w1';
-import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-20';
-import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-20';
-import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-20';
-import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-20';
-import { createDock } from './fun/dock.js?v=f5.9-20'; // f5.9a: top bar + bottom bar
-import { createXferPlanner } from './fun/xferui.js?v=f5.9-20'; // f6.5 pre-launch transfer planner
+import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-21';
+import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-21';
+import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-21';
+import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-21';
+import { createDock } from './fun/dock.js?v=f5.9-21'; // f5.9a: top bar + bottom bar
+import { createXferPlanner } from './fun/xferui.js?v=f5.9-21'; // f6.5 pre-launch transfer planner
 // Orbit Rush renderer + UI. All physics lives in physics/* (full-scale Earth, 6-DOF); this file only draws it.
 // Rendering is camera-relative ("floating origin"): every frame the focused craft sits at the scene origin and
 // everything else (the rotating Earth, pad, droneship, debris) is placed at (its ECI position − focus) computed
@@ -316,7 +316,7 @@ const siteHolder = new THREE.Group(); bodyG.add(siteHolder); // f5.4: off-Earth 
 // f5.4 space centers (gfx/sites, Rocket Art): the picked site's complex at its real coordinates (Earth: in the Earth group; elsewhere: body frame).
 // Earth presets at the cape also show Landing Zone One. Unpicked (career) keeps the classic pad complex.
 const siteArt = { key: '', obj: [], data: {} };
-const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.9-20').then(m => (siteArt.data[id] = m.SITE));
+const loadSiteArt = id => siteArt.data[id] ? Promise.resolve(siteArt.data[id]) : import('./gfx/sites/site_' + id + '.js?v=f5.9-21').then(m => (siteArt.data[id] = m.SITE));
 // f5.4k (QA 4): a site whose main pad is a catch tower (gulf-port) has the tower at its origin and the launch mount ~35 m off
 // along +Z, 18 m up. Shift the art so the mount sits under the rocket, and remember the tower so the Home camera arcs away from it.
 function padOfs(S) { const c = (S.layout || []).find(o => o.k === 'catch' && o.at && !o.at[0] && !o.at[1]); if (!c) return null;
@@ -380,27 +380,29 @@ const tile = new THREE.Mesh(tileGeo, GX.tileMaterial(sunPos, TILE_TIER)); tile.f
 const tileF = new THREE.Mesh(tileGeo, GX.tileMaterial(sunPos, TILE_TIER, true)); tileF.frustumCulled = false; tileF.renderOrder = -1; earth.add(tileF);
 let tileForceOff = false; // test hook (__game.tileOff)
 let tileC = null, earthPx = null; GX.earthPixels(gfxQ).then(px => { earthPx = px; tileC = null; padLandColor(); });
-const tileRGBA = [0, 0, 0, 0], GLOBE_SAG = 600, smooth01 = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+const tileRGBA = [0, 0, 0, 0], GLOBE_SAG = 600, PAD_SINK = 2, smooth01 = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
 // f5.9 terrain: the land colour of the surrounding map (inland Florida, 40-80 km west of the pad), so the pad's shaped coast/scrub is the SAME ground as its neighbours, not a dark patch
 let padLand = null; function padLandColor() { if (padLand || !earthPx) return padLand; const o = [0, 0, 0, 0], a = [0, 0, 0]; let n = 0; for (const [s, nn2] of [[40000, 0], [60000, 15000], [80000, -15000], [55000, -25000], [70000, 25000]]) { const w = s / R, x = nn2 / R, d = V.norm([Math.cos(w), -Math.sin(w), x]); GX.sampleEarth(earthPx, d, o); if (o[3] < 0.5) { a[0] += o[0]; a[1] += o[1]; a[2] += o[2]; n++; } } padLand = n ? [a[0] / n, a[1] / n, a[2] / n] : [0.03, 0.043, 0.02]; GX.padLandU.value.set(padLand[0], padLand[1], padLand[2]); return padLand; }
+const SAND_LIN = [0.16, 0.135, 0.085]; // sites-on-land-1: island sand (linear), before the tile's x2.4 land gain
+const siteLandNow = () => { const S = siteArt.S; return GX.siteLand(S && S.body === 'earth' ? S : null); };
 function updateTile(ef) {
   const siteE = typeof F !== 'undefined' && F && F.homeBody === 'earth' && F.siteEf ? F.siteEf : null; // flight-ground-3: sandbox Earth sites
-  if (tileC && V.dot(tileC, ef) > Math.cos(25000 / R) && updateTile.site === siteE) return; updateTile.site = siteE;
+  const sKey = siteArt.S ? siteArt.S.id : ''; if (tileC && V.dot(tileC, ef) > Math.cos(25000 / R) && updateTile.site === siteE && updateTile.sKey === sKey) return; updateTile.site = siteE; updateTile.sKey = sKey; // rebuild once the site art (its land size) arrives
   const c = V.norm(ef), e = P.eastOf(c), nn = V.cross(c, e), pos = tileGeo.attributes.position.array, col = tileGeo.attributes.color.array, wat = tileGeo.attributes.wat.array, rgb = [0, 0, 0];
   tileC = c; tile.position.set(c[0] * R, c[1] * R, c[2] * R); tileF.position.copy(tile.position);
   const put = (k, th, ph) => {
     const s = Math.sin(th), cm1 = -2 * Math.sin(th / 2) ** 2, dx = Math.cos(ph) * s, dy = Math.sin(ph) * s;
     const off = [c[0] * cm1 + e[0] * dx + nn[0] * dy, c[1] * cm1 + e[1] * dx + nn[1] * dy, c[2] * cm1 + e[2] * dx + nn[2] * dy];
-    const dd = V.norm(V.add(c, off)), drop = GLOBE_SAG * smooth01((th * R - 60000) / 90000); // f5.9 terrain: the globe sphere sits GLOBE_SAG below true sea level, so settle the tile onto it over its outer 90 km: no cliff at the rim
+    const dd = V.norm(V.add(c, off)), drop = GLOBE_SAG * smooth01((th * R - 60000) / 90000) + PAD_SINK * (1 - smooth01((th * R - 14000) / 12000)); /* f5.9-21 (owner: ground under the pad flickered on iPhone): the site's ground disc and sea sheet sat at the same height as this tile and z-fought; settle the tile 2 m under them around the pad */ // f5.9 terrain: the globe sphere sits GLOBE_SAG below true sea level, so settle the tile onto it over its outer 90 km: no cliff at the rim
     pos[k * 3] = off[0] * R - dd[0] * drop; pos[k * 3 + 1] = off[1] * R - dd[1] * drop; pos[k * 3 + 2] = off[2] * R - dd[2] * drop;
-    if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); if (dd[0] > PAD_COAST_COS) { /* flight-ground-2: the 1k mask's ~40 km coastal texel made the pad an island on a beige-grey smear; shape a real coast instead: land (scrub) to the west, a beach, open sea ~1.5 km east of the pad */
-        const eM = dd[1] * R, nM = dd[2] * R, coast = 1500 + 900 * (fbm(nM * 0.00025, 3.1, 7.7) - 0.5) * 2 + 0.25 * Math.max(0, nM) * 0.12, wC = Math.min(1, Math.max(0, (eM - coast) / 300 + 0.5)), blend = 1 - smooth01((Math.acos(Math.min(1, dd[0])) * R - 6000) / 24000); // f5.9: smooth 6->30 km fade (was a linear 5->30 km ramp)
+    if (earthPx) { GX.sampleEarth(earthPx, dd, tileRGBA); let coastW = 0; if (dd[0] > PAD_COAST_COS) { /* flight-ground-2: the 1k mask's ~40 km coastal texel made the pad an island on a beige-grey smear; shape a real coast instead: land (scrub) to the west, a beach, open sea ~1.5 km east of the pad */
+        const eM = dd[1] * R, nM = dd[2] * R, coast = GX.coastEastM(nM) + GX.COAST.wiggle * (fbm(nM * 0.00025, 3.1, 7.7) - 0.5) * 2, /* sites-on-land-1: the coast follows the real NNW-SSE shoreline (earthmap.js) */ wC = Math.min(1, Math.max(0, (eM - coast) / 300 + 0.5)), blend = 1 - smooth01((Math.acos(Math.min(1, dd[0])) * R - 6000) / 24000); // f5.9: smooth 6->30 km fade (was a linear 5->30 km ramp)
         const beach = Math.max(0, 1 - Math.abs(eM - coast + 120) / 160), scrub = 0.85 + 0.3 * fbm(eM * 0.002, nM * 0.002, 2.2), pl = padLandColor() || [0.03, 0.043, 0.02], k0 = 1 / 0.043 * pl[1];
         const lr = pl[0] * scrub + beach * 0.07 * k0, lg = pl[1] * scrub + beach * 0.06 * k0, lb = pl[2] * scrub + beach * 0.045 * k0;
         if (wC < 0.5) { tileRGBA[0] += (lr - tileRGBA[0]) * blend; tileRGBA[1] += (lg - tileRGBA[1]) * blend; tileRGBA[2] += (lb - tileRGBA[2]) * blend; }
-        tileRGBA[3] += (wC * 0.9 + (wC > 0.5 ? 0.1 : 0) - tileRGBA[3]) * blend; }
-      if (siteE) { const dS = Math.acos(Math.min(1, V.dot(dd, siteE))) * R, lk = Math.min(1, Math.max(0, (800 - dS) / 300)); /* the pad complex stands on land: a ~0.5-0.8 km land/scrub apron, then the map's own coast */
-        if (lk > 0) { const sc = 0.85 + 0.3 * fbm(dd[0] * 3000, dd[1] * 3000, dd[2] * 3000); { const pl = padLandColor() || [0.03, 0.043, 0.02]; tileRGBA[0] += (pl[0] * sc - tileRGBA[0]) * lk; tileRGBA[1] += (pl[1] * sc - tileRGBA[1]) * lk; tileRGBA[2] += (pl[2] * sc - tileRGBA[2]) * lk; } tileRGBA[3] *= 1 - lk; } } const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
+        tileRGBA[3] += (wC * 0.9 + (wC > 0.5 ? 0.1 : 0) - tileRGBA[3]) * blend; coastW = wC; }
+      if (siteE) { const sl = siteLandNow(), dS = Math.acos(Math.min(1, V.dot(dd, siteE))) * R, rr = sl.r * (1 + sl.wob * (fbm(dd[0] * 1500, dd[1] * 1500, dd[2] * 1500) - 0.5) * 2), lk = Math.min(1, Math.max(0, (rr - dS) / sl.edge)) * (dd[0] > PAD_COAST_COS && coastW > 0.5 ? 0 : 1); /* sites-on-land-1: the apron is the site's own land size (wobbly edge, no disc), never pushed past the shaped coast */ /* the pad complex stands on land: a ~0.5-0.8 km land/scrub apron, then the map's own coast */
+        if (lk > 0) { const sc = 0.85 + 0.3 * fbm(dd[0] * 3000, dd[1] * 3000, dd[2] * 3000); { const pl = sl.sand ? SAND_LIN : padLandColor() || [0.03, 0.043, 0.02]; tileRGBA[0] += (pl[0] * sc - tileRGBA[0]) * lk; tileRGBA[1] += (pl[1] * sc - tileRGBA[1]) * lk; tileRGBA[2] += (pl[2] * sc - tileRGBA[2]) * lk; } tileRGBA[3] *= 1 - lk; } } const f = (0.8 + 0.4 * fbm(dd[0] * 2400, dd[1] * 2400, dd[2] * 2400)) * 2.4, w = tileRGBA[3]; // licensed day map + fine variation on land
       col[k * 4] = tileRGBA[0] * (w > 0.5 ? 1 : f); col[k * 4 + 1] = tileRGBA[1] * (w > 0.5 ? 1 : f); col[k * 4 + 2] = tileRGBA[2] * (w > 0.5 ? 1 : f); wat[k] = w; col[k * 4 + 3] = w; }
     else { planetColor(dd, rgb, true); col[k * 4] = (rgb[0] / 255) ** 2.2; col[k * 4 + 1] = (rgb[1] / 255) ** 2.2; col[k * 4 + 2] = (rgb[2] / 255) ** 2.2; col[k * 4 + 3] = 0; }
   };

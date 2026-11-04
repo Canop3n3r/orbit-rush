@@ -3,7 +3,7 @@
 // stage at each strip row, and the strip carries UVs into one shared atlas (1024 px on hi, 512 px on phones; lo: no decals).
 // Decals are children of their stage group, so they separate, fall and burn with that stage. Never InstancedMesh.
 import * as THREE from 'three/webgpu';
-import { LOGOS, HOUSE_IDS, ATLAS, uvRect } from './logos_spec.js?v=f5.9-20';
+import { LOGOS, HOUSE_IDS, ATLAS, uvRect } from './logos_spec.js?v=f5.9-21';
 const ATL = new Map(), MATS = new Map();
 function atlas(det) { const S = det === 'hi' ? ATLAS.size : ATLAS.size / 2; if (ATL.has(S)) return ATL.get(S);
   const c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d'), k = S / ATLAS.size; x.scale(k, k);

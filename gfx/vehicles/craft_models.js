@@ -2,9 +2,9 @@
 // shared materials. Each is registered as a payload kind (so it rides under the fairing and is released as the same object) and
 // buildCraftStages() gives the per-stage groups the flight uses (origin = bottom of the engine exit plane, +Y up, metres).
 import * as THREE from 'three/webgpu';
-import { registerPayload } from './payloads.js?v=f5.9-20';
-import { accordionWing, rollOutWing, boom, hingedDish, flapPanel, rig } from './deploy.js?v=f5.9-20'; // logos-deploy-1: pivoted appendages (lo keeps the static shapes)
-import { PLUME_TABLE } from '../../fun/plumetable.js?v=f5.9-20';
+import { registerPayload } from './payloads.js?v=f5.9-21';
+import { accordionWing, rollOutWing, boom, hingedDish, flapPanel, rig } from './deploy.js?v=f5.9-21'; // logos-deploy-1: pivoted appendages (lo keeps the static shapes)
+import { PLUME_TABLE } from '../../fun/plumetable.js?v=f5.9-21';
 import { typeOf, houseStyle } from '../../data/craft_types.js?v=f5.8y';
 // an ion plume is a faint blue-white thread (added here so the shared plume table stays untouched)
 if (!PLUME_TABLE.ion) PLUME_TABLE.ion = { plume: 0x7fd0ff, glow: 0x4aa8ff, core: 0xe4f6ff, bell: 0x6cc0ff, sprite: [1.6, 3.0, 6], k: 0.9, smoke: 0, soot: 0, dia: 0, trail: 'none', label: 'faint blue-white thread' };
