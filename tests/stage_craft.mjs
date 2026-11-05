@@ -94,5 +94,58 @@ const circ = alt => Math.sqrt(P.MU / (P.R + alt));
   ok(gone.some(o => o.id === sat.id) && f.get(sep.id), 'the spent stage is still in space after an orbit; the decaying satellite is gone');
 }
 
+// OR-003: taking a booster that has already landed parks the flight vehicle on the ground.
+// [ ] and Tracking FLY must still leave it. The booster stays in the fleet (it did not burn up).
+{
+  const F = lift('atlas', 200000, circ(200000));
+  F.flags.liftoff = 1; F.flags.space = 1; F.flags.orbit = 1; F.met = 600;
+  F.stage();
+  const b = F.boosters.find(x => x.id === 'B');
+  const up = b.r.map(x => x / Math.hypot(...b.r));
+  b.r = up.map(x => x * (P.R + 2)); b.dir = up.slice();
+  const w = P.OMEGA_E; b.v = [-w * b.r[1], w * b.r[0], 0]; b.state = 'landed';
+  F.fleetTick();
+  const sat = F.fleet.add({ name: 'Constellation sat #1', type: 'comsat', origin: false, r: F.v.r.slice(), v: F.v.v.slice(), t: F.tAbs, body: 'earth', m: 0.2, power: true });
+  ok(F.switchTo(b.vesselId), 'FLY the landed booster');
+  for (let i = 0; i < 5; i++) F.advance(0.05);
+  ok(F.parked && F.fleet.activeId === b.vesselId && F.alt < 1000, 'taking it parks you on the ground', `alt ${F.alt.toFixed(0)} parked ${!!F.parked}`);
+  const why = F.canSwitch(sat);
+  ok(why.ok, 'FLY another craft is allowed from the ground', why.why);
+  ok(F.switchTo(sat.id) && F.fleet.activeId === sat.id && !F.parked && !F.flags.landed, 'FLY leaves the grounded booster for the satellite');
+  for (let i = 0; i < 8; i++) F.advance(0.05);
+  ok(F.fleet.activeId === sat.id && F.alt > 150000 && !F.parked, 'the satellite keeps flying; the ground park does not follow it', `alt ${(F.alt / 1e3).toFixed(0)} km`);
+  ok(!!F.fleet.get(b.vesselId), 'the landed booster stays in tracking after you leave it');
+  ok(F.switchTo(b.vesselId), 'FLY back onto the grounded booster');
+  for (let i = 0; i < 5; i++) F.advance(0.05);
+  ok(F.parked && F.fleet.activeId === b.vesselId, 'it parks again');
+  const back = F.fleet.activeId;
+  ok(F.cycleVessel(1) && F.fleet.activeId !== back && !F.parked, 'Alt+] leaves the grounded craft', F.fleet.active && F.fleet.active.name);
+  ok(F.switchTo(b.vesselId), 'return to the grounded booster');
+  for (let i = 0; i < 5; i++) F.advance(0.05);
+  ok(F.cycleVessel(-1) && F.fleet.activeId !== b.vesselId && !F.parked, 'Alt+[ leaves the grounded craft the other way', F.fleet.active && F.fleet.active.name);
+  F.switchTo(F.originId);
+  for (const x of F.boosters) x.state = 'landed';
+  F.parked = { ef: [1, 0, 0], lift: 20 };
+  const block = F.canSwitch(sat);
+  ok(F.fleet.activeId === F.originId && !block.ok && /parked on the ground/.test(block.why), 'a ship that landed itself, not a separated visit, still cannot switch', block.why);
+}
+
+// Took the booster in the air (its landing sim hands off) and only then touched down.
+// Leaving must not drop it: keep was cleared on handoff, and the ground is under the decay altitude.
+{
+  const F = lift('swift', 200000, circ(200000));
+  F.flags.liftoff = 1; F.flags.space = 1; F.flags.orbit = 1; F.met = 600;
+  F.stage();
+  const b = F.booster, id = b.vesselId, up = b.r.map(x => x / Math.hypot(...b.r)), w = P.OMEGA_E;
+  b.r = up.map(x => x * (P.R + 2)); b.dir = up.slice(); b.v = [-w * b.r[1], w * b.r[0], 0];
+  F.fleetTick();
+  ok(b.state === 'flying' && F.switchTo(id) && b.state === 'craft', 'taking the booster stops its landing sim');
+  for (let i = 0; i < 8; i++) F.advance(0.05);
+  ok(F.parked && F.fleet.activeId === id, 'touchdown parks the booster you are flying');
+  ok(F.cycleVessel(1) && F.fleet.activeId !== id && !F.parked && F.alt > 150000, 'cycling leaves it for the rocket, still in orbit', F.fleet.active && F.fleet.active.name);
+  for (let i = 0; i < 5; i++) F.advance(0.2);
+  ok(!!F.fleet.get(id), 'a booster you landed and then left is still tracked');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
