@@ -7,6 +7,7 @@ import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, rec
 import { designReusable } from './vehicles/reusable.js?v=f5.9-27';
 import { newStats, trackStats } from './fun/endstats.js?v=f5.9-27';
 import { installVessels } from './fun/vessels.js?v=f5.9-27'; // f6.2: switching between vessels left in space, craft power, deployed payloads
+import { airlessBody } from './fun/listen.js?v=f5.9-28'; // OR-006: fairings are not required where there is no atmosphere
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
 export const SIM_SPEED = 2;                 // game time runs 2x real time; warp multiplies on top
@@ -393,13 +394,21 @@ export class Flight {
   get last() { return this.v.stages.length - 1; }
   get tel() { return this.v.tel; }
   canStage() { return this.ignited && this.v.cur < this.last && !this.v.clamped && this.met > 3 && this.alt > 150; }
+  // OR-006: on an airless body the fairing protects nothing, so it can come off at any altitude. In air it still waits for 60 km.
+  canJettison() { return this.v.fairing > 0 && (airlessBody(this.body) || this.alt > 60000); }
+  // Auto drop. Airless: as soon as the rocket leaves the pad. In air: above 100 km once heating is low, and always by 140 km.
+  fairingDue(h, tel) {
+    if (!(this.v.fairing > 0)) return false;
+    if (airlessBody(this.body)) return this.ignited && !this.v.clamped;
+    return h > P.FAIRING_ALT && (tel.heat < P.FAIRING_QDOT || h > P.FAIRING_ALT_MAX);
+  }
   stagePress() {
     const v = this.v, f = this.flags;
     if (f.dead) return 'dead';
     { const cs = this.craftStage(); if (cs) return cs; } // f6.2: a carrier lets its craft go
     if (this.v.auto) this.takeOverUpper();
     if (!this.ignited) { this.ignited = true; v.ut = 1; this.call('sound', 'ignite'); this.toast('IGNITION', '#ffb35c'); return 'ignite'; }
-    const next = v.cur < this.last ? 'stage' : v.fairing > 0 && this.alt > 60000 ? 'fairing' : this.canRelease() ? 'release' : null;
+    const next = v.cur < this.last ? 'stage' : this.canJettison() ? 'fairing' : this.canRelease() ? 'release' : null;
     if (!next) return 'none';
     if (next === 'stage' && !this.canStage()) { this.toast('Clear the tower first!', '#ffb35c'); return 'blocked'; }
     const risk = next === 'stage' ? this.stageRisk() : '';
@@ -855,7 +864,7 @@ export class Flight {
         if (!f.mach1 && tel.mach > 1 && h < 30000) { f.mach1 = 1; this.toast('Mach 1 — supersonic', '#9cc3ff'); }
         if (!f.highQ && tel.q > 30000 && v.thrust > 0) { f.highQ = 1; /* one hint system: the persistent HIGH Q hint (hint()) says it; no duplicate toast */ }
         if (!f.maxq && this.maxQ > 8000 && tel.q < this.maxQ * 0.95) { f.maxq = 1; if (!this.ret) this.toast(`Max-Q passed (${(this.maxQ / 1000).toFixed(1)} kPa)`, '#9cc3ff'); }
-        if (!f.fairing && h > P.FAIRING_ALT && (tel.heat < P.FAIRING_QDOT || h > P.FAIRING_ALT_MAX)) this.jettison();
+        if (!f.fairing && this.fairingDue(h, tel)) this.jettison();
         if (v.thrust > 0 && !v.clamped) {
           const pitch = Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), V.norm(v.r)))));
           if (h < 40000 && pitch > 1.2 && !f.orbit) f.flatLow += dt;
