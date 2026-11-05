@@ -1,9 +1,10 @@
 import { MENU_ITEMS, menuHTML, homeLabel } from '../fun/flightmenu.js';
 let p = 0, f = 0; const t = (c, m) => { if (c) { p++; console.log('  ✔ ' + m); } else { f++; console.log('  ✘ ' + m); } };
 const keys = MENU_ITEMS.map(i => i.k).filter(Boolean), labels = MENU_ITEMS.map(i => i.l);
-t(MENU_ITEMS.length <= 10 && MENU_ITEMS.filter(i => !i.b && !i.gcam && !i.craft).length <= 7, `≤ 7 items (+ 🎥 Ground cam, f5.8i) without a booster (${MENU_ITEMS.filter(i => !i.b && !i.gcam).length})`);
+t(MENU_ITEMS.length <= 10 && MENU_ITEMS.filter(i => !i.b && !i.gcam && !i.craft && !i.warp).length <= 7, `≤ 7 always-on items (+ camera, craft, fold-only warp) without a booster (${MENU_ITEMS.filter(i => !i.b && !i.gcam && !i.warp).length})`);
 t(new Set(keys).size === keys.length && labels.filter(l => /home/i.test(l)).length === 1, 'no duplicate keys, one Home');
-t(!keys.includes('Comma') && !keys.includes('KeyT') && !keys.includes('KeyM'), 'no warp −/+ or MAP (the top bar has them)');
+t(!keys.includes('Comma') && !keys.includes('KeyT') && !keys.includes('KeyM'), 'no second warp −/+ or MAP (the top bar has them; ascent split folds one ▶▶ into ☰)');
+t(MENU_ITEMS.filter(i => i.warp).length === 1 && MENU_ITEMS.find(i => i.warp).k === 'Period' && /data-warp="1" hidden/.test(menuHTML()), 'one ▶▶ Warp row, hidden until phone portrait ascent split folds the bar button away');
 t(labels.every(l => /[A-Za-z]{3}/.test(l)), 'every button has a word label (no icon-only)');
-t(!/data-b="1"/.test(menuHTML()) && MENU_ITEMS.filter(i => !i.abort && !i.gcam && !i.craft).length <= 6 && MENU_ITEMS.filter(i => i.abort).length <= 1 && homeLabel(true) !== homeLabel(false), 'f5.7j: no booster items (tap the inset), ≤6 entries + the AUTO-only ⛔ Abort (f5.8f); Return label flips to Cancel');
+t(!/data-b="1"/.test(menuHTML()) && MENU_ITEMS.filter(i => !i.abort && !i.gcam && !i.craft && !i.warp).length <= 6 && MENU_ITEMS.filter(i => i.abort).length <= 1 && homeLabel(true) !== homeLabel(false), 'f5.7j: no booster items (tap the inset), ≤6 entries + the AUTO-only ⛔ Abort (f5.8f); Return label flips to Cancel');
 console.log(`flightmenu: ${p} passed, ${f} failed`); process.exit(f ? 1 : 0);
