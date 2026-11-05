@@ -379,6 +379,7 @@ body.splitOn:not(.mapOn) #topBar .spBtns{display:flex}
 #topBar .spBtns :is(#spCtl,#spClose){display:none!important}
 #topBar #spReset{display:none!important}
 body.splitOn:has(#split.fullB.camMan) #topBar #spReset{display:inline-flex!important}
+body.u59.touch.splitOn:has(#split.fullB) #topBar #spReset{display:none!important} /* f5.9-43: a phone drag orbits in place. ⟲ FOLLOW would be a third control; desktop still shows it */
 /* f5.9e: END FLIGHT / RELEASE live in the bottom bar even after the payload is out (legacy fixed pin loses) */
 body.u59 #botBar #relBtn,body.u59 #botBar #relBtn.done,body.u59.splitOn #botBar #relBtn{position:static!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:auto!important}
 /* sim_ui contract: the speedometer is big on a short landscape screen too (width is plentiful there) */
