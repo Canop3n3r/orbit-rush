@@ -4,7 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-25';
 import * as PR from './profiles.js?v=f5.9-25';
-import { lathe, tube, bell, ringPos, ring, decal } from './parts.js?v=f5.9-25';
+import { lathe, tube, sleeve, bell, ringPos, ring, decal } from './parts.js?v=f5.9-25';
 import { group, plume } from './co_civspace.js?v=f5.9-25';
 const PI = Math.PI, HI = k => k.detail === 'hi';
 const quads = (k, r, y, h) => { for (let i = 0; i < 2; i++) tube(k, r * 1.006, r * 1.006, h, y, 'dark', { open: true, t0: i * PI, tl: PI / 2, seg: k.hi ? 10 : 4 }); };
@@ -42,8 +42,9 @@ function sib(d, nf) { const k = new Kit(d), y0 = 2.6, h = 22.6;
   tube(k, SR, SR, 1.4, y0 + h, 'paint:0,0'); quads(k, SR, y0 + h + 0.2, 1.0); // spider-beam band
   for (let i = 0; i < nf; i++) fin(k, PI / nf + i * 2 * PI / nf, SR - 0.1, 1.4, 3.0, 0.4, 0.12);
   decal(k, 'booster.side', SR, y0 + h + 0.7, 1.2, PI / 2, 0.8); const g = k.build('stage1'); g.userData.top = y0 + h + 1.4; return g; }
-function s4(d, y0, ib) { const k = new Kit(d), r = ib ? 3.3 : 2.75, h = ib ? 17.8 : 12.2; tube(k, SR, r, ib ? 5.5 : 2.4, y0, 'paint:0,0');
-  if (ib) bell(k, 1.0, 2.6, 0, y0 + 0.4, 0, { ext: true, head: 0.6, rt: 0.3 }); else for (const [x, z] of ringPos([[6, 1.25, 0]])) bell(k, 0.5, 1.4, x, y0 + 0.3, z, { ext: true, head: 0.3 });
+function s4(d, y0, ib) { const k = new Kit(d), r = ib ? 3.3 : 2.75, h = ib ? 17.8 : 12.2;
+  if (ib) bell(k, 1.0, 2.6, 0, y0 - 0.05, 0, { ext: true, head: 0.6, rt: 0.3 }); else for (const [x, z] of ringPos([[6, 1.25, 0]])) bell(k, 0.5, 1.4, x, y0 - 0.05, z, { ext: true, head: 0.3 }); // OR-010
+  sleeve(k, SR, r, ib ? 5.5 : 2.4, y0, 'paint:0,0');
   tube(k, r, r, h - (ib ? 5.5 : 2.4), y0 + (ib ? 5.5 : 2.4), 'paint:0,0'); if (ib) quads(k, r, y0 + 6.5, 2.0); ring(k, r, y0 + h - 0.5, 0.02);
   const g = k.build('stage2'); g.userData.top = y0 + h; return g; }
 function crew(d, y0, rTop) { const a = new Kit(d); tube(a, rTop, rTop, 0.9, y0, 'dark'); tube(a, rTop, 1.95, 8.5, y0 + 0.9, 'paint:0,0'); const ad = a.build('adapter'); ad.userData.top = y0 + 9.4;

@@ -3,7 +3,7 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-25';
 import * as PR from './profiles.js?v=f5.9-25';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-25';
+import { lathe, tube, sleeve, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-25';
 const PI = Math.PI;
 function group(name, kids, h) { const g = new THREE.Group(); g.name = name; for (const c of kids) g.add(c); g.userData.height = h; g.userData.stages = Object.fromEntries(kids.map(c => [c.name, c])); g.userData.legs = []; return g; }
 const LOCAL = new Map();
@@ -45,15 +45,15 @@ function sic(d, o) { const k = new Kit(d), b0 = 5.2; // body starts above the ha
   decal(k, 'booster.side', R1, 20, 8, PI, 0.5);
   const g = k.build('stage1'); for (const m of g.children) if (m.name.endsWith(':bell')) m.material = lmat('x-bellblack'); g.userData.top = Y.ic; return g; } // K-1: dark regen tubes
 function sii(d) { const k = new Kit(d);
-  tube(k, R1, R1, Y.is - Y.ic, Y.ic, 'paint:0,0'); band(k, R1, Y.ic + 0.2, 0.5); stringers(k, R1, Y.ic, Y.is - Y.ic, 36); // interstage (falls away after ignition)
-  for (const [x, z] of ringPos([[4, 2.65, PI / 4], [1, 0]])) bell(k, 1.0, 3.1, x, Y.ic + 1.0, z, { ext: false, head: 0.9, rt: 0.3 }); // 5 hydrogen upper-stage bells (inside the interstage)
+  for (const [x, z] of ringPos([[4, 2.65, PI / 4], [1, 0]])) bell(k, 1.0, 3.1, x, Y.ic - 0.05, z, { ext: false, head: 0.9, rt: 0.3 }); // OR-010: exits just below the aft rim so stage2 shows bells after sep
+  sleeve(k, R1, R1, Y.is - Y.ic, Y.ic, 'paint:0,0'); band(k, R1, Y.ic + 0.2, 0.5); stringers(k, R1, Y.ic, Y.is - Y.ic, 36); // open interstage sleeve around the powerheads
   tube(k, R1, R1, Y.ii - Y.is, Y.is, 'paint:0,0'); band(k, R1, Y.ii - 3.6, 3.6); // all white, black forward skirt band
   ring(k, R1, Y.is + 9, 0.03); ring(k, R1, Y.is + 17, 0.03);
   decal(k, 'upper.side', R1, Y.is + 6, 9, PI, 0.45);
   const g = k.build('stage2'); g.userData.top = Y.ii; return g; }
 function sivb(d) { const k = new Kit(d);
-  tube(k, R1, R3, Y.tp - Y.ii, Y.ii, 'paint:0,0'); stringers(k, (R1 + R3) / 2, Y.ii + 0.5, 4, 20); // conical aft interstage 10.06 -> 6.6 m
-  bell(k, 1.0, 3.1, 0, Y.tp - 3.2, 0, { head: 0.9, rt: 0.3 }); // one hydrogen upper-stage bell
+  bell(k, 1.0, 3.1, 0, Y.ii - 0.05, 0, { head: 0.9, rt: 0.3 }); // OR-010: exit just below the aft rim so stage3 shows its bell after sep
+  sleeve(k, R1, R3, Y.tp - Y.ii, Y.ii, 'paint:0,0'); stringers(k, (R1 + R3) / 2, Y.ii + 0.5, 4, 20); // open conical aft sleeve around the powerhead
   tube(k, R3, R3, Y.ivb - Y.tp, Y.tp, 'paint:0,0'); quads(k, R3, Y.tp, 4.2, 0, 2); band(k, R3, Y.ivb - 0.8, 0.8); // aft roll quadrants
   for (const a of [PI / 2, 3 * PI / 2]) k.add(new THREE.BoxGeometry(1.4, 1.1, 1.2), 'paint:0,0', xf([Math.cos(a) * (R3 + 0.5), Y.tp + 0.8, Math.sin(a) * (R3 + 0.5)], [0, -a, 0])); // APS pods
   k.add(new THREE.BoxGeometry(0.3, Y.ivb - Y.tp - 1, 0.5), 'paint:0,0', xf([R3 + 0.2, (Y.tp + Y.ivb) / 2, 0]));

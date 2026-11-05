@@ -3,7 +3,7 @@ import * as THREE from 'three/webgpu';
 import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-25';
 import * as PR from './profiles.js?v=f5.9-25';
 import * as T from './textures.js?v=f5.9-25';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-25';
+import { lathe, tube, sleeve, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-25';
 export const PI = Math.PI, isHi = k => k.detail === 'hi';
 const LM = new Map(); // livery colours: cached, weak dispose listeners (flat heap)
 export function livery(hex) { const key = 'x-c' + hex.toString(16); if (!LM.has(key)) { const m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.55, map: T.paint({ base: '#ffffff' }) }); m.name = key; m.userData.cached = true; weakDisposeListeners(m); LM.set(key, m); } return key; }
@@ -42,4 +42,4 @@ export function srm(d, name, { r, L, nL, x, z, key = 'paint:0,0', bands = [0.3, 
 export function capsule(d, name, { r, h, y0, key = 'dark', can = 0.4 }) { const k = new Kit(d); tube(k, r, r, 0.15, y0, 'dark'); tube(k, r, r * 0.42, h, y0 + 0.15, key); tube(k, r * 0.4, r * 0.4, can, y0 + 0.15 + h, key); return kb(k, name, y0 + 0.15 + h + can); }
 export function tower(d, name, { y0, w = 0.3, h = 3, rocket = 0.14, key = 'x' }) { const k = new Kit(d); for (const [x, z] of ringPos([[3, w, 0]])) tube(k, 0.04, 0.04, h, y0, key === 'x' ? 'dark' : key, { x, z, seg: 4 });
   tube(k, rocket, rocket, rocket * 9, y0 + h, 'paint:0,0', { seg: k.hi ? 12 : 6 }); lathe(k, PR.ogive(rocket, rocket * 3.5, y0 + h + rocket * 9, 6, 0.02), 'dark', { seg: k.hi ? 12 : 6 }); return kb(k, name, y0 + h + rocket * 12.5); }
-export { Kit, xf, PR, lathe, tube, bell, ringPos, ring, decal, strut };
+export { Kit, xf, PR, lathe, tube, sleeve, bell, ringPos, ring, decal, strut };

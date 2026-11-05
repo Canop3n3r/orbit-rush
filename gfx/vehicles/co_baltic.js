@@ -4,7 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=f5.9-25';
 import * as PR from './profiles.js?v=f5.9-25';
-import { lathe, tube, bell, ringPos, decal } from './parts.js?v=f5.9-25';
+import { lathe, tube, sleeve, bell, ringPos, decal } from './parts.js?v=f5.9-25';
 import { group, plume } from './co_civspace.js?v=f5.9-25';
 const PI = Math.PI, R = 0.825, BODY = [[0, 0.35], [0.56, 0.35], [0.7, 1.2], [0.8, 2.6], [R, 3.6], [R, 6.6], [0.79, 8.0], [0.72, 9.4]];
 function quads(k, y, h, r) { for (let i = 0; i < 2; i++) tube(k, r * 1.006, r * 1.006, h, y, 'dark', { open: true, t0: i * PI, tl: PI / 2, seg: k.hi ? 10 : 4 }); }
@@ -17,7 +17,8 @@ function body(d) { const k = new Kit(d); bell(k, 0.36, 0.9, 0, 0, 0, { head: 0.3
   decal(k, 'booster.side', R, 5.0, 1.5, PI / 4, 0.7); const g = k.build('body'); g.userData.top = 11.0; return g; }
 function warhead(d) { const k = new Kit(d); lathe(k, PR.ogive(0.72, 2.2, 11.8, k.hi ? 14 : 6, 0.05), 'paint:0,0'); tube(k, 0.72, 0.72, 0.8, 11.0, 'dark');
   const g = k.build('payload'); g.userData.top = 14.0; return g; }
-function upper(d, y0) { const k = new Kit(d), r = 0.15; tube(k, 0.42, r, 0.4, y0, 'grey'); bell(k, 0.08, 0.25, 0, y0 + 0.35, 0, { head: 0.05 });
+function upper(d, y0) { const k = new Kit(d), r = 0.15; bell(k, 0.08, 0.25, 0, y0 - 0.05, 0, { head: 0.05 }); // OR-010
+  sleeve(k, 0.42, r, 0.4, y0, 'grey');
   tube(k, r, r, 4.3, y0 + 0.4, 'paint:0,0', { seg: k.hi ? 12 : 6 }); lathe(k, PR.ogive(r, 0.8, y0 + 4.7, 8, 0.02), 'paint:0,0', { seg: k.hi ? 12 : 6 });
   for (let i = 0; i < 3; i++) { const s = new THREE.Shape([[r, 0], [0.42, 0], [0.42, 0.25], [r, 0.7]].map(([x, y]) => new THREE.Vector2(x, y))), g = new THREE.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: false }); k.add(g, 'dark', xf([0, y0 + 0.4, 0], [0, i * 2 * PI / 3, 0])); }
   const g = k.build('upper'); g.userData.top = y0 + 5.5; return g; }

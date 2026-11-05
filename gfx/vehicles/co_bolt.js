@@ -14,8 +14,9 @@ function booster(d, rec) { const k = new Kit(d), r = B.r;
   if (rec) tube(k, r * 1.01, r * 1.01, 0.6, H1 - 1.2, 'paint:0,0', { open: true }); // parachute bay band
   decal(k, 'booster.side', r, 6, 2.0, 0, 1.2);
   const g = k.build('booster'); g.userData.top = H1; return g; }
-function upper(d) { const k = new Kit(d), r = B.r, y = H1; tube(k, r, r, 1.0, y, 'carbon'); // interstage (vacuum bell inside)
-  bell(k, 0.3, 0.85, 0, y + 0.1, 0, { ext: true, head: 0.1, rt: 0.06 }); tube(k, r, r, 2.4, y + 1.0, 'carbon'); ring(k, r, y + 1.05, 0.006, 'grey');
+function upper(d) { const k = new Kit(d), r = B.r, y = H1;
+  bell(k, 0.3, 0.85, 0, y - 0.85, 0, { ext: true, head: 0.1, rt: 0.06 }); // OR-010: hang below the stage floor so the aft face shows the bell after sep
+  tube(k, r, r, 1.0, y, 'carbon'); tube(k, r, r, 2.4, y + 1.0, 'carbon'); ring(k, r, y + 1.05, 0.006, 'grey');
   const g = k.build('upper'); g.userData.top = y + 3.4; return g; }
 function payload(d, y0) { const k = new Kit(d); tube(k, B.r * 0.9, B.r * 0.9, 0.3, y0, 'silver'); // kick stage ring (visible at separation)
   const p = PR.fairing(B.fr, B.cyl, B.nose, y0 + 0.3, B.r * 0.999, k.hi ? 18 : 8, 0.05); lathe(k, p, 'carbon');

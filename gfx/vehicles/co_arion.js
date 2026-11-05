@@ -19,7 +19,7 @@ function solid(d, name, r, L, nL, x, z) { const k = new Kit(d), a = Math.atan2(z
   lathe(k, PR.ogive(r, nL, L - nL, k.hi ? 14 : 6, 0.12), 'grey');
   if (k.hi) for (const y of [4, L - nL - 1]) strut(k, [-r * 0.9, y, 0], [-(Math.hypot(x, z) - R) - r + 0.1, y, 0], 0.12, 'dark'); // attach struts toward the core
   const g = k.build(name); g.position.set(x, 0.4, z); g.rotation.y = -a; return g; }
-function upper(d, y0, h, five) { const k = new Kit(d); bell(k, five ? 0.5 : 1.05, five ? 1.4 : 2.4, 0, y0 + 0.1, 0, { ext: true, head: 0.3, rt: 0.12 });
+function upper(d, y0, h, five) { const k = new Kit(d); bell(k, five ? 0.5 : 1.05, five ? 1.4 : 2.4, 0, y0 - 0.05, 0, { ext: true, head: 0.3, rt: 0.12 }); // OR-010: exit at aft rim
   tube(k, R, R, h, y0, five ? 'paint:0,0' : 'grey'); ring(k, R, y0 + h - 0.6, 0.02); tube(k, R, R, 1.1, y0 + h, 'dark'); // equipment bay band
   const g = k.build('upper'); g.userData.top = y0 + h + 1.1; return g; }
 function fairing(d, y0, cyl) { const k = new Kit(d), p = PR.fairing(R, cyl, 7.0, y0, R * 0.999, k.hi ? 20 : 8, 0.05); lathe(k, p, 'paint:0,0');

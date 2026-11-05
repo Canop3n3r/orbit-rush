@@ -4,7 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=f5.9-25';
 import * as PR from './profiles.js?v=f5.9-25';
-import { lathe, tube, bell, ringPos, ring, decal } from './parts.js?v=f5.9-25';
+import { lathe, tube, sleeve, bell, ringPos, ring, decal } from './parts.js?v=f5.9-25';
 import { group, plume } from './co_civspace.js?v=f5.9-25';
 const PI = Math.PI, RC = 2.05, RO = 0.8, OFF = RC + RO - 0.05, RF = 2.18;
 const hiOnly = k => k.detail === 'hi';
@@ -13,9 +13,10 @@ function s1(d) { const k = new Kit(d), y0 = 2.2, h = 21.2; // central oxidizer t
     lathe(k, PR.ogive(RO, 1.5, y0 + h - 1.5, k.hi ? 8 : 4, 0.3), 'paint:0,0', { x, z, seg: k.hi ? 18 : 8 }); ring(k, RO, y0 + 0.6, 0.02) }
   tube(k, RC * 1.1, RC, 1.4, y0 - 0.4, 'dark'); tube(k, RC, RC, h, y0, 'paint:0,0'); if (hiOnly(k)) { ring(k, RC, y0 + h * 0.5, 0.02); for (const [x, z] of ringPos([[6, OFF + RO * 0.98, 0]])) k.add(new THREE.BoxGeometry(0.15, h - 3, 0.15), 'grey', xf([x, y0 + h / 2, z])); }
   decal(k, 'booster.side', RC, y0 + h * 0.6, 4, PI / 6, 0.5); const g = k.build('s1'); g.userData.top = y0 + h; return g; }
-function s2(d, y0) { const k = new Kit(d), h = 14.6; tube(k, RC, RC, 2.0, y0, 'dark', { open: hiOnly(k) }); // lattice interstage look
+function s2(d, y0) { const k = new Kit(d), h = 14.6;
+  for (const [x, z] of ringPos([[4, 1.1, PI / 4]])) bell(k, 0.42, 1.3, x, y0 - 0.05, z, { head: 0.2, rt: 0.15 }); // OR-010
+  sleeve(k, RC, RC, 2.0, y0, 'dark'); // open lattice interstage
   if (hiOnly(k)) for (const [x, z] of ringPos([[12, RC * 0.98, 0]])) tube(k, 0.06, 0.06, 2.0, y0, 'grey', { x, z, seg: 4 });
-  for (const [x, z] of ringPos([[4, 1.1, PI / 4]])) bell(k, 0.42, 1.3, x, y0 + 0.4, z, { head: 0.2, rt: 0.15 });
   tube(k, RC, RC, h - 2.0, y0 + 2.0, 'paint:0,0'); ring(k, RC, y0 + h * 0.55, 0.02); const g = k.build('s2'); g.userData.top = y0 + h; return g; }
 function s3(d, y0) { const k = new Kit(d), h = 6.5; bell(k, 0.5, 1.4, 0, y0 - 1.0, 0, { head: 0.2, rt: 0.16 }); if (hiOnly(k)) for (const [x, z] of ringPos([[4, 1.6, 0]])) bell(k, 0.18, 0.6, x, y0 - 0.4, z, { head: 0.1 });
   tube(k, RC, RC, h, y0, 'paint:0,0'); tube(k, RC * 1.004, RC * 1.004, 0.5, y0 + h - 0.5, 'dark', { open: true }); const g = k.build('s3'); g.userData.top = y0 + h; return g; }

@@ -4,7 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf, weakDisposeListeners } from './kit.js?v=f5.9-25';
 import * as PR from './profiles.js?v=f5.9-25';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-25';
+import { lathe, tube, sleeve, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-25';
 import { group, plume } from './co_civspace.js?v=f5.9-25';
 const PI = Math.PI, R = 2.5, RB = 1.675, RF = 2.6, BOFF = R + RB + 0.15;
 const LM = new Map(); // local livery materials (cached + weak dispose listeners: flat heap)
@@ -27,8 +27,9 @@ function booster(d, name, a) { const k = new Kit(d), L = 27.6, nL = 6.0, x = Mat
   if (k.hi) { for (const y of [5, L - nL - 2]) strut(k, [-RB * 0.95, y, 0], [-(BOFF - R) - RB + 0.1, y, 0], 0.12, 'dark');
   }
   const g = kb(k, name); g.position.set(x, 0.6, z); g.rotation.y = -a; return g; }
-function upper(d, y0) { const k = new Kit(d), h = 10.6; tube(k, R, R, 1.8, y0, 'dark'); // interstage truss skirt
-  for (const [x, z] of ringPos([[2, 0.7]])) bell(k, 0.45, 1.3, x, y0 + 0.2, z, { ext: true, head: 0.25, rt: 0.12 });
+function upper(d, y0) { const k = new Kit(d), h = 10.6;
+  for (const [x, z] of ringPos([[2, 0.7]])) bell(k, 0.45, 1.3, x, y0 - 0.05, z, { ext: true, head: 0.25, rt: 0.12 }); // OR-010: exit at aft rim
+  sleeve(k, R, R, 1.8, y0, 'dark'); // open interstage truss skirt
   tube(k, R, R, h - 1.8, y0 + 1.8, 'x-cream'); sky(k, R, y0 + h - 1.4, 0.8); tube(k, R, R, 0.8, y0 + h, 'dark');
   const g = kb(k, 'upper'); g.userData.top = y0 + h + 0.8; return g; }
 function fairing(d, y0, cyl) { const k = new Kit(d), p = PR.fairing(RF, cyl, 6.6, y0, R * 0.999, k.hi ? 20 : 8, 0.05); lathe(k, p, 'x-cream');

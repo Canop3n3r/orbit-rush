@@ -4,7 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=f5.9-25';
 import * as PR from './profiles.js?v=f5.9-25';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-25';
+import { lathe, tube, sleeve, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-25';
 import { group, lmat, kbuild, plume } from './co_civspace.js?v=f5.9-25';
 const PI = Math.PI;
 // ---- Space Truck Stack (parody of the winged orbiter stack): ET axis at x=z=0, boosters at x=±6.6, orbiter on +z ----
@@ -67,11 +67,13 @@ function core(d) { const k = new Kit(d);
   tube(k, 0.22, 0.22, 40, C0 + 6, 'x-foam', { x: 1.5, z: CR + 0.15, seg: k.hi ? 10 : 5 });
   decal(k, 'booster.side', CR, C0 + 22, 6, PI, 0.6);
   return kbuild(k, 'core'); }
-function upper5(d) { const k = new Kit(d), y = CT; tube(k, CR, 2.5, 8.4, y, 'silver'); ring(k, CR, y + 0.2, 0.03); // stage adapter cone 8.4 -> 5 m
-  bell(k, 0.6, 1.9, 0, y + 6.4, 0, { ext: true, head: 0.3, rt: 0.15 }); tube(k, 2.5, 2.5, 5.0, y + 8.4, 'paint:0,0'); tube(k, 2.5, 2.5, 1.0, y + 13.4, 'grey');
+function upper5(d) { const k = new Kit(d), y = CT;
+  bell(k, 0.6, 1.9, 0, y - 0.05, 0, { ext: true, head: 0.3, rt: 0.15 }); // OR-010: exit at aft rim (was buried in the adapter cone)
+  sleeve(k, CR, 2.5, 8.4, y, 'silver'); ring(k, CR, y + 0.2, 0.03); tube(k, 2.5, 2.5, 5.0, y + 8.4, 'paint:0,0'); tube(k, 2.5, 2.5, 1.0, y + 13.4, 'grey');
   const g = kbuild(k, 'upper'); g.userData.top = y + 14.4; g.userData.r = 2.5; return g; }
-function eus(d) { const k = new Kit(d), y = CT; tube(k, CR, CR, 1.5, y, 'grey');
-  for (const [x, z] of ringPos([[4, 1.6, PI / 4]])) bell(k, 0.6, 1.9, x, y + 0.2, z, { ext: true, head: 0.3, rt: 0.15 });
+function eus(d) { const k = new Kit(d), y = CT;
+  for (const [x, z] of ringPos([[4, 1.6, PI / 4]])) bell(k, 0.6, 1.9, x, y - 0.05, z, { ext: true, head: 0.3, rt: 0.15 }); // OR-010
+  sleeve(k, CR, CR, 1.5, y, 'grey');
   tube(k, CR, CR, 16.5, y + 1.5, 'paint:0,0'); ring(k, CR, y + 9, 0.03); const g = kbuild(k, 'upper'); g.userData.top = y + 18; g.userData.r = CR; return g; }
 // crew: adapter, covered service module, covered capsule, escape tower
 function crew(d, y0, r0) { const k = new Kit(d), r = 2.5;

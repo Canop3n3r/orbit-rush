@@ -19,7 +19,7 @@ function s1(d, o) { const k = new Kit(d), y0 = 2.6, h = 57.5 - 2.6;
   for (const a of [0, PI]) k.add(new THREE.BoxGeometry(0.9, 12, 0.3), 'dark', xf([Math.cos(a) * (R + 0.4), y0 + h - 9, Math.sin(a) * (R + 0.4)], [0, -a, 0])); // strakes
   decal(k, 'booster.side', R, y0 + h * 0.6, 7, PI / 2, 0.5);
   const g = kb(k, 's1'); const L = legs(Kit, d, R * 0.95, 7.5, y0 + 2.2, 6, PI / 6); setLegs(L, o.legs ?? 0); g.add(L); g.userData.legs = L; g.userData.top = y0 + h; return g; }
-function s2(d, y0) { const k = new Kit(d), h = 23.4; for (const [x, z] of ringPos([[2, 1.2]])) bell(k, 0.75, 2.2, x, y0 + 0.2, z, { ext: true, head: 0.35, rt: 0.2 });
+function s2(d, y0) { const k = new Kit(d), h = 23.4; for (const [x, z] of ringPos([[2, 1.2]])) bell(k, 0.75, 2.2, x, y0 - 0.05, z, { ext: true, head: 0.35, rt: 0.2 }); // OR-010
   tube(k, R, R, h, y0, 'paint:0,0'); if (k.hi) ring(k, R, y0 + h * 0.6, 0.02); const g = kb(k, 's2'); g.userData.top = y0 + h; return g; }
 function fairing(d, y0) { const k = new Kit(d), p = PR.fairing(R, 7.0, 10.0, y0, R * 0.999, k.hi ? 20 : 8, 0.05); lathe(k, p, 'paint:0,0');
   if (k.hi) for (const ph of [0, PI]) lathe(k, p.slice(1), 'dark', { s: 1.003, seg: 1, p0: ph - 0.004, pl: 0.008 }); decal(k, 'fairing.side', R, y0 + 3.5, 4, PI / 2, 0.8);

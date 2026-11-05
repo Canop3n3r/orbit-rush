@@ -6,7 +6,7 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=f5.9-25';
 import * as PR from './profiles.js?v=f5.9-25';
-import { lathe, tube, bell, ringPos, ring, decal, legs, setLegs } from './parts.js?v=f5.9-25';
+import { lathe, tube, sleeve, bell, ringPos, ring, decal, legs, setLegs } from './parts.js?v=f5.9-25';
 import { group, plume } from './co_civspace.js?v=f5.9-25';
 const PI = Math.PI, R = PR.ORIG.r;
 function stripes(k, r, ys, key) { for (const y of ys) tube(k, r * 1.006, r * 1.006, 0.5, y, key, { open: true }); }
@@ -18,8 +18,9 @@ function booster(d, H, accent) { const k = new Kit(d);
   decal(k, 'booster.side', R, H * 0.4, 3, PI / 4, 0.9);
   const g = k.build('booster'); g.userData.top = H; return g; }
 function quadsCheck(k, r, y, h) { for (let i = 0; i < 4; i++) tube(k, r * 1.006, r * 1.006, h / 2, y + (i % 2) * h / 2, 'dark', { open: true, t0: i * PI / 2, tl: PI / 2, seg: k.hi ? 8 : 3 }); } // checker band (original roll marker)
-function transfer(d, y0, h, accent) { const k = new Kit(d); tube(k, R, R, 1.6, y0, 'dark'); // interstage (engines inside)
-  for (const [x, z] of ringPos([[4, 0.7, PI / 4]])) bell(k, 0.36, 1.2, x, y0 + 0.2, z, { ext: true, head: 0.25, rt: 0.12 });
+function transfer(d, y0, h, accent) { const k = new Kit(d);
+  for (const [x, z] of ringPos([[4, 0.7, PI / 4]])) bell(k, 0.36, 1.2, x, y0 - 0.05, z, { ext: true, head: 0.25, rt: 0.12 }); // OR-010
+  sleeve(k, R, R, 1.6, y0, 'dark'); // open interstage
   tube(k, R, R, h, y0 + 1.6, 'silver'); stripes(k, R, [y0 + 1.6 + h / 3, y0 + 1.6 + 2 * h / 3], accent); // three hydrogen tanks (seams)
   const g = k.build('transfer'); g.userData.top = y0 + 1.6 + h; return g; }
 function fairing(d, y0, cyl, nose, accent) { const k = new Kit(d), p = PR.fairing(PR.ORIG.fr, cyl, nose, y0, R, k.hi ? 20 : 8, 0.8); lathe(k, p, 'paint:0,0');
@@ -33,7 +34,8 @@ function lander(d, y0) { const k = new Kit(d);
   if (k.hi) { for (const a of [0, 0.5]) k.add(new THREE.BoxGeometry(0.3, 0.3, 0.06), 'glass', xf([Math.sin(a) * 0.8, y0 + 3.3, Math.cos(a) * 0.8], [0, a, 0]));
     for (let i = 0; i < 4; i++) { const a = PI / 4 + i * PI / 2; k.add(new THREE.BoxGeometry(0.3, 0.3, 0.3), 'grey', xf([Math.cos(a) * 0.95, y0 + 3.4, Math.sin(a) * 0.95])); } }
   const g = k.build('lander'); const L = legs(Kit, d, 1.2, 2.6, y0 + 1.0); setLegs(L, 0); g.add(L); g.userData.legs = L; g.userData.top = y0 + 4.7; return g; }
-function kick(d, y0) { const k = new Kit(d); tube(k, R, 1.1, 0.8, y0, 'dark'); bell(k, 0.3, 0.7, 0, y0 + 0.1, 0, { ext: true, head: 0.15, rt: 0.08 }); tube(k, 1.1, 1.1, 1.2, y0 + 0.8, 'silver');
+function kick(d, y0) { const k = new Kit(d); bell(k, 0.3, 0.7, 0, y0 - 0.05, 0, { ext: true, head: 0.15, rt: 0.08 }); // OR-010
+  sleeve(k, R, 1.1, 0.8, y0, 'dark'); tube(k, 1.1, 1.1, 1.2, y0 + 0.8, 'silver');
   const g = k.build('kick'); g.userData.top = y0 + 2.0; return g; }
 function capsule(d, y0) { const k = new Kit(d), r = 1.25; tube(k, r, r, 0.35, y0, 'dark'); // ablative shield
   const cp = PR.capsule(r, y0 + 0.35); lathe(k, cp.slice(0, 2), 'dark'); lathe(k, cp.slice(1), 'paint:0,0'); tube(k, r * 0.5, r * 0.5, 0.3, y0 + 0.35 + 3.4, 'red'); // chute can

@@ -13,7 +13,7 @@ export function engines(n, r, L) { const e = (k) => Math.min(r * 0.55, r * k);
 const DOWN = { hi: 'mid', mid: 'lo', lo: 'lo' };
 export function buildB(o, id, s, hk = {}) { const d = hk.step ? DOWN[o.detail] : o.detail, NE = n => !hk.step ? n : o.detail === 'lo' ? 1 : o.detail === 'mid' ? Math.min(n, 2) : n, /* mid: at most 2 bells per stage */ lo = livery(hk.lower ?? 0x7d8070), up = livery(hk.upper ?? 0xe6e6e0), kids = []; let y = hk.lift ?? 1.2, rPrev = 0;
   s.stages.forEach((t, i) => { const L1 = Math.max(0.6, Math.min(2.2, t.r * 1.0)), key = i === 0 || (hk.olive ?? 1) > i ? lo : up;
-    const g = stage(d, 's' + (i + 1), { r: t.r, r1: hk.r1?.[i], h: t.L, y0: y, eng: o.detail !== 'hi' && hk.hideBells?.includes(i) ? [] /* hideBells: stage bells inside an interstage, hi only */ : engines(NE(hk.ne?.[i] ?? t.ne), t.r, i ? L1 * 0.7 : L1), drop: i ? L1 * 0.6 : 0, ext: i > 0, key, skirt: i === 0 ? t.r * 1.03 : (rPrev > t.r ? rPrev : 0),
+    const g = stage(d, 's' + (i + 1), { r: t.r, r1: hk.r1?.[i], h: t.L, y0: y, eng: engines(NE(hk.ne?.[i] ?? t.ne), t.r, i ? L1 * 0.7 : L1) /* OR-010: always build stage bells (hideBells used to drop mid/lo bells that sit in an interstage; after sep the aft face went flat) */, drop: i ? L1 * 0.6 : 0, ext: i > 0, key, skirt: i === 0 ? t.r * 1.03 : (rPrev > t.r ? rPrev : 0),
       bands: [[0, Math.min(0.8, t.L * 0.08)], ...(hk.bands?.[i] || [])], decalY: i === 0 ? t.L * 0.5 : 0, extra: hk.extra ? k => hk.extra(k, i, t, y) : undefined });
     kids.push(g); y = g.userData.top; rPrev = hk.r1?.[i] ?? t.r; });
   (s.sides || []).forEach((b, i, A) => { const a = (b.a0 ?? PI / 4) + i * 2 * PI / A.length, off = s.stages[0].r + b.r + 0.08;

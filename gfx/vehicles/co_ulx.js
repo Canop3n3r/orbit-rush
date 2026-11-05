@@ -4,7 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { Kit, xf } from './kit.js?v=f5.9-25';
 import * as PR from './profiles.js?v=f5.9-25';
-import { lathe, tube, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-25';
+import { lathe, tube, sleeve, bell, ringPos, ring, decal, strut } from './parts.js?v=f5.9-25';
 import { group, lmat, plume } from './co_civspace.js?v=f5.9-25';
 const PI = Math.PI;
 function swap(g, map) { for (const m of g.children) { const key = m.name.split(':').slice(1).join(':'); if (map[key]) m.material = lmat(map[key]); else if (key.startsWith('x-')) m.material = lmat(key); } return g; }
@@ -23,8 +23,8 @@ function ccb(d) { const k = new Kit(d);
   k.add(new THREE.BoxGeometry(0.35, CCB - 6, 0.4), 'x-salmon2', xf([AR + 0.15, CCB / 2, 0])); decal(k, 'booster.side', AR, 16, 4, PI, 0.9);
   const g = swap(k.build('ccb'), {}); g.userData.top = CCB; return g; } // upper stage sits right on the core top
 function upperStage(d, y0, n, exposed) { const k = new Kit(d), h = 12.7;
-  if (exposed) tube(k, AR, CR, 3.2, y0, 'paint:0,0'); // conical interstage adapter (4 m fairing versions)
-  for (const [x, z] of n === 2 ? [[-0.6, 0], [0.6, 0]] : [[0, 0]]) bell(k, 0.55, 1.9, x, y0 + 0.3, z, { ext: true, head: 0.4, rt: 0.15 });
+  for (const [x, z] of n === 2 ? [[-0.6, 0], [0.6, 0]] : [[0, 0]]) bell(k, 0.55, 1.9, x, y0 - 0.05, z, { ext: true, head: 0.4, rt: 0.15 }); // OR-010
+  if (exposed) sleeve(k, AR, CR, 3.2, y0, 'paint:0,0'); // open conical interstage adapter
   tube(k, CR, CR, h - 3.2, y0 + 3.2, exposed ? 'silver' : 'paint:0,0'); if (exposed) ring(k, CR, y0 + 7, 0.02);
   const g = k.build('upper'); g.userData.top = y0 + h; return g; }
 function atl(o, cfg) { const d = o.detail, f = +cfg[0], s = +cfg[1], e = +cfg[2], b = ccb(d), y0 = b.userData.top, kids = [b];
@@ -47,8 +47,8 @@ function cbc(d, name, x, nose) { const k = new Kit(d); k.push(xf([x, 0, 0]));
   k.add(new THREE.BoxGeometry(0.4, CBC - 7, 0.45), 'x-foam2', xf([0, CBC / 2, DR + 0.18]));
   k.pop(); const g = swap(k.build(name), { bell: 'x-bellchar' }); return g; }
 function dcss(d, y0, five) { const k = new Kit(d), r = five ? DR : 2.0, h = five ? 13.7 : 12.2;
-  tube(k, DR, five ? DR : 2.0, 3.0, y0, 'x-foam2'); // interstage (4 m: tapers in)
-  bell(k, 1.05, 3.4, 0, y0 + 0.2, 0, { ext: true, head: 0.4, rt: 0.15 }); tube(k, r, r, h - 3, y0 + 3, 'paint:0,0');
+  bell(k, 1.05, 3.4, 0, y0 - 0.05, 0, { ext: true, head: 0.4, rt: 0.15 }); // OR-010
+  sleeve(k, DR, five ? DR : 2.0, 3.0, y0, 'x-foam2'); tube(k, r, r, h - 3, y0 + 3, 'paint:0,0');
   const g = swap(k.build('dcss'), {}); g.userData.top = y0 + h; g.userData.r = r; return g; }
 function dlt(o, cfg) { const d = o.detail, heavy = cfg === 'heavy', five = heavy || /^5/.test(cfg), ns = cfg === '52' ? 2 : cfg === '54' ? 4 : cfg === '42' ? 2 : 0;
   const kids = [cbc(d, 'cbc', 0, false)]; if (heavy) kids.push(cbc(d, 'side0', -2 * DR - 0.15, true), cbc(d, 'side1', 2 * DR + 0.15, true));

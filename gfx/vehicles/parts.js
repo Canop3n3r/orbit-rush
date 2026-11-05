@@ -7,6 +7,8 @@ const PI = Math.PI;
 // cylinder/frustum with its base at y
 export function tube(k, r0, r1, h, y, key, o = {}) { const g = new THREE.CylinderGeometry(r1, r0, h, o.seg || k.seg, o.hs || 1, !!o.open, o.t0 || 0, o.tl || 2 * PI);
   if (/^steel/.test(key)) { const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 4 * (o.tl || 2 * PI) / (2 * PI), uv.getY(i) * h / 16); } k.add(g, key, xf([o.x || 0, y + h / 2, o.z || 0], o.r || [0, 0, 0])); }
+// OR-010: open-ended interstage / aft sleeve so engine bells enclosed while stacked stay visible from aft after separation (a closed tube end-cap reads as a flat grey disc).
+export function sleeve(k, r0, r1, h, y, key, o = {}) { tube(k, r0, r1, h, y, key, { ...o, open: true }); }
 // ogive nose from radius r at y up to the tip (+Y)
 export function ogive(k, r, L, y, key, tip = 0.06) { lathe(k, PR.ogive(r, L, y, k.hi ? 18 : 7, tip), key); }
 const _nv = new THREE.Vector3(); // bell exit centre in the kit's current frame, rounded (data for userData.nozzles)
