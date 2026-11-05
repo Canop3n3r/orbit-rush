@@ -57,6 +57,7 @@ export function createMobile(api) {
     <div id="mright"><button id="mAuto">AUTO</button><button id="mChute" class="hidden">CHUTE</button><button id="mStage">STAGE</button><button id="mAbort" data-p="Backspace" aria-label="Abort">⛔<span class="mAbT"> ABORT</span></button>
       <div id="mThr" data-l="thr"><i></i><s></s><b>THR</b><u>0%</u></div></div>
     <div id="mMenu" class="hidden"><div class="mh"><b>Menu</b><span id="mWarp" hidden></span><button id="mClose" aria-label="Close">✕</button></div>
+      <div id="mWarpFold" aria-label="Time warp"><button id="mWarpDn" type="button" aria-label="Slower time warp">◀◀</button><button id="mWarpVal" type="button" aria-label="Cancel time warp">×1</button><button id="mWarpUp" type="button" aria-label="Faster time warp">▶▶</button></div>
       <div class="mg mTop">${menuHTML()}</div>
       <div hidden><button id="mRcs"></button><button id="mFx"></button></div></div>`; // f5.6d (owner video + QA #8): one compact side sheet, ~10 big buttons, one Home, one chute, no debug text
   document.body.appendChild(root);
@@ -77,6 +78,12 @@ export function createMobile(api) {
   tap($('mStage'), () => { const r = api.press('Space'); vib(r === 'staged' || r === 'ignite' ? [40, 30, 60] : 20); });
   root.querySelectorAll('#mMenu [data-sas]').forEach(b => tap(b, () => { api.setSAS(b.dataset.sas); vib(10); }));
   root.querySelectorAll('#mMenu [data-p]').forEach(b => tap(b, () => { const k = b.dataset.p; api.press(k); vib(10); if (['KeyR', 'KeyO', 'KeyY', 'KeyG', 'Slash', 'Escape', 'F9', 'Quote'].includes(k)) M.closeMenu(); }));
+  // Phone AUTO hides the top-bar ▶▶ (it was the sixth flight button). These three stay inside ☰.
+  for (const [id, code] of [['mWarpDn', 'Comma'], ['mWarpVal', 'Slash'], ['mWarpUp', 'Period']]) {
+    const el = $(id); let at = 0;
+    el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); at = performance.now(); api.unlockAudio && api.unlockAudio(); api.press(code); vib(10); });
+    el.addEventListener('click', e => { e.stopPropagation(); if (performance.now() - at < 700) return; api.press(code); });
+  }
   tap($('mAbort'), () => { api.press('Backspace'); vib(30); });
   { const fb = root.querySelector('[data-full]'); if (fb) tap(fb, () => { /* f5.9-10: ⛶ moved to the Pause sheet */
     const d = document.documentElement, rq = d.requestFullscreen || d.webkitRequestFullscreen;
@@ -112,6 +119,7 @@ export function createMobile(api) {
     thr.style.setProperty('--t', d.thr.toFixed(3)); { const fine = thr.classList.contains('fine'), pct = fine ? (d.thr * 100).toFixed(1) : String(Math.round(d.thr * 100)); const lab = thr.querySelector('u'); const txt = pct === '0' || pct === '0.0' ? '' : pct + '%'; if (lab.textContent !== txt) lab.textContent = txt; thr.setAttribute('aria-valuenow', pct); thr.setAttribute('aria-valuetext', pct + '%'); } /* f5.9-31 (QA orbit_toast): a cutoff track is already empty; "0%" was the sixth word */
     $('mAuto').classList.toggle('on', d.auto); { const t = 'AUTO'; /* f5.6u (QA P1 budgets): the lit button + dot says ON; one word */ if ($('mAuto').textContent !== t) $('mAuto').textContent = t; } $('mChute').classList.toggle('hidden', !d.chute); menuUpdate($('mMenu'), { fleet: !!d.fleet, booster: !!d.booster, ret: /CANCEL/.test(d.home || ''), chute: d.hasChute, canHome: d.canHome });
     $('mRcs').classList.toggle('on', d.rcs); $('mFx').textContent = 'FX ' + d.fx; $('mWarp').textContent = d.warp;
+    { const vx = $('mWarpVal'), xn = d.warpX > 1 ? '×' + d.warpX : '×1'; if (vx && vx.textContent !== xn) vx.textContent = xn; const dn = $('mWarpDn'); if (dn) dn.hidden = !(d.warpX > 1); }
     root.querySelectorAll('#mMenu [data-sas]').forEach(b => b.classList.toggle('on', b.dataset.sas === d.sas));
     $('mStage').classList.toggle('ready', d.stageReady);
   };

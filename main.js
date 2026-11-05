@@ -17,7 +17,7 @@ import { createSolarMap } from './solarmap.js?v=f5.9-32';
 import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-27';
 import { FX } from './fx.js?v=f5.9-32';
 import { createAcademy } from './academy-ui.js?v=f5.9-27';
-import { createMobile, isTouch, bindThrottleSlider } from './mobile.js?v=f5.9-35';
+import { createMobile, isTouch, bindThrottleSlider } from './mobile.js?v=f5.9-36';
 import { localize } from './wording.js?v=f5.9-27';
 import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-27';
 import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-27';
@@ -1728,7 +1728,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
       mq: dense ? `${(tel.machShown ?? tel.mach).toFixed(1)}/${(tel.q / 1000).toFixed(0)}kPa` : hot ? `${fmtN(tel.heat / 1000)} kW/m²` : UN.vs(V.dot(v.v, V.norm(v.r))),
       mqC: tel.q > 30000 || tel.heat > 3e5 ? 'warn' : '', fuel: fu, score: F.score().toLocaleString(), thr: mobile.thrDragging() ? (cv.ut ?? cv.throttle ?? 0) : (cv.throttle || cv.ut || 0),
       fleet: !!(F.fleet && F.fleet.list.length > 1 && F.ignited), auto: F.autoOn, chute: hasChute && F.flags.liftoff && P.altOf(v) < 60000 && V.dot(v.v, V.norm(v.r)) < 0, home: F.ret ? 'CANCEL HOME' : 'HOME', booster: !!(F.booster && F.booster.state === 'flying') || !!(booster2 && booster2.state === 'flying'),
-      rcs: v.rcsOn, fx: fx.q.toUpperCase(), warp: `${isGPU ? 'WebGPU' : 'WebGL2'} · warp ×${F.effWarp()}`, sas: v.sas, stageReady: false });
+      rcs: v.rcsOn, fx: fx.q.toUpperCase(), warp: `${isGPU ? 'WebGPU' : 'WebGL2'} · warp ×${F.effWarp()}`, warpX: F.effWarp(), sas: v.sas, stageReady: false });
     if (F.flags.dead && !mobile.buzzed) { mobile.buzzed = true; mobile.vibrate([120, 60, 220]); }
   }
   $('warpBtn').textContent = F.autoWarp ? `⏩ TO Ap ×${W}${W < WARPS[F.warpI] ? ' (' + wWhy + ')' : ''}` : `WARP ×${W}${W < WARPS[F.warpI] ? ` (max ×${wMax}: ${wWhy})` : ''}`;

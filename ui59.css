@@ -990,6 +990,13 @@ html body.u59 #pause details.pMore>.col button{flex:none!important;width:100%;he
   html body.u59 :is(#mMenu,#dMenu) .mg.mTop{grid-template-columns:1fr 1fr!important}
   html body.u59 :is(#mMenu,#dMenu) .mg.mTop button{min-width:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-inline:8px!important}
 }
+/* Phone AUTO already fills the five flight buttons (AUTO, STAGE, MAP, ☰, camera).
+   ▶▶ on the top bar is the sixth. The same ◀◀ / ×N / ▶▶ row lives in ☰ while AUTO is on.
+   AUTO off puts the bar arrows back (desktop never folded them). */
+html body.u59.touch.autoOn :is(#wDn,#wVal,#wUp){display:none!important}
+#mWarpFold{display:none;gap:6px;margin:0 0 6px}
+html body.u59.touch.autoOn #mMenu:not(.hidden) #mWarpFold{display:flex!important}
+html body.u59 #mWarpFold button{flex:1 1 0;min-width:44px}
 /* f5.9-34 (QA f5.9-31): portrait RELEASE covers the STAGE cell (those pixels were already a button) instead of the OR-013 pin above the bar, which counted as its own chrome. Still ≥40px, still reads RELEASE, and it stays off the 48px track. CRAFT keeps the pin. Landscape and wide screens are unchanged. */
 @media (orientation:portrait) and (max-width:700px){
   html body.u59 #botBar :is(#mStage,#dStage){anchor-name:--stageSlot}
