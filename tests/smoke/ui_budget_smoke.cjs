@@ -22,7 +22,7 @@ const B = {
   orbit_toast:  { words: 5, ui: [6, 6] },
   map:          { controls: 6, words: 10, ui: [10, 6] },
   photo:        { controls: 3, words: 0, ui: [8, 8] },
-  end_card:     { controls: 3, words: 10, /* f5.8o: + the crash cause line */ ui: [17, 10] },
+  end_card:     { controls: 3, words: 24, /* cause line + one stat row (max Q, top speed, failure/$); ui% unchanged */ ui: [17, 10] },
 };
 
 /* f5.7m (QA f5.7j P2): split ui% the way the walk counts it: pointer-events:none HUD and the canvas-drawn inset pane both count */
@@ -378,7 +378,7 @@ async function runVp(br, vp) {
   if (!OS.relMove) skip('orbit_release', 'stays_put', 'RELEASE never seen while the split was open'); else rows.push({ vp, screen: 'orbit_release', metric: 'stays_put', val: OS.relMove.px, max: 24, ok: OS.relMove.px <= 24, info: `px moved ${OS.relMove.from}→${OS.relMove.to} (split ${OS.relMove.split0 ? 'on' : 'off'}→${OS.relMove.split1 ? 'on' : 'off'})` });
   if (OS.relTap == null) skip('orbit_release', 'real_tap', 'no RELEASE to tap'); else rows.push({ vp, screen: 'orbit_release', metric: 'real_tap', val: OS.relTap ? 'yes' : 'no', max: 'yes', ok: OS.relTap, info: (phone ? 'touchscreen' : 'mouse') + ' tap → payload released' });
   if (!OS.end || !OS.end.x || !OS.end.x.endUp) rows.push({ vp, screen: 'end_card_orbit', metric: 'shown', val: 'no', max: 'yes', ok: false, info: OS.err || 'RELEASE → End flight gave no end card' });
-  else { chk('end_card_orbit', 'controls', OS.end.controls, 3); chk('end_card_orbit', 'words', OS.end.words, 7); /* f5.8m: 7 = title + Home + 'Keep flying' + ⋯ */
+  else { chk('end_card_orbit', 'controls', OS.end.controls, 3); chk('end_card_orbit', 'words', OS.end.words, 24); /* title + Home + Keep flying + one stat row (max Q, top speed, failure/$) */
     CARDROWS(rows, vp, 'end_card_orbit', OS.end.x.card);
     if (OS.det && OS.det.aft) { const A = OS.det.aft, mo = A.off.reduce((m, o) => Math.max(m, o.dx, o.dy), 0), bad = A.off.filter(o => o.dx > 2 || o.dy > 2).map(o => o.n);
       chk('end_card_orbit', 'more_open_h%', A.hp, 60); rows.push({ vp, screen: 'end_card_orbit', metric: 'details_not_cut', val: A.cut ? 'cut' : A.scroll ? 'scrolls' : 'fits', max: 'fits|scrolls', ok: !A.cut && A.inside, info: `details open: card inside the screen ${A.inside}; body overflow ${A.scroll ? 'scrolls' : 'none'}` });

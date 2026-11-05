@@ -48,7 +48,7 @@ export function buildEndStats(s) {
   const gl = g < 0.05 ? 'Peak force: none worth mentioning.' : `Peak force: ${g.toFixed(1)} g, ${g < 2 ? 'a gentle push' : g < 4 ? 'roller-coaster territory' : g < 8 ? 'fighter-pilot territory' : 'pancake territory'}.`;
   L.push({ k: 'cost', text: cost }, { k: 'maxq', text: mq }, { k: 'fast', text: fast }, { k: 'alt', text: hi }, { k: 'g', text: gl });
   L.push({ k: 'note', text: `${LAUNCH_COSTS_NOTE}${c.basis === 'class' ? ' This rocket uses its size class.' : ''}` });
-  // ONE compact line for the end card (budget: a few words, one row): peak q, top speed and the cost / saving; the long jokes ride in the tooltip
+  // ONE compact line on the end-card face (budget: a single row): peak q, top speed and the cost / saving; the long jokes ride in the tooltip
   const qs = q < 100 ? 'no max Q' : `max Q ${press(q, imp)}`, vs = v < 3 ? 'barely moved' : `top ${speed(v, imp)}`, ms = s.recovered ? `saved ~${money(saved)}` : s.dead ? `failure ~${money(usd)}` : `price ~${money(usd)}`;
   return { cost: { usd, saved, basis: c.basis, key: c.key, cls: c.cls }, line: `${qs} · ${vs} · ${ms}`, tip: L.filter(x => x.k !== 'note').map(x => x.text).join('\n') + '\n' + LAUNCH_COSTS_NOTE, head: L.slice(0, 3), details: L.slice(3), all: L };
 }

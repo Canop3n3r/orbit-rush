@@ -424,17 +424,25 @@ body.u59:not(.lifted) #bbT{display:none!important}
 
 /* ===== f5.9f: the end card is a bounded card docked on the bottom border; the rocket / wreck stays in view ===== */
 body.u59 #end:not(.hidden){inset:auto 0 0 0!important;top:auto!important;height:auto!important;max-height:58dvh!important;background:var(--panel)!important;border-top:var(--bw) solid var(--bc)!important;pointer-events:auto!important;overflow:hidden}
-body.u59 #end>h2{min-height:0!important;padding:8px calc(12px + var(--sar)) 2px calc(12px + var(--sal))!important;border-bottom:0!important;font-size:var(--t-m)!important}
-body.u59 #end>#endCause{padding:0 calc(12px + var(--sar)) 6px calc(12px + var(--sal))!important;border-bottom:0!important}
-body.u59 #end>.endMain{margin-top:0!important;border-top:0!important;padding-top:4px!important}
+body.u59 #end>h2{min-height:0!important;padding:4px calc(12px + var(--sar)) 0 calc(12px + var(--sal))!important;border-bottom:0!important;font-size:var(--t-m)!important}
+body.u59 #end>#endCause{padding:0 calc(12px + var(--sar)) 2px calc(12px + var(--sal))!important;border-bottom:0!important}
+body.u59 #end>#endFacts{flex:none;margin:0!important;padding:1px calc(12px + var(--sar)) 2px calc(12px + var(--sal))!important;border:0!important;background:transparent!important;font:600 12.5px/1.2 var(--font)!important;color:#d5e4ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.u59 #end>.endMain{margin-top:0!important;border-top:0!important;padding-top:2px!important;padding-bottom:calc(6px + var(--sab))!important}
 body.u59 #end>#endBody{max-height:max(60px,calc(58dvh - 190px))}
+/* wide screens: the end card is a bottom chip, not a full-bleed bar (a 1280-wide bar of this height is over the 10% desktop ui budget) */
+@media (min-width:600px) and (min-height:600px){
+  body.u59 #end.lean:not(.hidden){left:50%!important;right:auto!important;width:min(400px,70vw)!important;transform:translateX(-50%)!important;border-left:var(--bw) solid var(--bc)!important;border-right:var(--bw) solid var(--bc)!important;border-radius:12px 12px 0 0!important}
+}
 @media (orientation:landscape) and (max-height:520px){
-  body.u59 #end:not(.hidden):not(.q1):not(.q2):not(.q3):not(.q4){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(260px,46%);grid-template-areas:"t m" "c m" "b b" "s s";align-items:center}
-  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>#endTitle{grid-area:t!important;align-self:end!important}
-  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>#endCause{grid-area:c!important;align-self:start!important;padding-bottom:6px!important}
-  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endMain:not(#_){grid-area:m!important;align-self:center!important;padding:6px calc(12px + var(--sar)) 6px 0!important}
-  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>#endBody{grid-area:b!important}
-  body.u59 #end:not(.q1):not(.q2):not(.q3):not(.q4)>.endShare:not(#_){grid-area:s!important}
+  /* collapsed card is the same bottom chip as desktop: a full-bleed bar on a 390-tall screen is ~16% and sits on the 17% phone budget */
+  body.u59 #end.lean:not(.more):not(.hidden){left:50%!important;right:auto!important;width:min(360px,92vw)!important;transform:translateX(-50%)!important;display:flex!important;flex-direction:column!important;border-left:var(--bw) solid var(--bc)!important;border-right:var(--bw) solid var(--bc)!important;border-radius:12px 12px 0 0!important}
+  body.u59 #end.lean.more:not(.hidden):not(.q1):not(.q2):not(.q3):not(.q4){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(260px,46%);grid-template-areas:"t m" "f m" "c m" "b b" "s s";align-items:center}
+  body.u59 #end.lean.more:not(.q1):not(.q2):not(.q3):not(.q4)>#endTitle{grid-area:t!important;align-self:end!important}
+  body.u59 #end.lean.more:not(.q1):not(.q2):not(.q3):not(.q4)>#endFacts{grid-area:f!important;align-self:start!important;padding:0 calc(12px + var(--sal)) 0!important}
+  body.u59 #end.lean.more:not(.q1):not(.q2):not(.q3):not(.q4)>#endCause{grid-area:c!important;align-self:start!important;padding-bottom:2px!important}
+  body.u59 #end.lean.more:not(.q1):not(.q2):not(.q3):not(.q4)>.endMain:not(#_){grid-area:m!important;align-self:center!important;padding:6px calc(12px + var(--sar)) 6px 0!important}
+  body.u59 #end.lean.more:not(.q1):not(.q2):not(.q3):not(.q4)>#endBody{grid-area:b!important}
+  body.u59 #end.lean.more:not(.q1):not(.q2):not(.q3):not(.q4)>.endShare:not(#_){grid-area:s!important}
 }
 
 /* ===== f5.9f: Home = live view + ONE bottom panel (name / Fly / site / All rockets, then one scrolling card row) ===== */
