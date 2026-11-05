@@ -3,7 +3,7 @@ import { createBugReporter } from './fun/bugreport.js?v=f5.9-27';
 import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-27';
 import { uniform } from 'three/tsl';
 import * as P from './physics.js?v=f5.9-27';
-import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur, recoveryCaption } from './flight.js?v=f5.9-34';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur, recoveryCaption } from './flight.js?v=f5.9-38';
 import * as C from './physics/patched.js?v=f5.9-27';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';

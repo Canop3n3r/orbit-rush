@@ -92,12 +92,13 @@ export function installVessels(Flight) {
   M.canSwitch = function (target) {
     const v = this.v, b = this.booster; if (this.flags.dead) return { ok: false, why: 'The craft is destroyed' };
     if (!this.ignited || v.clamped) return { ok: false, why: 'Launch first: nothing to switch to on the pad' };
-    // a separated stage you already took may be down in the air: you can still leave it for another craft
+    // a separated stage you already took may be down in the air, or parked after it touched down:
+    // you can still leave it. The park only freezes the vehicle you are sitting in.
     const visiting = !!(this.fleet && this.fleet.active && this.fleet.active.separated);
     const o = target && target.id ? target : null;
     const flying = (b && b.state === 'flying') || (this.boosters && this.boosters.some(x => x.state === 'flying'));
     if (!visiting && flying && !(o && o.separated)) return { ok: false, why: 'Land the booster first' };
-    if (this.parked) return { ok: false, why: 'This craft is parked on the ground' };
+    if (this.parked && !visiting) return { ok: false, why: 'This craft is parked on the ground' };
     if (!visiting && this.ret && this.ret.phase !== 'coast') return { ok: false, why: 'Finish the return first' };
     if (!visiting && this.alt < C.railsAltOf(this.body)) return { ok: false, why: 'Switch craft above ' + Math.round(C.railsAltOf(this.body) / 1000) + ' km, out of the air' };
     return { ok: true, why: '' };
@@ -125,7 +126,13 @@ export function installVessels(Flight) {
     const o = this.fleet.get(id); if (!o) { if (!quiet) this.toast('No such vessel', '#ffb35c'); return false; }
     if (o.id === this.fleet.activeId) { if (!quiet) this.toast('You are already flying ' + o.name, '#9cc3ff'); return false; }
     const ck = this.canSwitch(o); if (!ck.ok) { if (!quiet) this.toast(ck.why, '#ffb35c'); return false; }
-    this.handOff(o); const from = this.parkActive(); this.takeVessel(o);
+    const grounded = !!this.parked;
+    this.handOff(o); const from = this.parkActive();
+    if (grounded) {
+      this.parked = null; if (this.flags) this.flags.landed = 0; // the landing belonged to the craft we just left
+      if (from && from.separated) from.keep = true; // on the ground: do not prune it as a burn-up
+    }
+    this.takeVessel(o);
     if (!quiet) this.toast(`🎮 You now fly ${o.name}` + (from ? ` · ${from.name} coasts` : ''), '#7dffa6'); return true; };
   M.cycleVessel = function (dir = 1) {
     const L = this.fleet.list, n = L.length; if (n < 2) { this.toast('Only one craft in space: release a payload first', '#ffb35c'); return false; }
