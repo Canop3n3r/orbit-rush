@@ -87,6 +87,13 @@ import { createXferPlanner } from './fun/xferui.js?v=f5.9-27'; // f6.5 pre-launc
 // in float64, so full-scale coordinates (6.4e6 m) never reach the GPU as large float32 numbers near the camera.
 const { R, ATM, V } = P;
 const $ = id => document.getElementById(id);
+function setBoot(pct, msg) {
+  const bar = $('loadBar'), el = $('loadMsg'), root = $('loading');
+  if (bar) bar.style.width = Math.max(0, Math.min(100, +pct || 0)) + '%';
+  if (el && msg != null) el.textContent = msg;
+  if (root) root.classList.remove('indet');
+  window.__orBoot = true;
+}
 const params = new URLSearchParams(location.search);
 const TR = createTrailer(location.search); // f5.9-30: trailer camera / clean plate / script warp. Opt-in; a normal URL leaves this idle.
 if (TR.cfg.clean) document.body.classList.add('clean');
@@ -124,6 +131,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure
 renderer.setSize(innerWidth, innerHeight);
 document.body.prepend(renderer.domElement);
 await renderer.init();
+setBoot(20, 'Starting renderer…');
 const isGPU = !!renderer.backend.isWebGPUBackend;
 if (!isGPU && !gpuReason) gpuReason = 'WebGPU init failed; three.js fell back';
 if (isGPU) { $('badge').textContent = '⚡ WebGPU'; $('badge').classList.add('gpu'); console.info('[Orbit Rush] Renderer: WebGPU'); }
@@ -438,6 +446,7 @@ function updateTile(ef) {
   tileGeo.attributes.position.needsUpdate = true; tileGeo.attributes.color.needsUpdate = true; tileGeo.attributes.wat.needsUpdate = true; tileGeo.computeVertexNormals();
 }
 const padCx = onSurface(buildLaunchComplex(), PAD_EF, 0) || null; // f5.1: the showroom keeps the tower behind the rocket
+setBoot(50, 'Building the pad…');
 
 // ---------- rocket meshes: one THREE.Group per stage, sized from the same part geometry the physics uses ----------
 const M = {
@@ -1829,12 +1838,14 @@ const U = new THREE.Vector3(), E = new THREE.Vector3(), N = new THREE.Vector3(),
 const setRel = (obj, p, O) => obj.position.set(p[0] - O[0], p[1] - O[1], p[2] - O[2]);
 const dirQ = (obj, d) => obj.quaternion.setFromUnitVectors(Y_AXIS, dv3.set(d[0], d[1], d[2]));
 performance.mark('or:compile0');
+setBoot(80, 'Warming shaders…');
 // f5.9-21 (owner: desktop loads far slower than phone): the high tier's shader compile (huge on Windows WebGPU) used to hold the
 // loading screen until every material was built. Wait at most 2.5 s, then show Home and let the rest finish in the background.
 { const done = renderer.compileAsync(scene, camera).catch(() => {}).then(() => performance.mark('or:compileAll'));
   await Promise.race([done, new Promise(r => setTimeout(r, 2500))]); }
 performance.mark('or:compile1');
 if (params.get('perf')) { const t = s => (s / 1000).toFixed(1) + ' s'; toast('Ready in ' + t(performance.now()), '#7fd1ff'); setTimeout(() => { const a = performance.getEntriesByName('or:compileAll')[0]; toast('Ready in ' + t(performance.getEntriesByName('or:compile1')[0].startTime) + (a ? ' · all shaders ' + t(a.startTime) : ' · shaders still compiling'), '#7fd1ff'); }, 15000); }
+setBoot(100, 'Ready');
 $('loading') && $('loading').remove();
 // f5.6 (owner): no Academy / welcome card
 renderer.setAnimationLoop(() => {
