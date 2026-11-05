@@ -845,6 +845,8 @@ const hooks = {
   release: rec => onRelease(rec), // f5.2.3 payload lifecycle
   vesselSwitched: () => onVesselSwitched(), vesselParked: o => onVesselParked(o), // f6.2: the craft you fly changed
   vesselLost: o => { explode(v.r, v.v, false, true); onVesselRemoved(o); }, vesselGone: o => onVesselRemoved(o), vesselDeployed: () => { smapSats.c = null; vesselUI && vesselUI.draw(); },
+  vesselSeparated: () => { smapSats.c = null; if (vesselUI) vesselUI.draw(); syncCraftBtn(); }, // OR-002: a stage that just left shows up in the craft list and on the map
+  boosterCraft: b => { if (b && b.mesh) b.mesh.visible = false; }, // you are flying it as a craft; the return mesh steps aside
   payloadAt: () => heroPayloadAt(), // rockets-pass-1: the model's own payload is the one that leaves, from where it sits
   deorbited: () => { explode(v.r, v.v, false, true); rocketG.visible = false; },
   soi: (from, to) => { if (!PROG.visited.includes(to)) { PROG.visited.push(to); PR.save(localStorage, PROG); fun.reveal(to); } else fun.call('🪐', 'Entering ' + P.BODIES[to].name + ' space', '#9cc3ff'); },
@@ -1055,10 +1057,16 @@ function fleetModel(o) {
   else { inner = buildPayload(T.gfx, { detail: 'lo', r: T.d / 2 * 1.25, h: T.h }); inner.position.y = -inner.userData.cy * inner.scale.y; }
   const g = new THREE.Group(); g.add(inner); return g; }
 const _fq = new THREE.Quaternion(), _fa = new THREE.Vector3();
+function meshOwns(id) { // OR-002: detached debris or a booster still on its return sim already has a mesh
+  if (debris.some(d => d.vesselId === id && d.mesh && d.mesh.visible)) return true;
+  for (const b of [booster, booster2]) if (b && b.vesselId === id && b.mesh && b.mesh.visible && b.state !== 'craft') return true;
+  return false;
+}
 function updateFleetVis(O) {
   if (!F || !F.fleet || state !== 'flight') return; const t = F.tAbs, live = new Set();
   for (const o of F.fleet.others()) {
     if (satVis && satVis.rec.vesselId === o.id) continue; if ((o.body || 'earth') !== F.body) continue;
+    if (meshOwns(o.id)) continue; // OR-002: the detached stage mesh (or the booster flying home) is already in the scene
     let st; try { st = F.fleet.stateAt(o, t); } catch (e) { continue; } live.add(o.id);
     let e = fleetVis.get(o.id); const d = Math.hypot(st.r[0] - O[0], st.r[1] - O[1], st.r[2] - O[2]);
     if (d > 4e5) { if (e) e.g.visible = false; continue; }
@@ -1195,7 +1203,7 @@ const mobile = createMobile({ press, setSAS: m => { if (state === 'flight') { if
 const academy = createAcademy({ setDesign: d => setDesign(cloneDesign(d)), launch, goBuild, toast: (m, c) => toast(m, c),
   ctx: () => ({ state, F: state === 'flight' ? F : null, design, ui: { camMode, mapPanel: typeof smap !== 'undefined' ? smap.panelMode : null, plan: typeof smap !== 'undefined' ? smap.plan : null } }) });
 let mapPost = null;
-const smap = createSolarMap({ renderer, getF: () => F, getSats: () => { const now = Date.now(); if (!smapSats.c || now - smapSats.t > 2000) { smapSats.c = F && F.fleet && F.fleet.list.length > 1 ? F.fleet.others().map(o => ({ id: o.id, name: o.name, r: o.r, v: o.v, t: o.t, body: o.body || 'earth' })) : WORLD.sats(WORLD.load(localStorage)); smapSats.t = now; } return smapSats.c; }, /* f6.2: every craft in the fleet (the one you fly is drawn as the craft) */ toast: (m, c) => toast(m, c), touch: TOUCH, gfxQ, settings: SET,
+const smap = createSolarMap({ renderer, getF: () => F, getSats: () => { const now = Date.now(); const fleet = F && F.fleet && F.fleet.list.length > 1 ? F.fleet : null; const hot = !!(fleet && fleet.others().some(o => o.returning)); if (hot || !smapSats.c || now - smapSats.t > 2000) { smapSats.c = fleet ? fleet.others().map(o => ({ id: o.id, name: o.name, r: o.r.slice(), v: o.v.slice(), t: o.t, body: o.body || 'earth' })) : WORLD.sats(WORLD.load(localStorage)); smapSats.t = now; } return smapSats.c; }, /* f6.2: every craft in the fleet (the one you fly is drawn as the craft). OR-002: a booster flying home is read live, not from a 2 s Kepler cache */ toast: (m, c) => toast(m, c), touch: TOUCH, gfxQ, settings: SET,
   dvTable: () => dvTableHTML(craftDv(), false),
   burn: { throttle: u => setThrottleTouch(u), stage: () => press('Space'), sas: () => { if (state === 'flight') { if (v.auto) F.takeOverUpper(); F.setSAS('node'); } } },
   onChange: (k, x) => { if (k === 'conic') { SET.conic = x; saveSettings(localStorage, SET); } if (k === 'close') exitMap(); if (k === 'exec') $('tProg').classList.remove('on'); } });
@@ -1876,8 +1884,17 @@ renderer.setAnimationLoop(() => {
   comMark.visible = copMark.visible = ovl; cotMark.visible = ovl && !!(v.stages[v.cur] && v.stages[v.cur].eng && v.stages[v.cur].eng.tv > 0);
   if (ovl) { const yB = 0; comMark.position.set(0, tel.ycom, 0); copMark.position.set(0, P.centerOfPressure(P.stackGeom(v), state === 'build' ? 0.5 : Math.max(0.3, tel.mach || 0.5)), 0); cotMark.position.set(0, yB, 0);
     const sc = Math.max(1, stackL() / 40); comMark.scale.setScalar(sc); copMark.scale.setScalar(sc); cotMark.scale.setScalar(sc); }
-  for (let k = debris.length - 1; k >= 0; k--) { // spent upper stages tumble away and are removed after a while
-    const d = debris[k]; d.throttle = 0; let left = pdt; while (left > 0 && !d.gone) { const dt = Math.min(0.25, left); left -= dt; if (P.stepPoint(d, dt)) d.gone = true; }
+  for (let k = debris.length - 1; k >= 0; k--) { // spent stages tumble away. OR-002: one that became a craft is not deleted; it follows that craft
+    const d = debris[k]; const o = d.vesselId && F.fleet && F.fleet.get(d.vesselId);
+    if (d.vesselId && !o) { scene.remove(d.mesh); debris.splice(k, 1); continue; }
+    if (o) {
+      if (F.fleet.activeId === o.id) { d.mesh.visible = false; continue; } // you are flying it: the rocket mesh is the picture
+      d.mesh.visible = true; let st = null; try { st = F.fleet.stateAt(o, F.tAbs); } catch (e) { st = null; }
+      if (st) { d.r = st.r; d.v = st.v; }
+      d.t += pdt; d.dir = V.norm(V.qrot(V.qAxisAngle(V.norm(d.r), pdt * 0.3), V.qrot(V.qAxisAngle(P.eastOf(d.r), pdt * 0.2), d.dir)));
+      setRel(d.mesh, d.r, O); dirQ(d.mesh, d.dir); continue;
+    }
+    d.throttle = 0; let left = pdt; while (left > 0 && !d.gone) { const dt = Math.min(0.25, left); left -= dt; if (P.stepPoint(d, dt)) d.gone = true; }
     d.t += pdt; d.dir = V.norm(V.qrot(V.qAxisAngle(V.norm(d.r), pdt * 0.3), V.qrot(V.qAxisAngle(P.eastOf(d.r), pdt * 0.2), d.dir)));
     setRel(d.mesh, d.r, O); dirQ(d.mesh, d.dir);
     if (d.gone || d.t > 120) { scene.remove(d.mesh); debris.splice(k, 1); }
