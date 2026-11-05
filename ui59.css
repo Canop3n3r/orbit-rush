@@ -1027,3 +1027,8 @@ html body.u59 #botBar :is(#mThr,#dThr).fine u{color:#d8ffe8}
 body.u59 #vsl .vg{min-height:32px!important;background:transparent!important;border:0!important;border-bottom:var(--bw) solid var(--bc)!important;border-radius:0!important;text-align:left;color:var(--dim);justify-content:flex-start}
 body.u59 #vsl .vchips button{min-height:32px;min-width:0;flex:0 0 auto;white-space:nowrap;max-width:none}
 body.u59 #vsl .vq{font-family:inherit}
+/* f5.9-36: phone portrait, right after stage sep (split/PIP, still climbing). The bar was AUTO + CRAFT + MAP + STAGE + warp + ☰ + camera + RELEASE (8). CRAFT, time warp and the camera already live in ☰, so they leave the bar until orbit. RELEASE stays on the STAGE slot. Orbit may keep RELEASE and STAGE together. Landscape, desktop and the booster strip are unchanged. */
+@media (orientation:portrait) and (max-width:700px){
+  html body.u59.touch.splitOn:not(.inOrbit) :is(#wDn,#wUp,#wVal,#craftBtn){display:none!important}
+  html body.u59.touch.splitOn:not(.inOrbit):not(.photo):not(.endOn):not(.mapOn):not(.menuOn):not(.clean) #gcamBtn{display:none!important}
+}
