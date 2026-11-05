@@ -17,11 +17,11 @@ import { createSolarMap } from './solarmap.js?v=f5.9-32';
 import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-27';
 import { FX } from './fx.js?v=f5.9-32';
 import { createAcademy } from './academy-ui.js?v=f5.9-27';
-import { createMobile, isTouch, thrFromY } from './mobile.js?v=f5.9-34';
+import { createMobile, isTouch, bindThrottleSlider } from './mobile.js?v=f5.9-35';
 import { localize } from './wording.js?v=f5.9-27';
 import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-27';
 import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-27';
-import { createTankViz } from './fun/tankviz.js?v=f5.9-27';
+import { createTankViz } from './fun/tankviz.js?v=f5.9-35';
 const TOUCH = isTouch();
 let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and the fun-layer UI (created further down)
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
@@ -1708,6 +1708,7 @@ ${impLine()}HEAT  ${tel.heat > 50 ? `T₀ ${fmtN(tel.Tstag)} K · q̇ <span clas
     .replace(/ {3}Q <span/, '   <b data-l="q">Q</b> <span').replace(/ {3}G <span/, '   <b data-l="g">G</b> <span');
   $('tele').innerHTML = t;
   const ctlV = flyingBooster() ? b : v, thr = ctlV.throttle || 0;
+  // The S1/S2 columns stay in the DOM for the legacy readout. body.u59 hides #bars; the top-bar tank strip is the fuel graphic.
   if ($('bars').children.length !== v.stages.length + 1) {
     $('bars').innerHTML = '<div class="bar" data-l="thr"><span>THR</span><i id="thrBar"></i><b id="thrPct">0%</b></div>' + v.stages.map((_, i) => `<div class="bar fuel" data-l="fuel"><span>S${i + 1}</span><i id="fBar${i}"></i><b id="fPct${i}">100%</b></div>`).join('');
   }
@@ -2640,19 +2641,14 @@ const plain = createPlainHud();
 const dCtl = (() => { if (TOUCH) return null; const d = document.createElement('div'); d.id = 'dCtl'; d.className = 'hidden'; // f5.6d (QA P0 #2): desktop on-screen controls with key caps
   d.innerHTML = '<button id="dAbort" title="Abort (Backspace)">⛔ ABORT</button><div id="dThr" title="Throttle: drag, or Shift/Ctrl, Z full, X cut"><i></i><s></s><b>THR</b><u>0%</u></div><button id="dAuto" title="AUTO (F)">AUTO</button><button id="dStage" title="Stage (Space)">STAGE</button>';
   document.body.appendChild(d); const tap = (id, k) => { $(id).onclick = e => { e.currentTarget.blur(); press(k); }; }; tap('dAbort', 'Backspace'); tap('dAuto', 'KeyF'); tap('dStage', 'Space');
-  { const th = $('dThr'); th.style.touchAction = 'none'; /* f5.8o (QA f5.8n P1): the gauge owns its pointer: capture it, never let it reach the navball / canvas steering */
-    const setY = y => setThrottleTouch(thrFromY(th, y));
-    th.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); try { th.setPointerCapture(e.pointerId); } catch (x) { } th._pid = e.pointerId; setY(e.clientY); });
-    th.addEventListener('pointermove', e => { if (th._pid === e.pointerId) { e.stopPropagation(); setY(e.clientY); } });
-    const end = e => { if (th._pid === e.pointerId) { th._pid = null; e.stopPropagation(); try { th.releasePointerCapture(e.pointerId); } catch (x) { } } };
-    th.addEventListener('pointerup', end); th.addEventListener('pointercancel', end); th.addEventListener('lostpointercapture', end);
-    for (const t of ['touchstart', 'touchmove', 'touchend']) th.addEventListener(t, e => { e.stopPropagation(); if (e.cancelable && t !== 'touchend') e.preventDefault(); }, { passive: false }); }
+  { const th = $('dThr'); th.title = 'Throttle: drag the groove, or slide sideways for a finer range. Shift/Ctrl, Z full, X cut'; /* f5.8o: the gauge owns its pointer so a drag never reaches the navball */ bindThrottleSlider(th, setThrottleTouch); }
   return d; })();
 function dCtlTick() { if (!dCtl) return; const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); dCtl.classList.toggle('hidden', !on); if (!on) { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); return; } // f5.6h (QA): the ☰ never stays open over the end card
   if (F.ignited && dCtlTick.ig !== F) { dCtlTick.ig = F; const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); try { mobile.closeMenu(); } catch (e) { } } // f5.7e (QA f5.7c P2): ☰ closes at liftoff (it stayed open from ascent to orbit)
-  const t = Math.round(100 * (v.throttle || 0)); $('dThr').querySelector('i').style.height = t + '%'; $('dThr').style.setProperty('--t', (v.throttle || 0).toFixed(3)); $('dThr').querySelector('u').textContent = t ? t + '%' : ''; $('dThr').setAttribute('aria-valuenow', String(t)); $('dAuto').classList.toggle('on', !!F.autoOn); } // f5.5c (owner): plain telemetry: mph, Ap/Pe with T−/+, Δv per stage. f5.9-31: blank the pill at cutoff ("0%" was an orbit_toast word)
+  const th = $('dThr'), cv = flyingBooster() && booster ? booster : v, u = th._drag ? (cv.ut || 0) : (cv.throttle || cv.ut || 0), fine = th.classList.contains('fine');
+  th.style.setProperty('--t', u.toFixed(3)); { const pct = fine ? (u * 100).toFixed(1) : String(Math.round(u * 100)); const lab = th.querySelector('u'); const txt = pct === '0' || pct === '0.0' ? '' : pct + '%'; if (lab.textContent !== txt) lab.textContent = txt; th.setAttribute('aria-valuenow', pct); th.setAttribute('aria-valuetext', pct + '%'); } $('dAuto').classList.toggle('on', !!F.autoOn); } // f5.5c (owner): plain telemetry: mph, Ap/Pe with T−/+, Δv per stage. f5.9-31: blank the pill at cutoff ("0%" was an orbit_toast word)
 const tankViz = createTankViz();
-function tankTick() { try { const on = state === 'flight' && !!F && !!v && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); tankViz.tick(v, on, flyingBooster() && booster ? booster.stages[0] : null); } catch (e) { } }
+function tankTick() { try { const on = state === 'flight' && !!F && !!v && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); tankViz.tick(on && flyingBooster() && booster ? booster : v, on); } catch (e) { } }
 function plainTick() {
   if (F && F.ignited) { const ig = $('ignite'); if (ig && !ig.classList.contains('hidden')) ig.classList.add('hidden'); } // f5.6o (QA): the pad hint goes away at ignition, however you staged
   const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden');
