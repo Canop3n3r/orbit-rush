@@ -3,7 +3,7 @@ import { createBugReporter } from './fun/bugreport.js?v=f5.9-27';
 import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-27';
 import { uniform } from 'three/tsl';
 import * as P from './physics.js?v=f5.9-27';
-import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur, recoveryPlan } from './flight.js?v=f5.9-34';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur, recoveryCaption } from './flight.js?v=f5.9-34';
 import * as C from './physics/patched.js?v=f5.9-27';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
@@ -2049,7 +2049,9 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
   $('spMain').onclick = () => { if (split.full) { split.full = null; camMode = 'chase'; } };
   $('spFullU').onclick = e => { e.stopPropagation(); split.full = split.full === 'u' ? null : 'u'; camMode = 'chase'; }; // f5.3: focus the upper stage (keeps its own card)
   $('spRecBtn').onclick = e => { e.stopPropagation(); const s = $('spRec'); if (!s) return; s.classList.toggle('hidden'); e.currentTarget.classList.toggle('on', !s.classList.contains('hidden')); e.currentTarget.blur(); }; // f5.9-31: one chip opens RTLS / BARGE / AUTO
-  $('spRec').addEventListener('click', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt || !F) return; F.setRecovery(bt.dataset.rec); });
+  const applyRec = bt => { if (!bt || !F) return; F.setRecovery(bt.dataset.rec); }; // OR-015: pointerdown so a phone tap on the sheet is not lost
+  $('spRec').addEventListener('pointerdown', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt) return; e.preventDefault(); applyRec(bt); bt._recAt = performance.now(); });
+  $('spRec').addEventListener('click', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt || (bt._recAt && performance.now() - bt._recAt < 700)) return; applyRec(bt); });
   $('spCtl').onclick = e => { e.stopPropagation(); if (booster && booster.state === 'flying' && F.ship && booster.stages[0].fuel > 0) F.toggleBooster(); else toast('The booster is on autopilot', '#9cc3ff'); };
   $('spClose').onclick = e => { e.stopPropagation(); split.closed = true; };
   $('spCloseU').onclick = $('spClose').onclick; $('spCtlU').onclick = $('spCtl').onclick; // f5.6h (QA P2): both halves carry the same buttons
@@ -2104,8 +2106,7 @@ function updateSplit(rdt) {
     { const rp = b.recPlan, show = !!(rp && b.state === 'flying' && !booster2), chip = $('spRecBtn'), sheet = $('spRec');
       if (chip) { chip.classList.toggle('hidden', !show); if (show) { const t = rp.pref === 'auto' ? 'AUTO' : rp.mode === 'rtls' ? 'RTLS' : 'BARGE'; if (chip.textContent !== t) chip.textContent = t; chip.title = rp.pref === 'auto' ? 'Auto recovery: picks RTLS or an ocean barge from downrange, speed and fuel' : rp.mode === 'rtls' ? 'Recovery: return to the launch site' : 'Recovery: ocean barge downrange'; chip.classList.toggle('on', !!(sheet && !sheet.classList.contains('hidden'))); } }
       if (sheet && (!show || split.full !== 'b')) sheet.classList.add('hidden');
-      if (show) { const live = recoveryPlan(b, F.lzEf, v.earthRot !== false), lab = rp.mode === 'rtls' ? 'RETURN TO SITE' : 'OCEAN BARGE', note = rp.pref === 'auto' ? (live.mode === 'rtls' ? 'fuel covers boostback' : 'boostback needs more fuel') : rp.pref === 'design' ? 'rocket default' : 'set for this flight';
-        setHTML('spRecW', `<b>${lab}</b> <span>${rp.pref === 'auto' ? 'AUTO · ' : ''}${UN.dist(live.down)} downrange · ${UN.spd(live.speed)} · ${live.fuel.toFixed(1)} t — ${note}</span> <i>Δv ${UN.dv(live.have)} / ${UN.dv(live.need)}</i>`);
+      if (show) { const cap = recoveryCaption(rp); setHTML('spRecW', `<b>${cap.lab}</b> <span>${cap.rest}</span>`);
         if (sheet) for (const bt of sheet.querySelectorAll('button')) { const on = bt.dataset.rec === (rp.pref === 'auto' ? 'auto' : rp.mode); if (bt.classList.contains('on') !== on) bt.classList.toggle('on', on); } } }
     card(b, booster2 ? bLab(0, b.lzName) : 'BOOSTER',
       'spHud', 'spBallB', !!split.replay);

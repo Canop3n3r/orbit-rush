@@ -877,10 +877,10 @@ body.u59 #split.fullB #spCardB.inBar{background:none!important;border-top:0!impo
 body.u59 #spRec.sheet:not(.hidden){display:flex;position:fixed;top:calc(var(--topH,52px) + 56px);right:calc(8px + var(--sar,0px));z-index:64;flex-direction:column;align-items:stretch;gap:6px;width:min(300px,calc(100vw - 16px));box-sizing:border-box;padding:8px;background:var(--panel);border:var(--bw) solid var(--bc);border-top:0;border-radius:0 0 var(--rad) var(--rad);pointer-events:auto}
 body.photo #spRec,body.clean #spRec,body.mapOn #spRec{display:none!important}
 #spRec .spRecB{display:flex;gap:0;border:var(--bw,2px) solid var(--bc,#9cc3ff66);border-radius:var(--rad,8px);overflow:hidden}
-#spRec .spRecB button{flex:1 1 0;height:40px;min-height:40px;min-width:0;padding:0 4px;border:0;border-right:1px solid var(--bc,#9cc3ff66);background:transparent;color:var(--txt,#dfe9ff);font:700 12px/1 var(--font,system-ui);letter-spacing:.04em;pointer-events:auto}
+#spRec .spRecB button{flex:1 1 0;height:var(--tap,44px)!important;min-height:var(--tap,44px)!important;min-width:0!important;padding:0 4px;border:0;border-right:1px solid var(--bc,#9cc3ff66);background:transparent;color:var(--txt,#dfe9ff);font:700 12px/1 var(--font,system-ui);letter-spacing:.04em;pointer-events:auto;touch-action:manipulation}
 #spRec .spRecB button:last-child{border-right:0}
 #spRec .spRecB button.on{background:var(--btn-on,#1d5fae);color:#fff}
-#spRec .spRecW{white-space:normal;overflow:visible;font:700 12px/1.35 var(--font,system-ui);text-align:center;color:#cfe0ff}
+#spRec .spRecW{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-height:18px;font:700 12px/1.35 var(--font,system-ui);text-align:center;color:#cfe0ff;pointer-events:none}
 #spRec .spRecW b{color:#fff;letter-spacing:.04em}#spRec .spRecW span{color:#9cb4d8}#spRec .spRecW i{font-style:normal;color:#ffd23a}
 /* ---------- f5.9-22 (owner, iPhone): no dead space. Top bar middle = tank gauge + status line; tall throttle slider ---------- */
 /* top bar: one row everywhere; the middle holds the per-stage tank gauge with the hint (HIGH Q, ...) under it */
@@ -930,9 +930,8 @@ html body.u59.noStage #botBar :is(#mStage,#dStage){display:inline-flex!important
   html body.u59 #botBar #mChute:not(.hidden){grid-column:2!important;grid-row:2!important}
   html body.u59 #botBar :is(#mThr,#dThr){grid-column:3!important;grid-row:1!important;width:48px!important;min-width:48px!important;max-width:48px!important;height:52px!important;min-height:0!important;max-height:52px!important;align-self:end!important}
 }
-/* f5.9-22 (QA f5.9-25 P2): the top bar stays above the full booster view; the recovery "why" line wraps instead of clipping */
+/* f5.9-22 (QA f5.9-25 P2): the top bar stays above the full booster view. OR-015: the sheet why stays one line; wrapping it on a 390 phone covered the RTLS/AUTO targets. */
 body.u59:has(#split.fullB:not(.hidden)) #topBar{z-index:62}
-@media (max-width:560px){#spRec .spRecW{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:100%}}
 /* f5.9-22 (QA P2): on a 390 phone the Pause bar is two rows of three, with room around Quicksave / Quickload */
 @media (max-width:560px){html body.u59 #pause .mbox>:is(.row,.col){flex-wrap:wrap!important;row-gap:6px!important}html body.u59 #pause .mbox>:is(.row,.col) button{flex:1 1 calc(33.3% - 8px)!important;padding:0 8px!important;white-space:nowrap}}
 /* OR-008: CTRL opens stage, fairing, payload, engines, RCS, fine and keep. The button lives in ☰ (not the top bar) so AUTO flight stays at five controls; the sheet is the drawer under the bar. */

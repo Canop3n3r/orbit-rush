@@ -25,7 +25,9 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if
     const L = await pg.evaluate(() => { const c = document.getElementById('spCardB').getBoundingClientRect(), b = document.getElementById('botBar').getBoundingClientRect(), r = document.getElementById('spRec'), w = document.getElementById('spRecW');
       return { cTop: c.top, cBot: c.bottom, bTop: b.top, bBot: b.bottom, rec: r.getClientRects().length > 0 && r.getBoundingClientRect().height > 0, inBar: !!r.closest('#botBar,#spCardB'), txt: w.textContent, on: [...r.querySelectorAll('button.on')].map(x => x.dataset.rec) }; });
     ok(L.cBot <= L.bBot + 2 && L.cBot > L.bTop && L.cTop > L.bTop - 90, `${vp} booster strip fills the bottom bar band (strip ${L.cTop | 0}-${L.cBot | 0}, bar ${L.bTop | 0}-${L.bBot | 0})`);
-    ok(L.rec && !L.inBar && /RETURN TO SITE|OCEAN BARGE/.test(L.txt) && /downrange/.test(L.txt) && L.on.join() === 'auto', `${vp} recovery sheet shows the mode and why: "${L.txt}" [${L.on}]`);
+    ok(L.rec && !L.inBar && /\b(RTLS|BARGE)\b/.test(L.txt) && L.txt.length <= 48 && !/boostback|Δv|downrange/.test(L.txt) && L.on.join() === 'auto', `${vp} recovery sheet shows the short why: "${L.txt}" [${L.on}]`);
+    const hit0 = await pg.evaluate(() => { const out = {}; for (const rec of ['auto', 'rtls', 'ship']) { const b = document.querySelector(`#spRec button[data-rec="${rec}"]`); const r = b.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); out[rec] = { hit: !!(h && (h === b || b.contains(h))), h: Math.round(r.height) }; } return out; });
+    ok(hit0.rtls.hit && hit0.auto.hit && hit0.ship.hit && hit0.rtls.h >= 44 && hit0.auto.h >= 44, `${vp} RTLS/AUTO taps hit the sheet (${hit0.rtls.h}px)`);
     await pg.waitForTimeout(600); await shot('full');
     const f = await pg.evaluate(CHECK, { state: 'booster-full', flight: true }); ok(!f.fails.length, `${vp} full booster view layout (${f.n} controls) ${f.fails.join('; ')}`);
     await pg.evaluate(() => document.getElementById('spRec').classList.add('hidden'));
