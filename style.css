@@ -1241,3 +1241,5 @@ body.touch.mapPanelOn #mapBurn{left:calc(8px + env(safe-area-inset-left));transf
 #xferPlan .xp-auto{background:#1f6b3a!important;border-color:#3fbf72!important}
 #xferPlan .xp-act button:disabled{opacity:.4}
 @media (orientation:landscape) and (max-height:500px){#xferPlan{align-items:center}#xferPlan .xp-box{border-radius:16px;max-height:96dvh}}
+/* f5.9-30 trailer clean plate (?hud=0 or ?clean=1). Hides the flight chrome without photo mode, so the sim keeps running. Home stays. */
+body.clean :is(#hud,#toasts,#pilot,#touch,#mobile,#split,#badge,#callout,#mhud,#mtop,#mleft,#mright,#strip,#hintS,#craftTag,#engS,#gcamBtn,#strip2,#plain,#nav,#navSasT,#navBall,#relBtn,#dCtl,#warpBar,#topStack,#spPane,.spCard,#navRd,.navArcs,#navArcs,#ignite,#photobar,.reveal,#opTask,#end,#manBtn,#manSheet){display:none!important}

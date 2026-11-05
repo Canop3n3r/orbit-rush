@@ -3,12 +3,12 @@ import { createBugReporter } from './fun/bugreport.js?v=f5.9-27';
 import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-27';
 import { uniform } from 'three/tsl';
 import * as P from './physics.js?v=f5.9-27';
-import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-30';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-31';
 import * as C from './physics/patched.js?v=f5.9-27';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
 import { CAREER, CONTRACTS, missionOf } from './missions/campaign/career.js';
-var sbSite = loadSite(); // f5.4 sandbox launch site (null = the classic career pad)
+var sbSite = resolveSite(typeof location !== 'undefined' ? location.search : '', SB_SITES) || loadSite(); // f5.4 sandbox launch site (null = the classic career pad). ?site= wins for this load only.
 var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract = null; // f4 career/ops state (var: used by showPreview at boot)
 import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-27';
 import { createCareerUI } from './fun/career-ui.js?v=f5.9-27';
@@ -73,6 +73,7 @@ import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMate
 import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-27';
 import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-27';
 import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-27';
+import { createTrailer, epochMillis, resolveSite, applyArrival, warpPlan, spaceScore, deployMotion } from './fun/trailer.js?v=f5.9-31';
 import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-27';
 import { createDock } from './fun/dock.js?v=f5.9-27'; // f5.9a: top bar + bottom bar
 import { createXferPlanner } from './fun/xferui.js?v=f5.9-27'; // f6.5 pre-launch transfer planner
@@ -83,6 +84,23 @@ import { createXferPlanner } from './fun/xferui.js?v=f5.9-27'; // f6.5 pre-launc
 const { R, ATM, V } = P;
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
+const TR = createTrailer(location.search); // f5.9-30: trailer camera / clean plate / script warp. Opt-in; a normal URL leaves this idle.
+if (TR.cfg.clean) document.body.classList.add('clean');
+window.__cine = {
+  get active() { return TR.active; },
+  play: spec => TR.play(spec), stop() { TR.stop(); }, hold: pose => TR.hold(pose), seek: s => TR.seek(s), fov: n => TR.fov(n),
+  sample: dt => TR.sample(dt),
+  status: () => ({ ...TR.status(), warp: F && WARPS[F.warpI], eff: F && F.effWarp && F.effWarp(), body: F && F.body, paused: !!paused, clean: document.body.classList.contains('clean') }),
+  warp: mult => trailerWarp(mult),
+  clean(on) { const c = TR.setClean(on == null ? !document.body.classList.contains('clean') : on); document.body.classList.toggle('clean', c); return c; },
+  deploy(o) { return o ? TR.setDeploy(o) : deployMotion(TR.deploy.speed, TR.deploy.size); },
+  presets: () => ['orbit', 'dolly', 'crane', 'payload'],
+};
+window.__orAudio = {
+  gain(v) { if (v == null) return master ? master.gain.value : 0; TR.masterGain = Math.max(0, Math.min(1, +v || 0)); if (!ac) { try { initAudio(); } catch (e) { } } if (master) master.gain.value = TR.masterGain; return TR.masterGain; },
+  get master() { return master ? master.gain.value : 0; }, set master(v) { this.gain(v); },
+  score(on) { return TR.setScore(on); },
+};
 export const BUILD = '2026-10-19-f3';
 const DEG = 180 / Math.PI;
 
@@ -641,7 +659,7 @@ const funAudio = createAudio(() => ac ? { ac, master, fbus, sbus } : null), funM
 let ac, rumble, rumbleF, rumbleSrc, crack, crackSrc, master, fbus, sbus, dbus, mbus; // f5.8y: every flight sound (rumble, wind, explosions) runs through fbus, so leaving the flight screen can fade them all at once
 function noiseBuf(sec) { const b = ac.createBuffer(1, ac.sampleRate * sec, ac.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < d.length; i++) { l = (l + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; } return b; }
 function initAudio() {
-  if (ac) { if (ac.state === 'suspended') ac.resume(); return; } ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.connect(ac.destination); funAudio.apply(); // f3: since f1 the master gain was wired to itself, so nothing reached the speakers
+  if (ac) { if (ac.state === 'suspended') ac.resume(); return; } ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.connect(ac.destination); funAudio.apply(); if (TR.masterGain != null) master.gain.value = TR.masterGain; // f3: master reaches the speakers. f5.9-30: __orAudio.gain survives unlock.
   sbus = ac.createGain(); sbus.connect(master); dbus = ac.createGain(); dbus.connect(sbus); fbus = ac.createGain(); fbus.connect(dbus); mbus = ac.createGain(); mbus.gain.value = 0; mbus.connect(master); applyAudioSettings();
   startFlightAudio();
 }
@@ -670,8 +688,8 @@ const audioMix = { dist: 0, distK: 1, vacK: 1 }; let spaceMusic = false;
 function musicMode() {
   if (state !== 'flight' || paused) return ['menu', 1]; const end = $('end'); if (end && !end.classList.contains('hidden')) return ['menu', 1];
   if (!F || !F.flags || F.flags.dead || F.flags.landed || F.flags.recovered) return [null, 0];
-  const b = P.BODIES[F.body] || {}, alt = F.body === 'earth' || b.atm ? F.alt : 1e9, lvl = Math.max(0, Math.min(1, (alt - 52000) / 20000)); // fades in from ~52 km to full at ~72 km
-  spaceMusic = alt > (spaceMusic ? 52000 : 56000); return spaceMusic ? ['space', Math.max(0.15, lvl)] : [null, 0];
+  const b = P.BODIES[F.body] || {}, alt = F.body === 'earth' || b.atm ? F.alt : 1e9; // fades in from ~52 km to full at ~72 km; ?music=space / __orAudio.score plays it below that too
+  const s = spaceScore(alt, spaceMusic, TR.score); spaceMusic = s.on; return s.kind ? [s.kind, s.level] : [null, 0];
 }
 function musicTick() { if (!ac) return; const [k, lv] = musicMode(); funMusic.set(k, lv); }
 function applyAudioSettings() { if (!ac) return; if (sbus) sbus.gain.value = Math.max(0, Math.min(1, SET.sfxVol == null ? 1 : SET.sfxVol)); funMusic.configure({ enabled: SET.musicOn !== false, volume: SET.musicVol == null ? 0.5 : SET.musicVol }); }
@@ -738,7 +756,7 @@ function later(fn, ms) { const g = gen; setTimeout(() => { if (g === gen) fn(); 
 let shipVis = null;
 const ER_KEY = 'orbitrush.earthRot';
 let earthRot = localStorage.getItem(ER_KEY) !== '0';
-const INC_KEY = 'orbitrush.incl', EPOCH = params.get('epoch') && isFinite(Date.parse(params.get('epoch'))) ? Date.parse(params.get('epoch')) : Date.now();
+const INC_KEY = 'orbitrush.incl', EPOCH = epochMillis(params, Date.now()); // ?epoch=ISO (existing) or ?tod=HH:mm UTC today
 let xferPlan = null; // f6.5: an armed pre-launch transfer plan (launch epoch, site, inclination, optional AUTO)
 const xferSite = () => xferPlan ? { body: 'earth', id: xferPlan.launch.site, name: xferPlan.launch.siteName, lat: xferPlan.launch.lat, lon: xferPlan.launch.lon } : null;
 let launchIncl = Math.max(0, Math.min(180, +(params.get('incl') ?? localStorage.getItem(INC_KEY) ?? 0) || 0));
@@ -747,6 +765,7 @@ function thinAir() { if (!F || F.body === 'earth') return false; const b = P.BOD
 function siteVel(b) { const w = b.earthRot === false ? 0 : F && F.body && F.body !== 'earth' ? P.BODIES[F.body].omega : P.OMEGA_E; /* f5.4: the air/ground turns with the current world */ return [-w * b.r[1], w * b.r[0], 0]; }
 const hooks = {
   toast: (m, c) => toast(m, c),
+  deployScale: () => deployMotion(TR.deploy.speed, TR.deploy.size).speed, // f5.9-30: 1 keeps the 2 m/s spring; ?deploy= slows it
   sound: (k, f) => { if (k === 'ignite') { burst(0.6, 1.2, 500); if (F.alt < 200) ignitionClouds(v); } else if (k === 'beep') beep(f); else if (k === 'orbit') { if (camMode === 'chase' && performance.now() - camUserT > 4000) camDist = orbitDist(); /* f5.9-14 (QA P2): in orbit the camera comes in on the craft, not the ascent framing */ beep(1320); setTimeout(() => beep(1760), 200); } else if (k === 'landed') { beep(1500); setTimeout(() => beep(1900), 180); if (F.alt < 3000) touchdownDust(v); } },
   stage: (b, parts) => { const g = detachStage(b.stageIndex ?? 0); booster = b; booster2 = null;
     if (parts && parts[1]) { const [mA, mB] = splitSideMesh(g); parts[0].mesh = mA; parts[1].mesh = mB; booster2 = parts[1]; } else b.mesh = g; // f4.2: one mesh per side booster
@@ -1025,7 +1044,7 @@ function onRelease(rec) {
 let pezRel = null; // legs-fins-1: release waits for the slot sequence, then the same payload object flies on
 function finishRelease(rec) { pezRel = null; const tk = heroTakePayload(); let g, sat, q0 = null;
   if (tk) { g = tk.outer; sat = tk.src; q0 = tk.q0; } else { sat = buildPayload(payloadKind() || 'comsat', { detail: 'hi', r: 1.0, h: 3.0 }); g = new THREE.Group(); sat.position.y = -sat.userData.cy * sat.scale.y; g.add(sat); } // no hero model (custom design): the same payload builder
-  scene.add(g); satVis = { g, sat, rec, t: 0, q0 }; updateEndFlightBtn(); }
+  scene.add(g); const dz = deployMotion(TR.deploy.speed, TR.deploy.size).size; if (dz !== 1 && sat) sat.scale.multiplyScalar(dz); satVis = { g, sat, rec, t: 0, q0 }; updateEndFlightBtn(); }
 // f5.4k: after RELEASE the chase camera frames the sat and the stage together (aim at their midpoint, pull back to fit both)
 // for as long as they are close enough to read as a separation (< 600 m), then eases back to the stage
 let relMix = 0; const relMid = new THREE.Vector3();
@@ -1045,7 +1064,7 @@ function freeSat() { if (!satVis) return; scene.remove(satVis.g); satVis.g.trave
 const _satQ = new THREE.Quaternion();
 function updateSat(O, pdt) { if (!satVis) return; if (F.fleet && satVis.rec.vesselId && F.fleet.activeId === satVis.rec.vesselId) { freeSat(); return; } /* f6.2: you now fly that payload */ const s = WORLD.stateAt(satVis.rec, F.tAbs); setRel(satVis.g, s.r, O); satVis.t += pdt;
   if (satVis.q0) { const k = Math.min(1, satVis.t / 10), e = k * k * (3 - 2 * k), n = V.norm(s.r); _satQ.setFromUnitVectors(Y_AXIS, dv3.set(n[0], n[1], n[2])); satVis.g.quaternion.copy(satVis.q0).slerp(_satQ, e); } else dirQ(satVis.g, V.norm(s.r)); // keeps the stage's attitude at release, then eases to nadir
-  const d = satVis.sat && satVis.sat.userData.deploy; if (d) d.call(satVis.sat.userData, (satVis.t - 1.2) / 4); } // arrays unfold after the springs have pushed it clear
+  const d = satVis.sat && satVis.sat.userData.deploy; if (d) { const mot = deployMotion(TR.deploy.speed, TR.deploy.size); d.call(satVis.sat.userData, (satVis.t - mot.delay) / mot.dur); } } // arrays unfold after the springs have pushed it clear (slower when ?deploy<1)
 function updateEndFlightBtn() { let b = $('relBtn'); if (!b) { b = document.createElement('button'); b.id = 'relBtn'; document.body.appendChild(b);
     b.onclick = e => { e.currentTarget.blur(); if (F.canRelease()) F.releasePayload(); updateEndFlightBtn(); }; } /* f5.9i (QA P2): this button is RELEASE only; ■ End flight lives in ☰ and asks twice, so a double tap on RELEASE can never end the flight */
   const endable = state === 'flight' && !F.ended && !F.flags.dead && !!F.released; document.querySelectorAll('[data-endf]').forEach(e => { if (e.hidden === endable) { e.hidden = !endable; if (!endable) { e.textContent = '■ End flight'; delete e.dataset.arm; } } });
@@ -1078,11 +1097,16 @@ function launch() { academy.hideFirst && academy.hideFirst(); { const dm = $('dM
   if (academy && academy.active) { // lesson start states (on the pad, mid-air, or in orbit)
     academy.onLaunch(F); syncStages(); const L = stackL(); camDist = F.v.cur > 0 ? Math.max(30, Math.min(90, L * 2.6 + 20)) : Math.min(fitDist(L, 0.62), Math.max(30, L * 2.6 + 20)); camAim = 0.5; // f4 pad framing: whole stack ~62% of the screen
   }
+  if (TR.cfg.at) { applyArrival(F, TR.cfg.at, TR.cfg.atAlt, P); syncStages(); camDist = 90; camPitch = 0.28; camMode = 'chase'; } // f5.9-30: ?at=moon|mars|venus starts already in orbit there
+  if (TR.cfg.warp != null) trailerWarp(TR.cfg.warp);
   document.activeElement && document.activeElement.blur();
   $('hud').classList.remove('hidden');
   if (xferPlan && !opFlightOpts && F && F.realPhase) { const pl = xferPlan; fun.call('🪐', `Warped to launch day: ${pl.launch.date.toUTCString().slice(0, 22)} UTC · ${pl.launch.siteName} · ${pl.targetName}`, '#ffe9b0', true);
     if (pl.auto) { MISSIONS.xfer = { name: 'Transfer to ' + pl.targetName, icon: '🪐', tpl: null, target: pl.target, capture: true, blurb: '' }; director = new Director(F, 'xfer', { departT: pl.departT, say: msg => fun.call('🪐', msg, '#ffe9b0') }); } } // f6.5: AUTO flies the planned transfer
   mobile.show(true); $('ignite').innerHTML = TOUCH ? '<b>AUTO</b> (optional), then <b>STAGE</b>' : 'Press <b>SPACE</b> to stage &amp; go · <b>F</b> = AUTO'; $('ignite').classList.remove('hidden'); // f5.5b
+}
+function trailerWarp(mult) { // f5.9-30: set a warp step from the URL or __cine.warp without the "Time warp ×N" toast
+  if (state !== 'flight' || !F) return null; const p = warpPlan(mult, WARPS); F.autoWarp = false; F.warpTarget = null; F.setWarp(p.index, true); return p;
 }
 function goBuild() {
   try { plain.update({ on: false }); } catch (e) { } // f5.6c: no flight HUD in the Hangar
@@ -1137,7 +1161,7 @@ $('contBtn').onclick = () => { startFlightAudio(); $('end').classList.add('hidde
 function shareText() { const sc = F.score(); return `🚀 I scored ${sc.toLocaleString()} in Orbit Rush${F.flags.orbit ? ' — reached a full-scale orbit' : ''}${F.flags.boosterBonus ? ' and landed the booster' : ''}${F.flags.recovered ? ' and brought the capsule home' : ''}! Can you beat it?`; }
 $('shareBtn').onclick = async () => { const t = shareText(), url = location.href.split('?')[0]; try { if (navigator.share) await navigator.share({ text: t, url }); else { await navigator.clipboard.writeText(t + ' ' + url); $('shareBtn').textContent = 'Copied!'; } } catch (e) { } };
 $('xBtn').onclick = () => open('https://x.com/intent/post?text=' + encodeURIComponent(shareText()) + '&url=' + encodeURIComponent(location.href.split('?')[0]), '_blank');
-function toast(msg, color = '#7dffa6') { msg = localize(msg, TOUCH); if (msg === $('hint').textContent || [...$('toasts').children].some(c => c.textContent === msg)) return;  const d = document.createElement('div'); d.textContent = msg; d.style.color = color; $('toasts').appendChild(d); setTimeout(() => d.remove(), 3000); while ($('toasts').children.length > 3) $('toasts').firstChild.remove(); }
+function toast(msg, color = '#7dffa6') { if (document.body.classList.contains('clean')) return; msg = localize(msg, TOUCH); if (msg === $('hint').textContent || [...$('toasts').children].some(c => c.textContent === msg)) return;  const d = document.createElement('div'); d.textContent = msg; d.style.color = color; $('toasts').appendChild(d); setTimeout(() => d.remove(), 3000); while ($('toasts').children.length > 3) $('toasts').firstChild.remove(); }
 
 // ---------- pause, quicksave / quickload, revert (Milestone Q) ----------
 let paused = false;
@@ -1806,16 +1830,16 @@ renderer.setAnimationLoop(() => {
     if (vwR) tgtV.set(0, 0, 0); else if (focus === v) tgtV.set(nose[0], nose[1], nose[2]).multiplyScalar(stackL() * camAim - tel.ycom);
     else tgtV.set(booster.dir[0], booster.dir[1], booster.dir[2]).multiplyScalar(15);
     if (focus !== v && camDist > 400) camDist = 400; // f5.6f (QA cam): booster cam never frames from km away
-    if (focus === v && !vwR && state === 'flight' && camMode === 'chase' && CAMV.view !== 'free' && !CAMV.open) { // f4.1: chase distance follows the rocket's size (never a dot); eases back after a user zoom
+    if (!TR.active && focus === v && !vwR && state === 'flight' && camMode === 'chase' && CAMV.view !== 'free' && !CAMV.open) { // f4.1: chase distance follows the rocket's size (never a dot); eases back after a user zoom. A playing trailer path owns the distance.
       const Ls = stackL(), cr = !!v.craft, want = cr ? Math.max(4, craftR() * 2.6, Math.min(60, Ls * 3.2 + 4)) : Math.max(30, Math.min(160, Ls * 2.6 + 20)), maxD = cr ? Math.max(60, Ls * 30 + 40) : Math.max(80, Ls * 9 + 60);
       if (camDist > maxD) camDist += (maxD - camDist) * Math.min(1, rdt * 1.5); if (inOrbitView() && performance.now() - camUserT > 5000) camDist += (orbitDist() - camDist) * Math.min(1, rdt * 0.8); if (inOrbitView() && CAMV.view === 'vehicle' && !v.craft) { if (performance.now() - camUserT > 5000) camPitch += ((innerWidth < innerHeight ? ORBIT_PITCH + 0.1 : ORBIT_PITCH) - camPitch) * Math.min(1, rdt * 0.8); const lc = liveCenter(); if (lc) { orbAim.lerp(lc, orbAim.lengthSq() ? Math.min(1, rdt * 2) : 1); tgtV.copy(orbAim); } } else orbAim.set(0, 0, 0); // f5.9-18 (QA P3): in orbit look down on the craft so the planet limb fills the frame, and centre the live stages // f5.9-18: in orbit the chase eases in on the craft // f5.6f: ease (no ~70 m jump at staging) if (performance.now() - camUserT > 8000) camDist += (want - camDist) * Math.min(1, rdt * 0.8);
     }
-    if (focus === v && state === 'flight' && camMode === 'chase') {
+    if (!TR.active && focus === v && state === 'flight' && camMode === 'chase') {
       camOpening(rdt);
       if (CAMV.view === 'free') camUserT = performance.now(); // free: nothing eases the camera back
       else if (CAMV.view === 'horizon' && !CAMV.open) { const idle = performance.now() - camUserT; if (idle > 2500) camPitch += (0.03 - camPitch) * Math.min(1, rdt * 1.2); if (idle > 5000) camDist += ((inOrbitView() ? orbitDist() : Math.max(60, Math.min(420, (stackL() || 40) * 4 + 40))) - camDist) * Math.min(1, rdt * 0.8); }
     }
-    relFrameCam(rdt, focus);
+    if (!TR.active) relFrameCam(rdt, focus);
     if (false && SET.camStyle === 'locked' && focus === v && state === 'flight') { // f5.6f (QA cam): LOCKED retired (it rolled the horizon) // locked: the camera turns with the craft (its axes, nose up on screen)
       const ax = V.qrot(v.q, [1, 0, 0]), az = V.qrot(v.q, [0, 0, 1]);
       offV.set(ax[0], ax[1], ax[2]).multiplyScalar(Math.cos(camYaw) * Math.cos(camPitch)).addScaledVector(dv3.set(az[0], az[1], az[2]), Math.sin(camYaw) * Math.cos(camPitch)).addScaledVector(dv3.set(nose[0], nose[1], nose[2]), Math.sin(camPitch));
@@ -1827,6 +1851,8 @@ renderer.setAnimationLoop(() => {
   }
   { const on = !isMap && state === 'flight' && !!(v && v.craft); craftFill.intensity += ((on ? 1.6 : 0) - craftFill.intensity) * Math.min(1, rdt * 4); if (craftFill.intensity > 0.01) { craftFill.position.copy(camera.position); craftFill.target.position.copy(tgtV); craftFill.target.updateMatrixWorld(); } } // f5.9-18 (QA f5.9-16 P2): a switched-to satellite in Earth's shadow is lit from the camera, never a dark smudge
   groundCam(O, th, base, nose, rdt);
+  if (state === 'flight' && !isMap && TR.active) { const cs = TR.sample(rdt); if (cs) applyTrailerCam(cs, nose, tel, focus === v, O); applyTrailerCam.on = true; }
+  else if (applyTrailerCam.on) { applyTrailerCam.on = false; const fov0 = GCAM.fov0 || 55; if (Math.abs(camera.fov - fov0) > 0.1) { camera.fov = fov0; camera.updateProjectionMatrix(); } }
   if (rocketG) { const t0 = performance.now(); updateFX(rdt, pdt, base, nose, isMap); fxMs += (performance.now() - t0 - fxMs) * 0.05; }
   mapLine.visible = isMap && state === 'flight'; marker.visible = bMarker.visible = isMap;
   if (isMap) {
@@ -2101,12 +2127,25 @@ function camOpening(rdt) {
   camDist = (CAMV.d0 + (far - CAMV.d0) * a) * (1 - b) + near * b; camPitch = (CAMV.p0 + (0.05 - CAMV.p0) * a) * (1 - b) + 0.12 * b; camAim = (CAMV.a0 + (0.32 - CAMV.a0) * a) * (1 - b) + 0.45 * b;
   if (t > 16) CAMV.open = 0;
 }
+function applyTrailerCam(s, nose, tel, onShip, O) { // f5.9-30: one cine sample replaces the chase camera for this frame. look=payload frames the released sat.
+  const look = s.look || 'stack';
+  if (onShip) tgtV.set(nose[0], nose[1], nose[2]).multiplyScalar(stackL() * (look === 'payload' && !satVis ? 0.82 : (s.aim ?? camAim)) - ((tel && tel.ycom) || 0));
+  if (look === 'payload' && satVis) tgtV.copy(satVis.g.position);
+  else if (look === 'mid' && satVis) tgtV.add(satVis.g.position).multiplyScalar(0.5);
+  camDist = s.dist; camYaw = s.yaw; camPitch = clampCamPitch(s.pitch); if (s.aim != null) camAim = s.aim;
+  offV.copy(N).multiplyScalar(Math.cos(camYaw) * Math.cos(camPitch)).addScaledVector(E, Math.sin(camYaw) * Math.cos(camPitch)).addScaledVector(U, Math.sin(camPitch));
+  camera.position.copy(tgtV).addScaledVector(offV, camDist);
+  const bR = (P.BODIES[F && F.body] || {}).R || R, ca = dv3.set(camera.position.x + O[0], camera.position.y + O[1], camera.position.z + O[2]).length() - bR;
+  if (ca < 5) camera.position.addScaledVector(U, 5 - ca);
+  camera.up.copy(U); camera.lookAt(tgtV);
+  if (s.fov && Math.abs(camera.fov - s.fov) > 0.05) { camera.fov = s.fov; camera.updateProjectionMatrix(); }
+}
 function groundCam(O, th, base, nose, rdt) {
   const low = !!F && F.alt < 150000 && !F.flags.orbit; // f5.4 (QA G/#8): a tripod can't follow a rocket into orbit (empty sky): off above 150 km
   if (GCAM.on && F && !low) { GCAM.on = false; if (CAMV.view === 'ground') { CAMV.view = 'horizon'; toast('Camera: horizon (the ground camera ends at orbit)', '#9cc3ff'); } }
-  const want = GCAM.on && state === 'flight' && !!F && camMode === 'chase' && F.body === 'earth' && !photoOn && low;
+  const want = !TR.active && GCAM.on && state === 'flight' && !!F && camMode === 'chase' && F.body === 'earth' && !photoOn && low;
   const b = $('gcamBtn'); if (b) { b.classList.toggle('hidden', !(state === 'flight' && F && camMode !== 'map' && !photoOn)); b.classList.toggle('on', want); const lb = camViewLabel(); if (b.textContent !== lb) b.textContent = lb; }
-  if (!want) { if (GCAM.act) { GCAM.act = false; camera.fov = GCAM.fov0; camera.updateProjectionMatrix(); } return; }
+  if (!want) { if (GCAM.act && !TR.active) { GCAM.act = false; camera.fov = GCAM.fov0; camera.updateProjectionMatrix(); } return; }
   if (!GCAM.act) { GCAM.act = true; GCAM.fov0 = camera.fov; }
   const ef = (v.site && v.site.ef) || [1, 0, 0], e0 = P.eastOf(ef), n0 = V.cross(ef, e0);
   const g = V.add(V.add(V.scale(ef, R + 6), V.scale(n0, -1700)), V.scale(e0, -900)), gw = V.rotZ(g, th);
@@ -2303,8 +2342,8 @@ function openMissionCard(id) {
   openRocketCard(`${m.icon} ${m.name}`, cardChoice(qualifying(id, SHOW, houseRows()), curRocket(), id !== 'hop', rowLocked, starterRow()), (d, auto) => startMission(id, launchPlan(d, auto)));
 }
 let dirPhase = '';
-function directorCam(rdt) { // cinematic cameras per mission phase (the player can still drag / zoom)
-  const c = director.cam;
+function directorCam(rdt) { // cinematic cameras per mission phase (the player can still drag / zoom). A trailer path keeps the camera.
+  if (TR.active) return; const c = director.cam;
   if (director.phase !== dirPhase) { dirPhase = director.phase; if (c === 'map' && camMode !== 'map') camMode = 'map'; else if (c !== 'map' && camMode === 'map' && director.phase !== 'cruise') camMode = 'chase'; }
   if (camMode === 'chase') { const want = c === 'wide' ? Math.max(220, stackL() * 6) : Math.max(70, stackL() * 2.4); camDist += (want - camDist) * Math.min(1, rdt * 0.6); if (c === 'wide') camYaw += rdt * 0.06; }
 }
@@ -2629,7 +2668,7 @@ const xferUI = createXferPlanner({ getEpoch: () => EPOCH, getDvAvail: () => { tr
 // f5.9-21: heavy hero LODs wait for the background shader compile and an idle moment, so they don't slow the first screen
 setTimeout(() => (window.requestIdleCallback || setTimeout)(prewarmHeavy, { timeout: 8000 }), 6000);
 { // f5.9-0: ?hangar (old Build deep link) now just opens Home
- const d0 = Math.max(0, SHOW.findIndex(x => x.id === DEFAULT_ID)); let i0 = d0; try { const v = localStorage.getItem(HOME_KEY); if (v !== null && v !== '') i0 = +v; } catch (e) { } if (!(i0 >= 0 && i0 < SHOW.length) || RETIRED.has(SHOW[i0].id)) i0 = d0; home.set(i0); /* fleet-1: retired/unknown saves fall back to Heron-9 */ siteDefault(); home.show(true); }
+ const d0 = Math.max(0, SHOW.findIndex(x => x.id === DEFAULT_ID)); let i0 = d0; try { const v = localStorage.getItem(HOME_KEY); if (v !== null && v !== '') i0 = +v; } catch (e) { } if (!(i0 >= 0 && i0 < SHOW.length) || RETIRED.has(SHOW[i0].id)) i0 = d0; home.set(i0); /* fleet-1: retired/unknown saves fall back to Heron-9 */ siteDefault(); home.show(true); if (TR.cfg.autoStart) launch(); }
 addEventListener('keydown', e => { if (e.code === 'Tab' && state === 'flight') e.preventDefault(); }, true);
 refreshBuild();
 setInterval(() => { const on = state === 'flight' && !replay; if (on !== funShown) { funShown = on; fun.show(on); } }, 200);
