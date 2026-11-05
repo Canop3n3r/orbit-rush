@@ -88,6 +88,12 @@ export function recoveryCaption(rp) {
   const rest = `${rp.pref === 'auto' ? 'AUTO · ' : ''}${rp.why}`;
   return { lab, rest, text: `${lab} · ${rest}` };
 }
+// Collapsed recovery chip. Always names the resolved mode so it is never a bare AUTO next to flight AUTO.
+export function recoveryChipLabel(rp) {
+  if (!rp) return '';
+  const lab = rp.mode === 'rtls' ? 'RTLS' : 'BARGE';
+  return rp.pref === 'auto' ? lab + '·A' : lab;
+}
 // Would a booster released in this state land on its own (auto-land) with the fuel it has?
 export function landingCheck(b0) {
   const b = { ...b0, r: [...b0.r], v: [...b0.v], stages: b0.stages.map(s => ({ ...s })), manual: false, landing: false, entryDone: false, state: 'flying' };
