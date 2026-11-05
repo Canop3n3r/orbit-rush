@@ -2692,12 +2692,16 @@ function plumeAudit() {
   out.smoke = { samp: smoke.d.filter(p => { if (p.life <= 0 || p.max - p.life > 2.5) return false; const al = V.dot([p.x - base[0], p.y - base[1], p.z - base[2]], vh); return al < 60 && al > -400; }).slice(0, 10).map(p => { const d = [p.x - base[0], p.y - base[1], p.z - base[2]], al = V.dot(d, vh); return [+(p.max - p.life).toFixed(1), Math.round(al), Math.round(V.len(V.addS(d, vh, -al)))]; }), n, rms: n ? +Math.sqrt(s2 / n).toFixed(1) : 0, max: +mx.toFixed(1) }; return out;
 }
 window.__craft = { CRAFT_TYPES };
-function installManual() { // OR-008: stage, fairing, payload, engines, RCS, fine and keep — available whenever the player asks, including while AUTO is on
-  const b = document.createElement('button'); b.id = 'manBtn'; b.type = 'button'; b.dataset.dock = 'top-right'; b.title = 'Manual control of stage, fairing, payload, engines and attitude'; b.textContent = 'CTRL'; document.body.appendChild(b);
+function installManual() { // OR-008 / OR-013: the same sheet, opened from ☰. CTRL is not a sixth always-on bar button (hud_ctl stays at AUTO, STAGE, warp, MAP, ☰).
+  const b = document.createElement('button'); b.id = 'manBtn'; b.type = 'button'; b.title = 'Manual control of stage, fairing, payload, engines and attitude'; b.textContent = 'CTRL';
+  const grid = document.querySelector('#mMenu .mg.mTop, #dMenu .mg.mTop'); (grid || document.body).appendChild(b);
   const s = document.createElement('div'); s.id = 'manSheet'; s.className = 'hidden';
   s.innerHTML = '<button id="manStage" type="button" title="Separate the next stage now, even on the pad">STAGE</button><button id="manFair" type="button" title="Drop the fairing at any altitude">FAIRING</button><button id="manPay" type="button" title="Release the payload. The top stage has to be the one you are flying">PAYLOAD</button><button id="manEng" type="button" title="Engines on or cut. AUTO does not relight them">ENG</button><button id="manRcs" type="button" title="RCS on or off (C)">RCS</button><button id="manFine" type="button" title="Stick and RCS at one fifth">FINE</button><button id="manKeep" type="button" title="Hold the nose where it is. AUTO can keep the throttle">KEEP</button>';
   document.body.appendChild(s);
-  b.onclick = () => { s.classList.toggle('hidden'); b.classList.toggle('on', !s.classList.contains('hidden')); b.blur(); };
+  const openSheet = () => { s.classList.toggle('hidden'); b.classList.toggle('on', !s.classList.contains('hidden')); b.blur(); const menu = b.closest('#mMenu,#dMenu'); if (menu) menu.classList.add('hidden'); };
+  let touchAt = 0;
+  b.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') return; e.preventDefault(); e.stopPropagation(); touchAt = performance.now(); openSheet(); });
+  b.addEventListener('click', e => { if (performance.now() - touchAt < 700) { e.stopPropagation(); return; } openSheet(); });
   const tap = (id, fn) => { const el = document.getElementById(id); el.onclick = e => { e.currentTarget.blur(); if (state !== 'flight' || !F) return; fn(); }; };
   tap('manStage', () => { if (!F.ignited) { press('Space'); return; } if (!F.canManualStage()) { toast(F.flags.dead ? 'Nothing left to stage' : 'No stage left to separate', '#9cc3ff'); return; } F.manualStage(); stageFlash('stage'); });
   tap('manFair', () => { if (F.dropFairing()) return; toast(!F.ignited ? 'Light the engines first' : 'No fairing left', '#9cc3ff'); });
