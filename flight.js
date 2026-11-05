@@ -77,8 +77,16 @@ export function recoveryPlan(b, lzEf, rot = true) {
   const vg = rot ? V.sub(b.v, V.cross([0, 0, P.OMEGA_E], b.r)) : b.v, vr = V.dot(vg, up), vh = V.len(V.sub(vg, V.scale(up, vr)));
   const tf = Math.max(60, (Math.max(vr, 0) + Math.sqrt(Math.max(vr, 0) ** 2 + 2 * g * Math.max(h, 0))) / g), need = vh + (down + vh * tf * 0.25) / tf + reserve;
   const mode = have >= need * 1.05 ? 'rtls' : 'ship', km = Math.round(down / 1000), speed = Math.round(vh), fuelT = +fuel.toFixed(1);
-  const why = mode === 'rtls' ? `${km} km downrange, ${speed} m/s, ${fuelT} t covers boostback` : `${km} km downrange, ${speed} m/s, ${fuelT} t is short of boostback`;
+  // OR-015: one short fuel line. The long "covers boostback" sentence wrapped the recovery sheet on a 390 phone.
+  const why = mode === 'rtls' ? `${km} km · fuel ok` : `${km} km · need fuel`;
   return { mode, need: Math.round(need), have: Math.round(have), down: Math.round(down), speed, fuel: fuelT, why };
+}
+// One line in the recovery sheet. Downrange, speed and fuel stay on the plan; the Δv pair does not go on screen.
+export function recoveryCaption(rp) {
+  if (!rp) return { lab: '', rest: '', text: '' };
+  const lab = rp.mode === 'rtls' ? 'RTLS' : 'BARGE';
+  const rest = `${rp.pref === 'auto' ? 'AUTO · ' : ''}${rp.why}`;
+  return { lab, rest, text: `${lab} · ${rest}` };
 }
 // Would a booster released in this state land on its own (auto-land) with the fuel it has?
 export function landingCheck(b0) {
@@ -561,7 +569,7 @@ export class Flight {
   takeOverUpper() { const v = this.v; if (v.auto) { v.auto = false; this.autoOn = false; v.steerDir = null; v.sasHold = null; v.holdAtt = null; v.ut = v.throttle; this.toast('You have the upper stage', '#9cc3ff'); } }
   // f5.9-25: point the booster at the landing zone (boostback) or a droneship on its downrange track; quiet=false is a mid-flight override
   armRecovery(b, mode, sep) { const v = this.v, fuel = b.stages[0].fuel;
-    if (!sep) { if (!b || b.state !== 'flying' || b.manual) return false; if (mode === 'rtls' && V.len(b.r) - R < 15000) { this.toast('Too low to boost back: staying on the barge', '#ffb35c'); return false; } }
+    if (!sep) { if (!b || b.state !== 'flying') return false; if (mode === 'rtls' && V.len(b.r) - R < 15000) { this.toast('Too low to boost back: staying on the barge', '#ffb35c'); if (b.recPlan) b.recPlan.why = 'too low'; return false; } }
     if (mode === 'rtls') { b.rtls = true; b.bbDone = false; b._bbE = null; b.canLand = true; this.ship = { ef: this.lzEf.slice(), moved: true, lz: true }; this.call('ship', this.ship);
       this.toast(sep ? `STAGE SEP — booster boosting back to the landing zone (${fuel.toFixed(1)} t)` : 'Booster recovery: return to launch site', '#fff'); }
     else { b.rtls = false; b.bbDone = true;
