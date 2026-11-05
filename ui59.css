@@ -828,7 +828,8 @@ html body.u59 #home #hTop .hLogo{min-width:0;overflow:hidden;white-space:nowrap;
   html body.u59 #settings .mbox>h2 .hx{position:static!important;width:var(--tap);height:var(--tap);flex:none}
 }
 @media (max-width:899px) and (orientation:landscape){
-  html body.u59 #settings .mbox{top:calc(var(--sat) + 10px)!important;bottom:auto!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(560px,100vw - var(--sal) - var(--sar) - 24px)!important;max-height:calc(100dvh - var(--sat) - var(--sab) - 20px)!important;border-radius:14px!important;padding-bottom:0!important}
+  /* short landscape: a bottom sheet under the top bar, not a card pinned to y=10 over the status row */
+  html body.u59 #settings .mbox{top:auto!important;bottom:0!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(560px,100vw - var(--sal) - var(--sar) - 24px)!important;max-height:calc(100dvh - var(--topH,52px) - 16px)!important;border-radius:14px 14px 0 0!important;padding-bottom:var(--sab)!important}
 }
 /* f5.9-20 (QA f5.9-19 P2/P3): the bug card keeps the screenshot as a thumbnail beside Retake/Remove (≤ ~40% of a phone) */
 #bugCard .bgShot{display:flex;align-items:center;gap:8px;background:transparent;min-height:0}
@@ -952,4 +953,19 @@ html body.u59 #home.allOn #hGal #picker section.pkR.off{display:none!important}
 /* QA P3: desktop end card is a centred 520px sheet (beats the 400px chip). Title, cause, stats, and the actions stay; Flight details still open inside the sheet. */
 @media (min-width:900px) and (min-height:521px){
   html body.u59 #end.lean:not(.hidden){top:auto!important;right:auto!important;bottom:16px!important;left:50%!important;width:min(520px,calc(100vw - 48px))!important;max-height:min(58dvh,520px)!important;height:auto!important;transform:translateX(-50%)!important;border-radius:var(--rad)!important}
+}
+/* f5.9-32 (QA 844): #pause .col{display:grid} beat the closed-details hide (an id wins), so Photo / Full screen / Report a bug sprouted as 44px stubs while More was shut. Only the top action row is a grid; More stays closed until opened, then a full-width stack. */
+html body.u59 #pause .mbox>.col{flex-wrap:wrap!important}
+html body.u59 #pause details.pMore:not([open])>:not(summary){display:none!important}
+html body.u59 #pause details.pMore{flex:1 1 0;min-width:72px}
+html body.u59 #pause details.pMore>summary{width:100%;box-sizing:border-box}
+html body.u59 #pause details.pMore[open]{flex:1 0 100%}
+html body.u59 #pause details.pMore>.col{display:flex!important;flex-direction:column;gap:6px;width:100%}
+html body.u59 #pause details.pMore>.col button{flex:none!important;width:100%;height:auto!important;min-height:var(--tap)!important;white-space:nowrap}
+/* 844 rocket grid: one-line clamp clipped Riverbend Silo-Hopper, Thorin-Capable Star, Jade Lantern 2F Crew, Atlantean-Centaurus. The full-screen picker has room for two lines. */
+@media (orientation:landscape) and (max-height:520px){
+  html body.u59 #home.allOn #hGal #picker .pkC b{-webkit-line-clamp:2;line-clamp:2;min-height:2.6em;line-height:1.2}
+  html body.u59 :is(#mMenu,#dMenu){right:calc(148px + var(--sar))!important;left:auto!important;width:min(300px,calc(100vw - 220px))!important;max-height:calc(100dvh - var(--topH) - 72px)!important;overflow:auto!important}
+  html body.u59 :is(#mMenu,#dMenu) .mg.mTop{grid-template-columns:1fr 1fr!important}
+  html body.u59 :is(#mMenu,#dMenu) .mg.mTop button{min-width:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-inline:8px!important}
 }
