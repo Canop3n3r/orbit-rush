@@ -910,7 +910,7 @@ body.inOrbit #dAbort{display:none!important}
 @media (orientation:portrait){body.touch #split:not(.fullB):not(.fullU) #spCardU{background:linear-gradient(#0b142400,#0b1424e6 22%,#0b1424f5 60%)!important}}
 /* f5.7e (QA f5.7c P2): pause fits short landscape phones (it clipped Settings @844); GROUND sits clear of the desktop STAGE row */
 #pause .mbox{max-height:calc(100vh - 24px);overflow:auto}
-@media (max-height:500px){#pause .mbox{padding:12px 16px!important}#pause h2{margin:0 0 6px!important;font-size:18px!important}#pause .col{display:grid!important;grid-template-columns:1fr 1fr;gap:6px}#pause .col .big{grid-column:1/-1}#pause button{min-height:40px!important;padding:6px 10px!important}}
+@media (max-height:500px){#pause .mbox{padding:12px 16px!important}#pause h2{margin:0 0 6px!important;font-size:18px!important}#pause .mbox>.col{display:grid!important;grid-template-columns:1fr 1fr;gap:6px}#pause .mbox>.col>.big{grid-column:1/-1}#pause .mbox>.col>button{min-height:40px!important;padding:6px 10px!important}}
 body:not(.touch) #gcamBtn:not([data-sp-pin]){bottom:auto!important;top:calc(72px + var(--sat,0px))!important;right:16px!important}
 body.touch #relBtn{padding:8px 12px!important;font-size:13px!important;min-height:40px!important} /* f5.7e: smaller fixed RELEASE on phones */
 /* f5.7i (QA f5.7g P1): phone split = upper stage full screen + booster picture-in-picture (top-left); the AUTO/STAGE/⛔/THR cluster stays with the upper stage */
