@@ -24,5 +24,14 @@ t(gIn.fov < g1.fov * 0.55 && gIn.rocketIn, `zoom in tightens on the rocket (${gI
 const gHigh = groundShot({ zoom: 3, stackL: 48, rocketAlt: 8000 });
 t(gHigh.horizonIn && gHigh.rocketIn && gHigh.frac > 0.16 && gHigh.frac < 0.72, `a high rocket still shares the frame with the horizon (frac ${gHigh.frac.toFixed(2)}, fov ${gHigh.fovDeg.toFixed(0)}°, range ${(gHigh.horiz / 1000).toFixed(1)} km)`);
 
+// The flight bar covers the top of the picture. Zoom 1 used to leave the craft in the last degree of the frame.
+const topFrac = g => 0.5 - (g.elevR - g.lookEl) / g.fov;
+for (const alt of [914, 1770, 8000]) {
+  const g = groundShot({ zoom: 1, stackL: 70, rocketAlt: alt });
+  t(g.rocketIn && g.horizonIn && topFrac(g) >= 0.14, `ground ascent at ${alt} m keeps the rocket clear of the top bar (top ${(topFrac(g) * 100).toFixed(0)}%, horizon ${g.frac.toFixed(2)})`);
+}
+const gCap = groundShot({ zoom: 1, stackL: 48, rocketAlt: 120000 });
+t(gCap.rocketIn && gCap.horizonIn && topFrac(gCap) >= 0.12, `ground near 120 km still holds the rocket and the horizon (top ${(topFrac(gCap) * 100).toFixed(0)}%, fov ${gCap.fovDeg.toFixed(0)}°)`);
+
 console.log(`camcycle: ${p} passed, ${f} failed`);
 process.exit(f ? 1 : 0);
