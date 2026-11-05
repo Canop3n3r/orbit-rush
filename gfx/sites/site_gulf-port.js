@@ -1,7 +1,7 @@
 // Site 'gulf-port' (ladder unlock with the heavy rung): the gulf coast starport for the fully reusable super-lift
 // stack (Rocketwell). Two launch-and-catch towers on round mounts, tall vertical tank farm, a production yard with
 // high bays ~2.6 km inland along the coast road, a suborbital landing pad and lighting.
-export const SITE = { id: 'gulf-port', name: 'Bay Starport', body: 'earth', lat: 25.9972, lon: -97.1566, reuse: true,
+export const SITE = { id: 'gulf-port', name: 'Bay Starport', body: 'earth', lat: 25.9972, lon: -97.4166, reuse: true, // sites-on-land-2: inland of the 1k mask (the old -97.1566 point was a water texel)
   layout: [
     { k: 'ground', mat: 'sand', r: 3400, sea: { x: 6600, w: 12000, d: 16000 } },
     { k: 'catch', at: [0, 0], w: 12, h: 146, armY: 110, arm: 34, qd: 20, qdY: 125, r: 75 },

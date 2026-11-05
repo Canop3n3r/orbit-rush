@@ -2,11 +2,15 @@
 // Earth sites use the game's Earth frame (the main pad sits at [1,0,0]) via latLonToGame; other worlds use plain body-fixed lat/lon.
 export const GAS = new Set(['sun', 'jupiter', 'saturn', 'uranus', 'neptune']); // no surface to stand on
 // [id, name, lat, lon, art site id (gfx/sites/site_<id>.js; 'generic' = the plain sandbox complex), landing zone (lat, lon) or null]
+// sites-on-land-2: pads whose catalog point fell in a water texel of the 1k specular mask are shifted onto the
+// nearest dry land that mask actually draws (same sampling as gfx/earthmap.js sampleEarth). The cape cluster
+// stays put: the shaped coast (COAST) is the ground there, and the heritage pad is the Earth-frame origin.
+// Atoll Range stays: no land texel exists within range; the ground tile feathers an island shore instead of a disc.
 export const SITES = {
   earth: [['cape', 'Heritage Complex', 28.6084, -80.6043, 'cape-heritage', [28.4858, -80.5428]], ['capen', 'North Coast Complex', 28.5619, -80.5772, 'cape-north', [28.4858, -80.5428]],
-    ['coast36', 'Coast Pad 36', 28.4711, -80.5378, 'generic', [28.4858, -80.5428]], ['gulf', 'Bay Starport', 25.9972, -97.1566, 'gulf-port', null], ['atoll', 'Atoll Range', 9.0477, 167.7433, 'atoll', null],
-    ['vandy', 'West Coast Pad', 34.632, -120.611], ['equator', 'Equator Port', 5.239, -52.768],
-    ['baikal', 'Steppe Cosmodrome', 45.965, 63.305], ['tanega', 'Island Center', 30.400, 130.970], ['palm', 'Palm Coast', 19.614, 110.951], ['peninsula', 'Peninsula Pad', -39.262, 177.865]],
+    ['coast36', 'Coast Pad 36', 28.4711, -80.5378, 'generic', [28.4858, -80.5428]], ['gulf', 'Bay Starport', 25.9972, -97.4166, 'gulf-port', null], ['atoll', 'Atoll Range', 9.0477, 167.7433, 'atoll', null],
+    ['vandy', 'West Coast Pad', 34.672, -120.411], ['equator', 'Equator Port', 5.159, -52.828],
+    ['baikal', 'Steppe Cosmodrome', 45.965, 63.305], ['tanega', 'Island Center', 31.440, 130.970], ['palm', 'Palm Coast', 19.614, 110.671], ['peninsula', 'Peninsula Pad', -38.922, 177.705]],
   moon: [['tranq', 'Moon Base Pad', 0.7, 23.5, 'moon'], ['shackle', 'South Pole Rim', -89.5, 0], ['copern', 'Copernicus', 9.62, -20.08]],
   mars: [['gale', 'Mars Base Pad (Gale)', -5.4, 137.8, 'mars'], ['jezero', 'Jezero Crater', 18.38, 77.58], ['olympus', 'Olympus Mons Foot', 18.65, -133.8], ['hellas', 'Hellas Basin', -42.4, 70.5]],
   mercury: [['caloris', 'Caloris Basin', 30.5, 170.2]], venus: [['maxwell', 'Maxwell Montes', 65.2, 3.3]],

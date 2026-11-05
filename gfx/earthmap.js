@@ -35,3 +35,25 @@ export const coastEastM = nM => COAST.e0 + COAST.k * Math.max(-COAST.nMax, Math.
 // site land apron: radius (m) of guaranteed land around a site's pad in the ground tile, and the edge wobble/blend widths
 export const siteLand = S => { const g = (S && S.layout || []).find(o => o.k === 'ground'), l = (S && S.land) || {};
   return { r: l.r || Math.max(800, g ? Math.min(g.r || 0, 1600) + 200 : 800), sand: !!l.sand, wob: l.wob ?? 0.18, edge: l.edge || 300 }; };
+// sites-on-land-2: the pad meets the sampled terrain instead of stamping a land disc on open ocean.
+// water is the map mask (0 land .. 1 sea), dist metres from the pad, reach the wobbled apron radius.
+// An island (the atoll) feathers a shore into the sea. Everywhere else, deep water stays water — placement
+// has to put the pad on land — and only a damp coastal sample under the pad is pulled dry.
+export function groundBlend(water, dist, reach, edge, island) {
+  if (island) {
+    const inner = reach * 0.55, span = Math.max(1, reach - inner);
+    const t = dist <= inner ? 1 : Math.min(1, Math.max(0, (reach - dist) / span)), s = t * t * (3 - 2 * t);
+    return { water: water * (1 - s), tint: s };
+  }
+  const t = edge > 0 ? Math.min(1, Math.max(0, (reach - dist) / edge)) : (dist < reach ? 1 : 0), s = t * t * (3 - 2 * t);
+  if (s <= 0 || water <= 0.35 || water >= 0.72) return { water, tint: 0 };
+  return { water: water * (1 - s * (0.72 - water) / 0.37), tint: 0 };
+}
+// bilinear sample of a grayscale equirectangular mask (same lon/lat mapping as sampleEarth). px = { W, H, data }
+export function sampleGray(px, lat, lon) {
+  const W = px.W, H = px.H, a = px.data;
+  let u = (lon / 360 + 0.5) % 1; if (u < 0) u += 1;
+  const v = 0.5 - lat / 180, fx = u * W - 0.5, fy = Math.min(H - 1.001, Math.max(0, v * H - 0.5)), x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+  const at = (x, y) => a[(Math.min(H - 1, Math.max(0, y)) * W + ((x % W) + W) % W)];
+  return (at(x0, y0) * (1 - tx) + at(x0 + 1, y0) * tx) * (1 - ty) + (at(x0, y0 + 1) * (1 - tx) + at(x0 + 1, y0 + 1) * tx) * ty;
+}

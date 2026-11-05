@@ -12,8 +12,8 @@ export const padLandU = uniform(new THREE.Vector3(0.03, 0.043, 0.02)); // linear
 export const tileFadeU = uniform(new THREE.Vector4(0, 0, 1, 0)); // x: camera altitude (m), y: altitude alpha (main.js sets both every frame)
 export { GFX, GFX_ORDER } from './presets.js?v=f5.9-27';
 import { GFX } from './presets.js?v=f5.9-27';
-import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth, COAST, coastEastM, siteLand } from './earthmap.js?v=f5.9-27';
-export { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth, COAST, coastEastM, siteLand };
+import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth, COAST, coastEastM, siteLand, groundBlend, sampleGray } from './earthmap.js?v=f5.9-27';
+export { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth, COAST, coastEastM, siteLand, groundBlend, sampleGray };
 export const earthTexMatrix = () => new THREE.Matrix4().fromArray(EARTH_TEX_M4);
 export function softwareGPU() {
   try { const c = document.createElement('canvas'), gl = c.getContext('webgl2') || c.getContext('webgl'); if (!gl) return true;
