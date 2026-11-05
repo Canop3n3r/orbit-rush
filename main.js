@@ -38,6 +38,7 @@ import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } fr
 import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-27';
 import { createAudio } from './fun/audio.js?v=f5.9-32';
 import { ambientPressureRatio, engineListen, flightLoudness } from './fun/listen.js?v=f5.9-32';
+import { CAM_VIEWS, nextCamView, horizonChase, groundShot } from './fun/camcycle.js?v=f5.9-32';
 import { createMusic } from './fun/music.js?v=f5.9-32';
 import { createCompact } from './fun/compact.js?v=f5.9-27';
 import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-27';
@@ -1131,8 +1132,8 @@ function goBuild() {
   refreshBuild();
 }
 const clampCamPitch = p => Math.max(F && F.alt < 2000 ? -0.15 : -1.2, Math.min(1.2, p)); // f5.6f (QA cam)
-const GCAM = { on: false, fov0: 55, zoom: 1 };
-const CAMV = { list: ['ground', 'horizon', 'vehicle', 'free'], view: 'vehicle', open: 0, openT: 0, seen: false };
+const GCAM = { on: false, fov0: 55, zoom: 1, frame: null };
+const CAMV = { list: CAM_VIEWS, view: 'vehicle', open: 0, openT: 0, seen: false };
 let showFrame = null, showFrameT = 0, showT = 0, camUserT = -1e9, camDist = 90, camYaw = 0.5, camPitch = 0.12, mapZoom = 2.8, camAim = 0.45;
 function setThrottleTouch(u) { // the touch slider takes over from AUTO like Z/X do
   if (state !== 'flight' || F.flags.dead) return;
@@ -1853,12 +1854,12 @@ renderer.setAnimationLoop(() => {
     if (focus !== v && camDist > 400) camDist = 400; // f5.6f (QA cam): booster cam never frames from km away
     if (!TR.active && focus === v && !vwR && state === 'flight' && camMode === 'chase' && CAMV.view !== 'free' && !CAMV.open) { // f4.1: chase distance follows the rocket's size (never a dot); eases back after a user zoom. A playing trailer path owns the distance.
       const Ls = stackL(), cr = !!v.craft, want = cr ? Math.max(4, craftR() * 2.6, Math.min(60, Ls * 3.2 + 4)) : Math.max(30, Math.min(160, Ls * 2.6 + 20)), maxD = cr ? Math.max(60, Ls * 30 + 40) : Math.max(80, Ls * 9 + 60);
-      if (camDist > maxD) camDist += (maxD - camDist) * Math.min(1, rdt * 1.5); if (inOrbitView() && performance.now() - camUserT > 5000) camDist += (orbitDist() - camDist) * Math.min(1, rdt * 0.8); if (inOrbitView() && CAMV.view === 'vehicle' && !v.craft) { if (performance.now() - camUserT > 5000) camPitch += ((innerWidth < innerHeight ? ORBIT_PITCH + 0.1 : ORBIT_PITCH) - camPitch) * Math.min(1, rdt * 0.8); const lc = liveCenter(); if (lc) { orbAim.lerp(lc, orbAim.lengthSq() ? Math.min(1, rdt * 2) : 1); tgtV.copy(orbAim); } } else orbAim.set(0, 0, 0); // f5.9-18 (QA P3): in orbit look down on the craft so the planet limb fills the frame, and centre the live stages // f5.9-18: in orbit the chase eases in on the craft // f5.6f: ease (no ~70 m jump at staging) if (performance.now() - camUserT > 8000) camDist += (want - camDist) * Math.min(1, rdt * 0.8);
+      if (camDist > maxD && CAMV.view !== 'horizon') camDist += (maxD - camDist) * Math.min(1, rdt * 1.5); if (inOrbitView() && CAMV.view !== 'horizon' && performance.now() - camUserT > 5000) camDist += (orbitDist() - camDist) * Math.min(1, rdt * 0.8); if (inOrbitView() && CAMV.view === 'vehicle' && !v.craft) { if (performance.now() - camUserT > 5000) camPitch += ((innerWidth < innerHeight ? ORBIT_PITCH + 0.1 : ORBIT_PITCH) - camPitch) * Math.min(1, rdt * 0.8); const lc = liveCenter(); if (lc) { orbAim.lerp(lc, orbAim.lengthSq() ? Math.min(1, rdt * 2) : 1); tgtV.copy(orbAim); } } else orbAim.set(0, 0, 0); // f5.9-18 (QA P3): in orbit look down on the craft so the planet limb fills the frame, and centre the live stages // f5.9-18: in orbit the chase eases in on the craft // f5.6f: ease (no ~70 m jump at staging) if (performance.now() - camUserT > 8000) camDist += (want - camDist) * Math.min(1, rdt * 0.8);
     }
     if (focus === v && state === 'flight' && camMode === 'chase') {
       camOpening(rdt); // a playing ?cine= path yields inside camOpening and does not write dist/pitch/aim
       if (!TR.active && CAMV.view === 'free') camUserT = performance.now(); // free: nothing eases the camera back
-      else if (!TR.active && CAMV.view === 'horizon' && !CAMV.open) { const idle = performance.now() - camUserT; if (idle > 2500) camPitch += (0.03 - camPitch) * Math.min(1, rdt * 1.2); if (idle > 5000) camDist += ((inOrbitView() ? orbitDist() : Math.max(60, Math.min(420, (stackL() || 40) * 4 + 40))) - camDist) * Math.min(1, rdt * 0.8); }
+      else if (!TR.active && CAMV.view === 'horizon' && !CAMV.open) { const hw = horizonWant(), idle = performance.now() - camUserT; if (idle > 1800) { camPitch += (hw.pitch - camPitch) * Math.min(1, rdt * 2.4); camDist += (hw.dist - camDist) * Math.min(1, rdt * 1.8); } }
     }
     if (!TR.active) relFrameCam(rdt, focus);
     if (false && SET.camStyle === 'locked' && focus === v && state === 'flight') { // f5.6f (QA cam): LOCKED retired (it rolled the horizon) // locked: the camera turns with the craft (its axes, nose up on screen)
@@ -2123,19 +2124,29 @@ function renderPane(b, O, R2, i) {
 }
 // f5.3: the booster fills ~45 % of the pane's short side whatever its length or the pane shape (phone panes are short)
 function boosterFrameDist(b, R2) { let L = 40; try { L = Math.max(10, P.stackGeom(b).L || 40); } catch (e) { } return L * 2.14 * R2.h / Math.max(60, Math.min(R2.w, R2.h)); }
-// f5.3 (owner): ground spectator camera in AUTO: a fixed tripod ~2 km south-west of the pad, a few metres up, that tracks
-// the climbing rocket and zooms (narrows the field of view) so the rocket stays ~1/4 of the screen tall.
-// f5.9 camera views (V): ground (tripod beside the pad), horizon (low chase with the horizon level), vehicle (chase that follows the stack), free (stays where you put it).
+// f5.3 (owner): ground spectator camera. The view ring is ground → horizon → vehicle → free
+// (a flight starts on vehicle, so the first V / tap is free). Ground and horizon keep the limb in frame.
 const camLow = () => !!F && F.alt < 150000 && !F.flags.orbit && F.body === 'earth';
+function horizonWant() {
+  const b = (F && P.BODIES[F.body]) || {};
+  return horizonChase({ alt: F ? F.alt : 0, R: b.R || R, stackL: stackL() || 40, inOrbit: inOrbitView(), orbitDist: inOrbitView() ? orbitDist() : 40, fovDeg: GCAM.fov0 || 55 });
+}
+function paintCamBtn() {
+  const b = $('gcamBtn'); if (!b) return;
+  const lb = camViewLabel(); if (b.textContent !== lb) b.textContent = lb;
+  b.setAttribute('aria-label', 'Camera view: ' + CAMV.view);
+}
 function setCamView(w, quiet) {
   if (w === 'ground' && !camLow()) w = 'horizon';
   CAMV.view = w; GCAM.on = w === 'ground'; CAMV.open = 0; if (w === 'ground') GCAM.zoom = 1;
+  if (w === 'horizon' && F) { const hw = horizonWant(); camPitch = hw.pitch; camDist = hw.dist; }
   if (state === 'flight' && camMode !== 'map' && camMode !== 'booster') { camMode = 'chase'; if (w === 'ground' && split.on) split.full = 'u'; }
+  paintCamBtn();
   if (!quiet) toast({ ground: 'Camera: ground, beside the pad (pinch / wheel to zoom out to the horizon)', horizon: 'Camera: horizon, level with the horizon', vehicle: 'Camera: vehicle, follows the rocket', free: 'Camera: free, stays where you put it' }[w], '#9cc3ff');
 }
 function cycleCam() {
   if (state !== 'flight' || !F || camMode === 'map') return false;
-  const L = CAMV.list.filter(w => w !== 'ground' || camLow()), i = L.indexOf(CAMV.view); setCamView(L[(i + 1) % L.length]); return true;
+  setCamView(nextCamView(CAMV.view, camLow())); return true;
 }
 const camViewLabel = () => '🎥 ' + CAMV.view.toUpperCase();
 // Pad → ascent opening (fun/opening.js). 0–9 s slow zoom-out, 9–16 s blend onto the vehicle track.
@@ -2175,15 +2186,21 @@ function groundCam(O, th, base, nose, rdt) {
   if (GCAM.on && F && !low) { GCAM.on = false; if (CAMV.view === 'ground') { CAMV.view = 'horizon'; toast('Camera: horizon (the ground camera ends at orbit)', '#9cc3ff'); } }
   const want = !TR.active && GCAM.on && state === 'flight' && !!F && camMode === 'chase' && F.body === 'earth' && !photoOn && low;
   const b = $('gcamBtn'); if (b) { b.classList.toggle('hidden', !(state === 'flight' && F && camMode !== 'map' && !photoOn)); b.classList.toggle('on', want); const lb = camViewLabel(); if (b.textContent !== lb) b.textContent = lb; }
-  if (!want) { if (GCAM.act && !TR.active) { GCAM.act = false; camera.fov = GCAM.fov0; camera.updateProjectionMatrix(); } return; }
+  if (!want) { GCAM.frame = null; if (GCAM.act && !TR.active) { GCAM.act = false; camera.fov = GCAM.fov0; camera.updateProjectionMatrix(); } return; }
   if (!GCAM.act) { GCAM.act = true; GCAM.fov0 = camera.fov; }
+  const L = stackL() || 40, aimR = V.add(base, V.scale(nose, L * 0.45)), shot = groundShot({ zoom: GCAM.zoom, stackL: L, R, rocketAlt: V.len(aimR) - R });
+  GCAM.frame = shot;
   const ef = (v.site && v.site.ef) || [1, 0, 0], e0 = P.eastOf(ef), n0 = V.cross(ef, e0);
-  const g = V.add(V.add(V.scale(ef, R + 6), V.scale(n0, -1700)), V.scale(e0, -900)), gw = V.rotZ(g, th);
-  const L = stackL() || 40, aim = V.add(base, V.scale(nose, L * 0.5)), rel = V.sub(aim, gw), dist = V.len(rel);
-  camera.position.set(gw[0] - O[0], gw[1] - O[1], gw[2] - O[2]); const up = V.norm(gw); camera.up.set(up[0], up[1], up[2]);
-  camera.lookAt(aim[0] - O[0], aim[1] - O[1], aim[2] - O[2]);
-  const fov = Math.max(0.05, Math.min(80, 2 * Math.atan(L * 1.6 * GCAM.zoom / dist) * 180 / Math.PI)); // rocket ≈ 1/3 of the view height at zoom 1; zooming out widens to the horizon
-  camera.fov = fov; camera.updateProjectionMatrix(); // no easing: slow frames must not leave the rocket a dot
+  const away = V.norm(V.add(V.scale(n0, shot.north), V.scale(e0, shot.east))), theta = shot.horiz / Math.max(R, 1);
+  const radial = V.norm(V.add(V.scale(ef, Math.cos(theta)), V.scale(away, Math.sin(theta))));
+  const gw = V.rotZ(V.scale(radial, R + shot.camH), th), up = V.norm(gw);
+  camera.position.set(gw[0] - O[0], gw[1] - O[1], gw[2] - O[2]); camera.up.set(up[0], up[1], up[2]);
+  const rel = V.sub(aimR, gw), horizV = V.sub(rel, V.scale(up, V.dot(rel, up)));
+  const horizN = V.len(horizV) > 1 ? V.norm(horizV) : V.norm(V.sub(V.norm(ef), up));
+  const lookDir = V.norm(V.add(V.scale(horizN, Math.cos(shot.lookEl)), V.scale(up, Math.sin(shot.lookEl))));
+  const look = V.add(gw, lookDir);
+  camera.lookAt(look[0] - O[0], look[1] - O[1], look[2] - O[2]);
+  camera.fov = shot.fovDeg; camera.updateProjectionMatrix(); // zoom out dollies back and drops the aim onto the horizon
 }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-endf]'); if (!b) return; e.stopPropagation(); if (!b.dataset.arm) { b.dataset.arm = '1'; b.textContent = 'Tap again to end the flight'; setTimeout(() => { if (b.dataset.arm) { delete b.dataset.arm; b.textContent = '■ End flight'; } }, 3500); return; } delete b.dataset.arm; b.textContent = '■ End flight'; if (F.released && !F.ended) showEnd(); }, true); // f5.9i: ■ End flight from ☰ (two taps; capture phase so the first tap does not close ☰)
 let bugSnapReq = null;
@@ -2193,7 +2210,8 @@ const bugRep = createBugReporter({ build: (document.querySelector('script[src*="
 
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-bug]'); if (!b) return; e.stopPropagation(); const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); try { mobile.closeMenu(); } catch (er) { } setTimeout(() => bugRep.open(), 60); }); // f5.9-18: ☰ 🐞 Report a bug
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-gcam]'); if (!b) return; const g = $('gcamBtn'); if (g) g.click(); const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); try { mobile.closeMenu(); } catch (er) { } }); // f5.8i: 🎥 Ground cam from ☰
-{ const gb = document.createElement('button'); gb.id = 'gcamBtn'; gb.className = 'hidden'; gb.title = 'Camera view (V): ground, horizon, vehicle, free'; gb.textContent = '🎥 VEHICLE';
+{ const gb = document.createElement('button'); gb.id = 'gcamBtn'; gb.type = 'button'; gb.className = 'hidden'; gb.title = 'Camera view (V): ground, horizon, vehicle, free'; gb.setAttribute('aria-label', 'Camera view'); gb.textContent = '🎥 VEHICLE';
+  gb.addEventListener('pointerdown', e => e.stopPropagation());
   gb.onclick = e => { e.stopPropagation(); e.currentTarget.blur(); cycleCam(); };
   document.body.appendChild(gb); }
 const splitBs = () => [booster, booster2].filter(x => x && x.mesh && (x.state === 'flying' || x.state === 'landed' || x === booster));
@@ -2770,7 +2788,7 @@ window.__game.craftPx = () => { if (!rocketG) return null; rocketG.updateMatrixW
   liveMeshes(o => { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
     for (let i = 0; i < 8; i++) { p.set(i & 1 ? b.max.x : b.min.x, i & 2 ? b.max.y : b.min.y, i & 4 ? b.max.z : b.min.z).project(camera); const X = (p.x + 1) / 2 * innerWidth, Y = (1 - p.y) / 2 * innerHeight; x0 = Math.min(x0, X); x1 = Math.max(x1, X); y0 = Math.min(y0, Y); y1 = Math.max(y1, Y); } });
   return { mode: camMode, view: CAMV.view, open: CAMV.open, idle: Math.round(performance.now() - camUserT), orb: inOrbitView(), w: Math.round(x1 - x0), h: Math.round(y1 - y0), cx: Math.round((x0 + x1) / 2), cy: Math.round((y0 + y1) / 2), camDist: +camDist.toFixed(1), L: +stackL().toFixed(1) }; };
-window.__game.camView = () => ({ view: CAMV.view, open: CAMV.open, openT: +CAMV.openT.toFixed(2), ground: GCAM.on, gact: !!GCAM.act, gzoom: +GCAM.zoom.toFixed(3), dist: +camDist.toFixed(1), pitch: +camPitch.toFixed(3), label: ($('gcamBtn') || {}).textContent, btnHidden: !!($('gcamBtn') && $('gcamBtn').classList.contains('hidden')) }); // f5.9 test hook
+window.__game.camView = () => { const b = $('gcamBtn'), cs = b ? getComputedStyle(b) : null; return { view: CAMV.view, open: CAMV.open, openT: +CAMV.openT.toFixed(2), ground: GCAM.on, gact: !!GCAM.act, gzoom: +GCAM.zoom.toFixed(3), dist: +camDist.toFixed(1), pitch: +camPitch.toFixed(3), fov: +camera.fov.toFixed(1), gfrac: GCAM.frame ? +GCAM.frame.frac.toFixed(3) : null, gmean: !!(GCAM.frame && GCAM.frame.meaningful), label: b ? b.textContent : '', btnHidden: !!(b && b.classList.contains('hidden')), btnShown: !!(b && cs && cs.display !== 'none' && cs.visibility !== 'hidden' && !b.classList.contains('hidden')) }; }; // f5.9 test hook
 window.__game.camSet = (y, p, d, a) => { camYaw = y; camPitch = p; if (d) camDist = d; if (a != null) camAim = a; camUserT = performance.now() + 1e9; }; // flight-ground-3: shot tools aim the chase camera
 window.__game.tileOff = b => { tileForceOff = !!b; }; window.__game.tileFadeInfo = () => { const h = F ? Math.max(0, F.alt) : 0; return { h, alt: GX.tileAltAlpha(h), rim: GX.tileRimAlpha(h), vis: tile.visible || tileF.visible, fade: tileF.visible }; }; // f5.9 terrain: render A/B + fade numbers for tests/smoke/terrain_blend.cjs
 window.__game.scn = { scene, camera, earth, bodyG, stars, get W1() { return W1; }, sunDirV, get bodyCur() { return bodyCur; } }; // f6.4: far-planet smoke hooks
