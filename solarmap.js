@@ -12,6 +12,7 @@ import * as P from './physics.js?v=f5.9-27';
 import * as C from './physics/patched.js?v=f5.9-27';
 import { fmtDur } from './flight.js?v=f5.9-27';
 import { layoutHandles } from './maplayout.js?v=f5.9-27';
+import { mapOpenAim, mapFocusAllowed } from './mapaim.js?v=f5.9-32';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
 const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : UN.dist(m); }; // f5.7q: Units setting
@@ -110,6 +111,7 @@ export function createSolarMap(opts) {
     const f = focusAbs(), d = [-f[0], -f[1]]; return Math.hypot(d[0], d[1]) > 1 ? Math.atan2(d[1], d[0]) + Math.PI / 2 : 0.6; }
   function resetView() { S.yawT = sunYaw(); S.pitchT = PITCH0; S.pan = [0, 0, 0]; S.distT = niceDist(S.focus); S.idle = 99; }
   applyYP();
+  S.ptrAim = false; S.opening = false; S.snapView = false;
   const tNow = () => getF().tAbs;
   function craftAbs(t = tNow()) { const F = getF(), v = F.v, b = F.body, s = P.absState(b, t); return V.add(s.r, mv(P.frameOf(b), v.r)); }
   function bodyAbs(id, t = tNow()) { return P.absState(id, t).r; }
@@ -172,16 +174,17 @@ export function createSolarMap(opts) {
     const t = e.target; if (!S.on) return;
     if (t.dataset.node !== undefined) { selectNode(getF().nodes[+t.dataset.node]); return; }
     const id = t.dataset.id; if (!id) return; const now = performance.now();
+    if (!mapFocusAllowed(id, S.shownAt, now, S.ptrAim)) return; // the tap that opened the map must not retarget it
     setFocus(id); S.lastClick = now; S.lastId = id;
   });
   el.addEventListener('dblclick', e => { if (S.on) { let hitB = false; for (const id of IDS) { const p = bodies[id].scr; if (p && p.z < 1 && Math.hypot(p.x - e.clientX, p.y - e.clientY) < Math.max(18, p.r + 6)) hitB = true; } if (!hitB) resetView(); } });
-  labels.addEventListener('dblclick', e => { const id = e.target.dataset.id; if (id) setFocus(id); });
+  labels.addEventListener('dblclick', e => { const id = e.target.dataset.id; if (id && mapFocusAllowed(id, S.shownAt, performance.now(), S.ptrAim)) setFocus(id); });
   // click / tap on the scene: double = focus the nearest body; single on the trajectory = add a node there
   function click(x, y) {
     const now = performance.now(), dbl = now - S.lastClick < 350; S.lastClick = now;
     let best = null; for (const id of IDS) { const p = bodies[id].scr; if (p && p.z < 1) { const d = Math.hypot(p.x - x, p.y - y); if (d < Math.max(18, p.r + 6) && (!best || d < best.d)) best = { id, d }; } }
     if (craftScr && Math.hypot(craftScr.x - x, craftScr.y - y) < 18) best = { id: 'craft', d: 0 };
-    if (best) { setFocus(best.id); return; }
+    if (best) { if (mapFocusAllowed(best.id, S.shownAt, now, S.ptrAim)) setFocus(best.id); return; }
     if (dbl) { resetView(); return; }
     const hit = pickTraj(x, y); if (hit) { addNodeAt(hit.t); return; }
   }
@@ -284,7 +287,11 @@ export function createSolarMap(opts) {
     if (a === 'planb') { S.panelMode = 'plan'; runPlanner(S.bodyId); }
   });
   panel.addEventListener('change', e => { const t = e.target, n = S.sel; if (t.dataset.k && n) { const x = parseFloat(t.value); if (isFinite(x)) { n[t.dataset.k] = x; n.started = false; S.predKey = ''; renderPanel(true); } } });
-  document.addEventListener('pointerdown', e => { S.moreDown = !!(e.target && e.target.dataset && e.target.dataset.a === 'more'); }, true); /* f5.9-19: the ghost click from the MAP tap never pressed down on the more button */
+  document.addEventListener('pointerdown', e => {
+    S.moreDown = !!(e.target && e.target.dataset && e.target.dataset.a === 'more'); /* f5.9-19: the ghost click from the MAP tap never pressed down on the more button */
+    if (!S.on) return; const t = e.target;
+    S.ptrAim = !!(t && ((t.closest && t.closest('#mapLabels, #mapBar, #mapMore, #mapPanel, #mapBurn')) || t === el));
+  }, true);
   const barClick = e => {
     const a = e.target.dataset.a, F = getF(); if (!a) return; e.target.blur(); const mm = ui.querySelector('#mapMore');
     if (a === 'more') { /* QA f5.9-16: MAP fires on pointerdown, so the same touch's click can land on ⋯ (same spot on phones) and open this grid; ignore ⋯ for 500 ms after the map opens */ if (performance.now() - (S.shownAt || 0) < 500 || (e.detail > 0 && !S.moreDown)) return; mm.classList.toggle('hidden'); return; } if (mm.contains(e.target) && a !== 'conic') mm.classList.add('hidden');
@@ -321,6 +328,12 @@ export function createSolarMap(opts) {
   function update(rdt) {
     if (!S.on) return; const F = getF(), t = F.tAbs, v = F.v;
     S.W = innerWidth; S.H = innerHeight; camera.aspect = S.W / S.H;
+    if (S.opening) { // first frame: the camera is on the vessel you are flying, even if a click landed between open and paint
+      const aim = mapOpenAim(F, orbitFitDist);
+      S.focus = aim.focus; S.aimCraft = aim.activeId; S.pan = [0, 0, 0]; S.trans = null;
+      S.dist = S.distT = Math.max(aim.dist, minDist()); S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; applyYP();
+      $('mapFocus').textContent = 'Craft'; S.opening = false;
+    }
     S.dist += (S.distT - S.dist) * Math.min(1, rdt * 8); S.dist = Math.max(minDist(), S.dist);
     if (S.trans) { S.trans.k = Math.max(0, S.trans.k - rdt * 3.3); if (S.trans.k <= 0) S.trans = null; }
     const ease = S.trans ? S.trans.k * S.trans.k * (3 - 2 * S.trans.k) : 0;
@@ -335,7 +348,7 @@ export function createSolarMap(opts) {
       const tx = pr && pr.left > S.W * 0.35 ? (S.W - pr.left) / 2 : 0; let y0 = 0, y1 = S.H; // f5.9-18 (phone map): centre the focus between whatever chrome sits at the top and at the bottom (the bar is at the top on phones)
       for (const r of [br && br.height ? br : null, pr && pr.left <= S.W * 0.35 ? pr : null]) { if (!r) continue; if (r.top < S.H * 0.4) y0 = Math.max(y0, r.bottom); else y1 = Math.min(y1, r.top); }
       const ty = Math.max(-S.H * 0.35, Math.min(S.H * 0.35, S.H / 2 - (y0 + y1) / 2)); // full-width panel (phone portrait): shift up
-      S.vo = S.vo || [0, 0]; const k = Math.min(1, rdt * 6); S.vo[0] += (tx - S.vo[0]) * k; S.vo[1] += (ty - S.vo[1]) * k;
+      S.vo = S.vo || [0, 0]; if (S.snapView && br && br.height) { S.vo[0] = tx; S.vo[1] = ty; S.snapView = false; } else if (!S.snapView) { const k = Math.min(1, rdt * 6); S.vo[0] += (tx - S.vo[0]) * k; S.vo[1] += (ty - S.vo[1]) * k; }
       if (Math.abs(S.vo[0]) + Math.abs(S.vo[1]) > 0.5) camera.setViewOffset(S.W, S.H, S.vo[0], S.vo[1], S.W, S.H); else camera.clearViewOffset();
     }
     camera.updateProjectionMatrix(); camera.updateMatrixWorld();
@@ -475,8 +488,16 @@ export function createSolarMap(opts) {
     return false;
   }
   function orbitFitDist(far) { /* f5.9-19 (QA P3): centred on the craft, the far side of the orbit is ~2 orbit radii away; fit that, with margin, in the narrower half-FOV (portrait phones are narrow) */ const vh = (camera.fov || 50) * Math.PI / 360, hh = Math.atan(Math.tan(vh) * (S.W || innerWidth) / (S.H || innerHeight)); return 2.2 * far / Math.tan(Math.min(vh, hh)); }
-  function show(on) { if (on && !S.on) { S.inited = true; { const F = getF(), o = P.orbitOf(F.v), Rb = B[F.body].R, far = isFinite(o.ra) && o.ra < B[F.body].soi ? Math.max(o.ra, V.len(F.v.r)) : 0; // f3: frame the whole orbit around the body
-      S.focus = 'craft'; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.dist = S.distT = far ? Math.max(Rb * 3.2, orbitFitDist(far)) : niceDist('craft'); /* f5.9-18 (owner): the map always opens on the active craft (even after looking at a planet), far enough out that its orbit shows */ } S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; S.idle = 3; ui.querySelector('#mapMore').classList.add('hidden'); S.shownAt = performance.now(); } S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on); if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist());  $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); } }
+  function show(on) {
+    if (on && !S.on) { // every open centers the vessel you are flying. The last planet, pan, and glide are dropped. The orbit of that vessel still frames the zoom.
+      S.inited = true; const aim = mapOpenAim(getF(), orbitFitDist);
+      S.focus = aim.focus; S.aimCraft = aim.activeId; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.dist = S.distT = aim.dist;
+      S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; S.idle = 3; S.ptrAim = false; S.vo = [0, 0]; S.snapView = true; S.opening = true; applyYP();
+      ui.querySelector('#mapMore').classList.add('hidden'); S.shownAt = performance.now();
+    }
+    S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on);
+    if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist()); $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); }
+  }
   function reset() { S.focus = 'craft'; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.panelMode = null; S.plan = null; S.pred = null; S.inited = false; renderPanel(); }
   // f5.4j: test probe: where the map draws the craft vs a body (map metres) and the end of the drawn trajectory
   const probe = id => { const o = bodies[id || getF().body]; return o && o.m ? { craftToBody: craftDot.position.distanceTo(o.m.position), R: B[id || getF().body].R, drawnR: o.m.scale.x } : null; };
