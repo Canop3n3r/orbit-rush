@@ -933,7 +933,7 @@ body.u59:has(#split.fullB:not(.hidden)) #split.fullB{top:var(--topH,52px)!import
   html body.u59 #tankViz{height:12px;flex:1 1 auto}
   html body.u59 #botBar{padding-top:2px!important;padding-bottom:calc(2px + var(--sab))!important;gap:2px 6px!important}
   html body.u59 #bbR{flex-direction:column!important;align-items:stretch!important;gap:4px!important}
-  /* RELEASE / CRAFT sit above the left of the bar so they stay thumbable without lengthening the opaque slab (the navball has to stay taller than the bar). */
+  /* RELEASE / CRAFT sit above the left of the bar so they stay thumbable without lengthening the opaque slab (the navball has to stay taller than the bar). Portrait RELEASE is pulled back onto STAGE below, once a payload can fly. */
   html body.u59 #botBar :is(#relBtn,#craftBtn){position:fixed!important;left:calc(8px + var(--sal))!important;right:auto!important;bottom:calc(var(--botH,96px) + 6px)!important;width:auto!important;min-width:44px!important;height:40px!important;padding:0 8px!important;z-index:4}
   html body.u59 #botBar :is(#mright,#dCtl){grid-template-columns:auto 48px!important;grid-template-rows:var(--ctlH) var(--ctlH)!important;grid-auto-rows:0!important;height:auto!important;gap:4px!important;align-items:stretch!important}
   html body.u59 #botBar :is(#mAuto,#dAuto){grid-column:1!important;grid-row:1!important}
@@ -968,4 +968,10 @@ html body.u59 #pause details.pMore>.col button{flex:none!important;width:100%;he
   html body.u59 :is(#mMenu,#dMenu){right:calc(148px + var(--sar))!important;left:auto!important;width:min(300px,calc(100vw - 220px))!important;max-height:calc(100dvh - var(--topH) - 72px)!important;overflow:auto!important}
   html body.u59 :is(#mMenu,#dMenu) .mg.mTop{grid-template-columns:1fr 1fr!important}
   html body.u59 :is(#mMenu,#dMenu) .mg.mTop button{min-width:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-inline:8px!important}
+}
+/* f5.9-34 (QA f5.9-31): portrait RELEASE covers the STAGE cell (those pixels were already a button) instead of the OR-013 pin above the bar, which counted as its own chrome. Still ≥40px, still reads RELEASE, and it stays off the 48px track. CRAFT keeps the pin. Landscape and wide screens are unchanged. */
+@media (orientation:portrait) and (max-width:700px){
+  html body.u59 #botBar :is(#mStage,#dStage){anchor-name:--stageSlot}
+  html body.u59 #bbR:has(#relBtn:not(.hidden)){position:relative}
+  html body.u59 #botBar #relBtn:not(.hidden){position:absolute!important;position-anchor:--stageSlot;top:anchor(top)!important;left:anchor(left)!important;right:auto!important;bottom:auto!important;width:anchor-size(width)!important;height:anchor-size(height)!important;min-width:0!important;max-width:none!important;min-height:40px!important;margin:0!important;z-index:4;padding:0!important;font-size:10px!important;letter-spacing:0!important;white-space:nowrap;overflow:hidden}
 }

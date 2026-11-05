@@ -3,7 +3,7 @@ import { createBugReporter } from './fun/bugreport.js?v=f5.9-27';
 import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-27';
 import { uniform } from 'three/tsl';
 import * as P from './physics.js?v=f5.9-27';
-import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur, recoveryPlan } from './flight.js?v=f5.9-32';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur, recoveryPlan } from './flight.js?v=f5.9-34';
 import * as C from './physics/patched.js?v=f5.9-27';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
@@ -17,7 +17,7 @@ import { createSolarMap } from './solarmap.js?v=f5.9-32';
 import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-27';
 import { FX } from './fx.js?v=f5.9-32';
 import { createAcademy } from './academy-ui.js?v=f5.9-27';
-import { createMobile, isTouch, thrFromY } from './mobile.js?v=f5.9-27';
+import { createMobile, isTouch, thrFromY } from './mobile.js?v=f5.9-34';
 import { localize } from './wording.js?v=f5.9-27';
 import { loadSettings, saveSettings, makeTranslator, fmtDist, fmtSpeed } from './settings.js?v=f5.9-27';
 import { createQoL, dvTableHTML } from './qol-ui.js?v=f5.9-27';
@@ -2633,7 +2633,7 @@ const dCtl = (() => { if (TOUCH) return null; const d = document.createElement('
   return d; })();
 function dCtlTick() { if (!dCtl) return; const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); dCtl.classList.toggle('hidden', !on); if (!on) { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); return; } // f5.6h (QA): the ☰ never stays open over the end card
   if (F.ignited && dCtlTick.ig !== F) { dCtlTick.ig = F; const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); try { mobile.closeMenu(); } catch (e) { } } // f5.7e (QA f5.7c P2): ☰ closes at liftoff (it stayed open from ascent to orbit)
-  const t = Math.round(100 * (v.throttle || 0)); $('dThr').querySelector('i').style.height = t + '%'; $('dThr').style.setProperty('--t', (v.throttle || 0).toFixed(3)); $('dThr').querySelector('u').textContent = t + '%'; $('dAuto').classList.toggle('on', !!F.autoOn); } // f5.5c (owner): plain telemetry: mph, Ap/Pe with T−/+, Δv per stage
+  const t = Math.round(100 * (v.throttle || 0)); $('dThr').querySelector('i').style.height = t + '%'; $('dThr').style.setProperty('--t', (v.throttle || 0).toFixed(3)); $('dThr').querySelector('u').textContent = t ? t + '%' : ''; $('dThr').setAttribute('aria-valuenow', String(t)); $('dAuto').classList.toggle('on', !!F.autoOn); } // f5.5c (owner): plain telemetry: mph, Ap/Pe with T−/+, Δv per stage. f5.9-31: blank the pill at cutoff ("0%" was an orbit_toast word)
 const tankViz = createTankViz();
 function tankTick() { try { const on = state === 'flight' && !!F && !!v && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden'); tankViz.tick(v, on, flyingBooster() && booster ? booster.stages[0] : null); } catch (e) { } }
 function plainTick() {
