@@ -51,6 +51,7 @@ import { createPlainHud, apsisLine, stageDvs, fmtHeight, MPH, landAid, hudSpeed 
 import { createHome } from './fun/home.js?v=f5.9-27';
 import { SHOWROOM, MODEL_OF, RETIRED, DEFAULT_ID, bars as showBars, missionLabel } from './fun/showroom.js?v=f5.9-27';
 import { frameRocket, SHOWROOM_PAD } from './gfx/showroom_frame.js?v=f5.9-27';
+import { padChaseFrame, padFrameActive, pointsObject } from './gfx/pad_frame.js?v=f5.9-31';
 import { createFunUI } from './fun/ui.js?v=f5.9-27';
 import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHICLES as ART, ART_NAMES, dispose as heroDispose, release as heroRelease, setPayload as heroSetPayload, buildPayload, preloadStaged, stagedReady } from './gfx/vehicles/vehicles.js?v=f5.9-27';
 import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-27';
@@ -712,6 +713,53 @@ function liveCenter() { const t = performance.now(); if (t - _lcT < 250 && _lcV)
   return (_lcV = _lb.isEmpty() ? null : _lb.getCenter(_lcV || new THREE.Vector3())); } // f5.9-18: world centre of the live stages (orbit framing)
 const inOrbitView = () => !!(F && v && F.body === 'earth' ? (F.flags.orbit || P.altOf(v) > 100000) : F && F.flags.orbit);
 function fitDist(L, frac) { const vf = (camera.fov || 50) * Math.PI / 180; return Math.max(18, L / frac / (2 * Math.tan(vf / 2))); }
+// f5.9-31 (OR-014): on the pad, fit the stack into the strip above the centred navball so legs and fins are not behind it. Flight chase is untouched.
+let padFrameKey = '';
+const _pn = new THREE.Vector3(), _pc = new THREE.Vector3(), _ps = new THREE.Vector3(), _px = new THREE.Vector3();
+// Chase-space silhouette (x toward the camera, y up the nose) so legs facing the lens are the ones the solver clears.
+// The whole rendered stack is measured: legs live on the stage group, not only on the hero mesh, and one skipped vertex used to leave the feet on the ball.
+function padSilhouette() {
+  if (!rocketG) return null;
+  rocketG.updateMatrixWorld(true);
+  _pn.set(0, 1, 0).applyQuaternion(rocketG.quaternion);
+  _pc.copy(N).multiplyScalar(Math.cos(camYaw)).addScaledVector(E, Math.sin(camYaw));
+  if (_pc.lengthSq() < 1e-8) return null; _pc.normalize(); _ps.crossVectors(_pn, _pc); if (_ps.lengthSq() < 1e-8) return null; _ps.normalize();
+  const o = rocketG.position, on = _pn.dot(o), oc = _pc.dot(o), os = _ps.dot(o), meshes = [];
+  let y0 = Infinity, y1 = -Infinity;
+  rocketG.traverse(m => { if (!m.isMesh || !m.visible || !m.geometry?.attributes?.position) return; meshes.push(m);
+    const pa = m.geometry.attributes.position;
+    for (let i = 0; i < pa.count; i++) { _px.fromBufferAttribute(pa, i).applyMatrix4(m.matrixWorld); const y = _pn.dot(_px) - on; if (y < y0) y0 = y; if (y > y1) y1 = y; } });
+  if (!(y1 > y0)) return null;
+  const out = [];
+  for (const m of meshes) { const pa = m.geometry.attributes.position, st = Math.max(1, Math.ceil(pa.count / 2000));
+    for (let i = 0; i < pa.count; i++) { _px.fromBufferAttribute(pa, i).applyMatrix4(m.matrixWorld); const y = _pn.dot(_px) - on;
+      if (i % st && y > y0 + 8 && y < y1 - 2) continue; out.push([_pc.dot(_px) - oc, y, _ps.dot(_px) - os]); } }
+  return out.length >= 8 ? pointsObject(out) : null;
+}
+function stackRim() {
+  const L = Math.max(4, stackL() || 40); if (!rocketG) return Math.max(1.2, L * 0.09);
+  const bx = rocketBounds(); if (!bx) return Math.max(1.2, L * 0.09);
+  const s = [bx.max.x - bx.min.x, bx.max.y - bx.min.y, bx.max.z - bx.min.z].sort((a, b) => a - b);
+  const rad = (s[2] > s[1] * 1.4 ? s[1] : s[2]) / 2; // cross-section, so a rocket standing on +X is not measured by its height
+  return Math.max(1.2, Math.min(Number.isFinite(rad) ? rad : L * 0.09, L * 0.45));
+}
+function padChromeFree() {
+  const H = innerHeight || 1, box = e => { if (!e) return null; const r = e.getBoundingClientRect(); if (r.width < 8 || r.height < 8) return null; const c = getComputedStyle(e); if (c.display === 'none' || c.visibility === 'hidden' || +c.opacity === 0) return null; return r; };
+  const tr = box(document.getElementById('topBar')), nr = box(document.getElementById('navBall')), br = box(document.getElementById('botBar')); if (!nr && !br) return null;
+  const topPx = Math.max(48, tr ? tr.bottom : 0), botPx = Math.max(nr ? H - nr.top : 0, br ? H - br.top : 0); if (botPx < 24) return null;
+  return { top: topPx / H, bottom: botPx / H };
+}
+function framePadChase() {
+  if (!F || !padFrameActive({ state, ignited: !!F.ignited, camMode, view: CAMV.view, open: !!CAMV.open, trailer: !!(TR && TR.active), userAgoMs: performance.now() - camUserT })) return;
+  const free = padChromeFree(); if (!free) return;
+  const L = Math.max(4, stackL() || 40), coarse = `${innerWidth}x${innerHeight}:${free.top.toFixed(3)}:${free.bottom.toFixed(3)}:${L.toFixed(1)}`;
+  if (padFrameKey.startsWith(coarse + ':')) return; // chrome unchanged: don't re-measure the mesh every frame
+  const rad = stackRim(), key = `${coarse}:${rad.toFixed(1)}`; if (key === padFrameKey) return;
+  try {
+    const f = padChaseFrame({ L, fovDeg: camera.fov || 55, aspect: camera.aspect || innerWidth / Math.max(1, innerHeight), screenH: innerHeight, free, radius: rad, elev: 0.12, padPx: 36, object: padSilhouette() });
+    camDist = f.dist; camAim = f.aim; camPitch = f.pitch; padFrameKey = key;
+  } catch (e) { console.warn('[Orbit Rush] pad frame', e); }
+}
 function setDesign(d) { design = d; refreshBuild(); } // f5.9-0: the hangar / Build screen is gone; a rocket pick just loads its design for the pad
 function refreshBuild() { if (state === 'build') showPreview(); } // f5.9-0: was the builder refresh (stage list, Δv table, verdict worker, saved designs); only the pad preview is left
 const qol = createQoL({ fillExtras: x => { const g = $('hGearM'); if (g) for (const el of [...g.children]) x.appendChild(el); }, settings: () => SET, onSettings: s => { SET = s; translate = makeTranslator(SET); applyAudioSettings(); if (typeof smap !== 'undefined' && smap.conic !== SET.conic) smap.setConic(SET.conic); if (state === 'build') refreshBuild(); },
@@ -883,7 +931,7 @@ function prewarmHeavy() { // rockets-3: build the heavy hero LODs in idle slices
   const W = heroPrewarm(ids, { phone: TOUCH });
   for (const id of ids) { const k = id + (TOUCH ? ':p' : ''), p = W.get(k); if (!p || HERO_WARM.has(k)) continue; HERO_WARM.add(k); p.then(l => { if (HERO_WARM.has(k)) { HERO_READY.set(k, l); HERO_WARM.delete(k); W.delete(k); } }).catch(() => HERO_WARM.delete(k)); } }
 function fixTangents(root) { if (!root) return; root.traverse(o => { const g = o.isMesh && o.geometry, m = o.material; if (!g || !m || Array.isArray(m) || g.attributes.tangent) return; if (!(m.normalMap || m.clearcoatNormalMap)) return; if (g.index && g.attributes.uv && g.attributes.normal) { try { g.computeTangents(); } catch (e) { } } }); } /* f5.9-20 (owner: super-heavies froze on iPhone): a normal-mapped mesh without tangents makes an invalid WebGPU pipeline, and the whole frame is dropped from then on */
-function attachHero() { showFrame = null; // re-frame from the new model at once
+function attachHero() { showFrame = null; padFrameKey = ''; // re-frame from the new model at once (showroom, and the pad chase once the legs/fins mesh is in)
   // f6.0 Blender stage assets: the rocket's per-stage .glb files load in the background (phones: mid+lo only). Until they are parsed the procedural model stands in;
   // once ready, a model that has not ignited yet is rebuilt from the manifest (the pad sits idle until STAGE, so this lands before anyone flies it).
   { const m0 = design.model; if (m0 && !stagedReady(m0, TOUCH ? 'mid' : 'hi')) preloadStaged(m0, { phone: TOUCH }).then(ok => { try { if (ok && design.model === m0 && F && !F.ignited && hero && !(hero.userData && hero.userData.staged)) { HERO_READY.delete(m0 + (TOUCH ? ':p' : '')); attachHero(); } } catch (e) { console.warn('[Orbit Rush] staged swap', e); } }); }
@@ -1078,7 +1126,7 @@ function reset() {
   if (shipVis) earth.remove(shipVis); if (shipVis2) earth.remove(shipVis2); shipVis2 = null; if (booster2 && booster2.mesh) scene.remove(booster2.mesh); booster2 = null;
   shipVis = null; booster = null; camMode = 'chase'; CAMV.view = 'vehicle'; CAMV.open = 0; CAMV.seen = false; GCAM.on = false; GCAM.zoom = 1; try { director = null; replay = null; slowMo = 0; recBuf.length = 0; for (const k in seen) delete seen[k]; dirPhase = ''; } catch (e) { }
   try { split.rec.length = 0; split.done = 0; split.closed = false; split.replay = null; split.full = null; } catch (e) { } if (typeof smap !== 'undefined') smap.reset();
-  camDist = Math.min(fitDist(stackL(), 0.6), 420); /* f5.8f (QA P1): real sizes — a 120 m super-heavy needs ~210 m to fit (the old 140 m cap cut the nose off) */ camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8; camAim = 0.5; // f4 pad framing
+  camDist = Math.min(fitDist(stackL(), 0.6), 420); /* f5.8f (QA P1): real sizes — a 120 m super-heavy needs ~210 m to fit (the old 140 m cap cut the nose off) */ camYaw = 0.5; camPitch = 0.12; mapZoom = 2.8; camAim = 0.5; padFrameKey = ''; // f4 pad framing; f5.9-31 lifts it above the navball on the next frame
   fire.clear(); smoke.clear(); for (const k in keys) keys[k] = false;
   if (swingArm) swingArm.rotation.y = 0;
   $('end').classList.add('hidden'); $('toasts').innerHTML = '';
@@ -1827,6 +1875,7 @@ renderer.setAnimationLoop(() => {
     const cu = new THREE.Vector3(U.x, U.y, 0); if (cu.lengthSq() < 1e-6) cu.set(0, 1, 0);
     camera.position.set(-O[0], -O[1], -O[2] + R * mapZoom); camera.up.set(0, 1, 0); camera.lookAt(-O[0], -O[1], -O[2]); // f5.6f (QA cam): map up = fixed ecliptic north, no roll as you orbit
   } else {
+    framePadChase(); // f5.9-31 (OR-014): pad only — base clears the centred navball; flight chase is unchanged
     if (vwR) tgtV.set(0, 0, 0); else if (focus === v) tgtV.set(nose[0], nose[1], nose[2]).multiplyScalar(stackL() * camAim - tel.ycom);
     else tgtV.set(booster.dir[0], booster.dir[1], booster.dir[2]).multiplyScalar(15);
     if (focus !== v && camDist > 400) camDist = 400; // f5.6f (QA cam): booster cam never frames from km away
