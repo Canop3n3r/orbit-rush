@@ -2048,7 +2048,10 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
   pp.addEventListener('wheel', e => { if (split.full === 'b') return; split.dist = Math.max(25, Math.min(1500, split.dist * Math.exp(e.deltaY * 0.001))); manual(); e.preventDefault(); e.stopPropagation(); }, { passive: false });
   $('spMain').onclick = () => { if (split.full) { split.full = null; camMode = 'chase'; } };
   $('spFullU').onclick = e => { e.stopPropagation(); split.full = split.full === 'u' ? null : 'u'; camMode = 'chase'; }; // f5.3: focus the upper stage (keeps its own card)
-  $('spRecBtn').onclick = e => { e.stopPropagation(); const s = $('spRec'); if (!s) return; s.classList.toggle('hidden'); e.currentTarget.classList.toggle('on', !s.classList.contains('hidden')); e.currentTarget.blur(); }; // f5.9-31: one chip opens RTLS / BARGE / AUTO
+  let recChipAt = 0; // f5.9-41: pointerdown toggles the sheet, same path as the RTLS / BARGE / AUTO buttons. The click that follows a tap is ignored.
+  const toggleRec = btn => { const s = $('spRec'); if (!s || !btn || split.full !== 'b') return; s.classList.toggle('hidden'); btn.classList.toggle('on', !s.classList.contains('hidden')); };
+  $('spRecBtn').addEventListener('pointerdown', e => { if (e.button != null && e.button !== 0) return; e.stopPropagation(); recChipAt = performance.now(); toggleRec(e.currentTarget); });
+  $('spRecBtn').addEventListener('click', e => { e.stopPropagation(); if (performance.now() - recChipAt < 700) { e.currentTarget.blur(); return; } toggleRec(e.currentTarget); e.currentTarget.blur(); }); // f5.9-31: one chip opens RTLS / BARGE / AUTO
   const applyRec = bt => { if (!bt || !F) return; F.setRecovery(bt.dataset.rec); paintRecChip(); }; // OR-015: pointerdown so a phone tap on the sheet is not lost
   $('spRec').addEventListener('pointerdown', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt) return; e.preventDefault(); applyRec(bt); bt._recAt = performance.now(); });
   $('spRec').addEventListener('click', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt || (bt._recAt && performance.now() - bt._recAt < 700)) return; applyRec(bt); });
