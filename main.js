@@ -13,7 +13,7 @@ var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract
 import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-27';
 import { createCareerUI } from './fun/career-ui.js?v=f5.9-27';
 import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-27';
-import { createSolarMap } from './solarmap.js?v=f5.9-27';
+import { createSolarMap } from './solarmap.js?v=f5.9-32';
 import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-27';
 import { FX } from './fx.js?v=f5.9-27';
 import { createAcademy } from './academy-ui.js?v=f5.9-27';
