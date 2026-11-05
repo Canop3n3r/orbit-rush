@@ -902,3 +902,9 @@ body.u59:has(#split.fullB:not(.hidden)) #topBar{z-index:62}
 @media (max-width:560px){#spRec .spRecW{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:100%}}
 /* f5.9-22 (QA P2): on a 390 phone the Pause bar is two rows of three, with room around Quicksave / Quickload */
 @media (max-width:560px){html body.u59 #pause .mbox>:is(.row,.col){flex-wrap:wrap!important;row-gap:6px!important}html body.u59 #pause .mbox>:is(.row,.col) button{flex:1 1 calc(33.3% - 8px)!important;padding:0 8px!important;white-space:nowrap}}
+/* OR-008: CTRL opens stage, fairing, payload, engines, RCS, fine and keep. The button stays in the top bar while AUTO is on; the sheet is a drawer under that bar. */
+#manSheet{position:fixed;top:var(--topH);left:0;right:0;z-index:58;display:flex;flex-wrap:wrap;gap:6px;padding:8px;box-sizing:border-box;background:var(--panel);border-bottom:var(--bw) solid var(--bc);pointer-events:auto;max-height:calc(100dvh - var(--topH) - var(--botH));overflow:auto}
+#manSheet.hidden{display:none!important}
+#manSheet button{min-height:var(--tap);min-width:var(--tap);pointer-events:auto}
+#manSheet button.off{opacity:.45}
+#manSheet button.on,#manBtn.on{background:var(--btn-on)!important}

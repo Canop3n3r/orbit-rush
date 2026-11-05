@@ -3,7 +3,7 @@ import { createBugReporter } from './fun/bugreport.js?v=f5.9-27';
 import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-27';
 import { uniform } from 'three/tsl';
 import * as P from './physics.js?v=f5.9-27';
-import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-29';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur } from './flight.js?v=f5.9-30';
 import * as C from './physics/patched.js?v=f5.9-27';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
@@ -31,7 +31,7 @@ import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, h
 import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-27';
 import { guardToasts } from './fun/toastzone.js?v=f5.9-27';
 import * as GX from './gfx/gfx.js?v=f5.9-27';
-import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-27';
+import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-30';
 import * as PR from './fun/progress.js?v=f5.9-27';
 import * as WORLD from './fun/world.js?v=f5.9-27';
 import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-27';
@@ -1235,8 +1235,8 @@ function press(code) {
   if (v.auto && ['KeyZ', 'KeyX', 'KeyF'].includes(code)) { F.takeOverUpper(); if (code === 'KeyF') return; }
   let res;
   if (code === 'Space') { const r = res = F.stagePress(); if (r === 'ignite') $('ignite').classList.add('hidden'); stageFlash(r); }
-  if (code === 'KeyZ') v.ut = 1;
-  if (code === 'KeyX') { v.ut = 0; F.autoWarp = false; }
+  if (code === 'KeyZ') { if (!F.setEngines(true)) v.ut = 1; } // OR-008: Z/X is the player's throttle, including while AUTO or a mission is flying
+  if (code === 'KeyX') { if (!F.setEngines(false)) v.ut = 0; F.autoWarp = false; }
   if (code === 'KeyF') F.setAuto(!F.autoOn);
   if (code === 'KeyC') F.toggleRCS();
   if (SAS_KEYS[code]) F.setSAS(SAS_KEYS[code]);
@@ -1305,13 +1305,14 @@ function readControls(rdt) {
   }
   if (F.flags.dead) return;
   const mi0 = mobile.input, ks = SET.sens.stick, mi = { pitch: mi0.pitch * ks * 1.6, yaw: mi0.yaw * ks * 1.6, roll: mi0.roll * 1.4 } /* f5.6d (QA): touch steering had too little authority */, cl = x => Math.max(-1, Math.min(1, x));
-  const inp = { pitch: cl(k1('KeyW', 'KeyS') + mi.pitch), yaw: cl(k1('KeyA', 'KeyD') + mi.yaw), roll: cl(k1('KeyE', 'KeyQ') + mi.roll) };
-  const tr = [k1('KeyL', 'KeyJ'), k1('KeyH', 'KeyN'), k1('KeyI', 'KeyK')];
-  const any = inp.pitch || inp.yaw || inp.roll || tr.some(Boolean);
+  const raw = { pitch: cl(k1('KeyW', 'KeyS') + mi.pitch), yaw: cl(k1('KeyA', 'KeyD') + mi.yaw), roll: cl(k1('KeyE', 'KeyQ') + mi.roll) };
+  const tr0 = [k1('KeyL', 'KeyJ'), k1('KeyH', 'KeyN'), k1('KeyI', 'KeyK')];
+  const any = raw.pitch || raw.yaw || raw.roll || tr0.some(Boolean);
   if (any && director && director.active) { director.takeOver(); toast('You have control', '#9cc3ff'); }
   if (any && v.auto) F.takeOverUpper();
   if (any && F.ret && F.ret.auto) F.setAuto(false);
-  if (any && F.autoOn && !v.clamped) { F.setAuto(false, true); toast('Manual control — SAS ' + P.SAS_LABEL[v.sas], '#9cc3ff'); $('tProg').classList.remove('on'); }
+  if (any && !v.clamped) { F.attManual = true; v.steerDir = null; if (F.autoOn && !readControls.nose) { readControls.nose = 1; toast('You have the nose — AUTO still has the throttle (F for full manual)', '#9cc3ff'); } } // OR-008: the stick takes the nose and leaves AUTO on
+  const kFine = v.fine ? 0.2 : 1, inp = { pitch: raw.pitch * kFine, yaw: raw.yaw * kFine, roll: raw.roll * kFine }, tr = tr0.map(x => x * kFine);
   if (keys.ShiftLeft || keys.ShiftRight || keys.ArrowUp) v.ut = Math.min(1, v.ut + rdt * 0.8);
   if (keys.ControlLeft || keys.ControlRight || keys.ArrowDown) v.ut = Math.max(0, v.ut - rdt * 0.8);
   v.input = v.clamped ? { pitch: 0, yaw: 0, roll: 0 } : inp; v.trans = tr;
@@ -2513,6 +2514,7 @@ function navTick() {
   if (F.flyingBooster() && b && isFinite(b.burnIn)) { cue = b.burnIn > 0.5 ? `🔥 Landing burn in T−${b.burnIn.toFixed(1)} s` : b.landing ? 'LANDING BURN' : ''; cueWarn = !!b.lowTWR; }
   else if (lc && !F.flags.landed && P.altOf(v) < 150000 && V.dot(vs, up) < 0) { cue = lc.noLand ? '⚠ TWR too low to land' : lc.burnIn > 0.5 && lc.burnIn < 600 ? `🔥 Burn in T−${lc.burnIn.toFixed(1)} s${lc.lowTWR ? ' · low TWR' : ''}` : lc.burnIn <= 0.5 ? 'HOVERSLAM' : ''; cueWarn = lc.lowTWR || lc.noLand; }
   fun.renderNav({ altAGL: hudAlt(v), inc: (() => { if (!F.ignited || v.clamped) return NaN; const o = P.orbitOf(v); return isFinite(o.inc) ? o.inc * DEG : NaN; })(), alt: P.altOf(v), nose, top, r: v.r, vSurf: vs, vOrb: vo, vTgt, markers: m, throttle: v.throttle || 0, fuel, stage: v.cur + 1, sas: v.sas, cue, cueWarn, hasTarget: !!navTgt, hasNode: !!F.nodes.length, ghost: v.holdAtt && v.sas === 'stab' && !v.steerDir ? v.holdAtt : null });
+  manTick();
 }
 let funT2 = 0, lastO2 = null;
 function replayStep(rdt) { // instant replay of the last seconds before the explosion, slowed down, orbiting camera
@@ -2651,6 +2653,33 @@ function plumeAudit() {
   out.smoke = { samp: smoke.d.filter(p => { if (p.life <= 0 || p.max - p.life > 2.5) return false; const al = V.dot([p.x - base[0], p.y - base[1], p.z - base[2]], vh); return al < 60 && al > -400; }).slice(0, 10).map(p => { const d = [p.x - base[0], p.y - base[1], p.z - base[2]], al = V.dot(d, vh); return [+(p.max - p.life).toFixed(1), Math.round(al), Math.round(V.len(V.addS(d, vh, -al)))]; }), n, rms: n ? +Math.sqrt(s2 / n).toFixed(1) : 0, max: +mx.toFixed(1) }; return out;
 }
 window.__craft = { CRAFT_TYPES };
+function installManual() { // OR-008: stage, fairing, payload, engines, RCS, fine and keep — available whenever the player asks, including while AUTO is on
+  const b = document.createElement('button'); b.id = 'manBtn'; b.type = 'button'; b.dataset.dock = 'top-right'; b.title = 'Manual control of stage, fairing, payload, engines and attitude'; b.textContent = 'CTRL'; document.body.appendChild(b);
+  const s = document.createElement('div'); s.id = 'manSheet'; s.className = 'hidden';
+  s.innerHTML = '<button id="manStage" type="button" title="Separate the next stage now, even on the pad">STAGE</button><button id="manFair" type="button" title="Drop the fairing at any altitude">FAIRING</button><button id="manPay" type="button" title="Release the payload. The top stage has to be the one you are flying">PAYLOAD</button><button id="manEng" type="button" title="Engines on or cut. AUTO does not relight them">ENG</button><button id="manRcs" type="button" title="RCS on or off (C)">RCS</button><button id="manFine" type="button" title="Stick and RCS at one fifth">FINE</button><button id="manKeep" type="button" title="Hold the nose where it is. AUTO can keep the throttle">KEEP</button>';
+  document.body.appendChild(s);
+  b.onclick = () => { s.classList.toggle('hidden'); b.classList.toggle('on', !s.classList.contains('hidden')); b.blur(); };
+  const tap = (id, fn) => { const el = document.getElementById(id); el.onclick = e => { e.currentTarget.blur(); if (state !== 'flight' || !F) return; fn(); }; };
+  tap('manStage', () => { if (!F.ignited) { press('Space'); return; } if (!F.canManualStage()) { toast(F.flags.dead ? 'Nothing left to stage' : 'No stage left to separate', '#9cc3ff'); return; } F.manualStage(); stageFlash('stage'); });
+  tap('manFair', () => { if (F.dropFairing()) return; toast(!F.ignited ? 'Light the engines first' : 'No fairing left', '#9cc3ff'); });
+  tap('manPay', () => { if (F.canRelease()) { F.releasePayload(); return; } toast(!F.ignited ? 'Light the engines first' : F.v.cur < F.last ? 'Separate the lower stages first — the payload rides the top stage' : 'No payload left to release', '#9cc3ff'); });
+  tap('manEng', () => { if (!F.setEngines(!(F.v.ut > 0))) toast('Light the engines first', '#9cc3ff'); });
+  tap('manRcs', () => F.toggleRCS());
+  tap('manFine', () => F.toggleFine());
+  tap('manKeep', () => { if (!F.keepAttitude()) toast('Nothing to hold', '#9cc3ff'); });
+}
+function manTick() {
+  const b = $('manBtn'), s = $('manSheet'); if (!b || !s) return;
+  const on = state === 'flight' && !!F && camMode !== 'map' && !photoOn && !replay && !$('hud').classList.contains('hidden');
+  b.classList.toggle('hidden', !on); if (!on) { s.classList.add('hidden'); b.classList.remove('on'); return; }
+  $('manStage').classList.toggle('off', !!(F.ignited && !F.canManualStage()));
+  $('manFair').classList.toggle('off', !F.canDropFairing());
+  $('manPay').classList.toggle('off', !F.canRelease());
+  $('manEng').textContent = F.v.ut > 0 ? 'ENG CUT' : 'ENG ON'; $('manEng').classList.toggle('off', !F.ignited || !!F.flags.dead);
+  $('manRcs').textContent = F.v.rcsOn ? 'RCS ON' : 'RCS'; $('manRcs').classList.toggle('on', !!F.v.rcsOn);
+  $('manFine').classList.toggle('on', !!F.v.fine); $('manKeep').classList.toggle('on', !!F.attManual);
+}
+installManual();
 createDock(); // f5.9a: every flight control docks in the two bars (late controls adopt via data-dock)
 window.__game = { get SG() { return SG; }, get viewId() { return viewId; }, fleetVis, goHome: () => goBuild(), rocketMarks: () => [comMark.visible, copMark.visible, cotMark.visible], get rocketG() { return rocketG; }, get pad() { return padCx; }, get fairHalves() { return fairHalves; }, get satVis() { return satVis; }, get hero() { return hero; }, flight: () => F, mem: () => { const m = renderer.info.memory || {}; let meshes = 0, geo = new Set(); scene.traverse(o => { if (o.isMesh) { meshes++; geo.add(o.geometry); } }); return { geometries: m.geometries, textures: m.textures, programs: renderer.info.programs ? renderer.info.programs.length : null, meshes, sceneGeo: geo.size, heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null }; }, stageDbg: c => { if (!hero) return { model: design.model || null, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0) }; heroStage(c); const lv = (hero.levels || [{ object: hero }])[0].object, st = (lv.userData && lv.userData.stages) || {}; const r = { model: design.model, stages: v.stages.length, radial: v.stages.map(s => s.radial || 0), hidden: Object.keys(st).filter(k => !st[k].visible), shown: Object.keys(st).filter(k => st[k].visible) }; heroStage(v.cur); return r; }, opDbg: () => ({ on: !!opSess, id: opSess && opSess.m.id, done: opSess && opSess.done, failed: opSess && opSess.failed, task: opSess && opSess.task && opSess.task.kind, lastOp, ended: F.ended, state }), get booster2() { return booster2; }, paneDbg: () => [booster, booster2].filter(Boolean).map((b, i) => { const S = paneSlots[i]; if (!S || !S.dbg || !b.mesh) return null; const cam = S.cam, q = b.mesh.getWorldQuaternion(new THREE.Quaternion()), ny = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
     const c0 = b.mesh.getWorldPosition(new THREE.Vector3()), p0 = c0.clone().project(cam), p1 = c0.clone().add(ny.clone().multiplyScalar(10)).project(cam), up = V.norm(b.r);
