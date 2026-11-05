@@ -13,6 +13,7 @@ import * as C from './physics/patched.js?v=f5.9-27';
 import { fmtDur } from './flight.js?v=f5.9-27';
 import { layoutHandles } from './maplayout.js?v=f5.9-27';
 import { mapOpenAim, mapFocusAllowed } from './mapaim.js?v=f5.9-32';
+import { readCraftRows, filterRows, groupRows, renderSheet, sheetVisible, cycleId } from './fun/tracksheet.js?v=f5.9-32';
 const V = P.V, B = P.BODIES, $ = id => document.getElementById(id);
 const IDS = Object.keys(B), PLANETS = IDS.filter(id => B[id].parent === 'sun');
 const fmtD = m => { const a = Math.abs(m); return a >= 1.496e10 ? (m / P.AU).toFixed(3) + ' AU' : UN.dist(m); }; // f5.7q: Units setting
@@ -61,7 +62,7 @@ export function createSolarMap(opts) {
     a.frustumCulled = b.frustumCulled = false; b.renderOrder = 5; scene.add(a); scene.add(b);
     return { geo, a, b, n, set(visible) { a.visible = b.visible = visible; }, color(c) { a.material.color.setHex(c); b.material.color.setHex(c); } };
   }
-  const traj = PATCH_COL.map(c => makeLine(c, 241)), satLines = [];
+  const traj = PATCH_COL.map(c => makeLine(c, 241)), satLines = new Map();
   const W_T = (o, mu) => { const r = Math.hypot(...o.r), v2 = o.v[0] ** 2 + o.v[1] ** 2 + o.v[2] ** 2, a = 1 / (2 / r - v2 / mu); return 2 * Math.PI * Math.sqrt(a * a * a / mu); };
   // ---------- DOM ----------
   const ui = document.createElement('div'); ui.id = 'mapUI'; ui.className = 'hidden';
@@ -81,6 +82,7 @@ export function createSolarMap(opts) {
   <div id="mapInfo"></div><div id="mapTrack" class="hidden"></div>`;
   document.body.appendChild(ui);
   const labels = ui.querySelector('#mapLabels'), panel = ui.querySelector('#mapPanel'), info = ui.querySelector('#mapInfo');
+  const trackEl = ui.querySelector('#mapTrack'); trackEl._st = { q: '', chip: 'all', force: {}, here: null }; let trackRows = [];
   // f6.5: burn bar — the throttle, STAGE and SAS MANEUVER stay in reach while the map is open (touch hides the flight controls here), so a planned node can be burned by hand
   const burnBar = ui.querySelector('#mapBurn'), burnT = ui.querySelector('#mapBurnT'), thrIn = ui.querySelector('#mapThr'), thrV = ui.querySelector('#mapThrV'); let thrDrag = false;
   thrIn.addEventListener('input', () => { thrDrag = true; burn && burn.throttle(+thrIn.value / 100); });
@@ -115,23 +117,56 @@ export function createSolarMap(opts) {
   const tNow = () => getF().tAbs;
   function craftAbs(t = tNow()) { const F = getF(), v = F.v, b = F.body, s = P.absState(b, t); return V.add(s.r, mv(P.frameOf(b), v.r)); }
   function bodyAbs(id, t = tNow()) { return P.absState(id, t).r; }
-  function focusAbs(id = S.focus, t = tNow()) { return id === 'craft' ? craftAbs(t) : bodyAbs(id, t); }
+  function isCraftFocus(id) { return typeof id === 'string' && id.startsWith('c:'); }
+  function craftRec(id) {
+    const F = getF();
+    try { if (F && F.fleet && typeof F.fleet.get === 'function') { const o = F.fleet.get(id); if (o && o.r) return o; } } catch (e) {}
+    return (getSats() || []).find(s => s && s.id === id) || null;
+  }
+  function craftState(id, t) {
+    const o = craftRec(id); if (!o || !o.r || !o.v) return null;
+    const body = o.body || 'earth'; if (!B[body]) return null;
+    let st = { r: o.r, v: o.v };
+    if (o.t != null && t != null && o.t !== t) { try { st = P.propagate(o.r, o.v, t - o.t, B[body].mu); } catch (e) {} }
+    return { body, r: st.r, v: st.v, name: o.name || 'Craft' };
+  }
+  function focusLabel(id = S.focus) {
+    if (!id || id === 'craft') return 'Craft';
+    if (isCraftFocus(id)) { const o = craftRec(id.slice(2)); return o && o.name ? o.name : 'Craft'; }
+    return B[id] ? B[id].name : 'Craft';
+  }
+  function focusAbs(id = S.focus, t = tNow()) {
+    if (id === 'craft') return craftAbs(t);
+    if (isCraftFocus(id)) { const s = craftState(id.slice(2), t); if (!s) return craftAbs(t); return V.add(bodyAbs(s.body, t), mv(P.frameOf(s.body), s.r)); }
+    if (!B[id]) return craftAbs(t);
+    return bodyAbs(id, t);
+  }
   function focusList() {
     const F = getF(), cur = F.body, l = ['craft', cur]; if (F.target && !l.includes(F.target)) l.push(F.target);
     for (const c of B[cur].children) if (!l.includes(c)) l.push(c);
     if (B[cur].parent && !l.includes(B[cur].parent)) l.push(B[cur].parent);
     for (const id of ['sun', ...PLANETS]) if (!l.includes(id)) l.push(id); return l;
   }
-  function niceDist(id) { if (id === 'craft') { const F = getF(); return Math.max(B[F.body].R * 3.2, Math.min(V.len(F.v.r) * 2.6, 3e9)); } return id === 'sun' ? 1.2e12 : B[id].R * 4; }
+  function niceDist(id) {
+    if (id === 'craft') { const F = getF(); return Math.max(B[F.body].R * 3.2, Math.min(V.len(F.v.r) * 2.6, 3e9)); }
+    if (isCraftFocus(id)) { const s = craftState(id.slice(2), tNow()); if (!s) return niceDist('craft'); const Rb = B[s.body].R, rad = Math.hypot(s.r[0], s.r[1], s.r[2]); return Math.max(8000, Math.min(Math.max(rad - Rb, Rb * 0.02) * 3 + Rb * 0.15, rad * 1.8)); }
+    return !id || id === 'sun' || !B[id] ? 1.2e12 : B[id].R * 4;
+  }
   function setFocus(id, quiet) {
     if (id === S.focus) { S.distT = niceDist(id); return; }
     const from = V.add(focusAbs(S.focus), S.pan); S.focus = id; S.pan = [0, 0, 0];
     S.trans = { from: V.sub(from, focusAbs(id)), k: 1 }; S.distT = niceDist(id);
-    $('mapFocus').textContent = id === 'craft' ? 'Craft' : B[id].name; if (!quiet) onChange && onChange('focus', id);
+    $('mapFocus').textContent = focusLabel(id); if (!quiet) onChange && onChange('focus', id);
   }
   function cycle(d) { const l = focusList(), i = l.indexOf(S.focus); setFocus(l[(i + d + l.length) % l.length]); }
   // view presets: 'pole' (down onto the focus body's orbit/equator plane), 'edge' (in that plane), or a quaternion
-  function refNormal() { const F = getF(); if (S.focus === 'craft') { const n = V.norm(V.cross(F.v.r, F.v.v)); return mv(P.frameOf(F.body), n); } if (S.focus === 'sun') return [0, 0, 1]; const s = P.relState(S.focus, tNow()), pf = P.frameOf(B[S.focus].parent); return mv(pf, V.norm(V.cross(s.r, s.v))); }
+  function refNormal() {
+    const F = getF();
+    if (S.focus === 'craft') { const n = V.norm(V.cross(F.v.r, F.v.v)); return mv(P.frameOf(F.body), n); }
+    if (isCraftFocus(S.focus)) { const s = craftState(S.focus.slice(2), tNow()); if (!s) return [0, 0, 1]; return mv(P.frameOf(s.body), V.norm(V.cross(s.r, s.v))); }
+    if (S.focus === 'sun' || !B[S.focus]) return [0, 0, 1];
+    const s = P.relState(S.focus, tNow()), pf = P.frameOf(B[S.focus].parent); return mv(pf, V.norm(V.cross(s.r, s.v)));
+  }
   function setView(kind, tilt = 0) {
     const n = refNormal(), N = new THREE.Vector3(...n);
     if (kind === 'pole') { S.pitchT = 88 * Math.PI / 180; S.idle = -1e9; return; }
@@ -143,7 +178,7 @@ export function createSolarMap(opts) {
   const ptrs = new Map(); let drag = null, moved = 0, downAt = null;
   const el = renderer.domElement;
   function zoomBy(f) { S.distT = Math.min(3e13, Math.max(minDist(), S.distT * f)); }
-  function minDist() { return S.focus === 'craft' ? 2000 : B[S.focus].R * 1.15; }
+  function minDist() { return S.focus === 'craft' || isCraftFocus(S.focus) || !B[S.focus] ? 2000 : B[S.focus].R * 1.15; }
   el.addEventListener('wheel', e => { if (!S.on) return; zoomBy(Math.exp(e.deltaY * 0.0015)); }, { passive: true });
   el.addEventListener('contextmenu', e => { if (S.on) e.preventDefault(); });
   el.addEventListener('pointerdown', e => { if (!S.on) return; ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; downAt = [e.clientX, e.clientY]; drag = e.button === 2 || e.shiftKey ? 'pan' : 'rot'; });
@@ -295,7 +330,7 @@ export function createSolarMap(opts) {
   const barClick = e => {
     const a = e.target.dataset.a, F = getF(); if (!a) return; e.target.blur(); const mm = ui.querySelector('#mapMore');
     if (a === 'more') { /* QA f5.9-16: MAP fires on pointerdown, so the same touch's click can land on ⋯ (same spot on phones) and open this grid; ignore ⋯ for 500 ms after the map opens */ if (performance.now() - (S.shownAt || 0) < 500 || (e.detail > 0 && !S.moreDown)) return; mm.classList.toggle('hidden'); return; } if (mm.contains(e.target) && a !== 'conic') mm.classList.add('hidden');
-    if (a === 'reset') resetView(); if (a === 'info') showBody(S.focus === 'craft' ? F.body : S.focus);
+    if (a === 'reset') resetView(); if (a === 'info') { let bid = S.focus === 'craft' ? F.body : S.focus; if (isCraftFocus(S.focus)) { const s = craftState(S.focus.slice(2), tNow()); bid = s ? s.body : F.body; } if (B[bid]) showBody(bid); }
     if (a === 'prev') cycle(-1); if (a === 'next') cycle(1); if (a === 'craft') setFocus('craft');
     if (a === 'pole') setView('pole'); if (a === 'edge') setView('edge');
     if (a === 'zin') zoomBy(0.5); if (a === 'zout') zoomBy(2);
@@ -327,6 +362,7 @@ export function createSolarMap(opts) {
   let camRel = [0, 0, 0];
   function update(rdt) {
     if (!S.on) return; const F = getF(), t = F.tAbs, v = F.v;
+    if (isCraftFocus(S.focus) && !craftRec(S.focus.slice(2))) setFocus('craft', true);
     S.W = innerWidth; S.H = innerHeight; camera.aspect = S.W / S.H;
     if (S.opening) { // first frame: the camera is on the vessel you are flying, even if a click landed between open and paint
       const aim = mapOpenAim(F, orbitFitDist);
@@ -433,17 +469,34 @@ export function createSolarMap(opts) {
     // nodes and handles (a node can sit on a later patch: drawn in that patch's body frame)
     F.nodes.forEach((n, i) => { if (n.t < t) return; const s = nodeState(n), nr = s.pa ? patchPos(s.pa, s.r, n.t) : V.add(V.sub(craftAbs(t), origin), V.sub(mv(P.frameOf(F.body), s.r), mv(P.frameOf(F.body), v.r))); n._body = s.body;
       const d = marker(`◆ ${fmtV(C.nodeDv(n))} · ${fmtDur(n.t - t)}`, 'nodem' + (n === S.sel ? ' sel' : '')); d.dataset.node = i; const p = place(d, nr); n._rel = nr; n._scr = p; });
-    { // f5.2.3 deployed payloads on rails: orbit ring + marker each, and the tracking list
-      const sats = getSats().filter(o => (o.body || 'earth') === 'earth'), eRel = bodies.earth.rel, Fe = P.frameOf('earth'), mu = B.earth.mu;
-      sats.forEach((o, i) => { let L = satLines[i]; if (!L) { L = satLines[i] = makeLine(0x3fae78, 129); }
-        if (!o._pts) { const T = W_T(o, mu), pts = []; for (let k = 0; k <= 128; k++) pts.push(mv(Fe, P.propagate(o.r, o.v, T * k / 128, mu).r)); o._pts = pts; }
-        const arr = L.geo.attributes.position.array; for (let k = 0; k <= 128; k++) { const q = o._pts[k]; arr[k * 3] = q[0]; arr[k * 3 + 1] = q[1]; arr[k * 3 + 2] = q[2]; }
-        L.geo.attributes.position.needsUpdate = true; L.geo.setDrawRange(0, 129); L.a.position.set(...eRel); L.b.position.copy(L.a.position); L.set(true);
-        const st = P.propagate(o.r, o.v, t - o.t, mu); place(marker('🛰 ' + o.name, 'sat'), V.add(eRel, mv(Fe, st.r))); });
-      for (let k = sats.length; k < satLines.length; k++) satLines[k].set(false);
-      const tr = ui.querySelector('#mapTrack'); tr.classList.toggle('hidden', !sats.length); if (!tr._tap) { tr._tap = 1; tr.addEventListener('click', () => { tr.classList.toggle('open'); S._trT = 0; }); } // f5.9-18 (phone map): collapsed to a pill until tapped
-      if (sats.length && (S._trT = (S._trT || 0) - rdt) <= 0) { S._trT = 1; const Rb = B.earth.R;
-        tr.innerHTML = `<h4>🛰 ${sats.length} in orbit <i>${tr.classList.contains('open') ? '▴' : '▾'}</i></h4>` + sats.slice(-12).map(o => { const st = P.propagate(o.r, o.v, t - o.t, mu); return `<div>${o.name} · ${UN.big(Math.hypot(...st.r) - Rb)}</div>`; }).join(''); } }
+    { // OR-003: other craft on whatever body they orbit. A crowd keeps its rings; only a few names are drawn.
+      let raw = []; try { raw = getSats() || []; } catch (e) { raw = []; }
+      const focusedId = isCraftFocus(S.focus) ? S.focus.slice(2) : null;
+      const draw = raw.filter(o => o && o.r && o.v && B[o.body || 'earth']);
+      const ordered = focusedId ? [...draw.filter(o => o.id === focusedId), ...draw.filter(o => o.id !== focusedId)] : draw;
+      const named = draw.length <= 6, seen = new Set();
+      for (const o of ordered) {
+        const body = o.body || 'earth', id = o.id || o.name; if (!id || seen.has(id) || !bodies[body]) continue; seen.add(id);
+        let L = satLines.get(id); if (!L) satLines.set(id, L = makeLine(0x3fae78, 129));
+        try {
+          const mu = B[body].mu, Fb = P.frameOf(body), T = W_T(o, mu);
+          if (Number.isFinite(T) && T > 1 && T < 1e12) {
+            if (!o._pts || o._body !== body) { const pts = []; for (let k = 0; k <= 128; k++) pts.push(mv(Fb, P.propagate(o.r, o.v, T * k / 128, mu).r)); o._pts = pts; o._body = body; }
+            const arr = L.geo.attributes.position.array; for (let k = 0; k <= 128; k++) { const q = o._pts[k]; arr[k * 3] = q[0]; arr[k * 3 + 1] = q[1]; arr[k * 3 + 2] = q[2]; }
+            L.geo.attributes.position.needsUpdate = true; L.geo.setDrawRange(0, 129); L.a.position.set(...bodies[body].rel); L.b.position.copy(L.a.position); L.set(true);
+            L.color(id === focusedId ? 0xb8ffd4 : (named ? 0x3fae78 : 0x1c5a40));
+          } else L.set(false);
+          const st = P.propagate(o.r, o.v, t - (o.t || t), mu), showName = named || id === focusedId;
+          place(marker(showName ? '🛰 ' + (o.name || 'Craft') : '·', 'sat' + (id === focusedId ? ' on' : '') + (showName ? '' : ' dot')), V.add(bodies[body].rel, mv(Fb, st.r)));
+        } catch (e) { L.set(false); }
+      }
+      for (const [id, L] of satLines) if (!seen.has(id)) L.set(false);
+      if ((S._trT = (S._trT || 0) - rdt) <= 0 || trackEl._dirty) {
+        S._trT = 1; trackEl._dirty = false;
+        const sats = raw.map(o => { let alt = o.alt; try { const body = o.body || 'earth'; if (B[body] && o.r) { const st = P.propagate(o.r, o.v, t - (o.t || t), B[body].mu); alt = Math.hypot(st.r[0], st.r[1], st.r[2]) - B[body].R; } } catch (e) {} return { ...o, alt }; });
+        try { trackRows = readCraftRows(F, sats); } catch (e) { trackRows = []; }
+        trackEl._st.here = F.body; repaintTrack();
+      } }
     for (let k = markerN; k < markerPool.length; k++) markerPool[k].style.display = 'none';
     { const kept = []; for (let k = 0; k < markerN; k++) { const d = markerPool[k]; if (d.style.display === 'none' || d._x == null) continue; if (!d._w) { d._w = d.offsetWidth; d._h = d.offsetHeight; } const r = [d._x - 3, d._y - 3, d._x + d._w + 3, d._y + d._h + 3]; if (kept.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) { d.style.display = 'none'; continue; } kept.push(r); } } // f5.9-18 (phone map): a label that would overlap an earlier (higher-priority) one is hidden
     const n = S.sel && F.nodes.includes(S.sel) ? S.sel : null;
@@ -478,9 +531,57 @@ export function createSolarMap(opts) {
       if (hide) d.style.visibility = 'hidden'; else placed.push(r); }
   }
   function pickTraj(x, y) { let best = null; for (const p of trajPick) { const d = Math.hypot(p.x - x, p.y - y); if (d < 14 && (!best || d < best.d)) best = { d, t: p.t }; } return best; }
+  function focusKey() { return S.focus === 'craft' ? 'craft' : isCraftFocus(S.focus) ? S.focus.slice(2) : null; }
+  function repaintTrack() {
+    const st = trackEl._st, inp = trackEl.querySelector('.mtQ'), typing = !!(inp && document.activeElement === inp);
+    const caret = typing ? [inp.selectionStart, inp.selectionEnd] : null, list = trackEl.querySelector('.mtList'), top = list ? list.scrollTop : 0;
+    let fmt = m => Math.round(m / 1000) + ' km'; try { fmt = m => UN.big(m); } catch (e) {}
+    const built = renderSheet(trackRows, { q: st.q, chip: st.chip, here: st.here, force: st.force, focusKey: focusKey(), open: trackEl.classList.contains('open') }, { fmtAlt: fmt, bodyName: id => B[id] ? B[id].name : (id ? id.charAt(0).toUpperCase() + id.slice(1) : '') });
+    trackEl.classList.toggle('hidden', !sheetVisible(trackRows)); trackEl.innerHTML = built.html;
+    const list2 = trackEl.querySelector('.mtList'); if (list2) list2.scrollTop = top;
+    const inp2 = trackEl.querySelector('.mtQ'); if (typing && inp2) { inp2.focus(); try { inp2.setSelectionRange(caret[0], caret[1]); } catch (e) {} }
+    if (st._jump) { const on = trackEl.querySelector('.mtRow.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' }); st._jump = false; }
+  }
+  function focusCraft(id) {
+    const r = trackRows.find(x => x.id === id); if (!r) return; const st = trackEl._st;
+    const filtered = filterRows(trackRows, { q: st.q, chip: st.chip, here: st.here });
+    for (const sec of groupRows(filtered, st)) for (const g of sec.groups) if (g.rows.some(x => x.id === id)) st.force[sec.body + '|' + g.key] = 'open';
+    st._jump = true; trackEl.classList.add('open');
+    if (r.active) setFocus('craft'); else setFocus('c:' + id);
+    repaintTrack();
+  }
+  function cycleTrack(dir) {
+    const st = trackEl._st, filtered = filterRows(trackRows, { q: st.q, chip: st.chip, here: st.here }); if (!filtered.length) return;
+    const cur = S.focus === 'craft' ? (filtered.find(r => r.active) || {}).id : (isCraftFocus(S.focus) ? S.focus.slice(2) : null);
+    const id = cycleId(filtered, cur || null, dir); if (id) focusCraft(id);
+  }
+  function flyCraft(id) {
+    const F = getF(); if (!F || typeof F.switchTo !== 'function') { toast && toast('Craft switching is not available yet', '#ffb35c'); return; }
+    let flew = false; try { flew = !!F.switchTo(id); } catch (e) { flew = false; }
+    if (flew) setFocus('craft');
+    try { trackRows = readCraftRows(F, getSats() || []); } catch (e) {}
+    repaintTrack();
+  }
+  function onTrackClick(e) {
+    const h = e.target.closest && e.target.closest('h4');
+    if (h && trackEl.contains(h)) { trackEl.classList.toggle('open'); repaintTrack(); return; }
+    const act = e.target.closest && e.target.closest('[data-act]'); if (!act || !trackEl.contains(act)) return;
+    const a = act.dataset.act;
+    if (a === 'chip') { trackEl._st.chip = act.dataset.chip || 'all'; repaintTrack(); }
+    else if (a === 'group') { trackEl._st.force[act.dataset.g] = act.getAttribute('aria-expanded') === 'true' ? 'shut' : 'open'; repaintTrack(); }
+    else if (a === 'focus') focusCraft(act.dataset.id);
+    else if (a === 'fly') flyCraft(act.dataset.id);
+    else if (a === 'cycle') cycleTrack(+act.dataset.dir || 1);
+  }
+  function onTrackInput(e) { if (!e.target.classList || !e.target.classList.contains('mtQ')) return; trackEl._st.q = e.target.value; repaintTrack(); }
+  function onTrackKey(e) {
+    if (e.target.classList && e.target.classList.contains('mtQ')) return;
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset && e.target.dataset.act === 'focus') { e.preventDefault(); e.stopPropagation(); focusCraft(e.target.dataset.id); }
+  }
   function key(code, e) {
     if (!S.on) return false;
     if (code === 'Tab') { e && e.preventDefault(); cycle(e && e.shiftKey ? -1 : 1); return true; }
+    if (e && e.altKey && (code === 'BracketLeft' || code === 'BracketRight')) { cycleTrack(code === 'BracketRight' ? 1 : -1); e.preventDefault(); return true; }
     if (code === 'BracketLeft') { cycle(-1); return true; } if (code === 'BracketRight') { cycle(1); return true; }
     if (code === 'Equal' || code === 'NumpadAdd') { zoomBy(0.6); return true; } if (code === 'Minus' || code === 'NumpadSubtract') { zoomBy(1.7); return true; }
     if (code === 'Backspace' || code === 'Home') { setFocus('craft'); return true; }
@@ -496,11 +597,12 @@ export function createSolarMap(opts) {
       ui.querySelector('#mapMore').classList.add('hidden'); S.shownAt = performance.now();
     }
     S.on = on; ui.classList.toggle('hidden', !on); document.body.classList.toggle('mapOn', on);
-    if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist()); $('mapFocus').textContent = S.focus === 'craft' ? 'Craft' : B[S.focus].name; renderPanel(); }
+    if (on) { S.predKey = ''; S.distT = S.dist = Math.max(S.dist, minDist()); $('mapFocus').textContent = focusLabel(); renderPanel(); }
   }
   function reset() { S.focus = 'craft'; S.pan = [0, 0, 0]; S.trans = null; S.sel = null; S.panelMode = null; S.plan = null; S.pred = null; S.inited = false; renderPanel(); }
   // f5.4j: test probe: where the map draws the craft vs a body (map metres) and the end of the drawn trajectory
   const probe = id => { const o = bodies[id || getF().body]; return o && o.m ? { craftToBody: craftDot.position.distanceTo(o.m.position), R: B[id || getF().body].R, drawnR: o.m.scale.x } : null; };
+  trackEl.addEventListener('click', onTrackClick); trackEl.addEventListener('input', onTrackInput); trackEl.addEventListener('keydown', onTrackKey);
   return { scene, camera, update, show, reset, key, probe, patchAt, get conic() { return S.conic; }, setConic: c => { S.conic = c; const b = document.querySelector('#mapMore [data-a=conic]'); if (b) b.textContent = c === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; }, setFocus, setView, resetView, cycle, zoomBy, runPlanner, selectNode, addNodeAt, warpNext, state: S,
     focusId: () => S.focus, setFocus: id => setFocus(id), // f5.9-18: map_phone smoke
     focusPx: () => { const p = project([0, 0, 0]); return [Math.round(p.x), Math.round(p.y)]; }, // f5.9-18: map_phone smoke

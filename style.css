@@ -716,9 +716,32 @@ body.mcOn #hud,body.mcOn .pilot,body.mcOn #stageBtn{visibility:hidden}
 #relBtn.hidden,body.mapOn #relBtn,body.endOn #relBtn{display:none}
 @media (pointer:coarse){#relBtn{right:12px;bottom:auto;top:46%}}
 #mapTrack{position:fixed;left:10px;top:112px;z-index:41;max-width:240px;max-height:40vh;overflow:auto;background:rgba(6,12,24,.82);border:1px solid #2a3b5c;border-radius:10px;padding:6px 10px;font:12px system-ui;color:#cfe0ff}
-#mapTrack h4{margin:2px 0 4px;font-size:12px;color:#7dffb0}
+#mapTrack h4{margin:2px 0 4px;font-size:12px;color:#7dffb0;cursor:pointer}
 #mapTrack div{white-space:nowrap}
+#mapTrack:not(.open) .mtBody{display:none}
+#mapTrack.open{max-width:min(340px,92vw);display:flex;flex-direction:column;padding:0;overflow:hidden}
+#mapTrack .mtBody{display:flex;flex-direction:column;min-height:0;max-width:none}
+#mapTrack .mtBar{display:flex;flex-direction:column;gap:4px;align-items:stretch;padding:4px;flex:none;max-width:none}
+#mapTrack .mtChips{display:flex;gap:4px;overflow-x:auto;flex:none;width:100%;min-width:0;max-width:none;scrollbar-width:none}
+#mapTrack .mtFind{display:flex;gap:4px;align-items:center;min-width:0}
+#mapTrack .mtChip,#mapTrack .mtCyc,#mapTrack .mtG,#mapTrack .mtRow button{font-family:inherit}
+#mapTrack .mtChip,#mapTrack .mtCyc{background:#14233c;border:1px solid #2a3b5c;color:#cfe0ff;border-radius:8px;font:650 11px inherit;min-height:32px;padding:0 8px;flex:0 0 auto;white-space:nowrap;max-width:none}
+#mapTrack .mtChip.on{background:#1d5fae;border-color:#6fb6ff}
+#mapTrack .mtQ{flex:1 1 auto;min-width:0;width:auto;min-height:32px;border-radius:8px;border:1px solid #2a3b5c;background:#06101e;color:#fff;font:12px inherit;padding:0 6px}
+@media (max-height:520px) and (orientation:landscape){#mapTrack.open{max-width:min(480px,70vw)}#mapTrack.open .mtBar{flex-direction:row;align-items:center}#mapTrack.open .mtCyc{display:none}#mapTrack.open .mtFind{flex:0 0 96px}#mapTrack.open .mtChips{flex:1 1 auto;width:auto}}
+#mapTrack .mtList{overflow:auto;min-height:0;max-width:none;flex:1}
+#mapTrack .mtSec{font:700 10px inherit;letter-spacing:.06em;text-transform:uppercase;color:#8fb4ff;padding:4px 8px 0;max-width:none}
+#mapTrack .mtG{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #2a3b5c;background:transparent;color:#cfe0ff;border-radius:0;min-height:32px;padding:4px 8px;max-width:none}
+#mapTrack .mtRow{display:flex;align-items:center;gap:6px;padding:4px 8px;min-height:32px;cursor:pointer;max-width:none}
+#mapTrack .mtRow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:650}
+#mapTrack .mtRow small{color:#9ab;flex:none}
+#mapTrack .mtRow button{flex:none;min-height:28px;padding:0 8px;border-radius:8px;background:#1f6b3a;border:1px solid #3fbf72;color:#fff;font:700 11px inherit}
+#mapTrack .mtRow.on{background:#1a3160}
+#mapTrack .mtRow em{font-style:normal;color:#7dffb0;font-size:11px;flex:none}
+#mapTrack .mtEmpty{padding:8px;color:#9ab;max-width:none}
 .mmark.sat{color:#7dffb0}
+.mmark.sat.dot{opacity:.65;font-size:10px}
+.mmark.sat.on{color:#e8fff2}
 /* f5.3 split: one layout rule for every half (positions set in main.js layoutSplitCards) */
 #split #spBtnsU{position:fixed;pointer-events:auto;display:flex;gap:6px}
 #split.fullU #spPane,#split.fullU #spPane2,#split.fullB #spPane2,#split.fullB #spMain{display:none!important}
@@ -1218,7 +1241,17 @@ body.touch.mapPanelOn #mapBurn{left:calc(8px + env(safe-area-inset-left));transf
 #vsl button{background:var(--glass-hi);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-s);font:650 var(--fs-s)/1 var(--ui);min-height:36px;min-width:44px;padding:0 10px;cursor:pointer}
 #vsl button:hover:not(:disabled){border-color:var(--line-hi)}#vsl button:disabled{opacity:.55;cursor:default}#vsl button.on{background:#1d5fae;border-color:#6fb6ff}
 #vsl .vf{padding:8px 12px;border-top:1px solid var(--line);color:var(--dim);font-size:var(--fs-xs)}
-@media (max-width:560px){#vsl .vr{flex-wrap:wrap}#vsl .vb{width:100%;justify-content:stretch}#vsl .vb button{flex:1}#vsl .vf{display:none}}
+#vsl .vfilt{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:4px 6px;border-bottom:1px solid var(--line);flex:none}
+#vsl .vfilt[hidden]{display:none!important}
+#vsl .vchips{display:flex;gap:4px;overflow-x:auto;flex:1 1 180px;min-width:0;scrollbar-width:none}
+#vsl .vchips button,#vsl .vq{min-height:32px;border-radius:8px;border:1px solid var(--line);background:var(--glass-hi);color:var(--txt);font:650 12px var(--ui)}
+#vsl .vchips button{padding:0 8px;flex:0 0 auto;white-space:nowrap}
+#vsl .vchips button.on{background:#1d5fae;border-color:#6fb6ff}
+#vsl .vq{width:88px;flex:none;padding:0 8px}
+#vsl .vg{display:flex;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);color:var(--dim);font:700 11px var(--ui);letter-spacing:.04em;text-transform:uppercase;min-height:28px;padding:4px 6px}
+#vsl .vsec{padding:6px 8px 0;color:var(--dim);font:700 10px var(--ui);letter-spacing:.06em;text-transform:uppercase}
+#vsl .vempty{padding:8px;color:var(--dim);font-size:var(--fs-s)}
+@media (max-width:560px){#vsl .vr{flex-wrap:wrap}#vsl .vb{width:100%;justify-content:stretch}#vsl .vb button{flex:1}#vsl .vf{display:none}#vsl .vchips button{min-width:0;padding:0 6px;font-size:11px}#vsl .vq{width:72px}}
 #craftBtn.hidden{display:none}
 /* f6.5 Plan transfer overlay (isolated; easy to restyle in the two-border redesign) */
 #xferPlan{position:fixed;inset:0;z-index:62;background:rgba(4,8,16,.7);display:flex;align-items:flex-end;justify-content:center;padding:0 0 env(safe-area-inset-bottom)}
