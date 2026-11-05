@@ -67,7 +67,9 @@ export function groundShot({ zoom = 1, stackL = 40, R = 6371000, rocketAlt = 20,
   const elevR = elevOf(horiz, rocketAlt, camH, r), horizonEl = -dip;
   const targetFrac = 0.40;
   let lookEl = elevR * (1 - w) + (horizonEl - (0.5 - targetFrac) * fov) * w;
-  const fitRocket = () => { const half = fov * 0.5 - 0.01; lookEl = clamp(lookEl, elevR - half, elevR + half); };
+  // The flight bar covers the top of the frame (~52 px). A 0.01 rad sliver parked the craft in that
+  // strip from a few hundred metres up, so the rocket left the picture until the tripod ended at 150 km.
+  const fitRocket = () => { const half = fov * 0.5 - Math.max(0.01, fov * 0.16); lookEl = clamp(lookEl, elevR - half, elevR + half); };
   fitRocket();
   for (let g = 0; g < 3 && w > 0.45 && Math.abs(horizonEl - lookEl) > fov * 0.46 && fov < fovCapDeg * DEG - 0.01; g++) {
     fov = Math.min(fovCapDeg * DEG, Math.abs(horizonEl - lookEl) / 0.40);

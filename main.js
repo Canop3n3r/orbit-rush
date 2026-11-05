@@ -38,7 +38,7 @@ import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } fr
 import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-27';
 import { createAudio } from './fun/audio.js?v=f5.9-32';
 import { ambientPressureRatio, engineListen, flightLoudness } from './fun/listen.js?v=f5.9-32';
-import { CAM_VIEWS, nextCamView, horizonChase, groundShot } from './fun/camcycle.js?v=f5.9-32';
+import { CAM_VIEWS, nextCamView, horizonChase, groundShot } from './fun/camcycle.js?v=f5.9-39';
 import { createMusic } from './fun/music.js?v=f5.9-32';
 import { createCompact } from './fun/compact.js?v=f5.9-38';
 import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-27';
