@@ -84,6 +84,8 @@ const flight = () => new Flight(design(), quiet, { t0: P.tFromDate(Date.UTC(2026
   for (const name of ['manualStage', 'dropFairing', 'releasePayload', 'setEngines', 'toggleRCS', 'toggleFine', 'keepAttitude']) ok(main.includes(name), `HUD calls ${name}`);
   ok(css.includes('#manBtn') && css.includes('#manSheet'), 'the manual controls are styled in the bar, not floating over the view');
   ok(!/autoOn[^{]*#manBtn[^}]*display:\s*none/.test(css), 'AUTO does not hide the manual-control button');
+  const inst = main.slice(main.indexOf('function installManual'), main.indexOf('function installManual') + 900);
+  ok(!/dataset\.dock/.test(inst) && /#mMenu \.mg\.mTop, #dMenu \.mg\.mTop/.test(inst), 'CTRL opens from the flight menu, not a sixth always-on bar button');
 }
 
 console.log(fail ? `manual_parts: ${fail} failed` : 'manual_parts: ok');
