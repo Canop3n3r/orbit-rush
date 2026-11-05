@@ -4,13 +4,45 @@
 // overflow menu (☰) for SAS modes, RCS, warp, map, chutes, deorbit, booster, effects, Learn, fullscreen.
 // Haptics (navigator.vibrate), Wake Lock while flying, safe areas are in style.css (env(safe-area-inset-*)).
 import { menuHTML, menuUpdate } from './fun/flightmenu.js?v=f5.9-27';
-const qs = new URLSearchParams(location.search);
+const qs = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
 export const isTouch = () => qs.has('touch') || (!qs.has('desktop') && matchMedia('(pointer: coarse)').matches);
 const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const SAS = [['stab', 'STAB'], ['prograde', 'PRO'], ['retrograde', 'RETRO'], ['radial', 'RAD+'], ['antiradial', 'RAD−'], ['normal', 'NRM'], ['antinormal', 'ANRM'], ['off', 'OFF']];
-// f5.9-22: throttle from a pointer Y on the vertical track; 8 px pads at each end so 0 % and 100 % are easy to hit in one drag
-export function thrFromY(el, y) { const r = el.getBoundingClientRect(), pad = Math.min(8, r.height * 0.1), u = 1 - (y - r.top - pad) / Math.max(1, r.height - 2 * pad); return u < 0.015 ? 0 : u > 0.985 ? 1 : Math.round(Math.min(1, Math.max(0, u)) * 200) / 200; }
+// Full-travel throttle. The thumb is THUMB px tall and its center runs the whole track:
+// bottom of the groove is 0, top is 1, and a 0.1% step is kept (the old 8 px pads plus a 1.5% end snap ate the last bit of travel).
+export const THUMB = 16;
+export function thrFromY(el, y) {
+  const r = el.getBoundingClientRect(), travel = Math.max(1, r.height - THUMB);
+  if (y >= r.bottom - 2) return 0;
+  if (y <= r.top + 2) return 1;
+  const u = 1 - (y - r.top - THUMB / 2) / travel;
+  return Math.round(Math.min(1, Math.max(0, u)) * 1000) / 1000;
+}
+// Sideways, off the track, the same vertical pixels cover less throttle (landing burns). The first move that leaves the track does not jump.
+export function throttleGesture(el, e, g) {
+  const r = el.getBoundingClientRect(), abs = thrFromY(el, e.clientY), dx = Math.abs(e.clientX - (r.left + r.width / 2));
+  if (!g) return { fine: false, y: e.clientY, u: abs, out: abs };
+  if (!g.fine && dx > r.width / 2 + 20) return { fine: true, y: e.clientY, u: g.out, out: g.out };
+  if (g.fine) {
+    const gain = 1 + Math.min(6, Math.max(0, dx - r.width / 2) / 28), travel = Math.max(1, r.height - THUMB);
+    let u = g.u - (e.clientY - g.y) / (travel * gain);
+    if (u < 0.002) u = 0; else if (u > 0.998) u = 1; else u = Math.round(Math.min(1, Math.max(0, u)) * 1000) / 1000;
+    return { fine: true, y: g.y, u: g.u, out: u };
+  }
+  return { fine: false, y: e.clientY, u: abs, out: abs };
+}
+export function bindThrottleSlider(el, setU) {
+  el.setAttribute('role', 'slider'); el.setAttribute('aria-label', 'Throttle'); el.setAttribute('aria-valuemin', '0'); el.setAttribute('aria-valuemax', '100');
+  el.style.touchAction = 'none';
+  let pid = null, gest = null;
+  const down = e => { if (e.button != null && e.button !== 0) return; e.preventDefault(); e.stopPropagation(); try { el.setPointerCapture(e.pointerId); } catch (x) { } pid = e.pointerId; gest = throttleGesture(el, e, null); el._drag = true; el.classList.remove('fine'); setU(gest.out); };
+  const move = e => { if (e.pointerId !== pid) return; e.stopPropagation(); gest = throttleGesture(el, e, gest); el.classList.toggle('fine', !!gest.fine); setU(gest.out); };
+  const up = e => { if (e.pointerId !== pid && e.type !== 'lostpointercapture') return; pid = null; gest = null; el._drag = false; el.classList.remove('fine'); e.stopPropagation(); };
+  el.addEventListener('pointerdown', down); el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
+  for (const t of ['touchstart', 'touchmove', 'touchend']) el.addEventListener(t, e => { e.stopPropagation(); if (e.cancelable && t !== 'touchend') e.preventDefault(); }, { passive: false });
+  return { dragging: () => !!el._drag };
+}
 export function createMobile(api) {
   const on = isTouch(), input = { pitch: 0, yaw: 0, roll: 0 };
   const M = { on, input, render() {}, update() {}, vibrate() {}, closeMenu() {}, show() {}, thrDragging: () => false, wakeLock: () => false, sheet: false }; // desktop: inert stubs
@@ -70,16 +102,14 @@ export function createMobile(api) {
   const roll = $('mRoll'), rk = roll.querySelector('i');
   drag(roll, e => { const r = roll.getBoundingClientRect(), x = clamp((e.clientX - r.left) / r.width * 2 - 1, -1, 1); input.roll = Math.abs(x) < 0.15 ? 0 : x; rk.style.left = (x + 1) * 50 + '%'; },
     () => { input.roll = 0; rk.style.left = '50%'; });
-  // throttle: absolute position on a vertical slider (top = 100%)
+  // throttle: full-travel groove (top = 100%). Dragging off to the side stretches the same pixels into a finer range.
   const thr = $('mThr');
-  thr.addEventListener('click', () => { }); thr.setAttribute('role', 'slider'); thr.setAttribute('aria-label', 'Throttle'); /* f5.9-10 (budget thr_drag_pitch @390): Chrome's touch adjustment snapped a THR touch onto RELEASE stacked above it; a tap-target THR wins its own touches */
-  let thrDrag = false;
-  drag(thr, e => { thrDrag = true; api.setThrottle(thrFromY(thr, e.clientY)); }, () => { thrDrag = false; }); // f5.9-22: whole track = 0..100 %, ends snap
+  const thrCtl = bindThrottleSlider(thr, u => api.setThrottle(u)); /* f5.9-10: the slider owns its pointer so Chrome does not retarget the touch onto RELEASE */
   // pinch/drag on the map and the 3D view are handled by main.js on the canvas; nothing here covers the centre
   M.render = d => {
     $('mAlt').textContent = d.alt; $('mSpd').textContent = d.spd; $('mAp').textContent = d.ap; $('mPe').textContent = d.pe;
     $('mMqL').textContent = d.mqL; $('mMq').textContent = d.mq; $('mMq').className = d.mqC || ''; $('mFuel').textContent = d.fuel; $('mScore').textContent = d.score;
-    const pct = Math.round(d.thr * 100); thr.querySelector('i').style.height = d.thr * 100 + '%'; thr.style.setProperty('--t', d.thr.toFixed(3)); thr.querySelector('u').textContent = pct ? pct + '%' : ''; thr.setAttribute('aria-valuenow', String(pct)); thr.setAttribute('aria-valuetext', pct + '%'); /* f5.9-31 (QA orbit_toast): a cutoff track is already empty; "0%" was the sixth word */
+    thr.style.setProperty('--t', d.thr.toFixed(3)); { const fine = thr.classList.contains('fine'), pct = fine ? (d.thr * 100).toFixed(1) : String(Math.round(d.thr * 100)); const lab = thr.querySelector('u'); const txt = pct === '0' || pct === '0.0' ? '' : pct + '%'; if (lab.textContent !== txt) lab.textContent = txt; thr.setAttribute('aria-valuenow', pct); thr.setAttribute('aria-valuetext', pct + '%'); } /* f5.9-31 (QA orbit_toast): a cutoff track is already empty; "0%" was the sixth word */
     $('mAuto').classList.toggle('on', d.auto); { const t = 'AUTO'; /* f5.6u (QA P1 budgets): the lit button + dot says ON; one word */ if ($('mAuto').textContent !== t) $('mAuto').textContent = t; } $('mChute').classList.toggle('hidden', !d.chute); menuUpdate($('mMenu'), { fleet: !!d.fleet, booster: !!d.booster, ret: /CANCEL/.test(d.home || ''), chute: d.hasChute, canHome: d.canHome });
     $('mRcs').classList.toggle('on', d.rcs); $('mFx').textContent = 'FX ' + d.fx; $('mWarp').textContent = d.warp;
     root.querySelectorAll('#mMenu [data-sas]').forEach(b => b.classList.toggle('on', b.dataset.sas === d.sas));
@@ -94,6 +124,6 @@ export function createMobile(api) {
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && want) wake(true); });
   M.wakeLock = () => !!lock;
-  M.thrDragging = () => thrDrag;
+  M.thrDragging = () => thrCtl.dragging();
   return M;
 }
