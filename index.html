@@ -5,7 +5,7 @@
 <title>Orbit Rush — WebGPU rocket launch game</title>
 <meta name="description" content="Learn real rocket science by flying it: build a rocket from parts and fly it to a full-scale Earth orbit: real gravity, the 1976 standard atmosphere, Mach-dependent aerodynamics, reentry heating and 6-DOF flight. Land the booster, bring the capsule home. Free in your browser, powered by WebGPU.">
 <meta property="og:title" content="Orbit Rush 🚀"><meta property="og:description" content="Build a rocket. Reach orbit. Land the booster. WebGPU in your browser.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=f5.9-33"><link rel="stylesheet" href="ui59.css?v=f5.9-41"><meta name="orbit-rush-build" content="2026-10-19-f1u">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>"><link rel="stylesheet" href="style.css?v=f5.9-41"><link rel="stylesheet" href="ui59.css?v=f5.9-41"><meta name="orbit-rush-build" content="2026-10-19-f1u">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/webgpu":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.webgpu.js","three/tsl":"https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.tsl.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"}}</script>
 </head><body>
 <div id="badge">…</div>
@@ -16,7 +16,33 @@
 <p><b>Everything else</b> (rocket parts, launch complex, concrete, panel and glow textures, smaller moons, effects, sounds, physics, lessons): original procedural work for Orbit Rush.</p>
 <p class="sm">Full list: CREDITS.md in the repository.</p>
 <div class="row"><button id="creditsClose" class="big">Close</button></div></div></div>
-<div id="loading">Loading Orbit Rush…</div>
+<div id="loading" class="boot indet">
+  <div class="bootCard">
+    <div class="bootTitle">ORBIT RUSH</div>
+    <div id="loadMsg" class="bootMsg">Warming up…</div>
+    <div class="bootTrack"><div id="loadBar" class="bootFill" style="width:8%"></div></div>
+    <div id="loadTip" class="bootTip">Hold SAS to keep the nose steady through the thick air.</div>
+  </div>
+</div>
+<script>
+(function () {
+  var tips = [
+    'Hold SAS to keep the nose steady through the thick air.',
+    'Stage when thrust drops — empty tanks are dead weight.',
+    'Circularize near apoapsis for the cheapest orbit burn.',
+    'Watch dynamic pressure: ease throttle through Max-Q.',
+    'Land the booster first, then bring the capsule home.',
+    'Warp only when the craft is coasting; burns need real time.'
+  ];
+  var i = 0, tip = document.getElementById('loadTip');
+  var timer = setInterval(function () {
+    if (window.__orBoot) { /* progress owned by main.js */ }
+    if (!tip || !document.getElementById('loading')) { clearInterval(timer); return; }
+    i = (i + 1) % tips.length;
+    tip.textContent = tips[i];
+  }, 3000);
+})();
+</script>
 <div id="ignite" class="hidden">Press <b>SPACE</b> (or tap <b>STAGE</b>) to ignite</div>
 <div id="setStash" hidden><label class="chk" title="Airflow particles, vapor cones, shock and plasma effects. Lowered automatically if the frame rate drops. (U in flight)">Effects <select id="fxSel"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label>
 <label class="chk" title="Graphics quality: Low for phones and software GPUs, High adds bloom and 2K planet textures">Graphics <select id="gfxSel"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select></label></div>
