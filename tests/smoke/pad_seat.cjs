@@ -5,7 +5,7 @@
 const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-core');
 const GPU = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'];
 const URL = process.env.U || 'http://localhost:8960/', SITES = (process.env.SITES || 'capen,gulf,atoll,cape,coast36').split(',');
-const PRE = { capen: ['North Coast Complex', 28.5619, -80.5772], gulf: ['Bay Starport', 25.9972, -97.1566], atoll: ['Atoll Range', 9.0477, 167.7433], cape: ['Heritage Complex', 28.6084, -80.6043], coast36: ['Coast Pad 36', 28.4711, -80.5378] };
+const PRE = { capen: ['North Coast Complex', 28.5619, -80.5772], gulf: ['Bay Starport', 25.9972, -97.4166], atoll: ['Atoll Range', 9.0477, 167.7433], cape: ['Heritage Complex', 28.6084, -80.6043], coast36: ['Coast Pad 36', 28.4711, -80.5378] };
 (async () => { const br = await pw.chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: GPU }); let bad = 0, n = 0; const ok = (t, m) => { if (!t || process.env.V) console.log((t ? 'ok   ' : 'FAIL ') + m); if (!t) bad++; n++; };
   for (const [si, id] of SITES.entries()) { const p = PRE[id]; const pg = await br.newPage({ viewport: { width: 1000, height: 700 } }); pg.setDefaultTimeout(240000); const errs = []; pg.on('pageerror', e => errs.push(e.message));
     await pg.addInitScript(s => { try { localStorage.setItem('or_seen_welcome', '1'); localStorage.setItem('orbitRush.site.v1', s); } catch (e) { } }, JSON.stringify({ body: 'earth', id, name: p[0], lat: p[1], lon: p[2] }));
