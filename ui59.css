@@ -875,7 +875,7 @@ body.u59 #split.fullB #spCardB.inBar :is(.spL,.spR){font-size:11px!important}
 body.u59 #split.fullB #spCardB.inBar .spBall{width:56px!important;height:56px!important}
 body.u59 #split.fullB #spCardB.inBar{background:none!important;border-top:0!important;padding:4px 8px 2px!important}
 #spRec.sheet{display:none}
-body.u59 #spRec.sheet:not(.hidden){display:flex;position:fixed;top:calc(var(--topH,52px) + 56px);right:calc(8px + var(--sar,0px));z-index:64;flex-direction:column;align-items:stretch;gap:6px;width:min(300px,calc(100vw - 16px));box-sizing:border-box;padding:8px;background:var(--panel);border:var(--bw) solid var(--bc);border-top:0;border-radius:0 0 var(--rad) var(--rad);pointer-events:auto}
+body.u59 #spRec.sheet:not(.hidden){display:flex;position:fixed;top:calc(var(--topH,52px) + 56px);right:calc(8px + var(--sar,0px));z-index:90;flex-direction:column;align-items:stretch;gap:6px;width:min(300px,calc(100vw - 16px));box-sizing:border-box;padding:8px;background:var(--panel);border:var(--bw) solid var(--bc);border-top:0;border-radius:0 0 var(--rad) var(--rad);pointer-events:auto}
 body.photo #spRec,body.clean #spRec,body.mapOn #spRec{display:none!important}
 #spRec .spRecB{display:flex;gap:0;border:var(--bw,2px) solid var(--bc,#9cc3ff66);border-radius:var(--rad,8px);overflow:hidden}
 #spRec .spRecB button{flex:1 1 0;height:var(--tap,44px)!important;min-height:var(--tap,44px)!important;min-width:0!important;padding:0 4px;border:0;border-right:1px solid var(--bc,#9cc3ff66);background:transparent;color:var(--txt,#dfe9ff);font:700 12px/1 var(--font,system-ui);letter-spacing:.04em;pointer-events:auto;touch-action:manipulation}
@@ -1040,3 +1040,8 @@ body.u59 #vsl .vq{font-family:inherit}
 }
 html body.u59:not(.touch).splitOn:not(.inOrbit) :is(#wDn,#wUp,#wVal,#craftBtn){display:none!important}
 html body.u59:not(.touch).splitOn:not(.inOrbit):not(.photo):not(.endOn):not(.mapOn):not(.menuOn):not(.clean) #gcamBtn{display:none!important}
+/* f5.9-41: full booster recovery is the craft. MAP, ☰, flight AUTO, STAGE, throttle and RELEASE
+   are the upper stage's controls; ⤡ BACK brings them back. The recovery chip stays, and its sheet
+   (#spRec) is the RTLS / BARGE / AUTO target. The bottom band is only the booster strip. */
+html body.u59:has(#split.fullB:not(.hidden)) :is(#mMap,#dMap,#mMenuBtn,#dMenuBtn,#mright,#dCtl,#mAuto,#dAuto,#mStage,#dStage,#mThr,#dThr,#relBtn,#craftBtn){display:none!important}
+html body.u59:has(#split.fullB:not(.hidden)) #botBar{min-height:0!important;height:calc(62px + var(--sab,0px))!important;max-height:calc(62px + var(--sab,0px))!important;padding-top:0!important;padding-bottom:0!important;overflow:hidden}
