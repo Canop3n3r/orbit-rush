@@ -1,11 +1,12 @@
-// f5.9-38: full-screen booster view. The orbit/pinch surface fills the viewport, a drag / wheel moves the main camera,
-// and RTLS / BARGE / AUTO live in #spRec.sheet opened from chip #spRecBtn (not an always-on bottom-bar row).
-// AUTO reads downrange, speed and fuel. Overrides use a real pointer tap on the chip, then the sheet button.
+// f5.9-41: full-screen booster view. The orbit/pinch surface fills the viewport, a drag / wheel moves the main camera,
+// and RTLS / BARGE / AUTO live in #spRec.sheet opened from chip #spRecBtn (not an always-on bottom-bar row, and not
+// the upper-stage MAP / ☰ / AUTO / STAGE / throttle / RELEASE cluster). A closed sheet is display:none; the chip
+// tap must give those three buttons a real hit box. AUTO reads downrange, speed and fuel.
 //   U=http://localhost:8982/ [VP=390x844] [OUT=/workspace/shots] node tests/smoke/boost_recovery.cjs
-//   U=https://host/path/?v=f5.9-38&webgl also works (no double-?). FAST=1 skips the landed fly-out.
+//   U=https://host/path/?v=f5.9-41&webgl also works (no double-?). FAST=1 skips the landed fly-out.
 const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-core'); const { CHECK } = require('./ui_walk.cjs');
 const GPU = ['--enable-unsafe-webgpu','--enable-features=Vulkan','--use-vulkan=swiftshader','--use-webgpu-adapter=swiftshader','--use-angle=swiftshader','--ignore-gpu-blocklist'];
-const OUT = process.env.OUT || '', URL = process.env.U || 'http://localhost:8982/', VPS = (process.env.VP || '390x844,844x390').split(','), M = process.env.M || 'colossus-v4';
+const OUT = process.env.OUT || '', URL = process.env.U || 'http://localhost:8982/', VPS = (process.env.VP || '390x844,844x390,1280x800').split(','), M = process.env.M || 'colossus-v4';
 const FAST = process.env.FAST === '1';
 const withQ = (u, extra) => { const i = u.indexOf('?'), base = i < 0 ? u : u.slice(0, i), have = new URLSearchParams(i < 0 ? '' : u.slice(i + 1));
   for (const [k, v] of new URLSearchParams(extra)) if (!have.has(k)) have.set(k, v); const s = have.toString(); return s ? base.replace(/\/*$/, '/') + '?' + s : base; };
@@ -36,6 +37,12 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if
     ok(chip0.txt && chip0.txt.includes(modeLab) && chip0.txt !== 'AUTO' && !/^AUTO$/.test(chip0.txt.trim()), `${vp} rec chip names ${modeLab} after expand ("${chip0.txt}", pref ${chip0.pref})`);
     const pane0 = await pg.evaluate(() => { const r = document.getElementById('spPane').getBoundingClientRect(); return { w: r.width, h: r.height, vw: innerWidth, vh: innerHeight }; });
     ok(pane0.w >= pane0.vw - 2 && pane0.h >= pane0.vh - 2, `${vp} booster camera surface fills the screen (${pane0.w | 0}x${pane0.h | 0} vs ${pane0.vw}x${pane0.vh})`);
+    const chrome = await pg.evaluate(() => { const shown = sel => [...document.querySelectorAll(sel)].some(e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 2 && r.height > 2 && cs.display !== 'none' && cs.visibility !== 'hidden'; });
+      return { map: shown('#mMap,#dMap'), menu: shown('#mMenuBtn,#dMenuBtn'), auto: shown('#mAuto,#dAuto'), stage: shown('#mStage,#dStage'), thr: shown('#mThr,#dThr'), rel: shown('#relBtn'), chip: shown('#spRecBtn'), back: shown('#spFull') }; });
+    ok(chrome.chip && chrome.back && !chrome.map && !chrome.menu && !chrome.auto && !chrome.stage && !chrome.thr && !chrome.rel, `${vp} full booster keeps the recovery chip and BACK, and folds MAP/menu/AUTO/STAGE/throttle/RELEASE ${JSON.stringify(chrome)}`);
+    const closed = await pg.evaluate(() => [...document.querySelectorAll('#spRec button[data-rec]')].map(b => { const r = b.getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height); }));
+    ok(closed.length === 3 && closed.every(s => s === '0x0'), `${vp} closed #spRec buttons are off the layout until the chip opens (${closed.join(',')})`);
+    await shot('chrome');
     await openRec();
     const L = await pg.evaluate(() => { const c = document.getElementById('spCardB').getBoundingClientRect(), b = document.getElementById('botBar').getBoundingClientRect(), r = document.getElementById('spRec'), w = document.getElementById('spRecW'), chip = document.getElementById('spRecBtn');
       const cs = getComputedStyle(r), q = r.getBoundingClientRect(), labs = [...r.querySelectorAll('button[data-rec]')].map(x => (x.textContent || '').trim()), recs = [...r.querySelectorAll('button[data-rec]')].map(x => x.dataset.rec);
