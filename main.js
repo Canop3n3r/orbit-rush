@@ -36,9 +36,9 @@ import * as PR from './fun/progress.js?v=f5.9-27';
 import * as WORLD from './fun/world.js?v=f5.9-27';
 import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-27';
 import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-27';
-import { createAudio } from './fun/audio.js?v=f5.9-27';
-import { ambientPressureRatio, engineListen } from './fun/listen.js?v=f5.9-29';
-import { createMusic } from './fun/music.js?v=f5.9-27';
+import { createAudio } from './fun/audio.js?v=f5.9-32';
+import { ambientPressureRatio, engineListen, flightLoudness } from './fun/listen.js?v=f5.9-32';
+import { createMusic } from './fun/music.js?v=f5.9-32';
 import { createCompact } from './fun/compact.js?v=f5.9-27';
 import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-27';
 import { softPlumeMaterial, vacPlumeMaterial, SOFT_K } from './fun/plumemat.js?v=f5.9-27';
@@ -73,7 +73,7 @@ import { surfaceUniforms as w1SU, moonSurfaceMaterial as w1Moon, marsSurfaceMate
 import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-27';
 import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-27';
 import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-27';
-import { createTrailer, epochMillis, resolveSite, applyArrival, warpPlan, spaceScore, deployMotion } from './fun/trailer.js?v=f5.9-31';
+import { createTrailer, epochMillis, resolveSite, applyArrival, warpPlan, spaceScore, deployMotion } from './fun/trailer.js?v=f5.9-32';
 import { openingPose, openingBegin, openingLatch, openingRelease, trackDist } from './fun/opening.js?v=f5.9-31';
 import { warpKeyAction, stepWarp } from './fun/warpkeys.js?v=f5.9-31';
 import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-27';
@@ -663,8 +663,8 @@ let ac, rumble, rumbleF, rumbleSrc, crack, crackSrc, master, fbus, sbus, dbus, m
 function noiseBuf(sec) { const b = ac.createBuffer(1, ac.sampleRate * sec, ac.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < d.length; i++) { l = (l + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; } return b; }
 function initAudio() {
   if (ac) { if (ac.state === 'suspended') ac.resume(); return; } ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.connect(ac.destination); funAudio.apply(); if (TR.masterGain != null) master.gain.value = TR.masterGain; // f3: master reaches the speakers. f5.9-30: __orAudio.gain survives unlock.
-  sbus = ac.createGain(); sbus.connect(master); dbus = ac.createGain(); dbus.connect(sbus); fbus = ac.createGain(); fbus.connect(dbus); mbus = ac.createGain(); mbus.gain.value = 0; mbus.connect(master); applyAudioSettings();
-  startFlightAudio();
+  sbus = ac.createGain(); sbus.connect(master); dbus = ac.createGain(); dbus.connect(sbus); fbus = ac.createGain(); fbus.gain.value = 0; fbus.connect(dbus); mbus = ac.createGain(); mbus.gain.value = 0; mbus.connect(master); applyAudioSettings();
+  const end = $('end'); if (state === 'flight' && !paused && (!end || end.classList.contains('hidden'))) startFlightAudio(); // unlocking audio on Home must not arm the engine loops
 }
 // f5.8y (owner: "whatever sound was playing when a rocket ends its flight keeps playing into the menu"): the engine rumble and the wind roar are LOOPS; they were only retargeted by the flight tick, so when the
 // flight screen went away (Home, Build, pause, end card) their last gain stayed. Now: stopFlightLoops fades and stops both loop sources; silenceFlight also fades the bus so an explosion tail never reaches a menu.
@@ -682,26 +682,35 @@ function stopFlightLoops(fade = 0.3) {
   if (!ac || !rumbleSrc) return; const s = rumbleSrc, g = rumble, t = ac.currentTime; rumbleSrc = null; rumble = null; rumbleF = null;
   try { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + fade); s.stop(t + fade + 0.05); s.onended = () => { try { s.disconnect(); g.disconnect(); } catch (e) { } }; } catch (e) { try { s.stop(); } catch (e2) { } }
 }
-function silenceFlight(fade = 0.3) { stopFlightLoops(fade); if (!ac || !fbus) return; const t = ac.currentTime; fbus.gain.cancelScheduledValues(t); fbus.gain.setValueAtTime(fbus.gain.value, t); fbus.gain.linearRampToValueAtTime(0, t + fade); }
+// Fade the bus the loops were using, then replace it. One-shots already connected (explosion, stage crack)
+// die on the old node and cannot swell back when pause ends or Home opens a fresh bus.
+function retireFlightBus(fade) {
+  if (!ac || !fbus) return; const old = fbus, t = ac.currentTime;
+  try { old.gain.cancelScheduledValues(t); old.gain.setValueAtTime(Math.max(0, old.gain.value), t); old.gain.linearRampToValueAtTime(0, t + fade); } catch (e) { }
+  const next = ac.createGain(); next.gain.value = 0; next.connect(dbus || sbus || master); fbus = next;
+  setTimeout(() => { try { old.disconnect(); } catch (e) { } }, fade * 1000 + 120);
+}
+function silenceFlight(fade = 0.3) { stopFlightLoops(fade); retireFlightBus(fade); }
 // f3: unlock on the first gesture anywhere (iOS needs resume() inside the touch handler) and resume after the tab comes back
 for (const ev of ['pointerdown', 'touchend', 'keydown', 'click']) window.addEventListener(ev, () => { if (!ac || ac.state !== 'running') initAudio(); }, { capture: true, passive: true });
 document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) { if (ac.state === 'running') ac.suspend().catch(() => {}); } else if (ac.state !== 'running') ac.resume().catch(() => {}); }); // f6.3: nothing plays (menu beat included) while the tab is in the background
-// f6.3: music follows the screen: menu beat on Home / picker / pause / end card, space score above the atmosphere, silence in the lower air (the engine is the music there)
+// f6.3: music follows the screen. Menu lofi on Home / picker / pause / end card. Space score above ~52–60 km.
+// Thick air stays quiet so the engine is the music. ?music=space / __orAudio.score forces the score in flight only.
 const audioMix = { dist: 0, distK: 1, vacK: 1 }; let spaceMusic = false;
 function musicMode() {
   if (state !== 'flight' || paused) return ['menu', 1]; const end = $('end'); if (end && !end.classList.contains('hidden')) return ['menu', 1];
   if (!F || !F.flags || F.flags.dead || F.flags.landed || F.flags.recovered) return [null, 0];
-  const b = P.BODIES[F.body] || {}, alt = F.body === 'earth' || b.atm ? F.alt : 1e9; // fades in from ~52 km to full at ~72 km; ?music=space / __orAudio.score plays it below that too
+  const b = P.BODIES[F.body] || {}, alt = F.body === 'earth' || b.atm ? F.alt : 1e9; // 52 km whisper → full at 60 km; trailer score plays it below that too
   const s = spaceScore(alt, spaceMusic, TR.score); spaceMusic = s.on; return s.kind ? [s.kind, s.level] : [null, 0];
 }
 function musicTick() { if (!ac) return; const [k, lv] = musicMode(); funMusic.set(k, lv); }
 function applyAudioSettings() { if (!ac) return; if (sbus) sbus.gain.value = Math.max(0, Math.min(1, SET.sfxVol == null ? 1 : SET.sfxVol)); funMusic.configure({ enabled: SET.musicOn !== false, volume: SET.musicVol == null ? 0.5 : SET.musicVol }); }
 function burst(vol, dur, freq) {
-  if (!ac) return; const s = ac.createBufferSource(); s.buffer = noiseBuf(dur); const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
+  if (!ac || !funAudio.heard) return; const s = ac.createBufferSource(); s.buffer = noiseBuf(dur); const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
   const g = ac.createGain(); g.gain.setValueAtTime(vol, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
   s.connect(f).connect(g).connect(fbus || master); s.start();
 }
-function beep(f = 880) { if (!ac) return; const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.08, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.25); o.connect(g).connect(sbus || master); o.start(); o.stop(ac.currentTime + 0.3); }
+function beep(f = 880) { if (!ac || !funAudio.heard) return; const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.08, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.25); o.connect(g).connect(sbus || master); o.start(); o.stop(ac.currentTime + 0.3); }
 // ---------- hangar: part-based builder ----------
 let design = cloneDesign(TEMPLATES[0]);
 // f4: camera distance that fits a stack of length L into `frac` of the screen height (fov-aware, slim rockets fill the frame)
@@ -1430,7 +1439,7 @@ function showEnd() {
  const score = F.finish();
   const flags = F.flags, o = F.orbitSnap ? F.orbitSnap.o : P.orbitOf(v), ok = (flags.orbit || !!(F.homeBody && F.homeBody !== 'earth' && (F.goals[F.homeBody] || {}).orbit)) && !flags.dead;
   const out = recordFlight(score);
-  if (flags.dead || flags.recovered || flags.stranded || F.flags.landed) stopFlightLoops(0.5); // f5.8y: a finished flight stops its engine / wind loops now; the explosion one-shot plays out
+  silenceFlight(0.45); // the end card is a menu: engine, wind, and the explosion tail leave with it (Continue reopens a fresh bus)
   const landedOn = Object.entries(F.goals || {}).find(([, g]) => g.landed);
   $('endTitle').innerHTML = flags.dead ? fun.boomCard(flags.cause) : landedOn ? `🏳️ Landed on the ${P.BODIES[landedOn[0]].name}!` : flags.recovered ? '🪂 Orbit and home!' : flags.dead ? (/burned up|overheated/.test(flags.dead) ? '🔥 Burned up' : '💥 Rapid Unscheduled Disassembly') : ok ? '🛰️ Orbit achieved!' : flags.stranded ? '🪂 Out of fuel — suborbital' : '🪂 Mission over';
   const lines = [];
@@ -1884,15 +1893,16 @@ renderer.setAnimationLoop(() => {
   musicTick(); // f6.3: menu beat / space score follow the screen and the altitude
   if (ac && dbus) { // f6.3: camera distance + thin air. f5.9-28 (OR-005): the air is the body you are on — Earth-relative h is largely negative on the Moon and used to roar like sea level. Vacuum keeps a low internal rumble.
     const hear = engineListen(ambientPressureRatio(state === 'flight' && F ? F.body : 'earth', state === 'flight' && F ? F.alt : h));
-    const camD = camera.position.distanceTo(tgtV), distK = camMode === 'map' ? 0.35 : GCAM.act ? 1 / (1 + Math.pow(camD / 600, 1.5)) : 1 / (1 + Math.max(0, camD - 250) / 2500);
-    dbus.gain.setTargetAtTime(distK * hear.vacK, ac.currentTime, 0.15); audioMix.dist = camD; audioMix.distK = distK; audioMix.vacK = hear.vacK;
-    if (rumble && rumbleF) {
-      const watchB = booster && booster.state === 'flying' && camMode === 'booster';
-      const thK = state === 'flight' ? (watchB ? booster.thrust : F.flags.dead ? 0 : v.thrust) : 0;
-      rumble.gain.setTargetAtTime(Math.min(0.9, thK / 3000 * hear.rumble), ac.currentTime, 0.08);
-      rumbleF.frequency.setTargetAtTime(hear.hz, ac.currentTime, 0.2);
-      if (crack) crack.gain.setTargetAtTime(Math.min(0.5, thK / 2500 * hear.crack), ac.currentTime, 0.08); // crackle is the atmospheric roar; it fades with the air
-    } }
+    const camD = camera.position.distanceTo(tgtV), loud = flightLoudness(camD, { map: camMode === 'map', ground: !!GCAM.act, vacK: hear.vacK });
+    audioMix.dist = camD; audioMix.distK = loud.distK; audioMix.vacK = hear.vacK;
+    if (funAudio.heard) { dbus.gain.setTargetAtTime(loud.gain, ac.currentTime, 0.15);
+      if (rumble && rumbleF) {
+        const watchB = booster && booster.state === 'flying' && camMode === 'booster';
+        const thK = state === 'flight' ? (watchB ? booster.thrust : F.flags.dead ? 0 : v.thrust) : 0;
+        rumble.gain.setTargetAtTime(Math.min(0.9, thK / 3000 * hear.rumble), ac.currentTime, 0.08);
+        rumbleF.frequency.setTargetAtTime(hear.hz, ac.currentTime, 0.2);
+        if (crack) crack.gain.setTargetAtTime(Math.min(0.5, thK / 2500 * hear.crack), ac.currentTime, 0.08); // crackle is the atmospheric roar; it fades with the air
+      } } }
   if (state === 'flight' && (hudT += rdt) > 0.1) { academy.tick(hudT); hudT = 0; hud(); academy.tick(0); academy.renderLearn(); }
   else if (state === 'build' && academy.active && (hudT += rdt) > 0.25) { academy.tick(hudT); hudT = 0; }
   const showOn = state === 'build' && home && home.on;

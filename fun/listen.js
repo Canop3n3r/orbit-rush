@@ -17,6 +17,15 @@ export function ambientPressureRatio(body, z) {
   return (atm && atm.p ? atm.p : 0) / P0;
 }
 
+// Camera distance times the air the engines are in. Map view is a fixed quiet bed.
+// The ground camera falls off fast (it leaves the rocket). The chase camera stays full until ~250 m, then eases.
+// vacK is engineListen().vacK: sea level ~1, vacuum ~0.1. The product is the flight-bus gain.
+export function flightLoudness(camD, { map = false, ground = false, vacK = 1 } = {}) {
+  const d = Math.max(0, +camD || 0), air = vacK > 0 ? vacK : 0;
+  const distK = map ? 0.35 : ground ? 1 / (1 + Math.pow(d / 600, 1.5)) : 1 / (1 + Math.max(0, d - 250) / 2500);
+  return { distK, vacK: air, gain: distK * air };
+}
+
 // p is ambient / Earth sea level and is not clamped: a thick atmosphere stays at the roar end of this curve,
 // and the flight loop already caps the resulting gains. Vacuum (p = 0) keeps the 0.25 internal rumble at 150 Hz.
 export function engineListen(p) {
