@@ -36,8 +36,30 @@ const s1 = W.stateAt(S2.objs[0], S2.objs[0].t + 86400), alt = Math.hypot(...s1.r
 ok(W.add(store, { r: [6378137 + 80000, 0, 0], v: [0, 7800, 0], t: 0 }) === null, 'a decaying object (Pe < 120 km) is not saved');
 // career: a delivered payload pays, recovery refunds
 const C = L.blank(), out = L.record(C, { delivered: { cash: 15 }, recovered: true }); ok(C.cash >= 15 && C.sats === 1, 'career pays for a delivered payload and counts it', `cash ${C.cash}, sats ${C.sats}`);
-{ // f5.4 (QA D4): no RELEASE while suborbital, even above 100 km
-  const G = new Flight(cloneDesign(SHOWROOM.find(s => s.id === 'swift').design), {}, { t0: T0 }); G.ignited = true; G.v.cur = G.last;
-  const m = Math.hypot(...G.v.r); G.v.r = G.v.r.map(x => x * (m + 101000) / m);
-  ok(!G.canRelease(), 'RELEASE hidden while suborbital at 101 km'); }
+{ // OR-007: sat/payload release is a sim action, allowed at any altitude. Orbit is not required.
+  const lift = add => {
+    const G = new Flight(cloneDesign(SHOWROOM.find(s => s.id === 'swift').design), { toast() {} }, { t0: T0 });
+    G.ignited = true; G.v.cur = G.last;
+    if (add) { const m = Math.hypot(...G.v.r); G.v.r = G.v.r.map(x => x * (m + add) / m); }
+    return G;
+  };
+  const released = (G, label) => {
+    ok(!!G.payloadPart() && G.canRelease(), `${label}: RELEASE is offered`, `alt ${(G.alt / 1000).toFixed(1)} km`);
+    const rec = G.releasePayload();
+    ok(!!rec && !!G.released && !G.payloadPart() && G.fleet.list.length === 2, `${label}: the payload leaves as its own vessel`, rec ? `Pe ${(rec.pe / 1000).toFixed(0)} km` : 'refused');
+  };
+  const pad = lift(0);
+  ok(pad.alt < 1000, 'pad case is still on the pad', `${pad.alt.toFixed(0)} m`);
+  released(pad, 'pad');
+  const air = lift(30000);
+  ok(air.alt > 20000 && air.alt < 80000, 'atmosphere case is in the air', `${(air.alt / 1000).toFixed(1)} km`);
+  released(air, 'atmosphere');
+  const vac = lift(101000);
+  let pe = Infinity; try { pe = P.orbitOf(vac.v).pe; } catch (e) { pe = -1; }
+  ok(vac.alt > 100000 && pe <= 100000, 'vacuum case is above 100 km and not in orbit', `alt ${(vac.alt / 1000).toFixed(1)} km, Pe ${(pe / 1000).toFixed(0)} km`);
+  released(vac, 'vacuum');
+  const sp = lift(0); const a = press(sp); ok(a === 'release' && !!sp.released, 'SPACE on the pad releases the payload', a);
+  const cold = new Flight(cloneDesign(SHOWROOM.find(s => s.id === 'swift').design), {}, { t0: T0 });
+  ok(!cold.canRelease() && cold.alt < 1000, 'RELEASE stays off before ignition');
+  const low = lift(0); low.v.cur = 0; ok(low.last > 0 && !low.canRelease(), 'RELEASE stays off while a lower stage is attached'); }
 console.log(`payload: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
