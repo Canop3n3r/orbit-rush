@@ -21,6 +21,53 @@ export const shockStrength = (M, q) => smooth(1.0, 1.6, M) * (q / (q + 8000));
 export const compressionGlow = (M, q) => smooth(2.5, 9, M) * (q / (q + 15000));
 // Bow-shock standoff for a blunt nose of radius rn (Billig: delta/rn ~ 0.143 exp(3.24/M^2)).
 export const shockStandoff = (M, rn) => (M > 1 ? 0.143 * rn * Math.exp(3.24 / (M * M)) : 0);
+// Shock collar length (m). The f3 cap: a nose collar, never a sky-wide cone. fx.js scales the collar mesh with this.
+export const shockCollarH = (L, d) => Math.min(Math.max(L, 0) * 0.18, 1.8 * Math.max(d, 0) + 2);
+// Collar brightness. A cold Mach collar stays a faint line; compression heating brings it up. Clamped to 0..1.
+export const shockCollarI = (shock, glow) => clamp01(0.14 * Math.max(shock, 0) + 0.62 * Math.max(glow, 0));
+// Compressed-air film hugging the nose, in metres. Shorter than the collar and never wider than the vehicle.
+export function compressionFilm(L, d, standoff) {
+  const collar = shockCollarH(L, d), body = Math.max(d, 0.4);
+  // At least a nose-radius skirt: Mach-25 standoff is centimetres, and a centimetre sheet disappears.
+  const H = Math.min(Math.max(collar * 0.72, body * 0.42), Math.max(standoff, 0) * 5 + body * 0.55, 3.4);
+  const R = Math.min(body * 0.62 + 0.15, 2.6);
+  return { H: Math.max(H, 0.3), R: Math.max(R, 0.35) };
+}
+// Film brightness. Off on a cold transonic collar; on once compression glow or a real sheath is present.
+export function compressionFilmI(shock, glow, plasma) {
+  if (glow <= 0.04 && plasma <= 0.08) return 0;
+  const hot = Math.max(Math.max(glow, 0), Math.max(plasma, 0) * 0.85);
+  return clamp01((0.22 * Math.max(shock, 0) + 0.95 * hot) * (0.35 + 0.65 * hot));
+}
+// Plasma bow length (m). Blunt capsules get a cap about the body, not a spear; slim rockets stay under a few diameters.
+export function bowLength(L, d) {
+  const body = Math.max(d, 0.4), len = Math.max(L, 0);
+  const H = len < 3 * body ? Math.min(len * 1.05 + 1.4, body * 2.2) : Math.min(len * 1.1, body * 6 + 8);
+  return Math.max(H, 1);
+}
+// Wake length (m). Long enough to read as a trail, short enough that it does not fill a phone frame.
+export function wakeLength(L, d, plasma) {
+  const p = clamp01(plasma);
+  return Math.min(Math.max(L, 0) * 1.4 + 22 * p + 4, Math.max(d, 0.4) * 8 + 12);
+}
+// White-hot stagnation cap inside the sheath. Off until plasma is obvious.
+export const stagnationCore = plasma => smooth(0.2, 0.82, plasma);
+// Radius (m) of that cap. Stays inside the body diameter and grows as the entry hardens.
+export function stagnationCap(d, plasma) {
+  const R = Math.max(d, 0.4) * (0.34 + 0.18 * clamp01(plasma));
+  return { R: Math.min(R, 2.2) };
+}
+// How much the sheath scrolls turbulence. Zero until the sheath is actually visible.
+export const sheathTurbulence = plasma => smooth(0.1, 0.6, plasma);
+// Wake brightness. Readable, and always under a full bow.
+export const wakeGlow = plasma => clamp01(plasma) * 0.62;
+// Shock-layer motes. Descent only (a hot climb may still light the bow; it does not throw sparks).
+export const entrySparks = (plasma, vUp) => (vUp === undefined || vUp < 0 ? smooth(0.18, 0.72, plasma) : 0);
+// Windward heating 0..1. `wind` is how face-on the surface is to the flow, `axial` is 0 at the aft end and 1 at the nose.
+export function windwardHeat(wind, axial, noseFirst) {
+  const along = noseFirst ? clamp01(axial) : 1 - clamp01(axial);
+  return clamp01(0.05 + 0.95 * Math.pow(clamp01(wind), 1.35) * (0.25 + 0.75 * along));
+}
 // Reentry plasma sheath intensity from the stagnation heat flux (W/m^2), log-scaled: faint at ~20 kW/m²,
 // full at ~1 MW/m². Strictly increasing in between, non-decreasing everywhere.
 export const plasmaIntensity = heat => smooth(4.3, 6.0, Math.log10(Math.max(heat, 1)));
@@ -65,10 +112,12 @@ export function plumeLook(pa, throttle = 1) {
     vac, diamonds: sh.diamonds, bright: 0.55 + 0.45 * t, smoke: clamp01(pa / 101325) };
 }
 // Effects quality presets (fx.js): particle counts and which layers draw.
+// sheet: compressed-air nose film. core: extra stagnation bulb. turb: sheath noise scroll.
+// sparks: shock-layer motes (CPU, not the flow buffer). med is the phone preset — no bulb, a small spark budget.
 export const QUALITY = {
-  low:  { flowCPU: 350,  flowGPU: 2500,  vapor: true, shock: true, plasmaShell: false, wake: true, diamonds: false, ablate: 2 },
-  med:  { flowCPU: 1000, flowGPU: 6000,  vapor: true, shock: true, plasmaShell: true,  wake: true, diamonds: true,  ablate: 4 },
-  high: { flowCPU: 2200, flowGPU: 10000, vapor: true, shock: true, plasmaShell: true,  wake: true, diamonds: true,  ablate: 7 },
+  low:  { flowCPU: 350,  flowGPU: 2500,  vapor: true, shock: true, plasmaShell: false, wake: true, diamonds: false, ablate: 2, sheet: false, core: false, turb: false, sparks: 0 },
+  med:  { flowCPU: 1000, flowGPU: 6000,  vapor: true, shock: true, plasmaShell: true,  wake: true, diamonds: true,  ablate: 4, sheet: true,  core: false, turb: true,  sparks: 140 },
+  high: { flowCPU: 2200, flowGPU: 10000, vapor: true, shock: true, plasmaShell: true,  wake: true, diamonds: true,  ablate: 7, sheet: true,  core: true,  turb: true,  sparks: 360 },
 };
 export const QUALITY_ORDER = ['low', 'med', 'high'];
 // Everything the renderer needs for one frame, from telemetry.

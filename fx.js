@@ -5,10 +5,12 @@
 //    a potential-flow field (a Rankine source/sink pair on the axis + a crossflow doublet around it) and slowed /
 //    brightened where they cross the shock cone. WebGPU: a TSL compute shader updates the particle buffers on the
 //    GPU. WebGL2 fallback: the same field is integrated on the CPU into instanced attributes.
-//  - Shock cone / bow shock (Mach angle, standoff), compressed-air glow, transonic vapor cone (condensation collar),
-//    reentry plasma (bow cap, windward body glow, wake), coloured by stagnation temperature.
+//  - Shock cone / bow shock (Mach angle, standoff), a short compressed-air film on the nose once the layer is hot,
+//    transonic vapor cone (condensation collar), reentry plasma (bow cap with a white-hot stagnation point and
+//    optional turbulence, windward body glow, a cooler wake) coloured by stagnation temperature. Entry sparks
+//    are a small CPU set, budgeted by the quality preset (phones stay on med: film + turbulence, no extra bulb).
 import * as THREE from 'three/webgpu';
-import { fxState, QUALITY, shockStandoff, plasmaGate } from './fxmap.js?v=f5.9-27';
+import { fxState, QUALITY, shockStandoff, plasmaGate, shockCollarH, shockCollarI, compressionFilm, compressionFilmI, bowLength, wakeLength, stagnationCore, stagnationCap, sheathTurbulence, wakeGlow, entrySparks } from './fxmap.js?v=f5.9-32';
 const T = THREE.TSL;
 const { Fn, If, instancedArray, instancedBufferAttribute, instanceIndex, uniform, vec3, vec4, float, hash, length, normalize, dot, cross, max, mix,
   smoothstep, exp, sqrt, clamp, abs, sin, cos, uv, positionLocal, normalLocal, normalView, positionView, pow, oneMinus, texture, time, vec2 } = T;
@@ -112,9 +114,9 @@ class FlowParticles {
 // ---------- shells ----------
 // Unit hyperboloid "bow shock" profile: apex at y = 0, opening toward +Y, radius ~ y far from the apex and a
 // rounded nose near it (k sets the bluntness). Scaled per frame: x/z by tan(angle)*H, y by H.
-function bowGeometry(k, n = 40) {
+function bowGeometry(k, n = 40, segs = 48) {
   const pts = []; for (let i = 0; i <= n; i++) { const u = (i / n) ** 1.6; pts.push(new THREE.Vector2(Math.sqrt(u * (u + 2 * k)) / Math.sqrt(1 + 2 * k), u)); }
-  return new THREE.LatheGeometry(pts, 48);
+  return new THREE.LatheGeometry(pts, segs);
 }
 function noiseTexture() {
   const W = 256, H = 64, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const c = cv.getContext('2d'), img = c.createImageData(W, H);
@@ -130,21 +132,99 @@ function noiseTexture() {
 }
 // Additive shell with a view-angle rim (bright where you look along the surface, like a real shock/plasma
 // layer) and a fade along the profile (uv.y: 0 at the apex/front, 1 at the far end).
+const viewRim = () => oneMinus(abs(dot(normalize(normalView), normalize(positionView.negate()))));
 function rimMaterial(U, frontFade = 0.05, power = 1.5) {
   const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
-  const rim = oneMinus(abs(dot(normalize(normalView), normalize(positionView.negate())))), v = uv().y;
-  const along = smoothstep(0, frontFade, v).mul(pow(oneMinus(v), power));
-  m.colorNode = vec4(U.color.mul(U.inten).mul(pow(rim, 1.6).mul(0.85).add(0.15)).mul(along), 1);
+  const v = uv().y, along = smoothstep(0, frontFade, v).mul(pow(oneMinus(v), power));
+  m.colorNode = vec4(U.color.mul(U.inten).mul(pow(viewRim(), 1.6).mul(0.85).add(0.15)).mul(along), 1);
   return m;
 }
-const qFrom = (obj, d) => obj.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+// Shock front: a bright lip at the apex, then a short falloff. Same collar mesh, easier to read.
+function shockMaterial(U) {
+  const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  const v = uv().y;
+  const lip = oneMinus(smoothstep(0.0, 0.16, v)).mul(0.82).add(smoothstep(0.0, 0.05, v).mul(pow(oneMinus(v), 1.35)).mul(0.32));
+  m.colorNode = vec4(U.color.mul(U.inten).mul(pow(viewRim(), 1.45).mul(0.72).add(0.28)).mul(lip), 1);
+  return m;
+}
+// Compressed-air film: a clean sheet (no noise) so the standoff stays a line, not a fog.
+function filmMaterial(U) {
+  const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  const v = uv().y, lip = oneMinus(smoothstep(0.0, 0.2, v)).mul(0.9).add(pow(oneMinus(v), 2.4).mul(0.22));
+  m.colorNode = vec4(U.color.mul(U.inten).mul(pow(viewRim(), 1.3).mul(0.65).add(0.35)).mul(lip), 1);
+  return m;
+}
+// Plasma bow. Apex mixes toward U.hot (white-hot stagnation). U.turb scrolls the shared noise; 0 skips the look.
+function sheathMaterial(U, tex) {
+  const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  const v = uv().y, along = pow(oneMinus(clamp(v, 0, 1)), 0.85).mul(0.82).add(0.18), cap = oneMinus(smoothstep(0.02, 0.32, v));
+  const n = texture(tex, vec2(uv().x.mul(3.0).add(time.mul(0.08)), uv().y.mul(1.6).add(time.mul(0.42)))).a;
+  const col = mix(U.color, U.hot, cap.mul(0.88)), grain = mix(float(1), n.mul(0.5).add(0.58), U.turb);
+  m.colorNode = vec4(col.mul(U.inten).mul(pow(viewRim(), 1.35).mul(0.7).add(0.3)).mul(along).mul(grain), 1);
+  return m;
+}
+// Wake cools from the sheath colour at the root to U.tail at the end.
+function wakeMaterial(U, tex) {
+  const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  const v = uv().y, along = smoothstep(0, 0.04, v).mul(pow(oneMinus(v), 1.8));
+  const col = mix(U.color, U.tail, smoothstep(0.12, 0.9, v));
+  const n = texture(tex, vec2(uv().x.mul(2.0).add(time.mul(0.05)), uv().y.mul(0.8).add(time.mul(0.55)))).a;
+  const grain = mix(float(1), n.mul(0.45).add(0.62), U.turb);
+  m.colorNode = vec4(col.mul(U.inten).mul(pow(viewRim(), 1.5).mul(0.8).add(0.2)).mul(along).mul(grain), 1);
+  return m;
+}
+function coreMaterial(U) {
+  const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  const face = pow(clamp(abs(dot(normalize(normalView), normalize(positionView.negate()))), 0, 1), 0.75);
+  m.colorNode = vec4(U.color.mul(U.inten).mul(face.mul(0.75).add(0.25)), 1);
+  return m;
+}
+// Shock-layer motes. Always integrated on the CPU and capped by QUALITY.sparks (0 on low, 140 on the phone tier).
+class EntrySparks {
+  constructor(n) {
+    this.n = n;
+    this.P = new Float32Array(n * 3); this.V = new Float32Array(n * 3); this.L = new Float32Array(n); this.M = new Float32Array(n);
+    this.aP = new THREE.InstancedBufferAttribute(this.P, 3); this.aL = new THREE.InstancedBufferAttribute(this.L, 1); this.aM = new THREE.InstancedBufferAttribute(this.M, 1);
+    for (const a of [this.aP, this.aL, this.aM]) a.setUsage(THREE.DynamicDrawUsage);
+    const cN = instancedBufferAttribute(this.aP), lN = instancedBufferAttribute(this.aL), mN = instancedBufferAttribute(this.aM);
+    const U = this.U = { cam: uniform(new THREE.Vector3()), color: uniform(new THREE.Color(1, 0.62, 0.28)), inten: uniform(0), size: uniform(0.16) };
+    const mat = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+    mat.positionNode = Fn(() => {
+      const toCam = normalize(U.cam.sub(cN).add(vec3(0.02, 0.002, 0.01))), side = normalize(cross(toCam, vec3(0.02, 1, 0.01))), up = normalize(cross(side, toCam));
+      return cN.add(side.mul(positionLocal.x.mul(U.size))).add(up.mul(positionLocal.y.mul(U.size)));
+    })();
+    const e = uv().sub(0.5).mul(2), soft = clamp(float(1).sub(dot(e, e)), 0, 1), fade = clamp(lN.div(max(mN, float(0.001))), 0, 1);
+    mat.colorNode = vec4(U.color.mul(U.inten.mul(soft).mul(fade)), 1);
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat); this.mesh.count = n; this.mesh.frustumCulled = false; this.mesh.renderOrder = 11; this.mesh.visible = false;
+    this.e1 = new THREE.Vector3(); this.e2 = new THREE.Vector3();
+  }
+  step(dt, want, apex, dir, radius) {
+    const n = this.n, P = this.P, Vv = this.V, L = this.L, M = this.M, e1 = this.e1, e2 = this.e2;
+    e2.set(Math.abs(dir.y) < 0.85 ? 0 : 1, Math.abs(dir.y) < 0.85 ? 1 : 0, 0); e1.crossVectors(dir, e2).normalize(); e2.crossVectors(dir, e1).normalize();
+    let spawned = 0;
+    for (let i = 0; i < n; i++) {
+      const j = i * 3;
+      if (L[i] > 0) { P[j] += Vv[j] * dt; P[j + 1] += Vv[j + 1] * dt; P[j + 2] += Vv[j + 2] * dt; L[i] -= dt; }
+      else if (spawned < want) {
+        const ang = Math.random() * 6.2831853, rad = radius * (0.2 + Math.random() * 0.95), ca = Math.cos(ang), sa = Math.sin(ang), sp = 7 + Math.random() * 16, out = (Math.random() - 0.3) * 3;
+        P[j] = apex.x + (e1.x * ca + e2.x * sa) * rad; P[j + 1] = apex.y + (e1.y * ca + e2.y * sa) * rad; P[j + 2] = apex.z + (e1.z * ca + e2.z * sa) * rad;
+        Vv[j] = dir.x * sp + (e1.x * ca + e2.x * sa) * out; Vv[j + 1] = dir.y * sp + (e1.y * ca + e2.y * sa) * out; Vv[j + 2] = dir.z * sp + (e1.z * ca + e2.z * sa) * out;
+        L[i] = M[i] = 0.22 + Math.random() * 0.38; spawned++;
+      }
+    }
+    this.aP.needsUpdate = this.aL.needsUpdate = this.aM.needsUpdate = true;
+  }
+  dispose() { this.mesh.geometry.dispose(); this.mesh.material.dispose(); }
+}
+const _up = new THREE.Vector3(0, 1, 0);
+const qFrom = (obj, d) => obj.quaternion.setFromUnitVectors(_up, d);
 
 export class FX {
   constructor({ gpu = false, quality = 'high' } = {}) {
     this.gpu = gpu; this._pc = new THREE.Color(); this.root = new THREE.Group(); this.root.name = 'fx'; this.q = quality; this.flow = null; this.compute = 0; this.last = null;
     const mkU = c => ({ color: uniform(new THREE.Color(c)), inten: uniform(0) });
-    // shock cone / bow shock with compressed-air glow
-    this.shockU = mkU(0x9fc4ff); this.shock = new THREE.Mesh(bowGeometry(0.03), rimMaterial(this.shockU, 0.03, 1.2)); this.shock.renderOrder = 6;
+    // shock cone / bow shock. Compressed-air glow rides the same collar; the hot nose film is a separate short sheet.
+    this.shockU = mkU(0x9fc4ff); this.shock = new THREE.Mesh(bowGeometry(0.03), shockMaterial(this.shockU)); this.shock.renderOrder = 6;
     // transonic vapor cone: a condensation collar flaring back from the shoulder, noisy and soft
     const pts = []; for (let i = 0; i <= 24; i++) { const t = i / 24; pts.push(new THREE.Vector2(1.02 + 1.5 * Math.pow(t, 0.5), -t)); }
     this.vaporU = { inten: uniform(0) }; this.vaporTex = noiseTexture();
@@ -152,18 +232,25 @@ export class FX {
     const vv = uv(), n = texture(this.vaporTex, vec2(vv.x.mul(2).add(time.mul(0.15)), vv.y.mul(0.9).add(time.mul(0.6)))).a;
     vm.colorNode = vec4(1, 1, 1, 1); vm.opacityNode = this.vaporU.inten.mul(n.mul(0.6).add(0.4)).mul(smoothstep(0, 0.05, vv.y)).mul(pow(oneMinus(vv.y), 1.2)).mul(1.5).min(0.92);
     this.vapor = new THREE.Mesh(new THREE.LatheGeometry(pts, 48), vm); this.vapor.renderOrder = 7;
-    // reentry plasma: bow cap hugging the windward end, windward body glow, and a long wake
-    this.bowU = mkU(0xff9a40); this.bow = new THREE.Mesh(bowGeometry(0.14), rimMaterial(this.bowU, 0.02, 0.9)); this.bow.renderOrder = 8;
-    this.wakeU = mkU(0xff9a40);
+    // reentry plasma: bow cap (stagnation hotspot + turbulence), windward body glow, cooler wake
+    this.bowU = { ...mkU(0xff9a40), hot: uniform(new THREE.Color(1, 0.96, 0.9)), turb: uniform(0) };
+    this.bow = new THREE.Mesh(bowGeometry(0.14), sheathMaterial(this.bowU, this.vaporTex)); this.bow.renderOrder = 8;
+    this.wakeU = { ...mkU(0xff9a40), tail: uniform(new THREE.Color(0.85, 0.22, 0.05)), turb: uniform(0) };
     const wp = []; for (let i = 0; i <= 20; i++) { const t = i / 20; wp.push(new THREE.Vector2(1 - 0.85 * Math.pow(t, 0.7), t)); }
-    this.wake = new THREE.Mesh(new THREE.LatheGeometry(wp, 32), rimMaterial(this.wakeU, 0.04, 1.8)); this.wake.renderOrder = 8;
+    this.wake = new THREE.Mesh(new THREE.LatheGeometry(wp, 32), wakeMaterial(this.wakeU, this.vaporTex)); this.wake.renderOrder = 8;
     this.shellU = { ...mkU(0xff9a40), flow: uniform(new THREE.Vector3(0, -1, 0)) };
     const sm = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    // Same curve as windwardHeat(): lee stays dim, the windward leading end is the hot face.
+    const axial = clamp(positionLocal.y, 0, 1), nose = oneMinus(smoothstep(-0.2, 0.2, this.shellU.flow.y)), along = mix(oneMinus(axial), axial, nose);
     const wind = max(dot(normalize(normalLocal), this.shellU.flow.negate()), 0);
-    sm.colorNode = vec4(this.shellU.color.mul(this.shellU.inten).mul(pow(wind, 1.5).mul(0.9).add(0.06)), 1);
+    sm.colorNode = vec4(this.shellU.color.mul(this.shellU.inten).mul(float(0.05).add(pow(wind, 1.35).mul(float(0.25).add(along.mul(0.75))))), 1);
     const sg = new THREE.CylinderGeometry(1, 1, 1, 32, 6, false); sg.translate(0, 0.5, 0);
     this.shell = new THREE.Mesh(sg, sm); this.shell.renderOrder = 9;
-    for (const m of [this.shock, this.vapor, this.bow, this.wake, this.shell]) { m.frustumCulled = false; m.visible = false; this.root.add(m); }
+    // compression film: short nose sheet. stagnation bulb: high preset only (hidden otherwise).
+    this.filmU = mkU(0xcfe6ff); this.film = new THREE.Mesh(bowGeometry(0.05, 18, 24), filmMaterial(this.filmU)); this.film.renderOrder = 7;
+    this.coreU = mkU(0xfff2e4); this.core = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), coreMaterial(this.coreU)); this.core.renderOrder = 10;
+    this.sparks = null;
+    for (const m of [this.shock, this.vapor, this.bow, this.wake, this.shell, this.film, this.core]) { m.frustumCulled = false; m.visible = false; this.root.add(m); }
     this.setQuality(quality);
   }
   attach(parent) { if (this.root.parent !== parent) parent.add(this.root); }
@@ -174,8 +261,17 @@ export class FX {
     this.flows = this.flows || {};
     if (!this.flows[q]) { this.flows[q] = new FlowParticles(this.gpu ? Q.flowGPU : Q.flowCPU, this.gpu); this.root.add(this.flows[q].mesh); }
     this.flow = this.flows[q]; this.flow.mesh.visible = false;
+    if (this.sparks) this.sparks.mesh.visible = false;
+    this.sparkSets = this.sparkSets || {};
+    if (Q.sparks > 0) {
+      if (!this.sparkSets[q]) { this.sparkSets[q] = new EntrySparks(Q.sparks); this.root.add(this.sparkSets[q].mesh); }
+      this.sparks = this.sparkSets[q];
+    } else this.sparks = null;
   }
-  hide() { for (const m of [this.shock, this.vapor, this.bow, this.wake, this.shell, this.flow.mesh]) m.visible = false; }
+  hide() {
+    for (const m of [this.shock, this.vapor, this.bow, this.wake, this.shell, this.film, this.core, this.flow.mesh]) m.visible = false;
+    if (this.sparks) this.sparks.mesh.visible = false;
+  }
   // ctx: { tel, L, d (diameter), shoulderY, cam (THREE.Vector3 in the body frame), on }
   update(dt, ctx, renderer) {
     const tel = ctx.tel; if (!ctx.on || !tel) { this.hide(); return null; }
@@ -203,13 +299,15 @@ export class FX {
       U.color.value.setRGB(0.72 + 0.28 * s.glow, 0.84 - 0.2 * s.glow, 1.0 - 0.55 * s.glow).lerp(this._pc.setRGB(pc[0], pc[1], pc[2]), pk);
       if (this.gpu) { renderer.compute(F.computeNode); this.compute++; } else F.stepCPU(U.dt.value);
     }
-    // --- shock cone + compressed-air glow ---
-    const shockI = Q.shock ? 0.08 * s.shock + 0.4 * s.glow : 0; // f3: a faint collar at the nose, never a sky-wide cone
+    this.clock = (this.clock || 0) + Math.min(Math.max(dt, 0), 0.05);
+    const breathe = 0.94 + 0.06 * Math.sin(this.clock * 8.4) * Math.sin(this.clock * 2.2);
+    // --- shock collar (size stays shockCollarH) + compressed-air nose film once the layer is hot ---
+    const shockI = Q.shock ? shockCollarI(s.shock, s.glow) : 0;
     this.shock.visible = shockI > 0.02;
     if (this.shock.visible) {
-      const H = Math.min(L * 0.18, 1.8 * ctx.d + 2), tn = Math.min(0.45, Math.tan(s.machAngle));
+      const H = shockCollarH(L, ctx.d), tn = Math.min(0.45, Math.tan(s.machAngle));
       this.shock.position.copy(apex); qFrom(this.shock, d); this.shock.scale.set(tn * H, H, tn * H);
-      this.shockU.inten.value = Math.min(1.2, shockI);
+      this.shockU.inten.value = shockI;
       this.shockU.color.value.setRGB(0.62 + 0.38 * s.glow, 0.76 - 0.2 * s.glow, 1.0 - 0.6 * s.glow);
     }
     // --- vapor cone: only flying nose-first in humid transonic air ---
@@ -222,17 +320,46 @@ export class FX {
     const pl = s.plasma * plasmaGate(s.plasma, ctx.vUp), col = s.plasmaColor;
     this.bow.visible = pl > 0.01; this.wake.visible = Q.wake && pl > 0.03; this.shell.visible = Q.plasmaShell && pl > 0.02;
     if (this.bow.visible) {
-      const blunt = L < 3 * ctx.d, H = blunt ? L * 1.6 + 2 : L * 1.25, tn = Math.max(blunt ? 1.5 * R / H : 0, Math.min(0.5, Math.tan(s.machAngle) * 1.3), 0.06);
+      const blunt = L < 3 * ctx.d, H = bowLength(L, ctx.d), tn = Math.max(blunt ? 1.5 * R / H : 0, Math.min(0.5, Math.tan(s.machAngle) * 1.3), 0.06);
       this.bow.position.set(0, yW, 0).addScaledVector(d, -(standoff + 0.2)); qFrom(this.bow, d); this.bow.scale.set(Math.max(tn * H, R * 1.15), H, Math.max(tn * H, R * 1.15));
-      this.bowU.inten.value = Math.min(1.6, pl * 1.5); this.bowU.color.value.setRGB(col[0], col[1], col[2]);
+      this.bowU.inten.value = Math.min(1.7, pl * 1.45) * breathe; this.bowU.color.value.setRGB(col[0], col[1], col[2]);
+      this.bowU.hot.value.setRGB(0.25 * col[0] + 0.75, 0.25 * col[1] + 0.75, 0.22 * col[2] + 0.75);
+      this.bowU.turb.value = Q.turb ? sheathTurbulence(pl) : 0;
+    }
+    const filmI = Q.sheet ? compressionFilmI(s.shock, s.glow, pl) : 0;
+    this.film.visible = filmI > 0.03;
+    if (this.film.visible) {
+      const film = compressionFilm(L, ctx.d, standoff), g = Math.min(1, s.glow + pl * 0.5);
+      this.film.position.copy(apex); qFrom(this.film, d); this.film.scale.set(film.R, film.H, film.R);
+      this.filmU.inten.value = Math.min(1.15, filmI) * breathe;
+      this.filmU.color.value.setRGB(0.75 + 0.25 * col[0] * g, 0.88 - 0.22 * g + 0.1 * col[1], 1.0 - 0.55 * g);
+    }
+    const coreK = Q.core ? stagnationCore(pl) : 0;
+    this.core.visible = coreK > 0.04;
+    if (this.core.visible) {
+      const cap = stagnationCap(ctx.d, pl);
+      this.core.position.set(0, yW, 0).addScaledVector(d, -(standoff * 0.4 + cap.R * 0.3)); this.core.scale.setScalar(cap.R);
+      this.coreU.inten.value = Math.min(1.8, coreK * 1.7) * breathe;
+      this.coreU.color.value.setRGB(0.3 * col[0] + 0.7, 0.3 * col[1] + 0.68, 0.25 * col[2] + 0.7);
     }
     if (this.wake.visible) {
-      const Lw = L * 2.5 + 80 * pl + 10; this.wake.position.set(0, yLee, 0); qFrom(this.wake, d); this.wake.scale.set(R * 1.4, Lw, R * 1.4);
-      this.wakeU.inten.value = pl * 0.9; this.wakeU.color.value.setRGB(col[0], col[1] * 0.85, col[2]);
+      const Lw = wakeLength(L, ctx.d, pl); this.wake.position.set(0, yLee, 0); qFrom(this.wake, d); this.wake.scale.set(R * 1.25, Lw, R * 1.25);
+      this.wakeU.inten.value = wakeGlow(pl) * 1.25 * breathe; this.wakeU.color.value.setRGB(col[0], col[1], col[2]);
+      this.wakeU.tail.value.setRGB(col[0] * 0.7, col[1] * 0.28 + 0.05, col[2] * 0.16);
+      this.wakeU.turb.value = Q.turb ? sheathTurbulence(pl) * 0.85 : 0;
     }
     if (this.shell.visible) {
       this.shell.scale.set(R * 1.08, L, R * 1.08); this.shell.position.set(0, 0, 0);
-      this.shellU.flow.value.copy(d); this.shellU.inten.value = pl * 1.1; this.shellU.color.value.setRGB(col[0], col[1], col[2]);
+      this.shellU.flow.value.copy(d); this.shellU.inten.value = pl * 1.15; this.shellU.color.value.setRGB(col[0], col[1], col[2]);
+    }
+    const sparkK = this.sparks ? entrySparks(s.plasma, ctx.vUp) : 0;
+    if (this.sparks) {
+      this.sparks.mesh.visible = sparkK > 0.04 && dt > 0;
+      if (this.sparks.mesh.visible) {
+        this.sparks.U.cam.value.copy(ctx.cam); this.sparks.U.inten.value = 0.4 + sparkK * 1.15; this.sparks.U.size.value = 0.07 + R * 0.05;
+        this.sparks.U.color.value.setRGB(Math.min(1, col[0] * 0.45 + 0.55), Math.min(1, col[1] * 0.55 + 0.35), Math.min(1, col[2] * 0.4 + 0.2));
+        this.sparks.step(Math.min(dt, 0.05), Math.min(6, Math.ceil(sparkK * (Q.sparks > 200 ? 6 : 4))), apex, d, Math.max(R * 1.15, 0.6));
+      }
     }
     return s;
   }
