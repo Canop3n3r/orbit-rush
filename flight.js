@@ -512,11 +512,13 @@ export class Flight {
     const rw = pl.reduce((t, q) => t + (q.rw || 0), 0), avi = { id: 'avionics', kind: 'avionics', name: 'Stage avionics', m: 0.05, h: 0.05, d: 1, rw: rw || 2 };
     this.shiftCom(() => { const i = top.parts.indexOf(pl[0]); top.parts = top.parts.filter(q => !pl.includes(q)); top.parts.splice(Math.max(0, i), 0, avi); v._g = null; });
     // f5.4: the payload starts clear of the stage's nose and the springs push it 2 m/s off the top, so it is seen leaving the stage
+    // f5.9-30: hooks.deployScale() (trailer ?deploy=) multiplies that push. Absent hook stays 2 m/s.
     const nrm = P.noseOf(v); let above = 6; try { above = Math.max(3, P.stackGeom(v).L - (v.tel && isFinite(v.tel.ycom) ? v.tel.ycom : 0)) + 3; } catch (e) { }
     const pa = this.h && this.h.payloadAt && this.h.payloadAt(); // rockets-pass-1: the model's own payload leaves from where it sits (along the nose + any sideways offset, e.g. a ship's bay)
     let r0 = V.addS(v.r, nrm, pa && Number.isFinite(pa.along) ? pa.along : above); if (pa && pa.lat) r0 = V.add(r0, pa.lat);
-    const rec = { r: r0, v: V.addS(v.v, nrm, 2.0), t: this.tAbs, m, body: this.body };
-    V.addS(v.v, nrm, -2.0 * m / Math.max(0.5, P.massOf(v))).forEach((x, i) => { v.v[i] = x; });
+    const dep = this.h && this.h.deployScale && +this.h.deployScale(); const sep = 2 * (isFinite(dep) && dep > 0 ? dep : 1);
+    const rec = { r: r0, v: V.addS(v.v, nrm, sep), t: this.tAbs, m, body: this.body };
+    V.addS(v.v, nrm, -sep * m / Math.max(0.5, P.massOf(v))).forEach((x, i) => { v.v[i] = x; });
     const o = P.orbitOf({ ...v, r: rec.r, v: rec.v }); rec.ap = o.ap; rec.pe = o.pe;
     this.released = rec; this.flags.released = rec; this.onPayloadReleased(rec); // f6.2: the payload becomes a vessel you can fly
     this.call('release', rec); this.call('sound', 'stage');

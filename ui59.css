@@ -17,7 +17,8 @@ body.u59 :is(button,select){color:var(--txt);background:var(--btn);font-weight:7
 body.u59 :is(button,select):active{background:var(--btn-on)}
 /* ---------- the two bars ---------- */
 #topBar,#botBar{position:fixed;left:0;right:0;z-index:60;box-sizing:border-box;display:none;background:var(--panel);pointer-events:none}
-body.u59:has(#hud:not(.hidden)):not(.endOn):not(.menuOn):not(.photo) :is(#topBar,#botBar){display:grid}
+body.u59:has(#hud:not(.hidden)):not(.endOn):not(.menuOn):not(.photo):not(.clean) :is(#topBar,#botBar){display:grid}
+body.clean :is(#topBar,#botBar){display:none!important}
 #topBar{top:0;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"l c r";align-items:center;gap:var(--gap);padding:calc(6px + var(--sat)) calc(8px + var(--sar)) 6px calc(8px + var(--sal));border-bottom:var(--bw) solid var(--bc)}
 #tbL{grid-area:l}#tbC{grid-area:c;justify-content:center;min-width:0}#tbR{grid-area:r;justify-content:flex-end}
 #tbL,#tbC,#tbR{display:flex;align-items:center;gap:6px}
