@@ -871,7 +871,7 @@ html body.u59 #tbC #ignite{font-size:12px!important}
 #tankViz .tkS.dry .tk{background:repeating-linear-gradient(135deg,#1a2638 0 3px,#0b1424 3px 6px)}
 #tankViz b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 8px/1 var(--font,system-ui);color:#fff;text-shadow:0 0 3px #000,0 0 2px #000;letter-spacing:.02em}
 #tankViz .tkNose{flex:none;width:0;height:0;border-top:7px solid transparent;border-bottom:7px solid transparent;border-left:9px solid var(--bc,#4a6a96)}
-/* throttle: a tall track with a thumb, full height of the controls column (portrait phones + desktop); phone landscape keeps the one-row bar (≤ 25 % budget) */
+/* throttle: a tall track on portrait phones; phone landscape and wide screens (f5.9-26) keep a one-row bar so the view is not letterboxed */
 html body.u59 #botBar :is(#mThr,#dThr){background:rgba(11,20,36,.12)!important;position:relative!important;overflow:visible!important;touch-action:none;cursor:ns-resize}
 html body.u59 #botBar :is(#mThr,#dThr)::before{content:"";position:absolute;inset:-6px 0}
 html body.u59 #botBar :is(#mThr,#dThr) i{border-radius:calc(var(--rad,10px) - 2px);background:linear-gradient(0deg,#ff6a00,#ffb347)!important;opacity:.85}
@@ -887,6 +887,16 @@ html body.u59 #botBar :is(#mThr,#dThr) u{font-size:12px!important;font-weight:80
 html body.u59 #tbC #hintS{align-self:center}
 /* f5.9-22 (owner): after a separation or craft switch the active craft keeps the same controls: STAGE stays, greyed, when nothing is left to stage */
 html body.u59.noStage #botBar :is(#mStage,#dStage){display:inline-flex!important;align-items:center;justify-content:center;pointer-events:none}
+/* f5.9-27 (OR-009): wide screens keep the short bottom bar. f5.9-22's 128px throttle stack (AUTO over STAGE, RELEASE above them) stretched #botBar into a dark slab on PC fullscreen and parked telemetry in the corner. Phone portrait and short landscape are unchanged; THR stays 48px wide so throttle_same holds. The navball is still the only thing that rises through the border. */
+@media (min-width:900px) and (min-height:521px){
+  html body.u59 #bbR{flex-direction:row!important;align-items:flex-end!important;gap:6px!important}
+  html body.u59 #botBar #relBtn{width:auto!important;height:var(--ctlH)!important}
+  html body.u59 #botBar :is(#mright,#dCtl){grid-template-columns:auto auto 48px!important;grid-template-rows:auto!important;height:auto!important;align-items:end!important}
+  html body.u59 #botBar :is(#mAuto,#dAuto){grid-column:1!important;grid-row:1!important}
+  html body.u59 #botBar :is(#mStage,#dStage){grid-column:2!important;grid-row:1!important;width:auto!important}
+  html body.u59 #botBar #mChute:not(.hidden){grid-column:2!important;grid-row:2!important}
+  html body.u59 #botBar :is(#mThr,#dThr){grid-column:3!important;grid-row:1!important;width:48px!important;min-width:48px!important;max-width:48px!important;height:52px!important;min-height:0!important;max-height:52px!important;align-self:end!important}
+}
 /* f5.9-22 (QA f5.9-25 P2): the top bar stays above the full booster view; the recovery "why" line wraps instead of clipping */
 body.u59:has(#split.fullB:not(.hidden)) #topBar{z-index:62}
 @media (max-width:560px){#spRec .spRecW{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:100%}}
