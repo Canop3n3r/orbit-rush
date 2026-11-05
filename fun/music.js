@@ -1,8 +1,17 @@
 // Orbit Rush f6.3 — procedural music (WebAudio only, no sample files, nothing to license).
 //   menu  : quiet lofi / ambient-electronic beat, ~94 bpm, A minor, for Home, the rocket picker, the pause screen and the end card
-//   space : calm ambient synth score for flight above the atmosphere: slow pads, a deep drone, sparse soft arps through a delay
+//   space : calm ambient synth score for flight above ~52–60 km: slow pads, a deep drone, sparse soft arps through a delay
+// The two tracks never share a filter. Leaving space for a menu is a short fade so the drone does not sit under the lofi.
 // Track trim: the beat is mostly short hits, the pads are sustained, so the beat is trimmed up (x2) and the score down (x0.5) to sit at a similar loudness. One track plays at a time; switching crossfades. `mbus` (owned by the caller) carries the music volume (~ -18 dB at the default setting).
 export const MUSIC_BASE = 0.25; // bus gain at slider 1.0; the default slider 0.5 is 0.125 = about -18 dB
+// How long the outgoing track takes to leave. Space → menu is short on purpose: pause and the end card
+// should be the lofi beat, not the drone fading under it. Menu → flight stays a crossfade.
+export function scoreLeaveFade(from, to) {
+  if (from === 'space' && to === 'menu') return 0.4;
+  if (from === 'space') return 0.75;
+  if (from === 'menu') return 1.2;
+  return 0.4;
+}
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 const N = { A: 9, B: 11, C: 0, D: 2, E: 4, F: 5, G: 7, Bb: 10 }; const note = (n, oct) => N[n] + 12 * (oct + 1);
 export function createMusic(getCtx) {
@@ -57,7 +66,7 @@ export function createMusic(getCtx) {
     { bass: note('C', 2), pad: [note('G', 2), note('C', 3), note('E', 3), note('D', 4)], arp: [note('E', 5), note('G', 5), note('D', 5), note('C', 6)] }];
   const CH_SEC = 11;
   function startSpace(c) {
-    const T = mk(c, 3), ac = T.ac; T.kind = 'space'; T.send.gain.value = 0.55;
+    const T = mk(c, 3), ac = T.ac; T.kind = 'space'; T.send.gain.value = 0.55; // no menu lowpass and no vinyl: this track stays off the lofi path
     const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.6; T.pad = ac.createGain(); T.pad.gain.value = 1; T.pad.connect(lp); lp.connect(T.dry);
     const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 0.045; lg.gain.value = 380; lfo.connect(lg); lg.connect(lp.frequency); lfo.start(); T.persist.push(lfo);
     const dl = ac.createDelay(2), fb = ac.createGain(), df = ac.createBiquadFilter(), dgn = ac.createGain(); dl.delayTime.value = 0.82; fb.gain.value = 0.42; df.type = 'lowpass'; df.frequency.value = 1800; dgn.gain.value = 0.6; T.arp = ac.createGain(); T.arp.connect(T.dry); T.arp.connect(dl); dl.connect(df); df.connect(fb); fb.connect(dl); df.connect(dgn); dgn.connect(T.dry);
@@ -82,7 +91,7 @@ export function createMusic(getCtx) {
     // kind: 'menu' | 'space' | null; level (0..1) scales the track (space music rises with the thinning air)
     set(kind, level = 1) {
       want = kind; wantLevel = level; const c = C(); if (!c || c.ac.state !== 'running') return; if (!enabled) kind = null;
-      if (cur && cur.kind !== kind) { dispose(cur, cur.kind === 'space' ? 2.5 : 1.4); cur = null; }
+      if (cur && cur.kind !== kind) { dispose(cur, scoreLeaveFade(cur.kind, kind)); cur = null; }
       if (!cur && kind) { const me = cur = kind === 'menu' ? startMenu(c) : startSpace(c); me.tick(); me.timer = setInterval(() => { try { if (me === cur) me.tick(); } catch (e) { } }, 100); applyBus(); }
       if (cur) cur.out.gain.setTargetAtTime(Math.max(0.0001, Math.min(1, level)) * (cur.kind === 'menu' ? 2 : 0.5), c.ac.currentTime, (cur.fade || 1) / 3);
     },

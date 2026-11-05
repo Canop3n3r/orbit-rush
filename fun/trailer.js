@@ -105,10 +105,14 @@ export function warpPlan(mult, warps) {
   return { index: best, mult: warps[best], quiet: true };
 }
 
-// Same 52 km gate the flight uses, plus a trailer override that plays the space score on the ground.
+// Space score across the top of the mesosphere: quiet at 52 km, full by 60 km.
+// Hysteresis keeps it from chattering (on above 56 km, holds until 52 km).
+// ?music=space / __orAudio.score forces it anywhere, including the pad.
+export const SPACE_LO = 52000, SPACE_HI = 60000, SPACE_ENGAGE = 56000;
 export function spaceScore(alt, prevOn, force) {
   if (force) return { on: true, kind: 'space', level: 1 };
-  const on = alt > (prevOn ? 52000 : 56000), lvl = Math.max(0, Math.min(1, (alt - 52000) / 20000));
+  const on = alt > (prevOn ? SPACE_LO : SPACE_ENGAGE);
+  const lvl = Math.max(0, Math.min(1, (alt - SPACE_LO) / (SPACE_HI - SPACE_LO)));
   return on ? { on: true, kind: 'space', level: Math.max(0.15, lvl) } : { on: false, kind: null, level: 0 };
 }
 

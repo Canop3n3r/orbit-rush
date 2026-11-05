@@ -44,6 +44,12 @@ const slow = deployMotion(0.25, 2);
 ok(slow.sep === 0.5 && slow.dur === 16 && slow.delay === 4.8 && slow.size === 2, 'deploy 0.25 is slower and deploySize 2 is bigger', JSON.stringify(slow));
 
 ok(spaceScore(1000, false, false).kind === null, 'below 52 km the space score stays off');
+ok(spaceScore(54000, false, false).kind === null, 'the climb stays off until it crosses ~56 km');
+const mid = spaceScore(58000, false, false);
+ok(mid.kind === 'space' && mid.level > 0.5 && mid.level < 1, 'between 56 and 60 km the score is in but not full', mid.level);
+ok(spaceScore(61000, false, false).level === 1, 'full space score by 60 km');
+ok(spaceScore(53000, true, false).on && spaceScore(53000, true, false).level === 0.15, 'once on, it holds down toward 52 km at a whisper');
+ok(spaceScore(51000, true, false).kind === null, 'dropping through 52 km turns the score off');
 ok(spaceScore(80000, true, false).kind === 'space' && spaceScore(80000, true, false).level > 0.15, 'above the air the space score plays');
 ok(spaceScore(0, false, true).kind === 'space' && spaceScore(0, false, true).level === 1, 'trailer music plays the space score on the pad');
 

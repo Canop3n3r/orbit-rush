@@ -3,7 +3,7 @@
 // remembered mute that the engine rumble shares through the master gain.
 export function createAudio(getCtx) {
   const KEY = 'orbitrush.mute.f3'; /* f3: new key, nobody stays stuck on a mute set while audio was broken */ let muted = (() => { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } })();
-  let wind = null, windF = null, windSrc = null, live = true, bus = null; // f5.8y: `live` gates the wind loop; `bus` routes one flight sound through the flight bus; windSrc is the one looping source here
+  let wind = null, windF = null, windSrc = null, live = false, bus = null; // `live` gates wind and flight one-shots; it stays off until a flight asks. `bus` routes one sound through the flight bus; windSrc is the one looping source here
   const A = () => getCtx(), FB = () => { const c = getCtx(); return c && (c.fbus || c.master); }, UIM = () => { const c = getCtx(); return c && (c.sbus || c.master); }; // flight sounds go through the flight bus (fbus), UI sounds straight to master
   function noise(sec) { const ac = A().ac, b = ac.createBuffer(1, Math.max(1, ac.sampleRate * sec) | 0, ac.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; }
   function env(node, t0, a, peak, dec) { const g = A().ac.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(peak, t0 + a); g.gain.exponentialRampToValueAtTime(0.0001, t0 + a + dec); node.connect(g); g.connect(bus || UIM()); return g; }
@@ -11,10 +11,11 @@ export function createAudio(getCtx) {
   function hiss(dur, freq, vol, t = 0, type = 'lowpass') { const c = A(); if (!c) return; const ac = c.ac, s = ac.createBufferSource(), f = ac.createBiquadFilter(), t0 = ac.currentTime + t; s.buffer = noise(dur + 0.1); f.type = type; f.frequency.value = freq; s.connect(f); env(f, t0, 0.004, vol, dur); s.start(t0); }
   const api = {
     get muted() { return muted; },
+    get heard() { return live; }, // false on Home, pause, and the end card: boom / wind must not start there
     apply() { const c = A(); if (c && c.master) c.master.gain.value = muted ? 0 : 1; },
     toggleMute() { muted = !muted; try { localStorage.setItem(KEY, muted ? '1' : '0'); } catch (e) { } api.apply(); return muted; },
     ui(kind) { if (!A()) return; if (kind === 'fanfare') { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.35, 'triangle', 0.06, i * 0.09)); } else if (kind === 'snap') { hiss(0.05, 4000, 0.25, 0, 'bandpass'); tone(180, 0.08, 'square', 0.05); } else tone(1200, 0.06, 'sine', 0.04); },
-    boom(big, dist = 0) { if (!A()) return; const k = 1 / (1 + dist / 2000), lag = Math.min(3, dist / 343); bus = FB(); try { api._boom(big, k, lag); } finally { bus = null; } },
+    boom(big, dist = 0) { if (!live || !A()) return; const k = 1 / (1 + dist / 2000), lag = Math.min(3, dist / 343); bus = FB(); try { api._boom(big, k, lag); } finally { bus = null; } },
     _boom(big, k, lag) {
       hiss(0.12, 6000, 0.6 * k, lag, 'highpass'); hiss(big ? 2.8 : 1.6, 400, (big ? 1.0 : 0.7) * k, lag); tone(70, big ? 1.6 : 1.0, 'sine', 0.5 * k, lag, 30);
       for (let i = 0; i < 6; i++) hiss(0.08, 2500, 0.15 * k, lag + 0.3 + Math.random() * 1.2, 'bandpass'); },
