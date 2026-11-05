@@ -74,6 +74,7 @@ import { createPlanetLOD } from './gfx/planetlod.js?v=f5.9-27';
 import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.9-27';
 import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-27';
 import { createTrailer, epochMillis, resolveSite, applyArrival, warpPlan, spaceScore, deployMotion } from './fun/trailer.js?v=f5.9-31';
+import { openingPose, openingBegin, openingLatch, openingRelease, trackDist } from './fun/opening.js?v=f5.9-31';
 import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-27';
 import { createDock } from './fun/dock.js?v=f5.9-27'; // f5.9a: top bar + bottom bar
 import { createXferPlanner } from './fun/xferui.js?v=f5.9-27'; // f6.5 pre-launch transfer planner
@@ -1314,7 +1315,7 @@ addEventListener('pointercancel', e => pts.delete(e.pointerId));
 addEventListener('pointermove', e => {
   if (!pts.has(e.pointerId) || camMode === 'map') return; const [px, py] = pts.get(e.pointerId);
   if (pts.size === 1) { camUserT = performance.now(); const k = SET.sens.cam; camYaw -= (e.clientX - px) * 0.006 * k; camPitch = clampCamPitch(camPitch + (e.clientY - py) * 0.004 * k); }
-  else if (pts.size === 2) { let o; for (const [id, q] of pts) if (id !== e.pointerId) o = q; const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); const f = d0 / Math.max(d1, 1); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * f)); else if (GCAM.act) GCAM.zoom = Math.max(0.2, Math.min(14, GCAM.zoom * f)); else camDist = zoomLim(camDist * f); }
+  else if (pts.size === 2) { camUserT = performance.now(); let o; for (const [id, q] of pts) if (id !== e.pointerId) o = q; const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); const f = d0 / Math.max(d1, 1); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * f)); else if (GCAM.act) GCAM.zoom = Math.max(0.2, Math.min(14, GCAM.zoom * f)); else camDist = zoomLim(camDist * f); } // pinch zoom restores the camera the same way the wheel does
   pts.set(e.pointerId, [e.clientX, e.clientY]);
 });
 const k1 = (a, b) => (keys[a] ? 1 : 0) - (keys[b] ? 1 : 0);
@@ -1834,10 +1835,10 @@ renderer.setAnimationLoop(() => {
       const Ls = stackL(), cr = !!v.craft, want = cr ? Math.max(4, craftR() * 2.6, Math.min(60, Ls * 3.2 + 4)) : Math.max(30, Math.min(160, Ls * 2.6 + 20)), maxD = cr ? Math.max(60, Ls * 30 + 40) : Math.max(80, Ls * 9 + 60);
       if (camDist > maxD) camDist += (maxD - camDist) * Math.min(1, rdt * 1.5); if (inOrbitView() && performance.now() - camUserT > 5000) camDist += (orbitDist() - camDist) * Math.min(1, rdt * 0.8); if (inOrbitView() && CAMV.view === 'vehicle' && !v.craft) { if (performance.now() - camUserT > 5000) camPitch += ((innerWidth < innerHeight ? ORBIT_PITCH + 0.1 : ORBIT_PITCH) - camPitch) * Math.min(1, rdt * 0.8); const lc = liveCenter(); if (lc) { orbAim.lerp(lc, orbAim.lengthSq() ? Math.min(1, rdt * 2) : 1); tgtV.copy(orbAim); } } else orbAim.set(0, 0, 0); // f5.9-18 (QA P3): in orbit look down on the craft so the planet limb fills the frame, and centre the live stages // f5.9-18: in orbit the chase eases in on the craft // f5.6f: ease (no ~70 m jump at staging) if (performance.now() - camUserT > 8000) camDist += (want - camDist) * Math.min(1, rdt * 0.8);
     }
-    if (!TR.active && focus === v && state === 'flight' && camMode === 'chase') {
-      camOpening(rdt);
-      if (CAMV.view === 'free') camUserT = performance.now(); // free: nothing eases the camera back
-      else if (CAMV.view === 'horizon' && !CAMV.open) { const idle = performance.now() - camUserT; if (idle > 2500) camPitch += (0.03 - camPitch) * Math.min(1, rdt * 1.2); if (idle > 5000) camDist += ((inOrbitView() ? orbitDist() : Math.max(60, Math.min(420, (stackL() || 40) * 4 + 40))) - camDist) * Math.min(1, rdt * 0.8); }
+    if (focus === v && state === 'flight' && camMode === 'chase') {
+      camOpening(rdt); // a playing ?cine= path yields inside camOpening and does not write dist/pitch/aim
+      if (!TR.active && CAMV.view === 'free') camUserT = performance.now(); // free: nothing eases the camera back
+      else if (!TR.active && CAMV.view === 'horizon' && !CAMV.open) { const idle = performance.now() - camUserT; if (idle > 2500) camPitch += (0.03 - camPitch) * Math.min(1, rdt * 1.2); if (idle > 5000) camDist += ((inOrbitView() ? orbitDist() : Math.max(60, Math.min(420, (stackL() || 40) * 4 + 40))) - camDist) * Math.min(1, rdt * 0.8); }
     }
     if (!TR.active) relFrameCam(rdt, focus);
     if (false && SET.camStyle === 'locked' && focus === v && state === 'flight') { // f5.6f (QA cam): LOCKED retired (it rolled the horizon) // locked: the camera turns with the craft (its axes, nose up on screen)
@@ -2116,16 +2117,24 @@ function cycleCam() {
   const L = CAMV.list.filter(w => w !== 'ground' || camLow()), i = L.indexOf(CAMV.view); setCamView(L[(i + 1) % L.length]); return true;
 }
 const camViewLabel = () => '🎥 ' + CAMV.view.toUpperCase();
-// launch opening shot: at ignition the camera starts close, pulls out slowly so the pad and the horizon show, then settles into following the rocket (any drag / zoom cancels it)
+// Pad → ascent opening (fun/opening.js). 0–9 s slow zoom-out, 9–16 s blend onto the vehicle track.
+// Wheel or pinch sets camUserT and this returns before writing, so the player's distance stays.
+// A playing ?cine= / __cine path owns the camera: the shot does not start, and it does not resume when the path stops.
 function camOpening(rdt) {
   if (!F || state !== 'flight') return;
-  if (F.ignited && !CAMV.seen) { CAMV.seen = true; if (CAMV.view === 'vehicle' && camMode === 'chase' && F.alt < 200 && !F.flags.orbit) { CAMV.open = 1; CAMV.openT = 0; CAMV.d0 = camDist; CAMV.p0 = camPitch; CAMV.a0 = camAim; CAMV.start = performance.now(); } }
+  if (TR.active) { const held = openingLatch({ trailer: true, ignited: !!F.ignited, seen: !!CAMV.seen, begin: false }); CAMV.seen = held.seen; CAMV.open = 0; return; }
+  if (F.ignited && !CAMV.seen) {
+    const latch = openingLatch({ trailer: false, ignited: true, seen: false, begin: openingBegin({ view: CAMV.view, mode: camMode, alt: F.alt, orbit: !!F.flags.orbit }) });
+    CAMV.seen = latch.seen;
+    if (latch.start) { CAMV.open = 1; CAMV.openT = 0; CAMV.d0 = camDist; CAMV.p0 = camPitch; CAMV.a0 = camAim; CAMV.start = performance.now(); }
+  }
   if (!CAMV.open) return;
-  if (camUserT > CAMV.start + 50 || CAMV.view !== 'vehicle' || camMode !== 'chase' || inOrbitView()) { CAMV.open = 0; return; } // f5.9-18: the liftoff opening shot ends once in orbit
-  CAMV.openT += rdt; const t = CAMV.openT, Ls = stackL() || 40, far = Math.max(150, Math.min(420, Ls * 5 + 60)), near = Math.max(30, Math.min(160, Ls * 2.6 + 20)), ss = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
-  const a = ss(t / 9), b = ss((t - 9) / 7); // 0-9 s pull back, 9-16 s settle into the follow framing
-  camDist = (CAMV.d0 + (far - CAMV.d0) * a) * (1 - b) + near * b; camPitch = (CAMV.p0 + (0.05 - CAMV.p0) * a) * (1 - b) + 0.12 * b; camAim = (CAMV.a0 + (0.32 - CAMV.a0) * a) * (1 - b) + 0.45 * b;
-  if (t > 16) CAMV.open = 0;
+  if (openingRelease({ trailer: false, user: camUserT > CAMV.start + 50, view: CAMV.view, mode: camMode, orbit: inOrbitView() })) { CAMV.open = 0; return; } // f5.9-18: the liftoff opening shot ends once in orbit
+  CAMV.openT += rdt; const Ls = stackL() || 40, cr = !!(v && v.craft);
+  const track = { dist: cr ? Math.max(4, craftR() * 2.6, Math.min(60, Ls * 3.2 + 4)) : trackDist(Ls), pitch: 0.12, aim: 0.45 };
+  const pose = openingPose(CAMV.openT, { dist: CAMV.d0, pitch: CAMV.p0, aim: CAMV.a0 }, track, Ls);
+  camDist = pose.dist; camPitch = pose.pitch; camAim = pose.aim;
+  if (pose.done) CAMV.open = 0;
 }
 function applyTrailerCam(s, nose, tel, onShip, O) { // f5.9-30: one cine sample replaces the chase camera for this frame. look=payload frames the released sat.
   const look = s.look || 'stack';
