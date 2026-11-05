@@ -3,7 +3,7 @@ import { createBugReporter } from './fun/bugreport.js?v=f5.9-27';
 import { migrateSave } from './vehicles/id_aliases.js?v=f5.9-27';
 import { uniform } from 'three/tsl';
 import * as P from './physics.js?v=f5.9-27';
-import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur, recoveryCaption } from './flight.js?v=f5.9-38';
+import { Flight, PRESETS, SIM_SPEED, WARPS, QALPHA_MAX, shipPos, chuteLimits, SAFE_TOUCHDOWN, fmtDur, recoveryCaption, recoveryChipLabel } from './flight.js?v=f5.9-40';
 import * as C from './physics/patched.js?v=f5.9-27';
 import { loadMissions } from './missions/catalog.js';
 import { missionDesign, applyMission, missionSession, missionHooks, missionFlightOpts, evaluate as evalOp, missionName as opName } from './missions/runner.js';
@@ -2049,7 +2049,7 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
   $('spMain').onclick = () => { if (split.full) { split.full = null; camMode = 'chase'; } };
   $('spFullU').onclick = e => { e.stopPropagation(); split.full = split.full === 'u' ? null : 'u'; camMode = 'chase'; }; // f5.3: focus the upper stage (keeps its own card)
   $('spRecBtn').onclick = e => { e.stopPropagation(); const s = $('spRec'); if (!s) return; s.classList.toggle('hidden'); e.currentTarget.classList.toggle('on', !s.classList.contains('hidden')); e.currentTarget.blur(); }; // f5.9-31: one chip opens RTLS / BARGE / AUTO
-  const applyRec = bt => { if (!bt || !F) return; F.setRecovery(bt.dataset.rec); }; // OR-015: pointerdown so a phone tap on the sheet is not lost
+  const applyRec = bt => { if (!bt || !F) return; F.setRecovery(bt.dataset.rec); paintRecChip(); }; // OR-015: pointerdown so a phone tap on the sheet is not lost
   $('spRec').addEventListener('pointerdown', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt) return; e.preventDefault(); applyRec(bt); bt._recAt = performance.now(); });
   $('spRec').addEventListener('click', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt || (bt._recAt && performance.now() - bt._recAt < 700)) return; applyRec(bt); });
   $('spCtl').onclick = e => { e.stopPropagation(); if (booster && booster.state === 'flying' && F.ship && booster.stages[0].fuel > 0) F.toggleBooster(); else toast('The booster is on autopilot', '#9cc3ff'); };
@@ -2057,6 +2057,7 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
   $('spCloseU').onclick = $('spClose').onclick; $('spCtlU').onclick = $('spCtl').onclick; // f5.6h (QA P2): both halves carry the same buttons
   $('spFull').textContent = split.full === 'b' ? '⤡ BACK' : 'BOOSTER ⤢'; $('spFullU').textContent = 'UPPER ⤢'; // f5.6x: every size // f5.6u (QA P1): phones get one small label per pane; tapping it focuses that pane (⇄ / ✕ are hidden: the pane's ball takes control)
 }
+function paintRecChip() { const rp = booster && booster.recPlan, chip = $('spRecBtn'); if (!chip || !rp) return; const t = recoveryChipLabel(rp); if (chip.textContent !== t) chip.textContent = t; chip.title = rp.pref === 'auto' ? (rp.mode === 'rtls' ? 'Auto recovery: return to the launch site' : 'Auto recovery: ocean barge downrange') : rp.mode === 'rtls' ? 'Recovery: return to the launch site' : 'Recovery: ocean barge downrange'; }
 const splitPortrait = () => innerHeight > innerWidth;
 const hasChutes = () => { try { return !!(F && F.v.stages.some(s => s.parts.some(p => /chute/i.test(p.kind || '')))); } catch (e) { return true; } }; // f5.7i
 const _html = {}; function setHTML(id, h) { if (_html[id] !== h) { _html[id] = h; const e = $(id); if (e) e.innerHTML = h; } }
@@ -2104,7 +2105,7 @@ function updateSplit(rdt) {
       { const cv = $(ball); if (cv) { const ld = b.state !== 'flying'; if (ld) cv.style.visibility = 'hidden'; else miniBall(cv, b.dir, b.r, bva, b.holdDir && b.manual ? b.holdDir : null); } } }; // f5.7e (QA f5.7c P2): a landed booster has no attitude to show (the '- -' ball on a blocky backdrop)
     const bLab = (i, lz) => { const k = 'AB'[i]; return TOUCH ? 'BOOSTER ' + k : 'BOOSTER ' + k + ' · ' + (lz || 'LZ-' + (i + 1)); }; // f5.6u (QA P1): phones drop the pad name (it clipped)
     { const rp = b.recPlan, show = !!(rp && b.state === 'flying' && !booster2), chip = $('spRecBtn'), sheet = $('spRec');
-      if (chip) { chip.classList.toggle('hidden', !show); if (show) { const t = rp.pref === 'auto' ? 'AUTO' : rp.mode === 'rtls' ? 'RTLS' : 'BARGE'; if (chip.textContent !== t) chip.textContent = t; chip.title = rp.pref === 'auto' ? 'Auto recovery: picks RTLS or an ocean barge from downrange, speed and fuel' : rp.mode === 'rtls' ? 'Recovery: return to the launch site' : 'Recovery: ocean barge downrange'; chip.classList.toggle('on', !!(sheet && !sheet.classList.contains('hidden'))); } }
+      if (chip) { chip.classList.toggle('hidden', !show); if (show) { paintRecChip(); chip.classList.toggle('on', !!(sheet && !sheet.classList.contains('hidden'))); } }
       if (sheet && (!show || split.full !== 'b')) sheet.classList.add('hidden');
       if (show) { const cap = recoveryCaption(rp); setHTML('spRecW', `<b>${cap.lab}</b> <span>${cap.rest}</span>`);
         if (sheet) for (const bt of sheet.querySelectorAll('button')) { const on = bt.dataset.rec === (rp.pref === 'auto' ? 'auto' : rp.mode); if (bt.classList.contains('on') !== on) bt.classList.toggle('on', on); } } }

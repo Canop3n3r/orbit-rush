@@ -478,6 +478,7 @@ body.u59 #photobar{background:none!important;border:0!important;box-shadow:none!
 body.u59 #photobar button{pointer-events:auto}
 /* BOOSTER ⤢ is not a HUD control: the PiP itself is the button; the expanded view shows ⤡ BACK / ⟲ FOLLOW */
 body.splitOn:not(:has(#split.fullB)) #topBar :is(#spFull,#spRecBtn){display:none!important}
+#topBar #spRecBtn{white-space:nowrap;letter-spacing:.02em;padding:0 8px!important}
 @media (orientation:landscape) and (max-height:520px){
   body.u59 #topBar{padding-top:calc(3px + var(--sat))!important;padding-bottom:3px!important}
   body.u59 #botBar{padding-top:2px!important;padding-bottom:calc(2px + var(--sab))!important}

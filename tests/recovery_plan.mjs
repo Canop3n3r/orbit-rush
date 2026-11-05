@@ -1,6 +1,6 @@
 // f5.9-25 / f5.9-31: AUTO picks RTLS when boostback fits the fuel at this downrange and speed, else an ocean barge.
 // A setting forces either, and setRecovery('auto'|'rtls'|'ship') switches mid-flight (auto re-reads the three).
-import { Flight, recoveryPlan, recoveryCaption } from '../flight.js';
+import { Flight, recoveryPlan, recoveryCaption, recoveryChipLabel } from '../flight.js';
 import * as P from '../physics.js';
 import { SHOWROOM } from '../fun/showroom.js';
 let pass = 0, fail = 0; const ok = (c, m) => { c ? pass++ : fail++; console.log(c ? '  ✔' : 'FAIL', m); };
@@ -10,13 +10,18 @@ const sample = (fuel, speed, down) => { const h = 70000, a = down / P.R, c = Mat
 const sep = (id, pref) => { const F = new Flight(JSON.parse(JSON.stringify(SHOWROOM.find(r => r.id === id).design)), {}, { recoveryPref: pref }); F.stagePress(); F.setAuto(true, true);
   for (let i = 0; i < 200000 && !F.flags.dead && !(F.booster && F.booster.state === 'flying'); i++) { F.realT += 0.02; F.step(0.02); } return F; };
 { const F = sep('swift', 'auto'), p = F.booster.recPlan, cap = recoveryCaption(p); ok(p.mode === 'rtls' && F.booster.rtls && F.ship.lz, `swift AUTO -> RTLS (${p.why})`);
-  ok(p.why.length <= 24 && !/boostback|fuel covers/.test(p.why) && cap.text.length <= 40, `short fuel why (${cap.text})`); }
+  ok(p.why.length <= 24 && !/boostback|fuel covers/.test(p.why) && cap.text.length <= 40, `short fuel why (${cap.text})`);
+  ok(recoveryChipLabel(p) === 'RTLS·A' && recoveryChipLabel(p) !== 'AUTO', `swift AUTO chip shows resolved RTLS (${recoveryChipLabel(p)})`); }
 { const F = sep('heron', 'auto'), p = F.booster.recPlan; ok(p.mode === 'ship' && !F.booster.rtls && F.ship && !F.ship.lz, `heron AUTO -> barge (${p.why})`);
+  ok(recoveryChipLabel(p) === 'BARGE·A' && !/^AUTO$/.test(recoveryChipLabel(p)), `heron AUTO chip shows resolved BARGE (${recoveryChipLabel(p)})`);
   ok(p.down >= 0 && p.speed >= 0 && p.fuel > 0, `plan carries downrange ${p.down} m, speed ${p.speed} m/s, fuel ${p.fuel} t`);
   ok(/need fuel$/.test(p.why) && !/Δv|ft\/s|m\/s/.test(recoveryCaption(p).text), `barge why stays one short line (${recoveryCaption(p).text})`);
   ok(F.setRecovery('rtls') && F.booster.rtls && F.ship.lz && p.mode === 'rtls' && p.pref === 'rtls', 'heron override -> RTLS mid-flight');
+  ok(recoveryChipLabel(p) === 'RTLS', 'override RTLS chip is RTLS, not AUTO');
   ok(F.setRecovery('ship') && !F.booster.rtls && !F.ship.lz && p.mode === 'ship', 'heron override back -> barge');
+  ok(recoveryChipLabel(p) === 'BARGE', 'override BARGE chip is BARGE, not AUTO');
   ok(F.setRecovery('auto') && p.pref === 'auto' && p.mode === p.auto, `AUTO re-picks ${p.mode} from downrange, speed and fuel`);
+  ok(/\b(RTLS|BARGE)\b/.test(recoveryChipLabel(p)) && recoveryChipLabel(p) !== 'AUTO', `AUTO chip still names ${p.mode} (${recoveryChipLabel(p)})`);
   F.booster.manual = true; ok(F.setRecovery('rtls') && F.booster.rtls && p.mode === 'rtls' && p.pref === 'rtls', 'holding the stick still leaves BARGE for RTLS'); }
 { const F = sep('swift', 'ship'); ok(!F.booster.rtls && F.booster.recPlan.pref === 'ship', 'setting forces the barge'); }
 { const F = sep('heron', 'design'); ok(F.booster.recPlan.mode === 'ship', 'no setting keeps the rocket default'); }
