@@ -1399,6 +1399,7 @@ renderer.domElement.addEventListener('pointerdown', e => { if (split.full === 'b
 addEventListener('pointerup', e => pts.delete(e.pointerId));
 addEventListener('pointercancel', e => pts.delete(e.pointerId));
 addEventListener('pointermove', e => {
+  if (split.full === 'b') { pts.delete(e.pointerId); return; } // f5.9-42: a finger that started on the chase view must not keep zooming once the booster is full screen
   if (!pts.has(e.pointerId) || camMode === 'map') return; const [px, py] = pts.get(e.pointerId);
   if (pts.size === 1) { camUserT = performance.now(); const k = SET.sens.cam; camYaw -= (e.clientX - px) * 0.006 * k; camPitch = clampCamPitch(camPitch + (e.clientY - py) * 0.004 * k); }
   else if (pts.size === 2) { camUserT = performance.now(); let o; for (const [id, q] of pts) if (id !== e.pointerId) o = q; const d0 = Math.hypot(px - o[0], py - o[1]), d1 = Math.hypot(e.clientX - o[0], e.clientY - o[1]); const f = d0 / Math.max(d1, 1); if (camMode === 'map') mapZoom = Math.min(12, Math.max(1.2, mapZoom * f)); else if (GCAM.act) GCAM.zoom = Math.max(0.2, Math.min(14, GCAM.zoom * f)); else camDist = zoomLim(camDist * f); } // pinch zoom restores the camera the same way the wheel does
@@ -2031,21 +2032,30 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
   document.body.appendChild(d);
   { const rec = document.createElement('div'); rec.id = 'spRec'; rec.className = 'sheet hidden'; rec.innerHTML = '<span class="spRecB"><button type="button" data-rec="rtls" title="Return to the launch site">RTLS</button><button type="button" data-rec="ship" title="Ocean barge downrange">BARGE</button><button type="button" data-rec="auto" title="Pick from downrange, speed and fuel">AUTO</button></span><span class="spRecW" id="spRecW"></span>'; document.body.appendChild(rec); } // f5.9-31: modes in a sheet, not on the booster strip
   { const p2 = document.createElement('div'); p2.id = 'spPane2'; p2.className = 'hidden'; p2.innerHTML = '<div class="spCard spStrip" id="spCardB2"><div class="spL" id="spHud2"></div><canvas class="spBall" id="spBallB2" width="96" height="96"></canvas><div class="spR" id="spHud2R"></div></div>'; d.appendChild(p2); } // f4.2: booster B pane
-  $('spFull').onclick = e => { e.stopPropagation(); split.full = split.full === 'b' ? null : 'b'; camMode = split.full === 'b' ? 'booster' : 'chase'; if (split.full === 'b') camDist = 90; }; // f5.3: frame the whole booster
+  let backAt = 0; // f5.9-42: a phone tap's click is hit-tested again after the sheet moves and can land on BACK. Only a pointerdown on BACK itself may leave.
+  $('spFull').addEventListener('pointerdown', e => { if (e.button != null && e.button !== 0) return; backAt = performance.now(); });
+  $('spFull').onclick = e => { e.stopPropagation(); if (split.full === 'b' && performance.now() - backAt >= 700) { e.currentTarget.blur(); return; } split.full = split.full === 'b' ? null : 'b'; camMode = split.full === 'b' ? 'booster' : 'chase'; if (split.full === 'b') camDist = 90; }; // f5.3: frame the whole booster
   // f4: the booster pane has its own camera: drag orbits, pinch / wheel zooms, a tap (no drag) toggles full screen
   const pp = $('spPane'), pts = new Map(); let moved = 0, pinch0 = 0, d0 = 90;
   const manual = () => { split.manual = true; $('split').classList.add('camMan'); }; // f5.9: the expanded booster view can be dragged / pinched / zoomed; ⟲ FOLLOW goes back
-  const camUI = e => !!(e.target && e.target.closest && e.target.closest('button,a,input,select,textarea,#spRec,#manSheet,.modal,#mMenu,#dMenu,#navSas'));
+  const camUI = e => !!(e.target && e.target.closest && e.target.closest('button,a,input,select,textarea,#spRec,#manSheet,.modal,#mMenu,#dMenu,#navSas,.spBall,#navBall'));
   const zoomFull = dy => { camUserT = performance.now(); camDist = Math.max(12, Math.min(400, camDist * Math.exp(dy * 0.001 * SET.sens.zoom))); manual(); };
-  // f5.9-31: full-screen booster camera. The pane covers the viewport and lets clicks through to the bars; drag and pinch on the window orbit the main camera.
+  const pinchDist = ratio => Math.max(TOUCH ? 64 : 12, Math.min(400, bDist0 * ratio)); // f5.9-42: phone pinch stays outside the hull; desktop wheel keeps the 12 floor
+  // f5.9-31: full-screen booster camera. The pane covers the viewport and lets clicks through to the bars; drag and pinch orbit the main camera.
+  // f5.9-42: a finger is a touch event (pointer events for the same finger are ignored). Mouse and wheel stay on pointer events. Touch listeners are non-passive so a pinch does not zoom the page into the hull.
   const bPts = new Map(); let bPinch = 0, bDist0 = 90;
-  addEventListener('pointerdown', e => { if (split.full !== 'b' || camUI(e)) return; const sheet = $('spRec'); if (sheet && !sheet.classList.contains('hidden')) sheet.classList.add('hidden');
-    bPts.set(e.pointerId, [e.clientX, e.clientY]); if (bPts.size === 2) { const [a, b] = [...bPts.values()]; bPinch = Math.hypot(a[0] - b[0], a[1] - b[1]); bDist0 = camDist; } }, true);
-  addEventListener('pointermove', e => { if (split.full !== 'b' || !bPts.has(e.pointerId)) return; const p = bPts.get(e.pointerId), dx = e.clientX - p[0], dy = e.clientY - p[1]; bPts.set(e.pointerId, [e.clientX, e.clientY]); camUserT = performance.now(); manual();
-    if (bPts.size === 2) { const [a, b] = [...bPts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (bPinch > 0) camDist = Math.max(12, Math.min(400, bDist0 * bPinch / Math.max(d, 1))); }
-    else { const k = SET.sens.cam; camYaw -= dx * 0.006 * k; camPitch = clampCamPitch(camPitch + dy * 0.004 * k); } }, true);
+  const hideRec = () => { const sheet = $('spRec'); if (sheet && !sheet.classList.contains('hidden')) sheet.classList.add('hidden'); };
+  const armPinch = () => { if (bPts.size === 2) { const [a, b] = [...bPts.values()]; bPinch = Math.hypot(a[0] - b[0], a[1] - b[1]); bDist0 = camDist; } else bPinch = 0; };
+  const orbitBy = (dx, dy) => { const k = SET.sens.cam; camYaw -= dx * 0.006 * k; camPitch = clampCamPitch(camPitch + dy * 0.004 * k); camUserT = performance.now(); manual(); };
+  const applyPinch = () => { if (bPts.size < 2 || !(bPinch > 0)) return; const [a, b] = [...bPts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); camDist = pinchDist(bPinch / Math.max(d, 1)); camUserT = performance.now(); manual(); };
+  addEventListener('pointerdown', e => { if (e.pointerType === 'touch') return; if (split.full !== 'b' || camUI(e)) { bPts.delete(e.pointerId); return; } if (e.cancelable) e.preventDefault(); hideRec(); bPts.set(e.pointerId, [e.clientX, e.clientY]); armPinch(); }, true);
+  addEventListener('pointermove', e => { if (e.pointerType === 'touch' || split.full !== 'b' || !bPts.has(e.pointerId)) return; if (e.pointerType === 'mouse' && !e.buttons) { bPts.delete(e.pointerId); if (bPts.size < 2) bPinch = 0; return; } const p = bPts.get(e.pointerId), dx = e.clientX - p[0], dy = e.clientY - p[1]; bPts.set(e.pointerId, [e.clientX, e.clientY]); if (bPts.size >= 2) applyPinch(); else orbitBy(dx, dy); if (e.cancelable) e.preventDefault(); }, { capture: true, passive: false });
   const bUp = e => { if (!bPts.has(e.pointerId)) return; bPts.delete(e.pointerId); if (bPts.size < 2) bPinch = 0; };
   addEventListener('pointerup', bUp, true); addEventListener('pointercancel', bUp, true);
+  addEventListener('touchstart', e => { if (split.full !== 'b' || camUI(e)) return; if (e.cancelable) e.preventDefault(); hideRec(); for (const t of e.changedTouches) bPts.set('t' + t.identifier, [t.clientX, t.clientY]); armPinch(); }, { capture: true, passive: false });
+  addEventListener('touchmove', e => { if (split.full !== 'b') return; let owned = false; for (const t of e.changedTouches) { const id = 't' + t.identifier, p = bPts.get(id); if (!p) continue; owned = true; const dx = t.clientX - p[0], dy = t.clientY - p[1]; bPts.set(id, [t.clientX, t.clientY]); if (bPts.size < 2) orbitBy(dx, dy); } if (!owned) return; if (bPts.size >= 2) applyPinch(); if (e.cancelable) e.preventDefault(); }, { capture: true, passive: false });
+  const tUp = e => { for (const t of e.changedTouches) bPts.delete('t' + t.identifier); if (bPts.size < 2) bPinch = 0; };
+  addEventListener('touchend', tUp, true); addEventListener('touchcancel', tUp, true);
   addEventListener('wheel', e => { if (split.full !== 'b' || camMode === 'map' || camUI(e)) return; zoomFull(e.deltaY); e.preventDefault(); }, { capture: true, passive: false });
   $('spReset').onclick = e => { e.stopPropagation(); split.yaw = 1.35; split.pitch = 0.25; split.dist = 90; split.manual = false; split.userT = -1e9; if (split.full === 'b') { camDist = 90; camUserT = -1e9; } $('split').classList.remove('camMan'); toast('Booster camera: following', '#9cc3ff'); };
   pp.addEventListener('pointerdown', e => { if (split.full === 'b' || e.target.closest('button')) return; pp.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0;
@@ -2054,20 +2064,20 @@ const split = { on: false, full: null, done: 0, rec: [], replay: null, enabled: 
     if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) split.dist = Math.max(25, Math.min(1500, d0 * pinch0 / Math.max(d, 1))); moved = 99; manual(); }
     else { moved += Math.abs(dx) + Math.abs(dy); split.yaw -= dx * 0.008; split.pitch = Math.max(-0.4, Math.min(1.3, split.pitch + dy * 0.006)); split.userT = performance.now(); manual(); } e.stopPropagation(); });
   const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0;
-    if (!pts.size && moved < 8) { if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; camDist = 90; } } e.stopPropagation(); };
+    if (!pts.size && moved < 8 && split.full !== 'b') { if (split.full) { split.full = null; camMode = 'chase'; } else { split.full = 'b'; camMode = 'booster'; camDist = 90; } } e.stopPropagation(); }; // f5.9-42: a pointerup must not drop full booster (BACK is the only exit)
   pp.addEventListener('pointerup', up); pp.addEventListener('pointercancel', up);
   pp.addEventListener('wheel', e => { if (split.full === 'b') return; split.dist = Math.max(25, Math.min(1500, split.dist * Math.exp(e.deltaY * 0.001))); manual(); e.preventDefault(); e.stopPropagation(); }, { passive: false });
-  $('spMain').onclick = () => { if (split.full) { split.full = null; camMode = 'chase'; } };
+  $('spMain').onclick = () => { if (split.full === 'b') return; if (split.full) { split.full = null; camMode = 'chase'; } }; // f5.9-42: the upper-stage pane is not an exit from the full booster
   $('spFullU').onclick = e => { e.stopPropagation(); split.full = split.full === 'u' ? null : 'u'; camMode = 'chase'; }; // f5.3: focus the upper stage (keeps its own card)
   let recChipAt = 0; // f5.9-41: pointerdown toggles the sheet, same path as the RTLS / BARGE / AUTO buttons. The click that follows a tap is ignored.
   const toggleRec = btn => { const s = $('spRec'); if (!s || !btn || split.full !== 'b') return; s.classList.toggle('hidden'); btn.classList.toggle('on', !s.classList.contains('hidden')); };
-  $('spRecBtn').addEventListener('pointerdown', e => { if (e.button != null && e.button !== 0) return; e.stopPropagation(); recChipAt = performance.now(); toggleRec(e.currentTarget); });
+  $('spRecBtn').addEventListener('pointerdown', e => { if (e.button != null && e.button !== 0) return; e.preventDefault(); e.stopPropagation(); recChipAt = performance.now(); toggleRec(e.currentTarget); });
   $('spRecBtn').addEventListener('click', e => { e.stopPropagation(); if (performance.now() - recChipAt < 700) { e.currentTarget.blur(); return; } toggleRec(e.currentTarget); e.currentTarget.blur(); }); // f5.9-31: one chip opens RTLS / BARGE / AUTO
   const applyRec = bt => { if (!bt || !F) return; F.setRecovery(bt.dataset.rec); paintRecChip(); }; // OR-015: pointerdown so a phone tap on the sheet is not lost
   $('spRec').addEventListener('pointerdown', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt) return; e.preventDefault(); applyRec(bt); bt._recAt = performance.now(); });
   $('spRec').addEventListener('click', e => { const bt = e.target.closest('button[data-rec]'); e.stopPropagation(); if (!bt || (bt._recAt && performance.now() - bt._recAt < 700)) return; applyRec(bt); });
   $('spCtl').onclick = e => { e.stopPropagation(); if (booster && booster.state === 'flying' && F.ship && booster.stages[0].fuel > 0) F.toggleBooster(); else toast('The booster is on autopilot', '#9cc3ff'); };
-  $('spClose').onclick = e => { e.stopPropagation(); split.closed = true; };
+  $('spClose').onclick = e => { e.stopPropagation(); if (split.full === 'b') return; split.closed = true; }; // f5.9-42: closing the split drops fullB while the booster camera stays — BACK is the only way out
   $('spCloseU').onclick = $('spClose').onclick; $('spCtlU').onclick = $('spCtl').onclick; // f5.6h (QA P2): both halves carry the same buttons
   $('spFull').textContent = split.full === 'b' ? '⤡ BACK' : 'BOOSTER ⤢'; $('spFullU').textContent = 'UPPER ⤢'; // f5.6x: every size // f5.6u (QA P1): phones get one small label per pane; tapping it focuses that pane (⇄ / ✕ are hidden: the pane's ball takes control)
 }

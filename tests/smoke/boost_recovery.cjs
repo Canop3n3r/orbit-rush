@@ -67,7 +67,30 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if
     const other = rp0 && rp0.mode === 'rtls' ? 'ship' : 'rtls';
     const otherLab = other === 'rtls' ? 'RTLS' : 'BARGE';
     await openRec(); ok(await recOpen(), `${vp} chip reopens the recovery sheet for override`);
-    await tap(`#spRec button[data-rec="${other}"]`); await pg.waitForTimeout(1500);
+    await tap(`#spRec button[data-rec="${other}"]`); await pg.waitForTimeout(250);
+    if (touch) { const hint = await pg.evaluate(() => { const h = document.getElementById('hintS'); if (!h) return null; return { t: h.textContent, sw: h.scrollWidth, cw: h.clientWidth, sh: h.scrollHeight, ch: h.clientHeight }; });
+      ok(!!hint && /return to launch site|barge landing downrange|Too low to boost back/.test(hint.t) && hint.sw <= hint.cw + 2 && hint.sh <= hint.ch + 2, `${vp} recovery toast is fully on screen ("${hint && hint.t}", ${hint && hint.sw}x${hint && hint.sh} in ${hint && hint.cw}x${hint && hint.ch})`); }
+    await pg.evaluate(() => document.getElementById('spFull').click());
+    const held = await pg.evaluate(() => { const shown = sel => [...document.querySelectorAll(sel)].some(e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 2 && r.height > 2 && cs.display !== 'none' && cs.visibility !== 'hidden'; });
+      return { full: document.getElementById('split').classList.contains('fullB') && window.__game.split.full === 'b', mode: window.__game.camMode, map: shown('#mMap,#dMap'), menu: shown('#mMenuBtn,#dMenuBtn'), auto: shown('#mAuto,#dAuto'), rel: shown('#relBtn'), craft: shown('#craftBtn'), gcam: shown('#gcamBtn') }; });
+    ok(held.full && held.mode === 'booster' && !held.map && !held.menu && !held.auto && !held.rel && !held.craft && !held.gcam, `${vp} a click after the recovery tap stays in full booster ${JSON.stringify(held)}`);
+    if (touch) { const cdp = await pg.context().newCDPSession(pg), x = W / 2, y = Math.round(H * 0.45);
+      const yaw0 = await pg.evaluate(() => window.__game.camInfo().yaw);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + 90, y: y + 36, id: 1 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await pg.waitForTimeout(200);
+      await pg.evaluate(() => document.getElementById('spFull').click());
+      const drag = await pg.evaluate(() => { const c = window.__game.camInfo(); return { yaw: c.yaw, dist: c.dist, full: window.__game.split.full, mode: window.__game.camMode }; });
+      ok(drag.full === 'b' && drag.mode === 'booster' && Math.abs(drag.yaw - yaw0) > 0.02, `${vp} touch drag orbits the landing camera and stays in full booster (yaw ${yaw0.toFixed(2)}→${drag.yaw.toFixed(2)})`);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x - 30, y, id: 1 }, { x: x + 30, y, id: 2 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x - 140, y, id: 1 }, { x: x + 140, y, id: 2 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await pg.waitForTimeout(200);
+      const pin = await pg.evaluate(() => { const shown = sel => [...document.querySelectorAll(sel)].some(e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 2 && r.height > 2 && cs.display !== 'none' && cs.visibility !== 'hidden'; });
+        return { dist: window.__game.camInfo().dist, full: window.__game.split.full, mode: window.__game.camMode, map: shown('#mMap,#dMap'), auto: shown('#mAuto,#dAuto'), craft: shown('#craftBtn') }; });
+      ok(pin.full === 'b' && pin.mode === 'booster' && pin.dist >= 60 && pin.dist <= 400 && !pin.map && !pin.auto && !pin.craft, `${vp} touch pinch stays outside the hull and in full booster (dist ${pin.dist.toFixed(0)})`); }
+    await pg.waitForTimeout(1200);
     const s1 = await pg.evaluate(() => { const G = window.__game, b = G.booster; return { mode: b.recPlan.mode, pref: b.recPlan.pref, rtls: !!b.rtls, lz: !!(G.ship && G.ship.lz), txt: document.getElementById('spRecW').textContent, chip: document.getElementById('spRecBtn').textContent }; });
     ok(s1.mode === other && s1.pref === other && s1.rtls === (other === 'rtls') && s1.lz === (other === 'rtls'), `${vp} override to ${other}: "${s1.txt}"`);
     ok(s1.chip && s1.chip.includes(otherLab) && s1.chip !== 'AUTO', `${vp} rec chip follows override ("${s1.chip}")`);
