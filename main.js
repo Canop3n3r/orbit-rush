@@ -75,6 +75,7 @@ import { createSitePicker, loadSite, siteLabel } from './fun/sitepicker.js?v=f5.
 import { siteOpts, artFor, SITES as SB_SITES } from './sites.js?v=f5.9-27';
 import { createTrailer, epochMillis, resolveSite, applyArrival, warpPlan, spaceScore, deployMotion } from './fun/trailer.js?v=f5.9-31';
 import { openingPose, openingBegin, openingLatch, openingRelease, trackDist } from './fun/opening.js?v=f5.9-31';
+import { warpKeyAction, stepWarp } from './fun/warpkeys.js?v=f5.9-31';
 import { buildSiteLOD, placeSite, disposeSite, setSiteNight } from './gfx/sites/kit.js?v=f5.9-27';
 import { createDock } from './fun/dock.js?v=f5.9-27'; // f5.9a: top bar + bottom bar
 import { createXferPlanner } from './fun/xferui.js?v=f5.9-27'; // f6.5 pre-launch transfer planner
@@ -754,6 +755,7 @@ function fairTick(dt, O) {
     setRel(f.g, V.add(f.r, lat), O); _fhq.setFromAxisAngle(_fhx, ps.ang); f.g.quaternion.copy(f.q0).multiply(_fhq); }
 }
 const keys = {};
+let shiftWarp = false; // Shift is held to type < or >; that chord changes warp and does not also open the throttle
 function later(fn, ms) { const g = gen; setTimeout(() => { if (g === gen) fn(); }, ms); }
 let shipVis = null;
 const ER_KEY = 'orbitrush.earthRot';
@@ -1087,7 +1089,7 @@ function reset() {
   showPreview();
 }
 const hudAlt = v => Math.max(0, P.altOf(v) - ((F && F.v === v && F.alt0) || 0));
-function launch() { academy.hideFirst && academy.hideFirst(); { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); } // f5.7e: a new flight starts with ☰ closed
+function launch() { warpKeysQuiet = false; academy.hideFirst && academy.hideFirst(); { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); } // f5.7e: a new flight starts with ☰ closed. Warp keys toast again unless this launch applies ?warp=
   if (typeof home !== 'undefined' && home && home.on) home.show(false);
   initAudio(); startFlightAudio(); reset(); state = 'flight'; mobile.buzzed = false;
   const sc = params.get('scenario');
@@ -1107,8 +1109,9 @@ function launch() { academy.hideFirst && academy.hideFirst(); { const dm = $('dM
     if (pl.auto) { MISSIONS.xfer = { name: 'Transfer to ' + pl.targetName, icon: '🪐', tpl: null, target: pl.target, capture: true, blurb: '' }; director = new Director(F, 'xfer', { departT: pl.departT, say: msg => fun.call('🪐', msg, '#ffe9b0') }); } } // f6.5: AUTO flies the planned transfer
   mobile.show(true); $('ignite').innerHTML = TOUCH ? '<b>AUTO</b> (optional), then <b>STAGE</b>' : 'Press <b>SPACE</b> to stage &amp; go · <b>F</b> = AUTO'; $('ignite').classList.remove('hidden'); // f5.5b
 }
+let warpKeysQuiet = false; // set once ?warp= or __cine.warp has applied a warp; keyboard < > / then stay toast-free
 function trailerWarp(mult) { // f5.9-30: set a warp step from the URL or __cine.warp without the "Time warp ×N" toast
-  if (state !== 'flight' || !F) return null; const p = warpPlan(mult, WARPS); F.autoWarp = false; F.warpTarget = null; F.setWarp(p.index, true); return p;
+  if (state !== 'flight' || !F) return null; const p = warpPlan(mult, WARPS); F.autoWarp = false; F.warpTarget = null; F.setWarp(p.index, true); warpKeysQuiet = true; return p;
 }
 function goBuild() {
   try { plain.update({ on: false }); } catch (e) { } // f5.6c: no flight HUD in the Hangar
@@ -1197,9 +1200,8 @@ const SAS_KEYS = { Digit8: 'node', Digit1: 'stab', Digit2: 'prograde', Digit3: '
 const flyingBooster = () => F.flyingBooster();
 // hx: on-screen warp arrows (◀◀ ×N ▶▶) share these with T / , ; levels above the current physics/rails limit are refused
 function warpMaxI() { const lim = F.warpLimit()[0]; let i = 0; while (i + 1 < WARPS.length && WARPS[i + 1] <= lim) i++; return i; }
-function warpStep(d) { if (state !== 'flight' || !F) return false; F.autoWarp = false; const cur = Math.min(F.warpI, warpMaxI()), n = cur + d;
-  if (n < 0) return false; if (n > warpMaxI()) { const [m, why] = F.warpLimit(); toast(`Max warp ×${m}${why ? ': ' + why : ''}`, '#ffb35c'); return false; } F.setWarp(n); return true; }
-function warpReset() { if (state !== 'flight' || !F) return; F.autoWarp = false; F.setWarp(0); }
+function warpStep(d) { if (state !== 'flight' || !F) return false; const [m, why] = F.warpLimit(); return stepWarp(F, d < 0 ? 'down' : 'up', WARPS, { quiet: !!warpKeysQuiet, limit: m, why }); }
+function warpReset() { if (state !== 'flight' || !F) return; stepWarp(F, 'reset', WARPS, { quiet: !!warpKeysQuiet }); }
 function warpBarUpdate() { const b = $('warpBar'); if (!b || !F) return; const mi = warpMaxI(), W = F.effWarp(), [m, why] = F.warpLimit();
   const cur = Math.min(F.warpI, mi); $('wDn').disabled = cur <= 0 && !F.autoWarp; $('wUp').disabled = false; $('wUp').classList.toggle('atMax', cur >= mi); /* QA f5.8p: at the cap ▶▶ stays tappable so warpStep shows the 'Max warp ×N: why' toast (disabled = silent on touch) */
   { const pad = !F.ignited || (F.v && F.v.clamped), slow = cur > 0 || !!F.autoWarp; $('wDn').hidden = pad || !slow; $('wUp').hidden = pad; $('wVal').hidden = pad || !(W > 1 || F.autoWarp); const x = W > 1 ? '×' + W : ''; if ($('wUp').dataset.x !== x) $('wUp').dataset.x = x; } // f5.8g (QA P2): one warp rule at every size — ▶▶ (with ×N), ◀◀ only while warping, none on the pad
@@ -1285,10 +1287,18 @@ addEventListener('keydown', e => {
   if (code === 'Escape' && state === 'flight') { if (qol.busy) return; if (!paused && camMode === 'map') { exitMap(); return; } setPause(!paused); return; }
   if (code === 'KeyM' && state === 'flight' && paused && camMode === 'map') { setPause(false); exitMap(); return; }
   if (paused) return;
-  if (e.repeat) return; keys[code] = true; press(code);
+  if (e.repeat) return;
+  const typing = e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+  if (!typing && state === 'flight' && (code === 'Slash' || code === 'Comma' || code === 'Period' || e.key === '<' || e.key === '>' || e.key === '/')) e.preventDefault(); // < > / are time warp, not browser find
+  if (e.key === '<' || e.key === '>') shiftWarp = true;
+  if (!typing && state === 'flight' && (e.key === '<' || e.key === '>' || e.key === '/') && code !== 'Comma' && code !== 'Period' && code !== 'Slash') {
+    const chord = warpKeyAction({ key: e.key }); // ISO < > key, or a slash that is not KeyboardEvent Slash
+    if (chord) { initAudio(); if (chord === 'reset') warpReset(); else warpStep(chord === 'up' ? 1 : -1); return; }
+  }
+  keys[code] = true; press(code);
 });
-addEventListener('keyup', e => { const code = translate(e.code); if (code) keys[code] = false; keys[e.code] = false; if (e.code === 'Space') e.preventDefault(); });
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+addEventListener('keyup', e => { const code = translate(e.code); if (code) keys[code] = false; keys[e.code] = false; if (e.key === '<' || e.key === '>' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') shiftWarp = false; if (e.code === 'Space') e.preventDefault(); });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; shiftWarp = false; });
 document.querySelectorAll('#touch button').forEach(b => {
   const k = b.dataset.k, t = b.dataset.t;
   b.addEventListener('pointerdown', e => { e.preventDefault(); if (k) keys[k] = true; if (t) press(t); });
@@ -1323,7 +1333,7 @@ const k1 = (a, b) => (keys[a] ? 1 : 0) - (keys[b] ? 1 : 0);
 function readControls(rdt) {
   if (flyingBooster()) {
     const b = booster;
-    if (keys.ShiftLeft || keys.ShiftRight || keys.ArrowUp) b.ut = Math.min(1, b.ut + rdt * 1.2);
+    if (keys.ArrowUp || (!(shiftWarp || keys.Comma || keys.Period) && (keys.ShiftLeft || keys.ShiftRight))) b.ut = Math.min(1, b.ut + rdt * 1.2);
     if (keys.ControlLeft || keys.ControlRight || keys.ArrowDown) b.ut = Math.max(0, b.ut - rdt * 1.2);
     b.input = { pitch: k1('KeyS', 'KeyW') - mobile.input.pitch, yaw: k1('KeyA', 'KeyD') + mobile.input.yaw }; // f5.6f: checked — with flight.js's −pitch about north this gives W = nose toward east, the same as the rocket (the sign flip is in the integrator, not the result)
     if (b.input.pitch || b.input.yaw) b.retro = false;
@@ -1339,7 +1349,7 @@ function readControls(rdt) {
   if (any && F.ret && F.ret.auto) F.setAuto(false);
   if (any && !v.clamped) { F.attManual = true; v.steerDir = null; if (F.autoOn && !readControls.nose) { readControls.nose = 1; toast('You have the nose — AUTO still has the throttle (F for full manual)', '#9cc3ff'); } } // OR-008: the stick takes the nose and leaves AUTO on
   const kFine = v.fine ? 0.2 : 1, inp = { pitch: raw.pitch * kFine, yaw: raw.yaw * kFine, roll: raw.roll * kFine }, tr = tr0.map(x => x * kFine);
-  if (keys.ShiftLeft || keys.ShiftRight || keys.ArrowUp) v.ut = Math.min(1, v.ut + rdt * 0.8);
+  if (keys.ArrowUp || (!(shiftWarp || keys.Comma || keys.Period) && (keys.ShiftLeft || keys.ShiftRight))) v.ut = Math.min(1, v.ut + rdt * 0.8);
   if (keys.ControlLeft || keys.ControlRight || keys.ArrowDown) v.ut = Math.max(0, v.ut - rdt * 0.8);
   v.input = v.clamped ? { pitch: 0, yaw: 0, roll: 0 } : inp; v.trans = tr;
   if (v.holdAtt && v.tel && !v.clamped) { const lim = limitToPrograde(v.holdAtt.n, P.progradeOf(v), aoaLimit(v.tel.q || 0, QALPHA_MAX)); if (lim.limited) { v.holdAtt = { n: lim.n, t: v.holdAtt.t }; v.sasHold = lim.n; } } // f5.6h: the held target follows prograde while Q is high
