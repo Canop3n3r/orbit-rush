@@ -128,9 +128,9 @@ const parts = {
       const n = K.hi ? 10 : 3; for (let i = 0; i < n; i++) { const z0 = w / 2 + 2 + L * i / n, z1 = w / 2 + 2 + L * (i + 1) / n; K.beam('steel', [x, ay - 4 + 2.5 * i / n, z0], [x, ay, z1], 0.3); }
       K.box('dark', 0.8, 1.0, L * 0.6, [x - s * 1.6, ay - 1.5, w / 2 + 2 + L * 0.35]); K.box('red', 1.2, 1.2, 1.6, [x - s * 1.8, ay - 1.2, zc]); }
     if (o.qd) trussArm(K, 0, o.qdY || h * 0.6, w / 2, o.qd, 3, 'steel', 1); // ship arm (built along +x, then reads as a side arm)
-    const r = o.mountR || 12; K.cyl('concrete', r * 1.1, r, 18, [0, 0, zc], K.seg); K.cyl('steel', r * 0.75, r * 0.8, 1.5, [0, 18, zc], K.seg, true); K.cyl('dark', r * 0.74, r * 0.74, 0.4, [0, 19.1, zc], K.seg); /* f5.9-20: a closed deck flush with the ring top (19.5 m) */ // mount + flame opening
+    const r = o.mountR || 12; K.cyl('concrete', r * 1.1, r, 18, [0, 0, zc], K.seg); K.cyl('steel', r * 0.75, r * 0.8, 1.5, [0, 18, zc], K.seg, true); K.cyl('dark', r * 0.8, r * 0.8, 0.4, [0, 19.1, zc], K.seg); /* f5.9-20: a closed deck flush with the ring lip (top 19.5 m); the disc meets the skirt so the apron is not an open moat */ // mount + flame opening
     if (!K.lo) for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; K.box('concrete', 2.5, 18, 2.5, [Math.cos(a) * r * 1.15, 0, zc + Math.sin(a) * r * 1.15]); }
-    if (!K.lo) { K.add(new THREE.TorusGeometry(r * 0.8, 0.35, 4, K.hi ? 24 : 12).rotateX(Math.PI / 2), 'pipe', M([0, 19.6, zc])); K.disc('water', r * 0.3, [0, 0, zc], 12, 0.08); } // deluge ring
+    if (!K.lo) { K.add(new THREE.TorusGeometry(r * 0.8, 0.35, 4, K.hi ? 24 : 12).rotateX(Math.PI / 2), 'pipe', M([0, 19.5 - 0.35, zc])); /* crown = deck top; a centre at 19.6 put the tube ~45 cm into the rocket */ K.disc('water', r * 0.3, [0, 0, zc], 12, 0.08); } // deluge ring, below the deck
     K.disc('concrete', o.r || 70, [0, 0, w / 2 + L * 0.5], K.seg * 2, 0.05); const f = (o.r || 70) * 1.05; fence(K, [[-f, -f + 20], [f, -f + 20], [f, f + 20], [-f, f + 20], [-f, -f + 20]]); },
   vab(K, o) { const w = o.w, d = o.d, h = o.h; K.box('clad', w, h, d);
     if (!K.lo) { const n = K.hi ? 6 : 3; for (let i = 0; i < n; i++) K.box('band', w + 0.4, 1.2, d + 0.4, [0, h * (i + 1) / (n + 1), 0]);
