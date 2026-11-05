@@ -37,6 +37,7 @@ import * as WORLD from './fun/world.js?v=f5.9-27';
 import { stageEngines, coreInfo, nozzles, nozzleR, vehicleOf, LOOK as PLOOK } from './fun/exhaust.js?v=f5.9-27';
 import { ATLAS, nearestPoi } from './fun/lore.js?v=f5.9-27';
 import { createAudio } from './fun/audio.js?v=f5.9-27';
+import { ambientPressureRatio, engineListen } from './fun/listen.js?v=f5.9-28';
 import { createMusic } from './fun/music.js?v=f5.9-27';
 import { createCompact } from './fun/compact.js?v=f5.9-27';
 import { attachNavStick, aoaLimit, limitToPrograde, frameOf } from './fun/navstick.js?v=f5.9-27';
@@ -1842,17 +1843,17 @@ renderer.setAnimationLoop(() => {
   updateChunks(pdt, O);
   fire.update(pdt, O, camera.quaternion, wE); smoke.update(pdt, O, camera.quaternion, wE);
   musicTick(); // f6.3: menu beat / space score follow the screen and the altitude
-  if (ac && dbus) { // f6.3: camera distance + thin air for every flight sound: the vehicle camera stays loud, a ground camera loses the rocket fast, vacuum leaves only a faint low rumble
-    const camD = camera.position.distanceTo(tgtV), p0 = P.pressureRatio(h), distK = camMode === 'map' ? 0.35 : GCAM.act ? 1 / (1 + Math.pow(camD / 600, 1.5)) : 1 / (1 + Math.max(0, camD - 250) / 2500), vacK = 0.1 + 0.9 * Math.sqrt(Math.min(1, p0 * 3));
-    dbus.gain.setTargetAtTime(distK * vacK, ac.currentTime, 0.15); audioMix.dist = camD; audioMix.distK = distK; audioMix.vacK = vacK; }
-  if (rumble && rumbleF) {
-    const watchB = booster && booster.state === 'flying' && camMode === 'booster';
-    const thK = state === 'flight' ? (watchB ? booster.thrust : F.flags.dead ? 0 : v.thrust) : 0;
-    const p = P.pressureRatio(h);
-    rumble.gain.setTargetAtTime(Math.min(0.9, thK / 3000 * (0.25 + 0.75 * p)), ac.currentTime, 0.08);
-    rumbleF.frequency.setTargetAtTime(150 + 500 * p, ac.currentTime, 0.2);
-    if (crack) crack.gain.setTargetAtTime(Math.min(0.5, thK / 2500 * (0.3 + 0.7 * p) * 0.5), ac.currentTime, 0.08); // f6.3: crackle follows thrust and fades with the air
-  }
+  if (ac && dbus) { // f6.3: camera distance + thin air. f5.9-28 (OR-005): the air is the body you are on — Earth-relative h is largely negative on the Moon and used to roar like sea level. Vacuum keeps a low internal rumble.
+    const hear = engineListen(ambientPressureRatio(state === 'flight' && F ? F.body : 'earth', state === 'flight' && F ? F.alt : h));
+    const camD = camera.position.distanceTo(tgtV), distK = camMode === 'map' ? 0.35 : GCAM.act ? 1 / (1 + Math.pow(camD / 600, 1.5)) : 1 / (1 + Math.max(0, camD - 250) / 2500);
+    dbus.gain.setTargetAtTime(distK * hear.vacK, ac.currentTime, 0.15); audioMix.dist = camD; audioMix.distK = distK; audioMix.vacK = hear.vacK;
+    if (rumble && rumbleF) {
+      const watchB = booster && booster.state === 'flying' && camMode === 'booster';
+      const thK = state === 'flight' ? (watchB ? booster.thrust : F.flags.dead ? 0 : v.thrust) : 0;
+      rumble.gain.setTargetAtTime(Math.min(0.9, thK / 3000 * hear.rumble), ac.currentTime, 0.08);
+      rumbleF.frequency.setTargetAtTime(hear.hz, ac.currentTime, 0.2);
+      if (crack) crack.gain.setTargetAtTime(Math.min(0.5, thK / 2500 * hear.crack), ac.currentTime, 0.08); // crackle is the atmospheric roar; it fades with the air
+    } }
   if (state === 'flight' && (hudT += rdt) > 0.1) { academy.tick(hudT); hudT = 0; hud(); academy.tick(0); academy.renderLearn(); }
   else if (state === 'build' && academy.active && (hudT += rdt) > 0.25) { academy.tick(hudT); hudT = 0; }
   const showOn = state === 'build' && home && home.on;
