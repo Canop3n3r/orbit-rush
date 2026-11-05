@@ -31,10 +31,16 @@ export class Fleet {
   }
   orbitOf(o, t) { const s = this.stateAt(o, t), mu = muOfBody(o.body), Rb = radOfBody(o.body), e = elements(s.r, s.v, mu, Rb); return { ap: e.ra - Rb, pe: e.rp - Rb, e: e.e, T: e.T, alt: len(s.r) - Rb, speed: len(s.v), st: s }; }
   // vessels that have come down: remove them (returns the removed records so the caller can say so)
+  // OR-002: a separated stage stays until it has actually fallen into the air. A low periapsis does not delete it
+  // while it is still up (that half-orbit rule is for payloads that will burn up). A returning booster (keep) and a
+  // lost one are decided by the booster sim, not by this coast.
   prune(t) {
     const gone = []; for (const o of [...this.others()]) {
+      if (o.lost) { this.remove(o.id); gone.push(o); continue; }
+      if (o.keep) continue;
       let k; try { k = this.orbitOf(o, t); } catch (e) { continue; }
       const low = lowAlt(o.body);
+      if (o.separated) { if (k.alt < low) { this.remove(o.id); gone.push(o); } continue; }
       if (k.alt < low || (k.e < 1 && k.pe < low && (t - o.t) > 0.5 * (k.T || 0))) { this.remove(o.id); gone.push(o); } }
     return gone;
   }

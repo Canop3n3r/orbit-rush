@@ -6,7 +6,7 @@ import * as C from './physics/patched.js?v=f5.9-27';
 import { TEMPLATES, PARTS, buildVehicle, designStats, validate, cloneDesign, recoveryInfo, ORBIT_DV } from './parts.js?v=f5.9-27';
 import { designReusable } from './vehicles/reusable.js?v=f5.9-27';
 import { newStats, trackStats } from './fun/endstats.js?v=f5.9-27';
-import { installVessels } from './fun/vessels.js?v=f5.9-27'; // f6.2: switching between vessels left in space, craft power, deployed payloads
+import { installVessels } from './fun/vessels.js?v=f5.9-32'; // f6.2: switching between vessels left in space, craft power, deployed payloads
 import { airlessBody } from './fun/listen.js?v=f5.9-28'; // OR-006: fairings are not required where there is no atmosphere
 const { R, ATM, V } = P;
 export const BOOSTER_WARP = 10;              // f1: max warp while a booster is flying back
@@ -482,19 +482,20 @@ export class Flight {
         const parts = d.radial >= 2 ? this.splitBoosters(d) : [d]; this.boosters = parts;
         if (parts[1] && parts[1].ship) parts[1].ship.ef = this.lz2Ef.slice();
         this.call('ship', this.ship); if (parts[1]) this.call('ship', parts[1].ship); this.call('stage', parts[0], parts);
+        for (const p of parts) this.keepSeparated(p, { returning: true }); // OR-002: each side booster is its own craft
         this.flags.stagedFuel = d.stages[0].fuel * parts.length; this.flags.stagedAlt = bh; this.toast(parts.length > 1 ? `BOOSTER SEP — side boosters A and B boosting back to LZ-1 and LZ-2` : `BOOSTER SEP — ${d.radial} side boosters boosting back to the landing zone`, '#fff'); return;
       }
-      this.call('drop', d);
+      this.call('drop', d); this.keepSeparated(d, { returning: false }); // OR-002: the dropped stage stays in space as a craft
       if (d.radial) { this.flags.stagedFuel = d.stages[0].fuel; this.flags.stagedAlt = bh; this.toast(`BOOSTER SEP — ${d.radial} radial boosters away, core ignition`, '#fff'); return; }
       if (v.cur > this.lastPow) { v.throttle = v.ut = 0; this.toast('CAPSULE SEPARATION — heat shield first: SAS retrograde (3)', '#fff'); if (this.ret) this.ret.sepAt = this.met; }
       else this.toast(`STAGE ${v.cur} SEP — stage ${v.cur + 1} ignition`, '#fff');
       return;
     }
     if (!this.reusable) { const d = P.makeBooster(v); d.stageIndex = 0; this.shiftCom(() => { v.cur = 1; }); this.flags.stagedFuel = d.stages[0].fuel; this.flags.stagedAlt = bh;
-      this.call('drop', d); this.toast('STAGE SEP — expendable booster falls away · stage 2 ignition', '#fff'); return; } // f5.3: no landing, no booster view
+      this.call('drop', d); this.keepSeparated(d, { returning: false }); this.toast('STAGE SEP — expendable booster falls away · stage 2 ignition', '#fff'); return; } // f5.3: no landing, no booster view // OR-002: it stays as a craft
     const b = P.makeBooster(v); b.ut = 0; b.manual = false; b.maxH = bh; b.stagedAlt = bh; this.booster = b;
     this.shiftCom(() => { v.cur = 1; }); this.flags.stagedFuel = b.stages[0].fuel; this.flags.stagedAlt = bh;
-    this.call('stage', b);
+    this.call('stage', b); this.keepSeparated(b, { returning: true }); // OR-002: the booster flying home is a craft you can take
     const fuel = b.stages[0].fuel;
     if (fuel > 0.3 && bh > 2000) { // f5.9-25: recovery autopilot: RTLS or barge, picked by the setting (or AUTO from the state at separation)
       const pref = this.recoveryPref || 'design', plan = recoveryPlan(b, this.lzEf, v.earthRot !== false);
