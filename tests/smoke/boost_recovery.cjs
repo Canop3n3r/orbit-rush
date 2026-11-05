@@ -1,5 +1,5 @@
-// f5.9-25: full-screen booster view: the strip sits in the bottom bar band, a drag / wheel moves the main camera, and the
-// recovery autopilot row (AUTO / RTLS / BARGE) shows the picked mode and why, and switches it for this flight.
+// f5.9-31: full-screen booster view. The orbit/pinch surface fills the viewport, a drag / wheel moves the main camera,
+// and RTLS / BARGE / AUTO live in a sheet (one chip), not in the booster strip. AUTO reads downrange, speed and fuel.
 //   U=http://localhost:8982/ [VP=390x844] [OUT=/workspace/shots] node tests/smoke/boost_recovery.cjs
 const pw = require(process.env.PW || '/workspace/pwt/node_modules/playwright-core'); const { CHECK } = require('./ui_walk.cjs');
 const GPU = ['--enable-unsafe-webgpu','--enable-features=Vulkan','--use-vulkan=swiftshader','--use-webgpu-adapter=swiftshader','--use-angle=swiftshader','--ignore-gpu-blocklist'];
@@ -19,12 +19,16 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if
     ok(rp0 && /rtls|ship/.test(rp0.mode) && rp0.pref === 'auto' && rp0.why, `${vp} AUTO picked ${rp0 && rp0.mode} (${rp0 && rp0.why}; Δv ${rp0 && rp0.have}/${rp0 && rp0.need} m/s)`);
     ok(rp0 && (rp0.mode === 'rtls') === rp0.rtls, `${vp} the booster flies the picked mode`);
     await pg.evaluate(() => document.getElementById('spFull').click()); await pg.waitForFunction(() => { const c = document.getElementById('spCardB'); return c.classList.contains('inBar') && c.getBoundingClientRect().bottom > innerHeight * 0.6; }, null, { timeout: 120000 }).catch(() => {}); await pg.waitForTimeout(1000);
+    const pane0 = await pg.evaluate(() => { const r = document.getElementById('spPane').getBoundingClientRect(); return { w: r.width, h: r.height, vw: innerWidth, vh: innerHeight }; });
+    ok(pane0.w >= pane0.vw - 2 && pane0.h >= pane0.vh - 2, `${vp} booster camera surface fills the screen (${pane0.w | 0}x${pane0.h | 0} vs ${pane0.vw}x${pane0.vh})`);
+    await pg.evaluate(() => document.getElementById('spRecBtn').click());
     const L = await pg.evaluate(() => { const c = document.getElementById('spCardB').getBoundingClientRect(), b = document.getElementById('botBar').getBoundingClientRect(), r = document.getElementById('spRec'), w = document.getElementById('spRecW');
-      return { cTop: c.top, cBot: c.bottom, bTop: b.top, bBot: b.bottom, rec: r.getClientRects().length > 0 && r.getBoundingClientRect().height > 0, txt: w.textContent, on: [...r.querySelectorAll('button.on')].map(x => x.dataset.rec) }; });
+      return { cTop: c.top, cBot: c.bottom, bTop: b.top, bBot: b.bottom, rec: r.getClientRects().length > 0 && r.getBoundingClientRect().height > 0, inBar: !!r.closest('#botBar,#spCardB'), txt: w.textContent, on: [...r.querySelectorAll('button.on')].map(x => x.dataset.rec) }; });
     ok(L.cBot <= L.bBot + 2 && L.cBot > L.bTop && L.cTop > L.bTop - 90, `${vp} booster strip fills the bottom bar band (strip ${L.cTop | 0}-${L.cBot | 0}, bar ${L.bTop | 0}-${L.bBot | 0})`);
-    ok(L.rec && /RETURN TO SITE|BARGE LANDING/.test(L.txt) && L.on.join() === 'auto', `${vp} recovery row shows the mode and why: "${L.txt}" [${L.on}]`);
+    ok(L.rec && !L.inBar && /RETURN TO SITE|OCEAN BARGE/.test(L.txt) && /downrange/.test(L.txt) && L.on.join() === 'auto', `${vp} recovery sheet shows the mode and why: "${L.txt}" [${L.on}]`);
     await pg.waitForTimeout(600); await shot('full');
     const f = await pg.evaluate(CHECK, { state: 'booster-full', flight: true }); ok(!f.fails.length, `${vp} full booster view layout (${f.n} controls) ${f.fails.join('; ')}`);
+    await pg.evaluate(() => document.getElementById('spRec').classList.add('hidden'));
     const c0 = await pg.evaluate(() => window.__game.camInfo()), box = [W / 2, H * 0.35];
     await pg.mouse.move(box[0], box[1]); await pg.mouse.down(); await pg.mouse.move(box[0] + 80, box[1] + 30, { steps: 5 }); await pg.mouse.up();
     await pg.evaluate(() => document.getElementById('spPane').dispatchEvent(new WheelEvent('wheel', { deltaY: 400, bubbles: true, cancelable: true })));
