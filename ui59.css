@@ -946,3 +946,9 @@ body.u59:has(#split.fullB:not(.hidden)) #split.fullB{top:var(--topH,52px)!import
   html body.u59 #botBar #dvStages{display:flex!important;flex-wrap:nowrap;gap:0 8px;margin:0!important;padding:0!important;border:0!important}
   html body.u59 #bbT #navRd{font-size:10px!important;gap:0 6px!important}
 }
+/* QA P3: the full-screen list's display:block on every .pkR tied the .off rule, so Featured stacked every region (3.4 screens at 1920, 4.6 at 1280). One tab at a time. */
+html body.u59 #home.allOn #hGal #picker section.pkR.off{display:none!important}
+/* QA P3: desktop end card is a centred 520px sheet (beats the 400px chip). Title, cause, stats, and the actions stay; Flight details still open inside the sheet. */
+@media (min-width:900px) and (min-height:521px){
+  html body.u59 #end.lean:not(.hidden){top:auto!important;right:auto!important;bottom:16px!important;left:50%!important;width:min(520px,calc(100vw - 48px))!important;max-height:min(58dvh,520px)!important;height:auto!important;transform:translateX(-50%)!important;border-radius:var(--rad)!important}
+}
