@@ -66,16 +66,19 @@ const fmtKm = m => (m / 1000).toFixed(0) + ' km';
 export const shipPos = (ship, t, rot = true) => V.rotZ(V.scale(ship.ef, R + DECK), rot ? P.OMEGA_E * t : 0);
 const surfDist = (a, b) => R * Math.acos(Math.max(-1, Math.min(1, V.dot(V.norm(a), V.norm(b)))));
 
-// f5.9-25: AUTO recovery: return to the launch site when the boostback Δv (kill the downrange ground speed, then fly
-// back the downrange distance plus what it still travels) fits in the propellant left after an entry + landing reserve.
+// f5.9-31: AUTO recovery picks RTLS or an ocean barge from three numbers at the moment of the choice:
+// downrange to the landing zone, horizontal speed, and fuel left. Boostback Δv kills that speed, then
+// flies the downrange distance (plus what the booster still covers during the burn). RTLS only if that
+// plus an entry and landing reserve fits in the fuel; otherwise the barge waits on the downrange track.
 export function recoveryPlan(b, lzEf, rot = true) {
   const s = b.stages[0], g0 = 9.80665, isp = (s.eng && (s.eng.ispVac || s.eng.isp)) || 300, dry = Math.max(0.1, s.dry || 1), fuel = Math.max(0, s.fuel || 0);
   const have = isp * g0 * Math.log((dry + fuel) / dry), reserve = 1300, up = V.norm(b.r), h = V.len(b.r) - R, g = 9.81;
   const lz = V.rotZ(V.scale(lzEf || PAD_EF, R), rot ? P.OMEGA_E * (b.clock || 0) : 0), down = surfDist(b.r, lz);
   const vg = rot ? V.sub(b.v, V.cross([0, 0, P.OMEGA_E], b.r)) : b.v, vr = V.dot(vg, up), vh = V.len(V.sub(vg, V.scale(up, vr)));
   const tf = Math.max(60, (Math.max(vr, 0) + Math.sqrt(Math.max(vr, 0) ** 2 + 2 * g * Math.max(h, 0))) / g), need = vh + (down + vh * tf * 0.25) / tf + reserve;
-  const mode = have >= need * 1.05 ? 'rtls' : 'ship', km = Math.round(down / 1000);
-  return { mode, need: Math.round(need), have: Math.round(have), down: Math.round(down), why: mode === 'rtls' ? `${km} km out, fuel covers boostback` : `${km} km out, boostback needs more fuel` };
+  const mode = have >= need * 1.05 ? 'rtls' : 'ship', km = Math.round(down / 1000), speed = Math.round(vh), fuelT = +fuel.toFixed(1);
+  const why = mode === 'rtls' ? `${km} km downrange, ${speed} m/s, ${fuelT} t covers boostback` : `${km} km downrange, ${speed} m/s, ${fuelT} t is short of boostback`;
+  return { mode, need: Math.round(need), have: Math.round(have), down: Math.round(down), speed, fuel: fuelT, why };
 }
 // Would a booster released in this state land on its own (auto-land) with the fuel it has?
 export function landingCheck(b0) {
@@ -568,7 +571,16 @@ export class Flight {
       this.toast(!sep ? 'Booster recovery: barge landing downrange' : ok ? `STAGE SEP — booster has ${fuel.toFixed(1)} t. Press Y to fly it!` : `STAGE SEP — only ${fuel.toFixed(1)} t left: not enough for auto-landing (Y to try by hand)`, ok ? '#fff' : '#ffb35c'); }
     if (b.recPlan) { b.recPlan.mode = mode; if (!sep) b.recPlan.why = 'changed this flight'; }
     return true; }
-  setRecovery(mode) { const b = this.booster; return b && !b.lzName ? this.armRecovery(b, mode, false) : false; }
+  // f5.9-31: 'auto' re-reads downrange, speed and fuel and arms whichever that plan picks. 'rtls' / 'ship' force one.
+  setRecovery(mode) {
+    const b = this.booster;
+    if (!b || b.lzName || b.state !== 'flying' || (mode !== 'auto' && mode !== 'rtls' && mode !== 'ship')) return false;
+    const plan = recoveryPlan(b, this.lzEf, this.v.earthRot !== false), pick = mode === 'auto' ? plan.mode : mode;
+    if (!this.armRecovery(b, pick, false)) return false;
+    const rec = { auto: plan.mode, whyAuto: plan.why, down: plan.down, speed: plan.speed, fuel: plan.fuel, have: plan.have, need: plan.need, pref: mode, mode: pick, why: mode === 'auto' ? plan.why : 'changed this flight' };
+    b.recPlan = b.recPlan ? Object.assign(b.recPlan, rec) : { ...plan, ...rec };
+    return true;
+  }
   flyingBooster() { const b = this.booster; return !!(b && b.state === 'flying' && b.manual); }
   toggleBooster() {
     const b = this.booster;

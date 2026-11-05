@@ -469,7 +469,7 @@ body.u59:has(#split.fullB:not(.hidden)) #botBar #bbL{visibility:hidden}
 body.u59 #photobar{background:none!important;border:0!important;box-shadow:none!important;pointer-events:none;justify-content:center!important}
 body.u59 #photobar button{pointer-events:auto}
 /* BOOSTER ⤢ is not a HUD control: the PiP itself is the button; the expanded view shows ⤡ BACK / ⟲ FOLLOW */
-body.splitOn:not(:has(#split.fullB)) #topBar #spFull{display:none!important}
+body.splitOn:not(:has(#split.fullB)) #topBar :is(#spFull,#spRecBtn){display:none!important}
 @media (orientation:landscape) and (max-height:520px){
   body.u59 #topBar{padding-top:calc(3px + var(--sat))!important;padding-bottom:3px!important}
   body.u59 #botBar{padding-top:2px!important;padding-bottom:calc(2px + var(--sab))!important}
@@ -836,21 +836,22 @@ html body.u59 #home #hTop .hLogo{min-width:0;overflow:hidden;white-space:nowrap;
 /* f5.9-20 (QA f5.9-19 P2): 740x360 short phones: the ΔV stages stay on ONE line under Ap/Pe (they wrapped and rose into Pe) */
 @media (orientation:landscape) and (max-height:380px){html body.u59 #botBar #dvStages{white-space:nowrap!important;flex-wrap:nowrap!important;overflow:hidden;font-size:11px!important;line-height:12px!important;max-height:12px}html body.u59 #botBar #dvStages *{white-space:nowrap!important}}
 
-/* f5.9-25 (owner): full-screen booster view: the strip sits in the bottom bar band (no dead band), with the recovery autopilot row */
-#spRec{display:none}
+/* f5.9-25: full-screen booster view: the strip sits in the bottom bar band (no dead band). f5.9-31: RTLS / BARGE / AUTO live in a sheet opened from one top-bar chip, so the strip is not a second control row */
 body.u59 #split.fullB:has(#spCardB.inBar){z-index:61}
 body.u59:has(#split.fullB #spCardB.inBar) #topBar{z-index:62}
 body.u59 #split.fullB #spCardB.inBar .spT b{display:none}
 body.u59 #split.fullB #spCardB.inBar :is(.spL,.spR){font-size:11px!important}
 body.u59 #split.fullB #spCardB.inBar .spBall{width:56px!important;height:56px!important}
 body.u59 #split.fullB #spCardB.inBar{background:none!important;border-top:0!important;padding:4px 8px 2px!important}
-body.u59:has(#split.fullB:not(.hidden)) #botBar #spRec:not(.hidden){display:flex;position:fixed;bottom:calc(6px + var(--sab,0px));z-index:62;flex-direction:column;align-items:stretch;gap:4px;min-width:0;box-sizing:border-box;pointer-events:auto}
+#spRec.sheet{display:none}
+body.u59 #spRec.sheet:not(.hidden){display:flex;position:fixed;top:calc(var(--topH,52px) + 56px);right:calc(8px + var(--sar,0px));z-index:64;flex-direction:column;align-items:stretch;gap:6px;width:min(300px,calc(100vw - 16px));box-sizing:border-box;padding:8px;background:var(--panel);border:var(--bw) solid var(--bc);border-top:0;border-radius:0 0 var(--rad) var(--rad);pointer-events:auto}
+body.photo #spRec,body.clean #spRec,body.mapOn #spRec{display:none!important}
 #spRec .spRecB{display:flex;gap:0;border:var(--bw,2px) solid var(--bc,#9cc3ff66);border-radius:var(--rad,8px);overflow:hidden}
-#spRec .spRecB button{flex:1 1 0;height:30px;min-width:0;padding:0 4px;border:0;border-right:1px solid var(--bc,#9cc3ff66);background:transparent;color:var(--txt,#dfe9ff);font:700 11px/1 var(--font,system-ui);letter-spacing:.04em;pointer-events:auto}
+#spRec .spRecB button{flex:1 1 0;height:40px;min-height:40px;min-width:0;padding:0 4px;border:0;border-right:1px solid var(--bc,#9cc3ff66);background:transparent;color:var(--txt,#dfe9ff);font:700 12px/1 var(--font,system-ui);letter-spacing:.04em;pointer-events:auto}
 #spRec .spRecB button:last-child{border-right:0}
 #spRec .spRecB button.on{background:var(--btn-on,#1d5fae);color:#fff}
-#spRec .spRecW{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:700 11px/1.3 var(--font,system-ui);text-align:center;color:#cfe0ff}
-#spRec .spRecW b{color:#fff;letter-spacing:.04em}#spRec .spRecW span{color:#9cb4d8}#spRec .spRecW i{font-style:normal;color:#ffd23a;white-space:nowrap}
+#spRec .spRecW{white-space:normal;overflow:visible;font:700 12px/1.35 var(--font,system-ui);text-align:center;color:#cfe0ff}
+#spRec .spRecW b{color:#fff;letter-spacing:.04em}#spRec .spRecW span{color:#9cb4d8}#spRec .spRecW i{font-style:normal;color:#ffd23a}
 /* ---------- f5.9-22 (owner, iPhone): no dead space. Top bar middle = tank gauge + status line; tall throttle slider ---------- */
 /* top bar: one row everywhere; the middle holds the per-stage tank gauge with the hint (HIGH Q, ...) under it */
 html body.u59:not(.splitOn):not(.mapOn) #topBar{grid-template-columns:auto minmax(0,1fr) auto!important;grid-template-areas:"l c r"!important;row-gap:0!important}
