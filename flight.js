@@ -17,6 +17,16 @@ export const QALPHA_MAX = 12000;            // Pa·rad: structural limit on dyna
 export const QMAX = 80000;
 export const STAGE_Q_WARN = 5000;            // Pa: STAGE warns above this for serial stacks: half the lowest q a bare upper stage broke up at in tests/stagesafe.mjs (~10 kPa; QMAX/2 never fired in the QA cases)
 export const SEP_HOLD_S = 3;                 // f5.3: s of flight-path hold for the upper stage after a serial separation                  // Pa: over-pressure limit
+// OR-016: on the upper stage above 45 km the commanded attitude may lead the nose by at most CARRY.
+// The pitch program steps ~30° as q falls through 1 kPa and 0.5 kPa; the attitude loop will not spin
+// faster than the wheels can stop, so the nose was left ~39° off the command at the 60 km takeover.
+function leadSteer(v, dir) {
+  const nose = P.noseOf(v), c = Math.max(-1, Math.min(1, V.dot(nose, dir))), ang = Math.acos(c), lead = P.CARRY;
+  if (!(ang > lead)) return dir;
+  const t = lead / ang, s = Math.sin(ang);
+  if (!(s > 1e-6)) return nose;
+  return V.norm(V.add(V.scale(nose, Math.sin((1 - t) * ang) / s), V.scale(dir, Math.sin(t * ang) / s)));
+}
 export const PHYS_DT = 0.02;                // s: fixed physics step (RK4) at low warp
 export const PRESETS = TEMPLATES;
 export const DEORBIT_PE = 45000;            // m: AUTO deorbit burn lowers periapsis to this (deep enough to be captured)
@@ -844,6 +854,7 @@ export class Flight {
       } else { v.throttle = this.autoOn ? Math.min(v.ut, P.qCap(v.tel ? v.tel.q : 0)) : v.ut; if (!this.autoOn) v.steerDir = null; }
       if (this.sepHold && !f.dead && !this.attManual) { if (this.met < this.sepHold || (!this.autoOn && this.met < this.sepHold + 600 && v.tel && v.tel.q > 8000)) { /* ~3 s, longer while the air is still thick */ v.sepGrace = 1; const w = P.omegaOf(v), va = [v.v[0] + w * v.r[1], v.v[1] - w * v.r[0], v.v[2]]; /* air-relative flight path */ if (V.len(va) > 30) v.steerDir = V.norm(va); } else { this.sepHold = 0; v.sepGrace = 0; if (!this.autoOn) v.steerDir = null; } } // f5.3 (QA staging_manual): hold the bare upper stage on its flight path for ~3 s after a serial separation. OR-008: a player attitude hold is not pulled back onto that path
       if (v.clamped) v.steerDir = null;
+      if (this.autoOn && !this.attManual && !this.extAuto && v.steerDir && v.cur > 0 && this.alt > 45000) v.steerDir = leadSteer(v, v.steerDir); // OR-016
       // f5.4 (QA f5.4b B5): AUTO brings a suborbital rocket (Pip) home under its chute, as the return autopilot does for capsules
       if (this.autoOn && !this.extAuto && !this.ret && this.ignited && v.chute.state !== 'failed' && v.chute.state !== 'main' && !this.flags.orbit && v.tel && V.dot(v.v, V.norm(v.r)) < -5 && this.hasChute()) {
         const h0 = this.alt, k = v.chute.state === 'stowed' ? 'drogue' : v.chute.state === 'drogue' ? 'main' : null;
