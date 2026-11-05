@@ -7,8 +7,8 @@
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { surfaceMaterial, bakeSurf } from './surface.js?v=f5.9-25';
-import { sootOf } from './surface_math.js?v=f5.9-25';
+import { surfaceMaterial, bakeSurf } from './surface.js?v=f5.9-27';
+import { sootOf } from './surface_math.js?v=f5.9-27';
 
 const BASE = new URL('../../assets/rockets/', import.meta.url).href;
 const Q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();

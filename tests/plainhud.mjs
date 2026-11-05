@@ -1,4 +1,5 @@
-import { fmtHeight, fmtClock, apsisLine, stageDvs, MPH } from '../fun/plainhud.js';
+import { bindUnits } from '../fun/units.js?v=f5.9-27';
+import { fmtHeight, fmtClock, apsisLine, stageDvs, MPH, hudSpeed } from '../fun/plainhud.js';
 let p = 0, f = 0; const t = (c, m) => { if (c) { p++; console.log('  ✔ ' + m); } else { f++; console.log('  ✘ ' + m); } };
 t(fmtHeight(300) === '984 ft', 'feet under a mile ' + fmtHeight(300));
 t(fmtHeight(185200) === '115 mi' && fmtHeight(80467) === '50.0 mi', 'miles ' + fmtHeight(185200) + ' ' + fmtHeight(80467));
@@ -13,4 +14,10 @@ t(apsisLine('ap', sub, 1, 1, true).h === '—', 'pad');
 const st = [{ eng: { tv: 1, ispVac: 300 }, fuel: 90, dry: 10 }, { eng: { tv: 1, ispVac: 340 }, fuel: 18, dry: 2 }];
 const d = stageDvs(st, 0, 120); t(d.length === 2 && d[0].on && d[0].dv > 2000 && d[1].dv > 3000, 'Δv per stage ' + d.map(x => Math.round(x.dv)));
 t(stageDvs(st, 1, 20).length === 1, 'staged stages drop off');
+// OR-011: the PC HUD speed example 28429 km/h is 7897 m/s. Speed stays mph even if Units is metric; altitude stays on that setting.
+bindUnits(() => 'metric');
+{ const s = hudSpeed(7897), kmh = Math.round(7897 * 3.6), mph = Math.round(7897 * MPH);
+  t(s.lab === 'MPH' && Number(String(s.n).replace(/,/g, '')) === mph && Number(String(s.n).replace(/,/g, '')) !== kmh, 'OR-011 orbital speed is mph under metric units ' + s.n + s.lab + ' (km/h would be ' + kmh.toLocaleString('en-US') + ')');
+  const alt = fmtHeight(185200); t(/km$/.test(alt) && !/\b(mi|ft)\b/.test(alt), 'OR-011 altitude stays with the units setting ' + alt); }
+bindUnits(() => 'imperial');
 console.log(`plainhud: ${p} passed, ${f} failed`); process.exit(f ? 1 : 0);
