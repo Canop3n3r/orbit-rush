@@ -15,7 +15,7 @@ import { createCareerUI } from './fun/career-ui.js?v=f5.9-27';
 import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-27';
 import { createSolarMap } from './solarmap.js?v=f5.9-32';
 import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-27';
-import { FX } from './fx.js?v=f5.9-27';
+import { FX } from './fx.js?v=f5.9-32';
 import { createAcademy } from './academy-ui.js?v=f5.9-27';
 import { createMobile, isTouch, thrFromY } from './mobile.js?v=f5.9-27';
 import { localize } from './wording.js?v=f5.9-27';
@@ -27,7 +27,7 @@ let PROG = PR.load(localStorage), fun = null; // f1 progress (localStorage) and 
 // Milestone Q settings: key remap, sensitivity, units, overlays (settings.js; saved in localStorage)
 let SET = loadSettings(localStorage), translate = makeTranslator(SET);
 const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // f5.7q (owner): every HUD/pane/card reads the Units setting
-import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-27';
+import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-32';
 import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-27';
 import { guardToasts } from './fun/toastzone.js?v=f5.9-27';
 import * as GX from './gfx/gfx.js?v=f5.9-27';
@@ -2418,8 +2418,12 @@ const WV = (() => {
   // f2 heat: an additive hull halo (red → orange → white with the heat model) and a bow-shock plasma sheath on reentry
   const hm = new THREE.MeshBasicMaterial({ color: 0xff5020, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.BackSide });
   const halo = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 24, 1, true), hm); halo.visible = false;
-  const sm = new THREE.MeshBasicMaterial({ color: 0xff9a50, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
-  const sheath = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), sm); sheath.visible = false; scene.add(sheath);
+  const sheathGeo = new THREE.SphereGeometry(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+  const spa = sheathGeo.attributes.position, scols = new Float32Array(spa.count * 3);
+  for (let i = 0; i < spa.count; i++) { const y = Math.max(0, Math.min(1, spa.getY(i))), k = 0.38 + 0.62 * Math.pow(y, 1.7); scols[i * 3] = scols[i * 3 + 1] = scols[i * 3 + 2] = k; }
+  sheathGeo.setAttribute('color', new THREE.BufferAttribute(scols, 3));
+  const sm = new THREE.MeshBasicMaterial({ color: 0xff9a50, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, vertexColors: true });
+  const sheath = new THREE.Mesh(sheathGeo, sm); sheath.visible = false; scene.add(sheath);
   return { halo, hm, sheath, sm, heat: { halo: 0, sheath: 0 }, grp, pro: arrow(0x7dffa6), tgt: arrow(0xff6ad5), ring, ringMat, ringOn: -1, seps: [], sepGeo, sepPool, tag, pulse: 0, box: null, boxT: 0 };
 })();
 const _wq = new THREE.Quaternion(), _wy = new THREE.Vector3(0, 1, 0), _wd = new THREE.Vector3(), _wb = new THREE.Box3(), _wb2 = new THREE.Box3(), _wp = new THREE.Vector3();
@@ -2452,8 +2456,8 @@ function heatVis(L, now) {
   if (WV.sheath.visible) { const d = _wd.set(fb[0], fb[1], fb[2]).applyQuaternion(rocketG.quaternion).normalize(); // flow direction in world space
     const noseW = new THREE.Vector3(0, 1, 0).applyQuaternion(rocketG.quaternion), lead = fb[1] < 0 ? g.L : 0;
     WV.sheath.position.copy(rocketG.position).addScaledVector(noseW, lead).addScaledVector(d, -g.d * 0.15);
-    WV.sheath.quaternion.setFromUnitVectors(_wy, d.clone().negate()); const R = g.d * (0.75 + 0.35 * pl); WV.sheath.scale.set(R, R * (1.6 + 2.2 * pl), R);
-    WV.sm.color.setRGB(1, 0.45 + 0.4 * pl, 0.3 + 0.6 * pl * pl); WV.sm.opacity = 0.5 * sA * flick; }
+    WV.sheath.quaternion.setFromUnitVectors(_wy, d.clone().negate()); const R = g.d * (0.7 + 0.28 * pl); WV.sheath.scale.set(R, R * (1.35 + 1.15 * pl), R);
+    const pc = (lastFx && lastFx.plasmaColor) || [1, 0.61, 0.31]; WV.sm.color.setRGB(pc[0], pc[1], pc[2]); WV.sm.opacity = 0.5 * sA * flick; }
   if (document.body.classList.contains('endOn') || (TOUCH && camDist < 40)) { WV.sm.opacity *= 0.3; WV.hm.opacity *= 0.5; } // QA f5b.3: no full-screen orange glow under the end card / close phone camera
   WV.heat.halo = WV.halo.visible ? WV.hm.opacity : 0; WV.heat.sheath = WV.sheath.visible ? WV.sm.opacity : 0;
 }
