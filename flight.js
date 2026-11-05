@@ -196,6 +196,7 @@ export class Flight {
     const s0 = P.siteAt(v, 0); v.r = s0.r; v.v = s0.v; v.q = s0.q; v.clock = 0; v.ut = 0; v.auto = false; v.sas = 'stab';
     this.v = v; this.booster = null; this.boosters = []; this.ship = null; this.dvUsed = 0;
     this.met = 0; this.ignited = false; this.maxQ = 0; this.maxQEntry = 0; this.maxG = 0; this.fstats = newStats(); this.autoThrottle = true; this.ascent = true; this.autoOn = false; this.warpI = 0; this.autoWarp = false;
+    this.wantManual = false; this.attManual = false; this.pilotEng = false; // OR-008: player asked for manual flight, the nose, or the engines
     this.ended = false; this.finalScore = null; this.stageArm = -1; this.realT = 0; this.rails = false;
     P.stepVehicle(v, 0); // fill telemetry
     this.flags = { liftoff: 0, maxq: 0, space: 0, orbit: 0, booster: '', boosterBonus: 0, dead: '', fairing: 0, maxAlt: 0, mach1: 0,
@@ -396,6 +397,13 @@ export class Flight {
   canStage() { return this.ignited && this.v.cur < this.last && !this.v.clamped && this.met > 3 && this.alt > 150; }
   // OR-006: on an airless body the fairing protects nothing, so it can come off at any altitude. In air it still waits for 60 km.
   canJettison() { return this.v.fairing > 0 && (airlessBody(this.body) || this.alt > 60000); }
+  // OR-008: the player can separate the next stage as soon as the engines are lit, including on the pad.
+  // SPACE still uses canStage() (clear the tower, then the high-Q confirm).
+  canManualStage() { return this.ignited && !this.flags.dead && this.v.cur < this.last; }
+  manualStage() { if (!this.canManualStage()) return false; this.stageArm = -1; this.stage(); return true; }
+  // OR-008: drop the fairing whenever one is attached. SPACE / auto-drop keep the OR-006 altitude rule.
+  canDropFairing() { return this.ignited && !this.flags.dead && this.v.fairing > 0; }
+  dropFairing() { if (!this.canDropFairing()) return false; this.jettison(); return true; }
   // Auto drop. Airless: as soon as the rocket leaves the pad. In air: above 100 km once heating is low, and always by 140 km.
   fairingDue(h, tel) {
     if (!(this.v.fairing > 0)) return false;
@@ -517,6 +525,7 @@ export class Flight {
   }
   jettison() { const v = this.v; if (v.fairing <= 0) return; v.fairing = 0; this.flags.fairing = 1; this.call('jettison'); this.toast('Fairing separation', '#9cc3ff'); }
   setAuto(on, quiet) {
+    if (!on) this.wantManual = true; else { this.wantManual = false; this.attManual = false; this.pilotEng = false; } // OR-008: AUTO off stays off; AUTO on hands the nose and the engines back
     if (on && this.v.craft) { if (!quiet) this.toast('AUTO flies rockets. Point with SAS, burn with Z/X, plan burns on the map (M)', '#9cc3ff'); return; } // f6.2
     if (on && this.ret) { this.ret.auto = true; if (!quiet) this.toast('AUTO is flying the return (deorbit, reentry, parachutes)', '#9cc3ff'); return; }
     if (!on && this.ret) { if (this.ret.auto && !quiet) this.toast('You have the capsule — parachutes stay armed (F hands it back)', '#9cc3ff'); this.ret.auto = false; this.v.steerDir = null; this.autoOn = false; if (this.v.auto) this.v.auto = false; return; }
@@ -526,7 +535,13 @@ export class Flight {
     if (!quiet) this.toast(on ? 'AUTO on: gravity turn, Max-Q throttling, coast, circularize' : 'Manual flight (SAS ' + P.SAS_LABEL[this.v.sas] + ')', '#9cc3ff');
   }
   setSAS(mode) { const v = this.v; v.sas = mode; v.sasHold = null; v.holdAtt = null; if (this.autoOn && mode !== 'stab') this.setAuto(false, true); if (this.ret && this.ret.auto) this.setAuto(false); this.toast('SAS: ' + P.SAS_LABEL[mode], '#9cc3ff'); }
-  toggleRCS() { const v = this.v; v.rcsOn = !v.rcsOn; const has = v.stages.slice(v.cur).some(s => s.parts.some(p => p.kind === 'rcs')); this.toast(v.rcsOn ? (has ? `RCS on (${(v.rcsFuel * 1000).toFixed(0)} kg monoprop)` : 'RCS on — but this rocket has no RCS ring') : 'RCS off', '#9cc3ff'); }
+  toggleRCS() { const v = this.v; v.rcsOn = !v.rcsOn; const has = v.stages.slice(v.cur).some(s => s.parts.some(p => p.kind === 'rcs')); this.toast(v.rcsOn ? (has ? `RCS on (${(v.rcsFuel * 1000).toFixed(0)} kg monoprop)` : 'RCS on — but this rocket has no RCS ring') : 'RCS off', '#9cc3ff'); return v.rcsOn; }
+  // OR-008: engines follow the player even while AUTO or a mission director is flying. AUTO on clears this.
+  setEngines(on) { if (!this.ignited || this.flags.dead) return false; this.pilotEng = true; this.v.ut = on ? 1 : 0; if (!on) this.v.throttle = 0; this.toast(on ? 'Engines on — your throttle' : 'Engines cut — your throttle', '#9cc3ff'); return true; }
+  // Hold the nose where it is. AUTO may keep the throttle; it does not point the rocket.
+  keepAttitude() { if (this.flags.dead) return false; const v = this.v; v.sas = 'stab'; v.holdAtt = null; v.steerDir = null; v.sasHold = P.noseOf(v); this.attManual = true; this.toast(this.autoOn ? 'Holding this attitude — AUTO still has the throttle' : 'Holding this attitude', '#9cc3ff'); return true; }
+  toggleFine() { this.v.fine = !this.v.fine; this.toast(this.v.fine ? 'Fine control: stick and RCS at one fifth' : 'Fine control off', '#9cc3ff'); return !!this.v.fine; }
+  stickScale(x) { return (this.v.fine ? 0.2 : 1) * x; }
   takeOverUpper() { const v = this.v; if (v.auto) { v.auto = false; this.autoOn = false; v.steerDir = null; v.sasHold = null; v.holdAtt = null; v.ut = v.throttle; this.toast('You have the upper stage', '#9cc3ff'); } }
   // f5.9-25: point the booster at the landing zone (boostback) or a droneship on its downrange track; quiet=false is a mid-flight override
   armRecovery(b, mode, sep) { const v = this.v, fuel = b.stages[0].fuel;
@@ -809,9 +824,9 @@ export class Flight {
       else if (this.ret) { v.throttle = v.cur <= this.lastPow ? v.ut : 0; if (!this.ret.auto) v.steerDir = null; }
       else if (this.autoOn && !v.clamped && !this.extAuto) { // fx-1: extAuto = a director (hop) flies the AUTO
         if (v.ascentTable) v.ascentMet = this.met; // PR #12 hook: table-driven stage-1 ascent
-        const gd = P.autoGuide(v); v.steerDir = gd.dir;
-        if (gd.phase === 'done' && v.ut > 0) { v.ut = 0; if (!f.cutoff) { f.cutoff = 1; this.toast('AUTO cutoff — orbit reached', '#7dffa6'); } }
-        v.throttle = v.auto ? gd.throttle : this.autoThrottle ? Math.min(v.ut, gd.throttle) : v.ut;
+        const gd = P.autoGuide(v); if (this.attManual) v.steerDir = null; else v.steerDir = gd.dir; // OR-008: a held attitude is not overwritten by AUTO
+        if (!this.pilotEng && gd.phase === 'done' && v.ut > 0) { v.ut = 0; if (!f.cutoff) { f.cutoff = 1; this.toast('AUTO cutoff — orbit reached', '#7dffa6'); } }
+        v.throttle = this.pilotEng ? v.ut : v.auto ? gd.throttle : this.autoThrottle ? Math.min(v.ut, gd.throttle) : v.ut; // OR-008: player engine command wins over guidance
         // f3 auto-staging: AUTO stages the booster itself while it still has the fuel to fly home and land (15 % margin)
         if (v.cur === 0 && this.last > 0 && this.recovery === 'rtls' && this.autoStage !== false && this.alt > 2000 && this.canStage() && this.met > 30) { // f4 RTLS: keep enough for boostback + entry + landing
           const s0 = v.stages[0], up0 = V.norm(v.r), va0 = v.tel && v.tel.va ? v.tel.va : v.v, vh0 = V.len(V.sub(va0, V.scale(up0, V.dot(va0, up0))));
@@ -825,7 +840,7 @@ export class Flight {
         }
         if (v.cur < this.lastPow && v.stages[v.cur].fuel <= 0 && this.canStage()) { this.toast(v.cur === 0 ? 'AUTO: booster empty, staging' : `AUTO: stage ${v.cur + 1} empty, staging`, '#9cc3ff'); this.stage(); }
       } else { v.throttle = this.autoOn ? Math.min(v.ut, P.qCap(v.tel ? v.tel.q : 0)) : v.ut; if (!this.autoOn) v.steerDir = null; }
-      if (this.sepHold && !f.dead) { if (this.met < this.sepHold || (!this.autoOn && this.met < this.sepHold + 600 && v.tel && v.tel.q > 8000)) { /* ~3 s, longer while the air is still thick */ v.sepGrace = 1; const w = P.omegaOf(v), va = [v.v[0] + w * v.r[1], v.v[1] - w * v.r[0], v.v[2]]; /* air-relative flight path */ if (V.len(va) > 30) v.steerDir = V.norm(va); } else { this.sepHold = 0; v.sepGrace = 0; if (!this.autoOn) v.steerDir = null; } } // f5.3 (QA staging_manual): hold the bare upper stage on its flight path for ~3 s after a serial separation
+      if (this.sepHold && !f.dead && !this.attManual) { if (this.met < this.sepHold || (!this.autoOn && this.met < this.sepHold + 600 && v.tel && v.tel.q > 8000)) { /* ~3 s, longer while the air is still thick */ v.sepGrace = 1; const w = P.omegaOf(v), va = [v.v[0] + w * v.r[1], v.v[1] - w * v.r[0], v.v[2]]; /* air-relative flight path */ if (V.len(va) > 30) v.steerDir = V.norm(va); } else { this.sepHold = 0; v.sepGrace = 0; if (!this.autoOn) v.steerDir = null; } } // f5.3 (QA staging_manual): hold the bare upper stage on its flight path for ~3 s after a serial separation. OR-008: a player attitude hold is not pulled back onto that path
       if (v.clamped) v.steerDir = null;
       // f5.4 (QA f5.4b B5): AUTO brings a suborbital rocket (Pip) home under its chute, as the return autopilot does for capsules
       if (this.autoOn && !this.extAuto && !this.ret && this.ignited && v.chute.state !== 'failed' && v.chute.state !== 'main' && !this.flags.orbit && v.tel && V.dot(v.v, V.norm(v.r)) < -5 && this.hasChute()) {

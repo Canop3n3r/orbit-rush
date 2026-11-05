@@ -55,13 +55,13 @@ export class Director {
       case 'hop': { // vertical climb; cut when the ballistic apex reaches the target height
         const up = V.norm(v.r), va = P.airVel(v), vs = V.dot(va, up), R = V.len(v.r), g = P.BODIES[F.body].mu / (R * R);
         if (!F.ignited) { F.stagePress(); this.alt0 = F.alt - v.tel.ycom; }
-        v.sas = 'stab'; v.steerDir = up; v.ut = 1;
-        if (F.alt + Math.max(vs, 0) ** 2 / (2 * g) >= this.m.hop) { v.ut = 0; v.steerDir = null; this.set('coast', 'Engine off — coasting to the top'); }
+        if (!F.attManual) { v.sas = 'stab'; v.steerDir = up; } if (!F.pilotEng) v.ut = 1; // OR-008: a player nose or throttle is not overwritten
+        if (F.alt + Math.max(vs, 0) ** 2 / (2 * g) >= this.m.hop) { if (!F.pilotEng) v.ut = 0; if (!F.attManual) v.steerDir = null; this.set('coast', 'Engine off — coasting to the top'); }
         break; }
-      case 'coast': { const up = V.norm(v.r); v.ut = 0; v.sas = 'stab'; v.steerDir = up; if (V.dot(P.airVel(v), up) < -2) this.set('descent', 'Falling — hoverslam onto the pad'); break; }
+      case 'coast': { const up = V.norm(v.r); if (!F.pilotEng) v.ut = 0; if (!F.attManual) { v.sas = 'stab'; v.steerDir = up; } if (V.dot(P.airVel(v), up) < -2) this.set('descent', 'Falling — hoverslam onto the pad'); break; }
       case 'ascent':
         if (!F.ignited) { F.stagePress(); F.setAuto(true, true); }
-        else if (!F.autoOn && !F.flags.orbit) F.setAuto(true, true);
+        else if (!F.autoOn && !F.flags.orbit && !F.wantManual) F.setAuto(true, true); // OR-008: AUTO off stays off until the player turns it on
         if (F.flags.orbit && v.guid === 'done') {
           if (!this.target) { if (F.canDeorbit()) { F.deorbit(); this.set('home', 'Orbit! Deorbiting for the trip home'); } else this.finish('Orbit reached'); }
           else this.set('plan', 'Orbit! Plotting the transfer to ' + P.BODIES[this.target].name);
@@ -101,13 +101,13 @@ export class Director {
         if (!F.exec && F.nodes.length && (F.nodes[0].t < F.tAbs - 600 || this.t > 5)) F.nodes.splice(0); // QA f5.1c P1: exec stopped with a stale node (already captured) — never sit in capture forever
         if (!F.exec && !F.nodes.length) {
           const o = P.orbitOf(v);
-          if (this.m.land && o.e < 0.9) { if (v.cur < F.lastPow && F.canStage()) { F.stageArm = -1; F.realT = Math.max(F.realT, 100); F.stage(); } v.sas = 'retrograde'; v.sasHold = null; this.set('brake', 'In lunar orbit — braking for the landing'); }
+          if (this.m.land && o.e < 0.9) { if (v.cur < F.lastPow && F.canStage()) { F.stageArm = -1; F.realT = Math.max(F.realT, 100); F.stage(); } if (!F.attManual) { v.sas = 'retrograde'; v.sasHold = null; } this.set('brake', 'In lunar orbit — braking for the landing'); }
           else this.finish(o.e < 1 ? `In orbit around ${P.BODIES[F.body].name}!` : `Flew past ${P.BODIES[F.body].name}`);
         }
         break;
       case 'lift': if (v.thrust > 0 && !F.warpTarget) F.setWarp(4, true); if (!F.exec && !F.nodes.length) this.arrive(); else if (!F.exec && F.nodes.length) F.setExec(true); break;
       case 'brake': {
-        v.sas = 'retrograde';
+        if (!F.attManual) v.sas = 'retrograde';
         const ang = Math.acos(Math.max(-1, Math.min(1, V.dot(P.noseOf(v), V.scale(P.progradeOf(v), -1)))));
         if (ang < 0.05 || this.t > 60) this.set('descent', 'Powered descent');
         break; }
@@ -158,7 +158,7 @@ export class Director {
   land() { // hoverslam (suicide burn) from the shared solver: coast, light as late as possible at ~88% throttle, cut at touchdown
     const F = this.F, v = F.v, b = P.BODIES[F.body], R = V.len(v.r), g = b.mu / (R * R);
     const h = F.alt - v.tel.ycom, up = V.norm(v.r), va = P.airVel(v), sp = V.len(va), vs = V.dot(va, up), a = P.thrustAccel(v);
-    if (this.m.hop) { v.sas = 'stab'; v.steerDir = up; } else v.sas = 'retrograde';
+    if (!F.attManual) { if (this.m.hop) { v.sas = 'stab'; v.steerDir = up; } else v.sas = 'retrograde'; }
     const aE = F.body === 'earth' ? P.maxThrust(v, P.atmosphere(Math.max(0, F.alt)).p) / (P.massOf(v) * 1000) : a; // sea-level thrust on Earth
     const hG = this.m.hop ? F.alt - (this.alt0 ?? 0) - v.tel.ycom : h; // hop: height above the pad it left
     const sol = P.hoverslamSolve({ h: hG, vDown: vs < 0 ? sp : 0, m: 1, Tmax: aE, thrMin: 0.05, g, burning: !!v._hs, lit: v.ignAlt != null });
@@ -169,7 +169,7 @@ export class Director {
     if (sol.legs) v.legs = true;
     v._hs = sol.ignite && sol.throttle > 0;
     if (v._hs && v.ignAlt == null) { v.ignAlt = h; v.ignV = sp; }
-    v.ut = sol.noLand && vs < 0 ? 1 : sol.throttle;
+    if (!F.pilotEng) v.ut = sol.noLand && vs < 0 ? 1 : sol.throttle;
   }
 
 }
