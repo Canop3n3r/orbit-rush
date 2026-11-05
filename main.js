@@ -58,7 +58,7 @@ import { buildLOD as heroLOD, prewarm as heroPrewarm, takeWarm, HOUSE_SETS, VEHI
 import { payloadKindFor } from './gfx/vehicles/payload_kinds.js?v=f5.9-27';
 import { craftTypeFor, typeOf as craftTypeOf, kindOfType, CRAFT_TYPES, PROPULSION as CRAFT_PROP } from './data/craft_types.js?v=f5.9-27'; // f6.2: craft types, switching between vessels
 import { buildCraftStages, buildStageModel, PLUME_OF } from './gfx/vehicles/craft_models.js?v=f5.9-27';
-import { createVesselUI } from './fun/vesselui.js?v=f5.9-27';
+import { createVesselUI } from './fun/vesselui.js?v=f5.9-32';
 import { dropPlan, pickBase, modelGroups } from './fun/stagemap.js?v=f5.9-27';
 import { STAGE_KEYS, HEIGHTS } from './gfx/vehicles/stage_keys.js?v=f5.9-27';
 import { dimsOf } from './vehicles/dims.js?v=f5.9-27';

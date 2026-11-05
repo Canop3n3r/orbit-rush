@@ -739,13 +739,34 @@ body.u59 #atlas .atl.unseen summary{color:var(--txt,#fff)}
   html body.u59 #atlas .mbox{bottom:8px!important;max-height:none!important}
   html body.u59 #atlas .mbox>#atlasBody{overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 }
-/* f5.9-18 (phone map): the tracking list is a small pill until tapped; open, it is a short scrollable card under the bar */
-body.u59 #mapTrack{cursor:pointer;max-height:min(30dvh,240px)!important;overflow:auto!important;font-size:var(--t-xs)}
-body.u59 #mapTrack:not(.open){padding:4px 10px!important;border-radius:0 0 999px 0!important;overflow:hidden!important}
-body.u59 #mapTrack:not(.open) div{display:none}
-body.u59 #mapTrack h4{margin:0!important;white-space:nowrap}
+/* OR-003: tracking sheet. Collapsed it is still the f5.9-18 pill (h4 only, ≤44 px). Open, filters and groups scroll inside ≤30dvh so 10+ craft stay on the map. */
+body.u59 #mapTrack{cursor:pointer;max-height:min(30dvh,240px)!important;overflow:auto!important;font-size:var(--t-xs);font-family:var(--font)}
+body.u59 #mapTrack:not(.open){padding:4px 10px!important;border-radius:0 0 999px 0!important;overflow:hidden!important;width:auto!important;max-width:min(240px,78vw)}
+body.u59 #mapTrack:not(.open) .mtBody{display:none!important}
+body.u59 #mapTrack h4{margin:0!important;white-space:nowrap;font-family:inherit}
 body.u59 #mapTrack h4 i{font-style:normal;opacity:.7;margin-left:4px}
-body.u59 #mapTrack.open div{overflow:hidden;text-overflow:ellipsis;max-width:min(240px,70vw)}
+body.u59 #mapTrack.open:not(.hidden){display:flex!important;flex-direction:column;overflow:hidden!important;padding:0!important;width:min(320px,92vw)!important;max-width:min(320px,92vw)!important;max-height:min(30dvh,240px)!important}
+body.u59 #mapTrack.open .mtBody{display:flex!important;flex-direction:column;min-height:0;flex:1 1 auto;max-width:none!important;overflow:hidden}
+body.u59 #mapTrack.open .mtBar{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:4px;flex:none;max-width:none!important;overflow:hidden}
+body.u59 #mapTrack.open .mtChips{display:flex;gap:4px;overflow-x:auto;flex:none;width:100%;min-width:0;max-width:none!important;scrollbar-width:none}
+body.u59 #mapTrack.open .mtFind{display:flex;gap:4px;align-items:center;min-width:0;max-width:none!important}
+body.u59 #mapTrack.open .mtChip{flex:0 0 auto!important;white-space:nowrap;max-width:none!important;overflow:visible;text-overflow:clip}
+body.u59 #mapTrack.open .mtQ{flex:1 1 auto;min-width:0;width:auto}
+body.u59 #mapTrack.open .mtList{overflow:auto;flex:1 1 auto;min-height:0;max-width:none!important;touch-action:pan-y;overscroll-behavior:contain}
+body.u59 #mapTrack.open :is(.mtRow,.mtG,.mtSec,.mtEmpty,.mtBar,.mtChips,.mtFind){max-width:none!important}
+body.u59 #mapTrack.open .mtRow b{overflow:hidden;text-overflow:ellipsis}
+body.u59:has(#mapTrack.open) #mapInfo{left:min(320px,92vw)!important;text-align:left!important;padding-left:8px!important;box-sizing:border-box}
+@media (max-width:720px){body.u59:has(#mapTrack.open) #mapInfo{visibility:hidden}}
+@media (pointer:coarse){body.u59 #mapTrack.open :is(.mtRow,.mtG,.mtChip,.mtCyc){min-height:40px}body.u59 #mapTrack .mtQ{font-size:16px}}
+@media (max-height:520px) and (orientation:landscape){
+  body.u59 #mapTrack.open:not(.hidden){width:min(480px,70vw)!important;max-width:min(480px,70vw)!important}
+  body.u59:has(#mapTrack.open) #mapInfo{left:min(480px,70vw)!important;visibility:visible}
+  body.u59 #mapTrack.open .mtBar{flex-direction:row;align-items:center}
+  body.u59 #mapTrack.open .mtCyc{display:none}
+  body.u59 #mapTrack.open .mtFind{flex:0 0 96px}
+  body.u59 #mapTrack.open .mtChips{flex:1 1 auto;width:auto}
+  body.u59 #mapTrack.open :is(.mtRow,.mtG,.mtChip,.mtQ){min-height:30px}
+}
 /* f5.9-18: TWR + ambient pressure sit in the telemetry column, same type as ALT */
 body.u59 #botBar #plTw{display:flex;gap:0 8px;flex-wrap:wrap;font-size:var(--t-xs)!important;line-height:1.15;white-space:nowrap}
 body.u59 #botBar #plTw b{font-weight:700}
@@ -996,3 +1017,7 @@ html body.u59 #botBar :is(#mThr,#dThr) u{position:absolute!important;left:0;righ
 }
 html body.u59 #botBar :is(#mThr,#dThr).fine s{border-color:#7dffa6}
 html body.u59 #botBar :is(#mThr,#dThr).fine u{color:#d8ffe8}
+/* OR-003: craft-list filter. Group headers are rows, not action buttons, and stay inside the existing sheet. */
+body.u59 #vsl .vg{min-height:32px!important;background:transparent!important;border:0!important;border-bottom:var(--bw) solid var(--bc)!important;border-radius:0!important;text-align:left;color:var(--dim);justify-content:flex-start}
+body.u59 #vsl .vchips button{min-height:32px;min-width:0;flex:0 0 auto;white-space:nowrap;max-width:none}
+body.u59 #vsl .vq{font-family:inherit}
