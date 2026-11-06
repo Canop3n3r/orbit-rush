@@ -51,6 +51,8 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if
       ok(c4.full === 'b' && c4.cls && c4.mode === 'booster' && !c4.closed && c4.dist >= 70 && c4.dist <= 400 && c4.chip && c4.back && !c4.map && !c4.auto && !c4.stage && !c4.rel && !c4.craft && !c4.menu && !c4.gcam && !c4.follow, `${vp} #94 C4 strip drag+pinch stays chip+BACK outside the hull (dist ${c4.dist.toFixed(0)}) ${JSON.stringify(c4)}`);
       await cdp0.detach(); }
     await pg.evaluate(() => document.getElementById('spFull').click()); await pg.waitForFunction(() => { const c = document.getElementById('spCardB'); return c.classList.contains('inBar') && c.getBoundingClientRect().bottom > innerHeight * 0.6; }, null, { timeout: 120000 }).catch(() => {}); await pg.waitForTimeout(1000);
+    const attacked = await pg.evaluate(() => { for (const id of ['spFullU', 'spMain', 'spClose', 'spCloseU', 'spFull']) { const el = document.getElementById(id); if (el) el.click(); } const s = document.getElementById('split'); return { full: window.__game.split.full, cls: s.classList.contains('fullB'), hid: s.classList.contains('hidden'), cam: window.__game.camMode, closed: !!window.__game.split.closed }; });
+    ok(attacked.full === 'b' && attacked.cls && !attacked.hid && attacked.cam === 'booster' && !attacked.closed, `${vp} #93 retargeted clicks (upper button, close, BACK) keep fullB ${JSON.stringify(attacked)}`);
     const chip0 = await pg.evaluate(() => { const b = window.__game.booster, el = document.getElementById('spRecBtn'); return { mode: b.recPlan && b.recPlan.mode, pref: b.recPlan && b.recPlan.pref, txt: el && el.textContent }; });
     const modeLab = chip0.mode === 'rtls' ? 'RTLS' : 'BARGE';
     ok(chip0.txt && chip0.txt.includes(modeLab) && chip0.txt !== 'AUTO' && !/^AUTO$/.test(chip0.txt.trim()), `${vp} rec chip names ${modeLab} after expand ("${chip0.txt}", pref ${chip0.pref})`);
@@ -87,8 +89,22 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if
     const otherLab = other === 'rtls' ? 'RTLS' : 'BARGE';
     await openRec(); ok(await recOpen(), `${vp} chip reopens the recovery sheet for override`);
     await tap(`#spRec button[data-rec="${other}"]`); await pg.waitForTimeout(250);
-    if (touch) { const hint = await pg.evaluate(() => { const h = document.getElementById('hintS'); if (!h) return null; return { t: h.textContent, sw: h.scrollWidth, cw: h.clientWidth, sh: h.scrollHeight, ch: h.clientHeight }; });
+    const rtKeep = await pg.evaluate(() => { const s = document.getElementById('split'), p = window.__game.booster.recPlan; return { full: window.__game.split.full, cls: s.classList.contains('fullB'), hid: s.classList.contains('hidden'), cam: window.__game.camMode, closed: !!window.__game.split.closed, mode: p && p.mode }; });
+    ok(rtKeep.full === 'b' && rtKeep.cls && !rtKeep.hid && rtKeep.cam === 'booster' && !rtKeep.closed && rtKeep.mode === other, `${vp} #93_RTLS_keeps_fullB chip tap stays full booster ${JSON.stringify(rtKeep)}`);
+    if (touch) { await pg.waitForFunction(() => /return to launch site|barge landing downrange|Too low to boost back/.test((document.getElementById('hintS') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+      const hint = await pg.evaluate(() => { const h = document.getElementById('hintS'); if (!h) return null; return { t: h.textContent, sw: h.scrollWidth, cw: h.clientWidth, sh: h.scrollHeight, ch: h.clientHeight }; });
       ok(!!hint && /return to launch site|barge landing downrange|Too low to boost back/.test(hint.t) && hint.sw <= hint.cw + 2 && hint.sh <= hint.ch + 2, `${vp} recovery toast is fully on screen ("${hint && hint.t}", ${hint && hint.sw}x${hint && hint.sh} in ${hint && hint.cw}x${hint && hint.ch})`); }
+    if (touch) { const cdpR = await pg.context().newCDPSession(pg), x = W / 2, y = Math.round(H * 0.42);
+      await cdpR.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+      for (let i = 1; i <= 6; i++) await cdpR.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + 70 * i / 6, y: y + 28 * i / 6, id: 1 }] });
+      await cdpR.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await cdpR.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x - 28, y, id: 1 }, { x: x + 28, y, id: 2 }] });
+      await cdpR.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x - 120, y, id: 1 }, { x: x + 120, y, id: 2 }] });
+      await cdpR.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await pg.waitForTimeout(200);
+      const afterG = await pg.evaluate(() => { const s = document.getElementById('split'), c = window.__game.camInfo(); return { full: window.__game.split.full, cls: s.classList.contains('fullB'), hid: s.classList.contains('hidden'), cam: window.__game.camMode, closed: !!window.__game.split.closed, dist: c.dist }; });
+      ok(afterG.full === 'b' && afterG.cls && !afterG.hid && afterG.cam === 'booster' && !afterG.closed && afterG.dist >= 70 && afterG.dist <= 400, `${vp} #93_DRAG_keeps_fullB after the recovery tap, drag+pinch stay fullB (dist ${afterG.dist.toFixed(0)}) ${JSON.stringify(afterG)}`);
+      await cdpR.detach(); }
     await pg.evaluate(() => document.getElementById('spFull').click());
     const held = await pg.evaluate(() => { const shown = sel => [...document.querySelectorAll(sel)].some(e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 2 && r.height > 2 && cs.display !== 'none' && cs.visibility !== 'hidden'; });
       return { full: document.getElementById('split').classList.contains('fullB') && window.__game.split.full === 'b', mode: window.__game.camMode, map: shown('#mMap,#dMap'), menu: shown('#mMenuBtn,#dMenuBtn'), auto: shown('#mAuto,#dAuto'), rel: shown('#relBtn'), craft: shown('#craftBtn'), gcam: shown('#gcamBtn') }; });
@@ -132,9 +148,12 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if
     await pg.waitForFunction(lab => { const p = window.__game.booster.recPlan, el = document.getElementById('spRecBtn'); return p && p.pref === 'auto' && el && el.textContent.includes(lab); }, modeLab, { timeout: 10000 });
     const s2 = await pg.evaluate(() => { const p = window.__game.booster.recPlan; return { pref: p.pref, mode: p.mode, chip: document.getElementById('spRecBtn').textContent }; }); ok(s2.pref === 'auto' && s2.mode === rp0.mode, `${vp} AUTO goes back to ${s2.mode}`);
     ok(s2.chip && s2.chip.includes(modeLab) && s2.chip !== 'AUTO', `${vp} AUTO chip still names ${modeLab} ("${s2.chip}")`);
-    await tap('#spFull'); await pg.waitForTimeout(400);
-    const back = await pg.evaluate(() => { const s = document.getElementById('split'), b = document.getElementById('spFull'); return { full: !!(s && s.classList.contains('fullB')), t: (b && b.textContent) || '' }; });
-    ok(!back.full, `${vp} ⤡ BACK leaves the full booster view (${back.t})`);
+    const beforeBack = await pg.evaluate(() => { const s = document.getElementById('split'), b = window.__game.booster; return { full: !!(s && s.classList.contains('fullB')), hid: !!(s && s.classList.contains('hidden')), fly: !!(b && b.state === 'flying'), closed: !!window.__game.split.closed }; });
+    ok(beforeBack.full && beforeBack.fly && !beforeBack.hid, `${vp} still in full booster when BACK is tapped ${JSON.stringify(beforeBack)}`);
+    await tap('#spFull');
+    await pg.waitForFunction(() => { const s = document.getElementById('split'), b = document.getElementById('spFull'); return s && b && !s.classList.contains('fullB') && !s.classList.contains('hidden') && /BOOSTER/.test(b.textContent); }, null, { timeout: 5000 }).catch(() => {});
+    const back = await pg.evaluate(() => { const s = document.getElementById('split'), b = document.getElementById('spFull'); return { full: !!(s && s.classList.contains('fullB')), t: (b && b.textContent) || '', hid: !!(s && s.classList.contains('hidden')), closed: !!window.__game.split.closed, mode: window.__game.camMode, st: window.__game.split.full }; });
+    ok(!back.full && !back.hid && !back.closed && /BOOSTER/.test(back.t) && back.mode === 'chase' && back.st == null, `${vp} ⤡ BACK leaves the full booster view (${back.t}) ${JSON.stringify(back)}`);
     await pg.evaluate(() => document.getElementById('spFull').click()); await pg.waitForFunction(() => document.getElementById('split').classList.contains('fullB'), null, { timeout: 30000 }).catch(() => {});
     if (!FAST) {
       await pg.evaluate(() => { const G = window.__game, F = G.F; for (let i = 0; i < 40000 && G.booster && G.booster.state === 'flying'; i++) { F.realT += 0.02; F.step(0.02); } });
