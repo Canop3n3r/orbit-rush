@@ -31,6 +31,25 @@ let bad = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if
     const rp0 = await pg.evaluate(() => { const b = window.__game.booster; return b.recPlan ? { ...b.recPlan, rtls: !!b.rtls } : null; });
     ok(rp0 && /rtls|ship/.test(rp0.mode) && rp0.pref === 'auto' && rp0.why, `${vp} AUTO picked ${rp0 && rp0.mode} (${rp0 && rp0.why}; Δv ${rp0 && rp0.have}/${rp0 && rp0.need} m/s)`);
     ok(rp0 && (rp0.mode === 'rtls') === rp0.rtls, `${vp} the booster flies the picked mode`);
+    if (touch) { const pip = await pg.evaluate(() => { const r = document.getElementById('spPane').getBoundingClientRect(); return [r.left + r.width * 0.55, r.top + r.height * 0.62]; });
+      const cdp0 = await pg.context().newCDPSession(pg);
+      await cdp0.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: pip[0], y: pip[1], id: 1 }] });
+      await cdp0.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      const gap = await pg.evaluate(() => { const shown = sel => [...document.querySelectorAll(sel)].some(e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 2 && r.height > 2 && cs.display !== 'none' && cs.visibility !== 'hidden'; });
+        return { full: window.__game.split.full, cls: document.getElementById('split').classList.contains('fullB'), body: document.body.classList.contains('fullB'), map: shown('#mMap,#dMap'), auto: shown('#mAuto,#dAuto'), stage: shown('#mStage,#dStage'), rel: shown('#relBtn'), craft: shown('#craftBtn'), menu: shown('#mMenuBtn,#dMenuBtn') }; });
+      ok(gap.full === 'b' && gap.cls && gap.body && !gap.map && !gap.auto && !gap.stage && !gap.rel && !gap.craft && !gap.menu, `${vp} #94 strip enter paints fullB before the next frame ${JSON.stringify(gap)}`);
+      const x = W / 2, y = Math.round(H * 0.42);
+      await cdp0.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+      for (let i = 1; i <= 6; i++) await cdp0.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + 90 * i / 6, y: y + 36 * i / 6, id: 1 }] });
+      await cdp0.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await cdp0.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x - 30, y, id: 1 }, { x: x + 30, y, id: 2 }] });
+      await cdp0.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x - 140, y, id: 1 }, { x: x + 140, y, id: 2 }] });
+      await cdp0.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await pg.waitForTimeout(300);
+      const c4 = await pg.evaluate(() => { const shown = sel => [...document.querySelectorAll(sel)].some(e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 2 && r.height > 2 && cs.display !== 'none' && cs.visibility !== 'hidden'; });
+        const c = window.__game.camInfo(); return { full: window.__game.split.full, cls: document.getElementById('split').classList.contains('fullB'), mode: window.__game.camMode, closed: !!window.__game.split.closed, dist: c.dist, map: shown('#mMap,#dMap'), auto: shown('#mAuto,#dAuto'), stage: shown('#mStage,#dStage'), rel: shown('#relBtn'), craft: shown('#craftBtn'), menu: shown('#mMenuBtn,#dMenuBtn'), gcam: shown('#gcamBtn'), follow: shown('#spReset'), chip: shown('#spRecBtn'), back: shown('#spFull') }; });
+      ok(c4.full === 'b' && c4.cls && c4.mode === 'booster' && !c4.closed && c4.dist >= 70 && c4.dist <= 400 && c4.chip && c4.back && !c4.map && !c4.auto && !c4.stage && !c4.rel && !c4.craft && !c4.menu && !c4.gcam && !c4.follow, `${vp} #94 C4 strip drag+pinch stays chip+BACK outside the hull (dist ${c4.dist.toFixed(0)}) ${JSON.stringify(c4)}`);
+      await cdp0.detach(); }
     await pg.evaluate(() => document.getElementById('spFull').click()); await pg.waitForFunction(() => { const c = document.getElementById('spCardB'); return c.classList.contains('inBar') && c.getBoundingClientRect().bottom > innerHeight * 0.6; }, null, { timeout: 120000 }).catch(() => {}); await pg.waitForTimeout(1000);
     const chip0 = await pg.evaluate(() => { const b = window.__game.booster, el = document.getElementById('spRecBtn'); return { mode: b.recPlan && b.recPlan.mode, pref: b.recPlan && b.recPlan.pref, txt: el && el.textContent }; });
     const modeLab = chip0.mode === 'rtls' ? 'RTLS' : 'BARGE';

@@ -920,8 +920,8 @@ html body.u59 #botBar :is(#mThr,#dThr) u{font-size:12px!important;font-weight:80
 @media not ((orientation:landscape) and (max-height:520px)){html body.u59 #botBar :is(#mAuto,#dAuto){grid-column:1!important;grid-row:1!important}html body.u59 #botBar :is(#mStage,#dStage){grid-column:1!important;grid-row:2!important}html body.u59 #botBar #mChute:not(.hidden){grid-column:1!important;grid-row:3!important}}
 @media (orientation:landscape) and (max-height:520px){html body.u59 #botBar :is(#mright,#dCtl){grid-template-columns:auto auto 48px!important}html body.u59 #botBar :is(#mThr,#dThr){width:48px!important;min-width:48px!important;max-width:48px!important}}
 html body.u59 #tbC #hintS{align-self:center}
-/* f5.9-22 (owner): after a separation or craft switch the active craft keeps the same controls: STAGE stays, greyed, when nothing is left to stage */
-html body.u59.noStage #botBar :is(#mStage,#dStage){display:inline-flex!important;align-items:center;justify-content:center;pointer-events:none}
+/* f5.9-44: nothing left to stage (including orbit before RELEASE) hides STAGE. A grey lit button next to RELEASE was a second control for the same state. */
+html body.u59.noStage #botBar :is(#mStage,#dStage){display:none!important}
 /* f5.9-27 (OR-009): wide screens keep the short bottom bar. f5.9-22's 128px throttle stack (AUTO over STAGE, RELEASE above them) stretched #botBar into a dark slab on PC fullscreen and parked telemetry in the corner. Phone portrait and short landscape are unchanged; THR stays 48px wide so throttle_same holds. The navball is still the only thing that rises through the border. */
 @media (min-width:900px) and (min-height:521px){
   html body.u59 #bbR{flex-direction:row!important;align-items:flex-end!important;gap:6px!important}
@@ -1004,6 +1004,8 @@ html body.u59 #mWarpFold button{flex:1 1 0;min-width:44px}
   html body.u59 #botBar :is(#mStage,#dStage){anchor-name:--stageSlot}
   html body.u59 #bbR:has(#relBtn:not(.hidden)){position:relative}
   html body.u59 #botBar #relBtn:not(.hidden){position:absolute!important;position-anchor:--stageSlot;top:anchor(top)!important;left:anchor(left)!important;right:auto!important;bottom:auto!important;width:anchor-size(width)!important;height:anchor-size(height)!important;min-width:0!important;max-width:none!important;min-height:40px!important;margin:0!important;z-index:4;padding:0!important;font-size:10px!important;letter-spacing:0!important;white-space:nowrap;overflow:hidden}
+  /* f5.9-44: STAGE is display:none once nothing is left, so it is not an anchor. RELEASE keeps the same cell: second row of the right cluster, left of the throttle. */
+  html body.u59.noStage #botBar #relBtn:not(.hidden){position:absolute!important;top:auto!important;left:auto!important;right:calc(8px + var(--sar,0px) + 52px)!important;bottom:calc(2px + var(--sab,0px))!important;width:auto!important;min-width:68px!important;max-width:120px!important;height:var(--ctlH)!important;min-height:40px!important}
 }
 /* The top-bar tank strip replaces the S1/S2 fuel columns. No extra always-on control. */
 body.u59 #bars{display:none!important}
@@ -1045,6 +1047,11 @@ html body.u59:not(.touch).splitOn:not(.inOrbit):not(.photo):not(.endOn):not(.map
    are the upper stage's controls; ⤡ BACK brings them back. The recovery chip stays, and its sheet
    (#spRec) is the RTLS / BARGE / AUTO target. The bottom band is only the booster strip. */
 html body.u59:has(#split.fullB:not(.hidden)) :is(#mMap,#dMap,#mMenuBtn,#dMenuBtn,#mright,#dCtl,#mAuto,#dAuto,#mStage,#dStage,#mThr,#dThr,#relBtn,#craftBtn){display:none!important}
+/* f5.9-44: body.fullB is set on the same turn as split.full, so the upper-stage cluster is gone before the next hit-test. :has() above still covers a frame that only has the class on #split. VEHICLE (#gcamBtn) is part of that cluster. */
+html body.u59.fullB :is(#mMap,#dMap,#mMenuBtn,#dMenuBtn,#mright,#dCtl,#mAuto,#dAuto,#mStage,#dStage,#mThr,#dThr,#relBtn,#craftBtn){display:none!important;pointer-events:none!important}
+html body.u59.fullB:not(.photo):not(.endOn):not(.mapOn):not(.menuOn):not(.clean) #gcamBtn{display:none!important;pointer-events:none!important}
+html body.u59.fullB #botBar :is(#bbT,#bbL,#bbC),html body.u59.fullB #botBar #nav{visibility:hidden!important}
+html body.u59.fullB #botBar::before{display:none!important}
 html body.u59:has(#split.fullB:not(.hidden)) #botBar{min-height:0!important;height:calc(62px + var(--sab,0px))!important;max-height:calc(62px + var(--sab,0px))!important;padding-top:0!important;padding-bottom:0!important;overflow:hidden}
 /* f5.9-42: the phone recovery toast was a one-line clip in the tank row ("Booster recover"). Sit it on the left, under the bar, clear of the chip and BACK, and let it wrap. */
 html:has(body.u59.touch):has(#split.fullB:not(.hidden)),html body.u59.touch:has(#split.fullB:not(.hidden)),html body.u59.touch:has(#split.fullB:not(.hidden)) canvas{touch-action:none}
