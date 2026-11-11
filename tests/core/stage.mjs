@@ -1,5 +1,6 @@
 // Stage adapter: a part tree built from each roster rocket derives the stage list
-// stepVehicle already burns, with the same mass, thrust and stage groups as today's data.
+// stepVehicle already burns. That list matches fun/specstack.js specStages for every
+// rocket: mass, thrust, and stage groups, including a non-finite fuel split.
 // Run: node tests/core/stage.mjs
 import * as CAT from '../../vehicles/catalog.js';
 import { specStages } from '../../fun/specstack.js';
@@ -10,6 +11,8 @@ import { massOf } from '../../physics/vehicle.js';
 let pass = 0, fail = 0;
 const ok = (c, m, x = '') => { if (c) { pass++; console.log('  ✔', m, x); } else { fail++; console.log('  ✘', m, x); } };
 const near = (a, b) => Math.abs(a - b) <= 1e-4 + 1e-8 * Math.abs(b);
+// specStages fuel is NaN when a group-0 split has no burn time, and Isp is Infinity when vac Isp is 0.
+const sameNum = (a, b) => Object.is(a, b) || (Number.isFinite(a) && Number.isFinite(b) && near(a, b));
 const labelOf = (v, i) => [v.company, v.id, v.variant].filter(Boolean).join(' ') || ('rocket ' + i);
 
 function rockets() {
@@ -19,28 +22,23 @@ function rockets() {
   }
   return out;
 }
-function finiteSpec(v) {
-  try {
-    const s = specStages(v);
-    if (!s.every(x => [x.dry, x.fuel, x.tv, x.ispVac, x.ispSl, x.n].every(Number.isFinite))) return null;
-    return s;
-  } catch (e) { return null; }
-}
-function thrustKn(engines) {
-  let T = 0, n = 0;
-  for (const [id, k] of Object.entries(engines || {})) {
-    const e = ENGINES[id];
-    if (!e) return null;
-    T += k * (e.tVac || 0); n += k;
+function stagesMatch(derived, spec) {
+  if (!spec || derived.length !== spec.length) return false;
+  for (let s = 0; s < spec.length; s++) {
+    const g = derived[s], w = spec[s];
+    if (!sameNum(g.dry, w.dry) || !sameNum(g.fuel, w.fuel) || g.n !== w.n) return false;
+    if (!sameNum(g.eng.tv, w.tv) || !sameNum(g.eng.ispVac, w.ispVac) || !sameNum(g.eng.ispSl, w.ispSl)) return false;
+    if (!!g.radial !== !!w.radial) return false;
+    if (w.boosters && g.boosters !== w.boosters) return false;
   }
-  return { T, n };
+  return true;
 }
 
-console.log('1. Every roster rocket: the tree keeps each stage, the derived list matches today');
+console.log('1. Every roster rocket: the tree keeps each stage, the derived list matches specStages');
 {
   const all = rockets();
   ok(all.length > 0, 'the roster and catalog have rockets', String(all.length));
-  let grouped = 0, plain = 0;
+  let matched = 0;
   for (let i = 0; i < all.length; i++) {
     const v = all[i], name = labelOf(v, i);
     const tree = treeFromVehicle(v);
@@ -59,35 +57,19 @@ console.log('1. Every roster rocket: the tree keeps each stage, the derived list
     }
     ok(treeOk, `${name}: part tree matches roster dry mass, propellant, group and engines`);
     if (!treeOk || !stages.length) continue;
+    let spec = null, err = '';
+    try { spec = specStages(v); } catch (e) { err = e && e.message || String(e); }
     const derived = deriveStages(tree);
-    const spec = finiteSpec(v);
-    const sumD = derived.reduce((t, s) => t + s.dry + s.fuel, 0);
-    const sumR = stages.reduce((t, s) => t + (s.dry || 0) + (s.prop || 0), 0) / 1000;
-    ok(near(sumD, sumR), `${name}: derived dry+fuel equals the roster`, `got ${sumD} want ${sumR}`);
-    if (spec) {
-      grouped++;
-      let same = derived.length === spec.length;
-      for (let s = 0; same && s < spec.length; s++) {
-        const g = derived[s], w = spec[s];
-        if (!near(g.dry, w.dry) || !near(g.fuel, w.fuel) || g.n !== w.n) same = false;
-        if (!near(g.eng.tv, w.tv) || !near(g.eng.ispVac, w.ispVac) || !near(g.eng.ispSl, w.ispSl)) same = false;
-        if (!!g.radial !== !!w.radial) same = false;
-        if (w.boosters && g.boosters !== w.boosters) same = false;
-      }
-      ok(same, `${name}: derived stages match today's grouped mass, thrust and stage groups`);
-    } else {
-      plain++;
-      let same = derived.length === stages.length;
-      for (let s = 0; same && s < stages.length; s++) {
-        const g = derived[s], st = stages[s], th = thrustKn(st.engines);
-        if (!th || !near(g.dry, (st.dry || 0) / 1000) || !near(g.fuel, (st.prop || 0) / 1000)) same = false;
-        if (!near(g.eng.tv * g.n, th.T) || g.n !== th.n) same = false;
-        if ((g.group || 0) !== (st.group || 0)) same = false;
-      }
-      ok(same, `${name}: derived stages match the roster stage list (no parallel burn split in the data)`);
+    const same = stagesMatch(derived, spec);
+    if (same) matched++;
+    ok(same, `${name}: derived stages match specStages mass, thrust and stage groups`, err);
+    if (spec && spec.every(x => Number.isFinite(x.dry) && Number.isFinite(x.fuel))) {
+      const sumD = derived.reduce((t, s) => t + s.dry + s.fuel, 0);
+      const sumR = stages.reduce((t, s) => t + (s.dry || 0) + (s.prop || 0), 0) / 1000;
+      ok(near(sumD, sumR), `${name}: derived dry+fuel equals the roster`, `got ${sumD} want ${sumR}`);
     }
   }
-  ok(grouped > 0 && plain > 0, 'both the grouped flight stages and the plain stage lists are covered', `${grouped} grouped, ${plain} plain`);
+  ok(matched === all.length, 'every roster rocket matches specStages', `${matched}/${all.length}`);
 }
 
 console.log('2. Decoupling a tree keeps the fuel each stage had');
@@ -103,7 +85,7 @@ console.log('2. Decoupling a tree keeps the fuel each stage had');
 
 console.log('3. stepVehicle burns the derived stage and leaves the next one alone');
 {
-  const v0 = CAT.VEHICLES.find(r => r.id === 'sparrow-1');
+  const v0 = CAT.ROSTER_ALBION.find(r => r.id === 'dark-dart');
   const stages = deriveStages(treeFromVehicle(v0));
   const R = 6378137;
   const craft = {

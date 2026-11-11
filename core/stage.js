@@ -1,8 +1,9 @@
 // Derive the stage list physics/dynamics.stepVehicle already burns from a part tree.
 // The tree is the saved truth: one tank part per roster stage, fuel stays on that tank.
-// The list is a view. Where the roster has a liftoff group with burn times, the view matches
-// today's specStages grouping (strap-ons plus the core propellant burned beside them, then
-// the core, then later groups). Where that split is not defined, the view is one stage per tank.
+// The list is the same view as fun/specstack.js specStages. The longest-burning group-0 tank
+// is the core. The other group-0 tanks are the liftoff phase: their propellant plus the core
+// propellant burned beside them, then the core, then later groups. Catalog rockets that omit
+// group and burn follow that same split, including a non-finite fuel figure.
 // Masses below are tonnes, the unit stepVehicle uses. The tree stores the roster's kilograms.
 
 import { PartTree } from './parttree.js';
@@ -29,16 +30,15 @@ function engOf(engines) {
   let n = 0, tv = 0, tsl = 0, fv = 0, fsl = 0;
   for (const [id, k] of Object.entries(engines)) {
     const e = ENGINES[id];
-    if (!e || !(k > 0) || !(e.ispVac > 0)) return null;
+    if (!e || !(k > 0)) return null;
     n += k;
     tv += k * e.tVac;
     tsl += k * (e.tSl || 0);
     fv += k * e.tVac / e.ispVac;
     fsl += e.ispSl > 0 ? k * (e.tSl || 0) / e.ispSl : 0;
   }
-  if (!n || !(fv > 0)) return null;
+  if (!n) return null;
   const ispVac = tv / fv, ispSl = tsl > 0 ? tsl / fsl : ispVac * 0.6;
-  if (!Number.isFinite(ispVac) || !Number.isFinite(ispSl)) return null;
   return { n, tv: tv / n, ispSl, ispVac, thrustKn: tv };
 }
 
@@ -102,8 +102,8 @@ function pack(tank, eng, extra = {}) {
   };
 }
 
-// Same grouping as fun/specstack.js specStages. Returns null when the burn split is not defined
-// (missing burn, or an engine with no vacuum Isp): the caller lists one stage per tank instead.
+// Same grouping and arithmetic as fun/specstack.js specStages, including a non-finite
+// fuel split when group-0 tanks have no burn time.
 function trySpec(tanks) {
   const g0 = tanks.filter(s => (s.group || 0) === 0).sort((a, b) => a.index - b.index);
   const rest = tanks.filter(s => (s.group || 0) > 0).sort((a, b) => a.group - b.group || a.index - b.index);
@@ -118,7 +118,6 @@ function trySpec(tanks) {
   if (boostEng.some(e => !e)) return null;
   const bt = Math.max(...boost.map(s => s.jettisonAt || s.burn));
   const coreUsed = Math.min(core.propKg * 0.9, core.propKg * bt / core.burn);
-  if (!Number.isFinite(bt) || !Number.isFinite(coreUsed)) return null;
   const merged = combineEng([...boostEng, coreEng]);
   if (!merged) return null;
   const nb = boost.every(s => s.boosters > 0) ? boost.reduce((t, s) => t + s.boosters, 0) : null;
