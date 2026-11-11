@@ -13,3 +13,11 @@ KSP's alarm clock dies with the flight, and a reload does not promise you are st
 ## Fuel lines on the part tree
 
 KSP crossfeed and SimpleRockets 2 fuel priority let a core engine drain a side tank while the booster is still attached. Today's flight code fakes that by moving a slice of core propellant into the booster's physics stage (`specStages`). A `feed` link on the tank (`{ from, to }`) would let the stage adapter derive that parallel burn from the tree, and a later physics step could drain the tank the line names. The propellant would stay on the part that holds it. Not built in M1 step 2.
+
+## Data bugs (Vehicle Specs)
+
+11 roster rockets lack `group` and `burn` on their stages: the Heron-9 family (`heron-9`, `heron-9-v11`, `heron-9-crew`), Sparrow-1, Colossus v3 and v4, the four Colossus mission variants (`colossus-tanker`, `colossus-depot`, `colossus-lunar`, `colossus-mars`), and Heron Heavy. `specStages` treats every stage as group 0, so the later tanks fold into a radial liftoff phase. The core fuel split is `prop * burn / burn` with both burns missing, which is NaN. Not fixed in M1 step 3.
+
+## Battery and eclipse on rails
+
+KSP keeps charging an unloaded probe from its own solar panels, and a long warp can brown it out in eclipse. The charge belongs to the ship, not to the flight you happen to have open. `fun/fleet.js` already samples sunlight along a Kepler arc, but only when a flight is about to take that ship over. Doing it inside `advanceUnloaded` would leave a Moon relay's battery where the eclipses say it should be after a 1e7× warp, and a reload would not reset it to full just because nobody was looking. Not built in M1 step 3.
