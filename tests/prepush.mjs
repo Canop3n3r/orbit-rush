@@ -23,7 +23,7 @@ function listJs(dir, acc = []) {
   }
   return acc;
 }
-const js = [...readdirSync(root).filter(f => /\.(m?js)$/.test(f)).map(f => root + f), ...listJs(join(root, 'core'))];
+const js = [...readdirSync(root).filter(f => /\.(m?js)$/.test(f)).map(f => root + f), ...listJs(join(root, 'core')), ...listJs(join(root, 'scenes'))];
 let synFail = 0;
 for (const f of js) { const r = spawnSync(process.execPath, ['--check', f], { encoding: 'utf8' }); if (r.status) { synFail++; console.log('SYNTAX', f, r.stderr.split('\n').slice(0, 4).join('\n')); } }
 console.log(`syntax: ${js.length - synFail}/${js.length} ok`);

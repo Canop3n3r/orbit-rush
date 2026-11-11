@@ -22,7 +22,11 @@ const mv = (F, x) => [F[0] * x[0] + F[1] * x[1] + F[2] * x[2], F[3] * x[0] + F[4
 const PATCH_COL = [0x7dffa6, 0xffb35c, 0xc89cff, 0x6ad8ff, 0xff7ab0];
 
 export function createSolarMap(opts) {
-  const { renderer, getF, toast, touch, earthMap, onChange, dvTable, settings, gfxQ = 'med', getSats = () => [], burn = null } = opts;
+  const { renderer, toast, touch, earthMap, onChange, dvTable, settings, gfxQ = 'med', burn = null } = opts;
+  // The Tracking Station swaps this host in. Flight keeps the closures passed at creation.
+  let host = null;
+  const getF = () => (host && host.getF ? host.getF() : opts.getF());
+  const getSats = () => (host && host.getSats ? host.getSats() : (opts.getSats ? opts.getSats() : []));
   const sunPosU = uniform(new THREE.Vector3());
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x01020a);
   const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 1, 1e15);
@@ -181,7 +185,7 @@ export function createSolarMap(opts) {
   function minDist() { return S.focus === 'craft' || isCraftFocus(S.focus) || !B[S.focus] ? 2000 : B[S.focus].R * 1.15; }
   el.addEventListener('wheel', e => { if (!S.on) return; zoomBy(Math.exp(e.deltaY * 0.0015)); }, { passive: true });
   el.addEventListener('contextmenu', e => { if (S.on) e.preventDefault(); });
-  el.addEventListener('pointerdown', e => { if (!S.on) return; ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; downAt = [e.clientX, e.clientY]; drag = e.button === 2 || e.shiftKey ? 'pan' : 'rot'; });
+  el.addEventListener('pointerdown', e => { if (!S.on) return; ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; downAt = [e.clientX, e.clientY]; drag = e.button === 2 || e.shiftKey || (host && host.panDrag) ? 'pan' : 'rot'; });
   addEventListener('pointerup', e => {
     if (!S.on || !ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
     if (hdrag && hdrag.id === e.pointerId) { hdrag = null; return; }
@@ -221,6 +225,7 @@ export function createSolarMap(opts) {
     if (craftScr && Math.hypot(craftScr.x - x, craftScr.y - y) < 18) best = { id: 'craft', d: 0 };
     if (best) { if (mapFocusAllowed(best.id, S.shownAt, now, S.ptrAim)) setFocus(best.id); return; }
     if (dbl) { resetView(); return; }
+    if (host && host.quiet) return; // the station lists vessels; a map tap must not plant a node
     const hit = pickTraj(x, y); if (hit) { addNodeAt(hit.t); return; }
   }
   // ---------- nodes ----------
@@ -365,10 +370,17 @@ export function createSolarMap(opts) {
     if (isCraftFocus(S.focus) && !craftRec(S.focus.slice(2))) setFocus('craft', true);
     S.W = innerWidth; S.H = innerHeight; camera.aspect = S.W / S.H;
     if (S.opening) { // first frame: the camera is on the vessel you are flying, even if a click landed between open and paint
-      const aim = mapOpenAim(F, orbitFitDist);
-      S.focus = aim.focus; S.aimCraft = aim.activeId; S.pan = [0, 0, 0]; S.trans = null;
-      S.dist = S.distT = Math.max(aim.dist, minDist()); S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; applyYP();
-      $('mapFocus').textContent = 'Craft'; S.opening = false;
+      if (host && host.hideCraft) {
+        S.focus = 'earth'; S.aimCraft = null; S.pan = [0, 0, 0]; S.trans = null;
+        S.dist = S.distT = Math.max(niceDist('earth'), minDist()); S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; applyYP();
+        $('mapFocus').textContent = focusLabel('earth');
+      } else {
+        const aim = mapOpenAim(F, orbitFitDist);
+        S.focus = aim.focus; S.aimCraft = aim.activeId; S.pan = [0, 0, 0]; S.trans = null;
+        S.dist = S.distT = Math.max(aim.dist, minDist()); S.yaw = S.yawT = sunYaw(); S.pitch = S.pitchT = PITCH0; applyYP();
+        $('mapFocus').textContent = 'Craft';
+      }
+      S.opening = false;
     }
     S.dist += (S.distT - S.dist) * Math.min(1, rdt * 8); S.dist = Math.max(minDist(), S.dist);
     if (S.trans) { S.trans.k = Math.max(0, S.trans.k - rdt * 3.3); if (S.trans.k <= 0) S.trans = null; }
@@ -381,8 +393,13 @@ export function createSolarMap(opts) {
     camera.position.copy(back); camera.quaternion.copy(S.q); camera.near = Math.max(0.5, S.dist * 1e-4); camera.far = Math.max(1e13, S.dist * 1e3);
     { // keep the focus in the free part of the screen (not under the toolbar or the side panel)
       const pe = document.getElementById('mapPanel'), be = document.getElementById('mapBar'), pr = pe && !pe.classList.contains('hidden') ? pe.getBoundingClientRect() : null, br = be ? be.getBoundingClientRect() : null;
-      const tx = pr && pr.left > S.W * 0.35 ? (S.W - pr.left) / 2 : 0; let y0 = 0, y1 = S.H; // f5.9-18 (phone map): centre the focus between whatever chrome sits at the top and at the bottom (the bar is at the top on phones)
+      let tx = pr && pr.left > S.W * 0.35 ? (S.W - pr.left) / 2 : 0; let y0 = 0, y1 = S.H; // f5.9-18 (phone map): centre the focus between whatever chrome sits at the top and at the bottom (the bar is at the top on phones)
       for (const r of [br && br.height ? br : null, pr && pr.left <= S.W * 0.35 ? pr : null]) { if (!r) continue; if (r.top < S.H * 0.4) y0 = Math.max(y0, r.bottom); else y1 = Math.min(y1, r.top); }
+      if (document.body.classList.contains('tracking')) for (const el of document.querySelectorAll('#trackStation .tsChrome')) {
+        const r = el.getBoundingClientRect(); if (!(r.width > 8 && r.height > 8)) continue;
+        if (r.left < 40 && r.width < S.W * 0.6 && r.height > S.H * 0.4) tx -= r.width / 2; // a left dock: put the craft in the free area
+        else if (r.top < S.H * 0.45) y0 = Math.max(y0, r.bottom); else y1 = Math.min(y1, r.top);
+      }
       const ty = Math.max(-S.H * 0.35, Math.min(S.H * 0.35, S.H / 2 - (y0 + y1) / 2)); // full-width panel (phone portrait): shift up
       S.vo = S.vo || [0, 0]; if (S.snapView && br && br.height) { S.vo[0] = tx; S.vo[1] = ty; S.snapView = false; } else if (!S.snapView) { const k = Math.min(1, rdt * 6); S.vo[0] += (tx - S.vo[0]) * k; S.vo[1] += (ty - S.vo[1]) * k; }
       if (Math.abs(S.vo[0]) + Math.abs(S.vo[1]) > 0.5) camera.setViewOffset(S.W, S.H, S.vo[0], S.vo[1], S.W, S.H); else camera.clearViewOffset();
@@ -420,11 +437,15 @@ export function createSolarMap(opts) {
       }
     }
     // craft
+    const hideCraft = !!(host && host.hideCraft);
     const cRel = V.sub(craftAbs(t), origin), dcc = V.len(V.sub(cRel, camRel)); craftDot.position.set(...cRel); craftDot.scale.setScalar(dcc * pxK * 3.5);
-    craftScr = place(craftLab, cRel, 8, -8);
+    craftDot.visible = !hideCraft;
+    if (hideCraft) { craftLab.style.display = 'none'; craftScr = null; }
+    else { craftLab.textContent = host && host.craftLabel ? '▲ ' + host.craftLabel() : '▲ craft'; craftScr = place(craftLab, cRel, 8, -8); }
     // trajectory prediction (every 0.25 s real, or when nodes changed)
     const key = F.nodes.map(n => [n.t, n.pro, n.nrm, n.rad].map(x => x.toFixed(2)).join(',')).join(';') + '|' + F.body + '|' + (F.target || '');
-    S.predT -= rdt; if (!S.pred || S.predT <= 0 || key !== S.predKey) {
+    S.predT -= rdt; if (hideCraft) { S.pred = null; S.predT = 0.25; }
+    else if (!S.pred || S.predT <= 0 || key !== S.predKey) {
       S.predT = 0.25; S.predKey = key;
       try { S.pred = C.predict(F.body, v.r, v.v, t, { nodes: F.nodes, maxPatches: 5, samples: 240, stopAlt: 0 }); } catch (e) { S.pred = null; }
       S.ca = F.target && S.pred ? C.closestApproach(S.pred, F.target) : null;
@@ -604,6 +625,8 @@ export function createSolarMap(opts) {
   const probe = id => { const o = bodies[id || getF().body]; return o && o.m ? { craftToBody: craftDot.position.distanceTo(o.m.position), R: B[id || getF().body].R, drawnR: o.m.scale.x } : null; };
   trackEl.addEventListener('click', onTrackClick); trackEl.addEventListener('input', onTrackInput); trackEl.addEventListener('keydown', onTrackKey);
   return { scene, camera, update, show, reset, key, probe, patchAt, get conic() { return S.conic; }, setConic: c => { S.conic = c; const b = document.querySelector('#mapMore [data-a=conic]'); if (b) b.textContent = c === 'body' ? '⊙ Body' : '⊙ Parent'; if (S.pred) for (const p of S.pred.patches) p.ptsP = null; }, setFocus, setView, resetView, cycle, zoomBy, runPlanner, selectNode, addNodeAt, warpNext, state: S,
+    setHost(next) { host = next || null; S.predKey = ''; S.pred = null; },
+    recenter() { S.focus = ''; S.opening = true; S.pan = [0, 0, 0]; S.trans = null; S.predKey = ''; },
     focusId: () => S.focus, setFocus: id => setFocus(id), // f5.9-18: map_phone smoke
     focusPx: () => { const p = project([0, 0, 0]); return [Math.round(p.x), Math.round(p.y)]; }, // f5.9-18: map_phone smoke
     setCam: (q, dist) => { if (q) { const b = new THREE.Vector3(0, 0, 1).applyQuaternion(new THREE.Quaternion(q[0], q[1], q[2], q[3]).normalize()); S.yaw = S.yawT = Math.atan2(b.y, b.x); S.pitch = S.pitchT = Math.asin(Math.max(-1, Math.min(1, b.z))); S.idle = -1e9; applyYP(); } if (dist) { S.dist = S.distT = dist; } },

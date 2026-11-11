@@ -10,7 +10,7 @@
 //
 // Legacy import reads fun/world.js (`orbitrush.world.v1`) and the quicksave in main.js
 // (`orbitrush.quicksave.v1`) when the universe key is absent. Those keys are left byte-for-byte.
-// The live game still writes them; nothing here is wired into the UI.
+// The live game still writes them. The Tracking Station is what loads and saves this key.
 
 import { Clock, PHYSICS_WARP_MAX } from './clock.js';
 import { Vessel } from './vessel.js';
