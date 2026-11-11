@@ -2,18 +2,22 @@
 // Storage is injected ({ getItem, setItem }): the browser store in the game, a Map-like object
 // in tests. This module never touches the page and never deletes the legacy keys.
 //
-// Save key: orbitrush.universe. The version lives inside the JSON (v: 2), so migrations do not
+// Save key: orbitrush.universe. The version lives inside the JSON (v: 3), so migrations do not
 // need a new key. v1 was a flat fleet-style record { id, name, body, t, r, v, sas, throttle }.
 // v2 is the vessel record from ARCHITECTURE.md (orbit, parts, control, nodes) plus the clock.
+// v3 is that record with a part tree: empty parts are filled from legacy.veh stages when those
+// stages exist. Legacy keys on the vessel and in the store are kept.
 //
 // Legacy import reads fun/world.js (`orbitrush.world.v1`) and the quicksave in main.js
 // (`orbitrush.quicksave.v1`) when the universe key is absent. Those keys are left byte-for-byte.
 // The live game still writes them; nothing here is wired into the UI.
 
 import { Clock, PHYSICS_WARP_MAX } from './clock.js';
+import { Vessel } from './vessel.js';
+import { treeFromLegacyVehicle } from './stage.js';
 
 export const SAVE_KEY = 'orbitrush.universe';
-export const VERSION = 2;
+export const VERSION = 3;
 export const LEGACY_KEYS = {
   world: 'orbitrush.world.v1',
   quicksave: 'orbitrush.quicksave.v1',
@@ -24,26 +28,15 @@ const finite = (x, fallback) => {
   return Number.isFinite(n) ? n : fallback;
 };
 const clone = o => (o == null ? o : JSON.parse(JSON.stringify(o)));
-const copy3 = a => (Array.isArray(a) ? [0, 1, 2].map(i => finite(a[i], 0)) : [0, 0, 0]);
 
+function partsOf(rec) {
+  if (Array.isArray(rec.parts) && rec.parts.length) return rec.parts;
+  const built = treeFromLegacyVehicle(rec.legacy && rec.legacy.veh);
+  const parts = built.toJSON();
+  return parts.length ? parts : [];
+}
 function vesselFrom(rec, id) {
-  const orbit = rec.orbit && typeof rec.orbit === 'object'
-    ? { epoch: finite(rec.orbit.epoch, finite(rec.t, 0)), r: copy3(rec.orbit.r), v: copy3(rec.orbit.v) }
-    : { epoch: finite(rec.t, 0), r: copy3(rec.r), v: copy3(rec.v) };
-  const control = rec.control && typeof rec.control === 'object'
-    ? { sas: rec.control.sas || 'stab', throttle: finite(rec.control.throttle, 0) }
-    : { sas: rec.sas || 'stab', throttle: finite(rec.throttle, 0) };
-  return {
-    id,
-    name: rec.name || 'Vessel',
-    situation: rec.situation || 'prelaunch',
-    body: rec.body || 'earth',
-    orbit,
-    parts: Array.isArray(rec.parts) ? clone(rec.parts) : [],
-    control,
-    nodes: Array.isArray(rec.nodes) ? clone(rec.nodes) : [],
-    legacy: rec.legacy == null ? null : clone(rec.legacy),
-  };
+  return new Vessel({ ...rec, id, parts: partsOf(rec) });
 }
 
 // v1 flat record → v2 vessel. A requested warp above the physics cap implies rails.
@@ -65,7 +58,24 @@ function migrateV1(d) {
   };
 }
 
-const MIGRATIONS = { 1: migrateV1 };
+// v2 vessels keep every key they had. Parts are filled from legacy.veh.stages when the list is empty.
+function migrateV2(d) {
+  return {
+    v: 3,
+    ut: Math.max(0, finite(d.ut, 0)),
+    warp: d.warp == null ? 1 : finite(d.warp, 1),
+    warpMode: d.warpMode === 'rails' || d.warpMode === 'physics' ? d.warpMode : 'physics',
+    activeId: d.activeId ?? null,
+    seq: finite(d.seq, 0),
+    vessels: (Array.isArray(d.vessels) ? d.vessels : []).map(v => {
+      if (!v || typeof v !== 'object') return v;
+      const parts = Array.isArray(v.parts) && v.parts.length ? v.parts : treeFromLegacyVehicle(v.legacy && v.legacy.veh).toJSON();
+      return { ...v, parts };
+    }),
+  };
+}
+
+const MIGRATIONS = { 1: migrateV1, 2: migrateV2 };
 
 // Walk a parsed save up to VERSION. Throws on a version we do not know how to move forward.
 export function migrate(data) {
@@ -123,7 +133,7 @@ export class Universe {
       warpMode: this.clock.mode,
       activeId: this.activeId,
       seq: this.seq,
-      vessels: [...this.vessels.values()].map(v => clone(v)),
+      vessels: [...this.vessels.values()].map(v => (v && v.toJSON ? v.toJSON() : clone(v))),
     };
   }
   // Write only SAVE_KEY. Legacy keys are not removed and not rewritten.
