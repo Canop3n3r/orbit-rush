@@ -1,5 +1,7 @@
 # Orbit Rush
 
+**Read first:** [ARCHITECTURE.md](ARCHITECTURE.md) is the module map and the rules for changing this game. [plans/FOUNDATION.md](plans/FOUNDATION.md) is the plan: why the universe is built this way, milestones M1–M3, and the acceptance tests.
+
 Orbit Rush is a rocket simulator and arcade game that runs in the browser, on phones and desktops. Pick a rocket, launch it, fly it to orbit, land the boosters, and try not to blow it up.
 
 **Play:** https://canop3n3r.github.io/orbit-rush/
