@@ -21,3 +21,7 @@ KSP crossfeed and SimpleRockets 2 fuel priority let a core engine drain a side t
 ## Battery and eclipse on rails
 
 KSP keeps charging an unloaded probe from its own solar panels, and a long warp can brown it out in eclipse. The charge belongs to the ship, not to the flight you happen to have open. `fun/fleet.js` already samples sunlight along a Kepler arc, but only when a flight is about to take that ship over. Doing it inside `advanceUnloaded` would leave a Moon relay's battery where the eclipses say it should be after a 1e7× warp, and a reload would not reset it to full just because nobody was looking. Not built in M1 step 3.
+
+## Warp to the next maneuver from the station
+
+KSP only warps to a node once that flight is open. The Tracking Station already lists every vessel and the nodes on it. A control there could jump the universe clock to the soonest burn and drop to 1×, without flying the ship first. Not built in M1 step 4.

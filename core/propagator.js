@@ -5,9 +5,9 @@
 // Legacy world-list objects flagged earthAssumed stay on Earth and use Earth's mu.
 // Nothing here imports three or the DOM.
 
-import { propagate, elements } from '../physics/kepler.js';
-import { nextEvent, timeToRadius, muB } from '../physics/patched.js';
-import { BODIES, transfer, soiOf } from '../physics/solar.js';
+import { propagate, elements } from '../physics/kepler.js?v=f5.9-27';
+import { nextEvent, timeToRadius, muB } from '../physics/patched.js?v=f5.9-27';
+import { BODIES, transfer, soiOf } from '../physics/solar.js?v=f5.9-27';
 import { canTransition } from './vessel.js';
 
 // Surface-relative speed at or below this is a landing. Anything faster is destroyed.
@@ -168,4 +168,64 @@ export function advanceUnloaded(universe) {
     vessel.orbit.v = host.orbit.v.slice();
   }
   return universe;
+}
+
+// Soonest rails event that should drop warp: an SOI change, or the surface.
+// Held vessels (pad, landed, docked, destroyed) do not stop the clock.
+// A legacy earthAssumed craft stays on Earth's mu and only stops if it meets Earth's surface.
+function nextStop(vessel, horizon) {
+  if (!vessel || HOLD.has(vessel.situation) || !(horizon > 0)) return null;
+  const assumed = !!(vessel.legacy && vessel.legacy.earthAssumed);
+  let body = assumed ? 'earth' : (vessel.body || 'earth');
+  let r = vessel.orbit.r.slice();
+  let v = vessel.orbit.v.slice();
+  const t = vessel.orbit.epoch;
+  if (assumed) {
+    if (Math.hypot(r[0], r[1], r[2]) <= BODIES.earth.R + 1) return { dt: 0, type: 'surface', to: 'earth' };
+    const hit = timeToRadius(r, v, muB('earth'), BODIES.earth.R, -1);
+    if (hit <= horizon) return { dt: Math.max(0, hit), type: 'surface', to: 'earth' };
+    return null;
+  }
+  const adopted = adopt(body, r, v, t);
+  if (adopted.body !== body) return { dt: 0, type: 'soi', to: adopted.body };
+  body = adopted.body; r = adopted.r; v = adopted.v;
+  const b = BODIES[body];
+  if (b && Math.hypot(r[0], r[1], r[2]) <= b.R + 1) return { dt: 0, type: 'surface', to: body };
+  const ev = nextEvent(body, r, v, t, horizon, { stopAlt: 0 });
+  if (ev && ev.dt >= 0 && ev.dt <= horizon) {
+    if (ev.type === 'soi-enter' || ev.type === 'soi-exit') return { dt: ev.dt, type: 'soi', to: ev.to };
+    if (ev.type === 'surface' || ev.type === 'atmosphere') return { dt: ev.dt, type: 'surface', to: body };
+  }
+  const found = searchSOI(body, r, v, t, horizon);
+  if (found.switched) return { dt: Math.max(0, found.t - t), type: 'soi', to: found.body };
+  return null;
+}
+
+// Rails-coast the whole universe by simSeconds, and drop warp to 1× if an SOI change or
+// a surface is reached inside that jump. One event per call. Warp is left alone when the
+// interval is clear. Returns { moved, stopped, ut }.
+export function coast(universe, simSeconds) {
+  const want = +simSeconds;
+  if (!(want > 0) || !universe || !universe.clock) return { moved: 0, stopped: null, ut: universe && universe.clock ? universe.clock.ut : 0 };
+  universe.clock.setMode('rails');
+  let best = null;
+  for (const vessel of universe.vessels.values()) {
+    const ev = nextStop(vessel, want);
+    if (!ev) continue;
+    if (!best || ev.dt < best.dt) best = { dt: ev.dt, type: ev.type, to: ev.to, id: vessel.id };
+  }
+  let dt = want;
+  let stopped = null;
+  if (best) {
+    const edge = Math.max(0, best.dt);
+    // A sphere-of-influence stop steps one second past the boundary so the handoff commits.
+    dt = best.type === 'soi' ? Math.min(want, edge + 1) : Math.min(want, edge);
+    if (edge <= 1e-6) dt = Math.min(want, Math.max(dt, Math.min(0.05, want)));
+    stopped = { type: best.type, to: best.to, id: best.id };
+  }
+  const before = universe.clock.ut;
+  universe.clock.jump(dt);
+  advanceUnloaded(universe);
+  if (stopped) universe.clock.setWarp(1);
+  return { moved: universe.clock.ut - before, stopped, ut: universe.clock.ut };
 }

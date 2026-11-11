@@ -13,7 +13,10 @@ var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract
 import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-27';
 import { createCareerUI } from './fun/career-ui.js?v=f5.9-27';
 import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-27';
-import { createSolarMap } from './solarmap.js?v=f5.9-32';
+import { createSolarMap } from './solarmap.js?v=f5.9-46';
+import { SceneManager } from './scenes/scene_manager.js?v=f5.9-46';
+import { createTracking } from './scenes/tracking.js?v=f5.9-46';
+import { flightSeed, commitFlight } from './scenes/session.js?v=f5.9-46';
 import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-27';
 import { FX } from './fx.js?v=f5.9-32';
 import { createAcademy } from './academy-ui.js?v=f5.9-27';
@@ -1164,7 +1167,7 @@ function reset() {
   showPreview();
 }
 const hudAlt = v => Math.max(0, P.altOf(v) - ((F && F.v === v && F.alt0) || 0));
-function launch() { warpKeysQuiet = false; academy.hideFirst && academy.hideFirst(); { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); } // f5.7e: a new flight starts with ☰ closed. Warp keys toast again unless this launch applies ?warp=
+function launch() { warpKeysQuiet = false; try { commitOpenFlight(); } catch (e) {} academy.hideFirst && academy.hideFirst(); { const dm = $('dMenu'); if (dm) dm.classList.add('hidden'); } // f5.7e: a new flight starts with ☰ closed. Warp keys toast again unless this launch applies ?warp=
   if (typeof home !== 'undefined' && home && home.on) home.show(false);
   initAudio(); startFlightAudio(); reset(); state = 'flight'; mobile.buzzed = false;
   const sc = params.get('scenario');
@@ -1189,6 +1192,7 @@ function trailerWarp(mult) { // f5.9-30: set a warp step from the URL or __cine.
   if (state !== 'flight' || !F) return null; const p = warpPlan(mult, WARPS); F.autoWarp = false; F.warpTarget = null; F.setWarp(p.index, true); warpKeysQuiet = true; return p;
 }
 function goBuild() {
+  try { commitOpenFlight(); } catch (e) {}
   try { plain.update({ on: false }); } catch (e) { } // f5.6c: no flight HUD in the Hangar
   if (fun) fun.hideNav();
   silenceFlight(0.3); reset(); state = 'build'; // f5.8y: nothing from the flight keeps playing in Home
@@ -1217,6 +1221,48 @@ const smap = createSolarMap({ renderer, getF: () => F, getSats: () => { const no
   burn: { throttle: u => setThrottleTouch(u), stage: () => press('Space'), sas: () => { if (state === 'flight') { if (v.auto) F.takeOverUpper(); F.setSAS('node'); } } },
   onChange: (k, x) => { if (k === 'conic') { SET.conic = x; saveSettings(localStorage, SET); } if (k === 'close') exitMap(); if (k === 'exec') $('tProg').classList.remove('on'); } });
 mapPost = GX.makePost(renderer, smap.scene, smap.camera);
+let trackingLive = false, flownId = null;
+function commitOpenFlight() {
+  if (!flownId || !F || !trackScene || !trackScene.universe) return;
+  try { commitFlight(trackScene.universe, flownId, F.snapshot()); trackScene.universe.save(localStorage); }
+  catch (e) { console.warn('[Orbit Rush] tracking', e); }
+  flownId = null;
+}
+function openTracking() {
+  if (state === 'flight' || trackingLive) return;
+  if (typeof home !== 'undefined' && home && home.on) home.show(false);
+  trackingLive = true;
+  scenes.enter('tracking', trackScene);
+}
+function closeTracking() {
+  trackingLive = false;
+  if (scenes) scenes.exit();
+  if (smap.state.on) smap.show(false);
+  document.body.classList.remove('mapOn');
+  if (typeof home !== 'undefined' && home && state !== 'flight') home.show(true);
+}
+function flyFromTracking(id) {
+  const u = trackScene && trackScene.universe;
+  const vessel = u && u.get(id);
+  if (!vessel) return;
+  let seed; try { seed = flightSeed(vessel, u); } catch (e) { console.warn('[Orbit Rush] tracking', e); return; }
+  u.setActive(id); u.clock.setMode('physics'); u.clock.setWarp(1);
+  try { u.save(localStorage); } catch (e) {}
+  trackingLive = false; scenes.exit();
+  if (smap.state.on) smap.show(false); document.body.classList.remove('mapOn');
+  design = cloneDesign(seed.design); reset(); state = 'flight';
+  F.loadSnapshot(seed.snapshot); v = F.v;
+  if (F.flags.orbit || F.parked) F.endQueued = true; // an orbit with no node would otherwise end itself
+  syncStages();
+  for (const g of SG) for (const hp of g.userData.hot) hp.part = v.stages[g.userData.stage] && v.stages[g.userData.stage].parts[hp.pi];
+  if (F.parked || P.altOf(v) > 100000) camDist = orbitDist();
+  document.activeElement && document.activeElement.blur();
+  $('hud').classList.remove('hidden'); mobile.show(true); $('ignite').classList.toggle('hidden', F.ignited);
+  flownId = id;
+  try { initAudio(); startFlightAudio(); } catch (e) {}
+}
+const scenes = new SceneManager();
+const trackScene = createTracking({ store: localStorage, map: smap, onFly: id => flyFromTracking(id), onBack: () => closeTracking() });
 // graphics quality (gx1): Low keeps phones and software GPUs smooth; High adds bloom + 2K textures. Saved; a change reloads textures.
 async function setGfx(q, reload = true) {
   if (!GX.GFX[q]) return; const changedTex = GX.GFX[q].tex !== GX.GFX[gfxQ].tex || GX.GFX[q].normalMaps !== GX.GFX[gfxQ].normalMaps; gfxQ = q;
@@ -1347,6 +1393,7 @@ function press(code) {
   return res;
 }
 addEventListener('keydown', e => {
+  if (trackingLive && e.code === 'Escape') { e.preventDefault(); closeTracking(); return; }
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
   if (e.target && e.target.tagName === 'BUTTON') e.target.blur();
   if (e.target && e.target.tagName === 'INPUT' && (e.target.type === 'text' || e.target.type === 'number')) {
@@ -2006,7 +2053,8 @@ renderer.setAnimationLoop(() => {
       camera.setViewOffset(innerWidth, innerHeight, showFrame.viewOffsetX * innerWidth, 0, innerWidth, innerHeight); }
     else { const Lh = v ? P.stackGeom(v).L : 40; camPitch += (0.05 - camPitch) * Math.min(1, rdt); camDist = Math.max(40, Lh * (land ? 1.6 : 1.75)); camAim = 0.5; camera.setViewOffset(innerWidth, innerHeight, land ? innerWidth * 0.2 : 0, land ? 0 : innerHeight * 0.17, innerWidth, innerHeight); } }
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
-  const mapOn = state === 'flight' && camMode === 'map';
+  if (trackingLive && trackScene) trackScene.tick(rdt);
+  const mapOn = (state === 'flight' && camMode === 'map') || !!trackingLive;
   if (smap.state.on !== mapOn) { // f3: any modal steps aside while the map is open (the result card comes back after)
     if (mapOn && !$('end').classList.contains('hidden')) { $('end').classList.add('hidden'); endMin = true; } else if (!mapOn && endMin) { endMin = false; if (F.ended) $('end').classList.remove('hidden'); }
     if (mapOn) document.querySelectorAll('.modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
@@ -2841,6 +2889,7 @@ const xferUI = createXferPlanner({ getEpoch: () => EPOCH, getDvAvail: () => { tr
   const top = document.querySelector('#hTop .hTopR'), act = document.querySelector('#hCard .hAct');
   if (top && !$('hAtlasB')) { const ab = document.createElement('button'); ab.id = 'hAtlasB'; ab.textContent = '🪐'; ab.title = ab.ariaLabel = 'Planetary Atlas'; ab.onclick = () => fun.openAtlas(); top.insertBefore(ab, top.firstChild); } } // f5.9: Atlas has its own Home button; the ⚙ drawer that repeated Atlas / Settings is gone
 { const top = document.querySelector('#hTop .hTopR'); if (top && !$('hXfer')) { const xb = document.createElement('button'); xb.id = 'hXfer'; xb.textContent = '🎯'; xb.title = xb.ariaLabel = 'Plan a transfer to another world'; xb.onclick = e => { e.currentTarget.blur(); xferUI.show(true); }; top.insertBefore(xb, top.firstChild); } } // f5.9-13: the transfer planner lives in the top bar
+{ const top = document.querySelector('#hTop .hTopR'); if (top && !$('hTrack')) { const b = document.createElement('button'); b.id = 'hTrack'; b.type = 'button'; b.textContent = 'Tracking'; b.title = b.ariaLabel = 'Tracking Station'; b.onclick = e => { e.currentTarget.blur(); openTracking(); }; top.appendChild(b); } }
 // f5.9-21: heavy hero LODs wait for the background shader compile and an idle moment, so they don't slow the first screen
 setTimeout(() => (window.requestIdleCallback || setTimeout)(prewarmHeavy, { timeout: 8000 }), 6000);
 { // f5.9-0: ?hangar (old Build deep link) now just opens Home
@@ -2907,6 +2956,8 @@ window.__game = { get SG() { return SG; }, get viewId() { return viewId; }, flee
     const va = V.sub(v.v, siteVel(v)), sp = V.len(va), vh = sp > 1 ? V.scale(va, 1 / sp) : P.noseOf(v), nz = V.sub(v.r, V.scale(P.noseOf(v), P.massProps(v).ycom)); let ahead = 0, maxA = -1e9, n = 0; const dbg = [];
     for (const sys of [fire, smoke]) for (const q of sys.d) { if (q.life <= 0 || Math.hypot(q.x, q.y, q.z) - P.R_E < 300) continue; /* ignore the pad cloud */ const a = V.dot([q.x - nz[0], q.y - nz[1], q.z - nz[2]], vh); if (V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]) > 3000) continue; n++; if (a > maxA) maxA = a; if (a > 2) { ahead++; if (dbg.length < 6) dbg.push({ sys: sys === fire ? 'fire' : 'smoke', a: +a.toFixed(0), age: +(q.max - q.life).toFixed(2), c: q.c0 && q.c0.toString(16), d: q.drag, rva: +V.dot([q.vx - v.v[0], q.vy - v.v[1], q.vz - v.v[2]], vh).toFixed(0), an: +V.dot(P.noseOf(v), vh).toFixed(3), r: +V.len([q.x - nz[0], q.y - nz[1], q.z - nz[2]]).toFixed(0) }); } }
     return { n, ahead, maxAhead: n ? +maxA.toFixed(1) : null, alt: Math.round(F.alt), dbg }; }, relFrame: () => relFrame(), mapProbe: id => smap.probe(id), mapFocusPx: () => smap.focusPx(), mapFocusId: () => smap.focusId(), mapSetFocus: id => smap.setFocus(id), siteSun: () => siteArt.obj.map(L => ({ el: +(L.userData.sunEl || 0).toFixed(1), night: !!L.userData.night, lights: (() => { let n = 0; L.traverse(o => { if (o.isLight && o.visible) n++; }); return n; })() })), audio: () => ({ state: ac ? ac.state : 'none', muted: funAudio.muted, master: master ? master.gain.value : -1, engine: rumble ? rumble.gain.value : -1, bus: fbus ? fbus.gain.value : -1, crack: crackSrc ? 1 : 0, sfx: sbus ? sbus.gain.value : -1, dist: dbus ? dbus.gain.value : -1, mix: audioMix, music: funMusic.probe(), musicNow: musicMode(), loops: (rumbleSrc ? 1 : 0) + funAudio.liveLoops(), dest: !!ac }), plumeAudit, fxHide: on => { fx.root.visible = !on; }, home: () => ({ on: home.on, index: home.index, list: SHOW.map(r => ({ id: r.id, name: r.name, mission: r.mission })) }), homeSet: i => home.set(i), lod: () => ({ tier: LOD_TIER, earth: earthLOD.stats, body: bodyCur && bodyLODs[bodyCur] ? bodyLODs[bodyCur].stats : null, renderer: { calls: renderer.info.render.calls, tris: renderer.info.render.triangles } }), padMarker: (on = true, km = 25) => { let m = earth.getObjectByName('padMarker'); if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), new THREE.MeshBasicMaterial({ color: 0xff2040, depthTest: false })); m.name = 'padMarker'; m.renderOrder = 99; m.position.set(R + 2000, 0, 0); earth.add(m); } m.scale.setScalar(km * 1000); m.visible = on; earth.updateMatrixWorld(true); const w = m.getWorldPosition(new THREE.Vector3()).sub(earth.position).normalize(); return { lat: GX.PAD_LAT_DEG, lon: GX.PAD_LON_DEG, dir: [w.x, w.y, w.z] }; }, career: () => careerUI, showEnd: () => showEnd(), heatFx: () => ({ ...WV.heat }), bodyVis: () => ({ id: F && F.body, body: bodyG.visible, ground: bodyGround.visible, earth: earth.visible, fog: scene.fog.density, sky: scene.background && scene.background.getHexString ? scene.background.getHexString() : '' }), rocketBox: () => rocketScreenBox(), markers: setMarkers, get markersOn() { return MARK.on; }, fun, PR, get PROG() { return PROG; }, get director() { return director; }, startMission, startReplay, get replay() { return replay; }, explode, split, setGroundCam: on => { GCAM.on = !!on; if (on && split.on) split.full = 'u'; camMode = 'chase'; }, get groundCam() { return GCAM.act; }, splitOn: on => { split.enabled = on; try { localStorage.setItem(SPLIT_KEY, on ? '1' : '0'); } catch (e) { } }, smokeLive: () => smoke.d.filter(p => p.life > 0).length, gfx: { atmo: () => ({ vis: atmo.visible, gain: atmoMat.userData.gain.value, c: atmoMat.userData.center.value.toArray().map(Math.round), pos: atmo.position.toArray().map(Math.round), cam: camera.position.toArray().map(Math.round) }), renderState: () => ({ scene: GX.renderState.scene === scene ? 'flight' : GX.renderState.scene === smap.scene ? 'map' : '?', camera: GX.renderState.camera === camera ? 'flight' : GX.renderState.camera === smap.camera ? 'map' : '?', via: GX.renderState.via }), info: () => ({ q: gfxQ, bloom: post.on, tone: renderer.toneMapping, earthPx: !!earthPx, env: !!scene.environment }), setGfx, shake, flashAt },  BUILD, P, C, TEMPLATES, smap, scenario: (k, o) => runScenario(k, o), get F() { return F; }, get v() { return v; }, get flags() { return F.flags; }, get state() { return state; }, isGPU, gpuReason, get booster() { return booster; }, get ship() { return F.ship; }, press, keys, stickCmd: () => ({ ...mobile.input }), get ignited() { return F.ignited; }, get warp() { return F.effWarp(); }, launch, goBuild, get design() { return design; }, setDesign: d => setDesign(cloneDesign(d)), get SG() { return SG; }, get camMode() { return camMode; }, get camPitch() { return camPitch; }, camInfo: () => { const bR = (P.BODIES[F.body] || {}).R || R, O = shipPos ? null : null; return { yaw: camYaw, pitch: camPitch, dist: camDist, up: camera.up.toArray().map(x => +x.toFixed(3)) }; }, warpStep, warpReset, warpMaxI, exitMap, get mapZoom() { return mapZoom; }, get academy() { return academy; }, fx, get fxState() { return lastFx; }, get fxMs() { return fxMs; }, setCam: (d, yaw, pitch, aim) => { camDist = d; if (aim !== undefined) camAim = aim; if (yaw !== undefined) camYaw = yaw; if (pitch !== undefined) camPitch = pitch; }, setFx, syncStages, quicksave, quickload, revertLaunch, setPause, get paused() { return paused; }, get settings() { return SET; }, qol, craftDv, sitePicker, get sbSite() { return sbSite; } };
+window.__game.openTracking = () => openTracking();
+window.__game.tracking = () => ({ on: !!trackingLive, ut: trackScene && trackScene.universe ? trackScene.universe.clock.ut : null, warp: trackScene && trackScene.universe ? trackScene.universe.clock.warp : 1, focus: trackScene ? trackScene.focusId : null });
 window.__game.tileStats = () => { const w = tileGeo.attributes.wat.array, c = tileGeo.attributes.color.array, h = [0, 0, 0, 0, 0]; for (const x of w) h[Math.min(4, Math.max(0, Math.floor(x * 5)))]++; return { hist: h, vis: tile.visible, c0: [c[0], c[1], c[2]], center: tileC, px: !!earthPx, mat: tile.material.type }; };
 window.__game.craftPx = () => { if (!rocketG) return null; rocketG.updateMatrixWorld(true); camera.updateMatrixWorld(true); const b = new THREE.Box3(), p = new THREE.Vector3(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; // f5.9-18: the craft's on-screen box (px), for the orbit framing smoke
   liveMeshes(o => { if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
