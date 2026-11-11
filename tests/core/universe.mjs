@@ -60,7 +60,7 @@ console.log('2. Universe round-trip');
   const store = mem();
   ok(u.save(store) === true && store.getItem(SAVE_KEY), 'save writes the single universe key');
   const raw = JSON.parse(store.getItem(SAVE_KEY));
-  ok(raw.v === VERSION && VERSION === 2 && Array.isArray(raw.vessels) && !raw.vessels.vessels, 'save is versioned JSON, vessels as a list');
+  ok(raw.v === VERSION && VERSION === 3 && Array.isArray(raw.vessels) && !raw.vessels.vessels, 'save is versioned JSON, vessels as a list');
   const u2 = Universe.load(store);
   ok(u2.clock.ut === 3000 && u2.clock.warp === 1000 && u2.clock.mode === 'rails' && u2.clock.effective === 1000, 'load restores UT, warp request and mode');
   ok(u2.vessels instanceof Map && u2.vessels.size === 1 && u2.activeId === a.id, 'load restores the registry and activeId');
@@ -80,16 +80,16 @@ console.log('3. Version migration');
     vessels: [{ id: 'v1', name: 'Old', body: 'mars', t: 40, r: [3e6, 0, 0], v: [0, 3000, 0], sas: 'retrograde', throttle: 0.5, nodes: [{ t: 50, pro: 1 }], situation: 'flying' }],
   };
   const migrated = migrate(v1);
-  ok(migrated.v === 2 && migrated.ut === 42 && migrated.warp === 100 && migrated.warpMode === 'rails', 'v1 with a high warp becomes rails v2');
+  ok(migrated.v === 3 && migrated.ut === 42 && migrated.warp === 100 && migrated.warpMode === 'rails', 'v1 with a high warp becomes rails on the current save');
   ok(migrated.vessels[0].orbit.epoch === 40 && migrated.vessels[0].orbit.r[0] === 3e6 && migrated.vessels[0].control.sas === 'retrograde', 'flat r/v/t becomes an orbit and control block');
   ok(migrated.vessels[0].control.throttle === 0.5 && migrated.vessels[0].situation === 'flying' && migrated.vessels[0].nodes[0].t === 50, 'throttle, situation and nodes are kept');
   ok(migrate({ v: 1, ut: 1, warp: 2, vessels: [] }).warpMode === 'physics', 'a v1 warp inside the physics cap stays on physics');
   const store = mem({ [SAVE_KEY]: JSON.stringify(v1) });
   const u = Universe.load(store);
-  ok(u.toJSON().v === 2 && u.clock.ut === 42 && u.clock.mode === 'rails' && u.active.body === 'mars', 'load migrates a stored v1 save');
+  ok(u.toJSON().v === 3 && u.clock.ut === 42 && u.clock.mode === 'rails' && u.active.body === 'mars', 'load migrates a stored v1 save');
   const again = mem({ [SAVE_KEY]: JSON.stringify(u.toJSON()) });
   const u2 = Universe.load(again);
-  ok(u2.clock.ut === 42 && u2.active.control.throttle === 0.5 && u2.toJSON().v === 2, 'a migrated save loads again as v2');
+  ok(u2.clock.ut === 42 && u2.active.control.throttle === 0.5 && u2.toJSON().v === 3, 'a migrated save loads again as the current version');
   let unknown = false; try { Universe.load(mem({ [SAVE_KEY]: JSON.stringify({ v: 9, ut: 1 }) })); } catch (e) { unknown = /version/i.test(e.message); }
   ok(unknown, 'an unknown save version is rejected');
   let corrupt = false; try { Universe.load(mem({ [SAVE_KEY]: '{not json' })); } catch (e) { corrupt = /JSON/i.test(e.message); }
@@ -163,7 +163,36 @@ console.log('4. Legacy save import');
   ok(m.active && m.active.name === 'Hopper' && messy.getItem(WORLD_KEY) === 'not-json', 'a corrupt world key is skipped; the quicksave still imports');
 }
 
-console.log('5. core/ has no three or DOM imports');
+console.log('5. v2 legacy stages become a part tree and the legacy blob stays');
+{
+  const v2 = {
+    v: 2, ut: 9, warp: 1, warpMode: 'physics', activeId: 'v1', seq: 1,
+    vessels: [{
+      id: 'v1', name: 'Old stack', situation: 'flying', body: 'earth',
+      orbit: { epoch: 9, r: [7e6, 0, 0], v: [0, 100, 0] },
+      parts: [],
+      control: { sas: 'stab', throttle: 0.25 },
+      nodes: [],
+      legacy: { veh: { stages: [{ fuel: 1.5, dry: 0.4, eng: { tv: 30, ispSl: 220, ispVac: 320 }, n: 1 }, { fuel: 12, dry: 4 }], craft: { elec: 80, type: 'comsat' } }, source: 'quicksave' },
+    }],
+  };
+  const migrated = migrate(v2);
+  ok(migrated.v === 3 && migrated.vessels[0].legacy.veh.stages[0].fuel === 1.5 && migrated.vessels[0].legacy.veh.stages[1].fuel === 12, 'migration keeps the legacy stage list byte for byte on the vessel');
+  const parts = migrated.vessels[0].parts;
+  ok(parts.some(p => p.state && p.state.role === 'tank' && p.state.propKg === 1500) && parts.some(p => p.state && p.state.propKg === 12000), 'stage fuel is kept on tank parts, in kilograms');
+  ok(parts.some(p => p.state && p.state.elec === 80), 'battery charge from the legacy craft lands on a part');
+  const kept = migrate({
+    v: 2, ut: 1, warp: 1, warpMode: 'physics', vessels: [{
+      id: 'v9', name: 'Already', situation: 'orbiting', body: 'moon', parts: [{ uid: 1, spec: 'probe-core', parent: null, state: { elec: 3 } }],
+      legacy: { veh: { stages: [{ fuel: 9 }] } },
+    }],
+  });
+  ok(kept.vessels[0].parts.length === 1 && kept.vessels[0].parts[0].spec === 'probe-core' && kept.vessels[0].legacy.veh.stages[0].fuel === 9, 'a v2 vessel that already has parts keeps them and still keeps legacy');
+  const u = Universe.load(mem({ [SAVE_KEY]: JSON.stringify(v2) }));
+  ok(u.toJSON().v === 3 && u.get('v1').parts.some(p => p.state && p.state.elec === 80) && u.get('v1').legacy.veh.stages[0].fuel === 1.5, 'loading a v2 save migrates stages into parts without dropping legacy');
+}
+
+console.log('6. core/ has no three or DOM imports');
 {
   const dir = new URL('../../core/', import.meta.url);
   const files = readdirSync(dir).filter(f => f.endsWith('.js')).sort();
