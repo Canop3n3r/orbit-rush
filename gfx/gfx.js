@@ -12,6 +12,7 @@ export const padLandU = uniform(new THREE.Vector3(0.03, 0.043, 0.02)); // linear
 export const tileFadeU = uniform(new THREE.Vector4(0, 0, 1, 0)); // x: camera altitude (m), y: altitude alpha (main.js sets both every frame)
 export { GFX, GFX_ORDER } from './presets.js?v=f5.9-27';
 import { GFX } from './presets.js?v=f5.9-27';
+import { chooseGfx } from '../boot.js?v=f5.9-47';
 import { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth, COAST, coastEastM, siteLand, groundBlend, sampleGray } from './earthmap.js?v=f5.9-27';
 export { PAD_LON_DEG, PAD_LAT_DEG, EARTH_TEX_ROT, EARTH_TEX_M4, latLonToGame, sampleEarth, COAST, coastEastM, siteLand, groundBlend, sampleGray };
 export const earthTexMatrix = () => new THREE.Matrix4().fromArray(EARTH_TEX_M4);
@@ -20,9 +21,9 @@ export function softwareGPU() {
     const e = gl.getExtension('WEBGL_debug_renderer_info'), r = e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
     return /swiftshader|llvmpipe|software|basic render/i.test(String(r)); } catch (e) { return false; }
 }
-export function pickGfx(stored, param, touch) {
-  if (GFX[param]) return param; if (GFX[stored]) return stored;
-  return softwareGPU() ? 'low' : touch ? 'med' : 'high';
+export function pickGfx(stored, param, touch) { // touch no longer picks a higher tier: desktop and phones both start at med
+  void touch;
+  return chooseGfx(stored, param, softwareGPU());
 }
 const loader = new THREE.TextureLoader(), cache = new Map();
 export function tex(name, q, srgb = true) {

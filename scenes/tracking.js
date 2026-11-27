@@ -23,6 +23,24 @@ function fmtWarp(w) {
   return '×' + w;
 }
 
+// A corrupt v3 save used to open an empty station and hide a still-good legacy world or quicksave.
+// Try that import before giving up. Never delete either key.
+export function loadTrackingUniverse(store, warn = console.warn) {
+  try { return Universe.load(store); }
+  catch (e) {
+    try { warn('[Orbit Rush] tracking: universe save failed, trying legacy import', e && e.message || e); } catch (w) {}
+    const legacy = {
+      getItem: k => (k === SAVE_KEY ? null : store.getItem(k)),
+      setItem: (k, v) => store.setItem(k, v),
+    };
+    try { return Universe.load(legacy); }
+    catch (e2) {
+      try { warn('[Orbit Rush] tracking: legacy import failed', e2 && e2.message || e2); } catch (w) {}
+      return new Universe();
+    }
+  }
+}
+
 export function createTracking({ store, map, onFly, onBack }) {
   const scene = {
     universe: null,
@@ -39,8 +57,7 @@ export function createTracking({ store, map, onFly, onBack }) {
       scene.live = true;
       let had = null;
       try { had = store.getItem(SAVE_KEY); } catch (e) { had = null; }
-      try { scene.universe = Universe.load(store); }
-      catch (e) { scene.universe = new Universe(); }
+      scene.universe = loadTrackingUniverse(store);
       scene.universe.clock.setMode('rails');
       scene.universe.clock.setWarp(1);
       scene.wi = 0;
