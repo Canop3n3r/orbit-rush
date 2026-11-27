@@ -13,9 +13,9 @@ var opsList = [], opSess = null, opHooks = null, opFlightOpts = null, opContract
 import { loadBrand, applyBrandDom, B as brandB, vehicleName as brandVName, missionName as brandMName, label as brandLabel } from './brand/index.js?v=f5.9-27';
 import { createCareerUI } from './fun/career-ui.js?v=f5.9-27';
 import { SITE_NAMES, LADDER, rungLocked } from './fun/ladder.js?v=f5.9-27';
-import { createSolarMap } from './solarmap.js?v=f5.9-46';
+import { createSolarMap } from './solarmap.js?v=f5.9-47';
 import { SceneManager } from './scenes/scene_manager.js?v=f5.9-46';
-import { createTracking } from './scenes/tracking.js?v=f5.9-46';
+import { createTracking } from './scenes/tracking.js?v=f5.9-47';
 import { flightSeed, commitFlight } from './scenes/session.js?v=f5.9-46';
 import { PARTS, TEMPLATES, designStats, validate, cloneDesign, buildVehicle, aeroBalance } from './parts.js?v=f5.9-27';
 import { FX } from './fx.js?v=f5.9-32';
@@ -33,7 +33,8 @@ const fmtS = mps => fmtSpeed(mps, SET.units); UN.bindUnits(() => SET.units); // 
 import { QUALITY, QUALITY_ORDER, plumeShape, plumeLook, skinGlow, sheathAlpha, haloAlpha, flamePuffs, plumeFlicker, glowScaleK, groundSmokeK, fillLight, VAC_PLUME, vacBlend, vacAlt, vacWidth, vacOpacity, smokeWidthCap, smokeFade } from './fxmap.js?v=f5.9-32';
 import { halfPose, buildHalves, sepShells } from './fun/fairing.js?v=f5.9-27';
 import { guardToasts } from './fun/toastzone.js?v=f5.9-27';
-import * as GX from './gfx/gfx.js?v=f5.9-27';
+import * as GX from './gfx/gfx.js?v=f5.9-47';
+import { chooseFx, lodPhone, qualityLadderStep, initRenderer, waitToShowHome, BOOT_CAP_MS, RENDERER_INIT_MS } from './boot.js?v=f5.9-47';
 import { Director, MISSIONS, hopAuto, isHopper } from './fun/director.js?v=f5.9-30';
 import * as PR from './fun/progress.js?v=f5.9-27';
 import * as WORLD from './fun/world.js?v=f5.9-27';
@@ -126,14 +127,15 @@ else {
   try { const ad = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' }); if (!ad) gpuReason = 'no WebGPU adapter (GPU/driver blocklisted)'; }
   catch (e) { gpuReason = 'requestAdapter failed: ' + e.message; }
 }
-const renderer = new THREE.WebGPURenderer({ antialias: true, logarithmicDepthBuffer: true, forceWebGL: !!gpuReason, powerPreference: 'high-performance' });
 const GFXQ_KEY = 'orbitrush.gfx';
 let gfxQ = GX.pickGfx((() => { try { return localStorage.getItem(GFXQ_KEY); } catch (e) { return null; } })(), params.get('gfx'), TOUCH);
+const phoneLod = () => lodPhone(gfxQ, TOUCH); // mid LOD unless a desktop user picked graphics High
+let renderer = await initRenderer(({ forceWebGL }) => new THREE.WebGPURenderer({ antialias: true, logarithmicDepthBuffer: true, forceWebGL: !!forceWebGL || !!gpuReason, powerPreference: 'high-performance' }), { timeoutMs: RENDERER_INIT_MS });
+if (renderer.fallbackReason) { gpuReason = gpuReason || ('renderer init failed: ' + renderer.fallbackReason); console.warn('[Orbit Rush] renderer init failed, falling back to WebGL', renderer.fallbackReason); }
 renderer.setPixelRatio(Math.min(devicePixelRatio, GX.GFX[gfxQ].pixel));
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05; // HDR: sun, plume and bloom above 1.0
 renderer.setSize(innerWidth, innerHeight);
 document.body.prepend(renderer.domElement);
-await renderer.init();
 setBoot(20, 'Starting renderer…');
 const isGPU = !!renderer.backend.isWebGPUBackend;
 if (!isGPU && !gpuReason) gpuReason = 'WebGPU init failed; three.js fell back';
@@ -143,7 +145,7 @@ $('badge').onclick = () => toast(isGPU ? 'Rendering with WebGPU' : 'WebGL2 fallb
 if (renderer.backend.device) renderer.backend.device.lost.then(i => console.warn('[Orbit Rush] WebGPU device lost:', i.message));
 // ---------- effects (fx.js): GPU compute particles on WebGPU, CPU-integrated particles on WebGL2 ----------
 const FXQ_KEY = 'orbitrush.fxq';
-let fxQuality = (() => { const q = params.get('fx') || localStorage.getItem(FXQ_KEY); return QUALITY[q] ? q : TOUCH ? 'med' : 'high'; })(), fxAuto = 0;
+let fxQuality = chooseFx((() => { try { return localStorage.getItem(FXQ_KEY); } catch (e) { return null; } })(), params.get('fx')), fxAuto = 0;
 const fxLocked = QUALITY[params.get('fx')] !== undefined; // ?fx=high|med|low pins the quality (no auto-lowering)
 const fxGPU = params.has('fxgpu') || (isGPU && !params.has('fxcpu'));
 const fx = new FX({ gpu: fxGPU, quality: fxQuality });
@@ -368,7 +370,7 @@ function syncSiteArt() { const s = sbSite && !opFlightOpts && F && F.sandbox ? s
   if (!s) return; const art = artFor(s), ids = [art]; const pre = (SB_SITES[s.body] || []).find(x => x[0] === s.id); if (pre && pre[5]) ids.push('lz1');
   Promise.all(ids.map(loadSiteArt)).then(list => { if (key !== siteArt.key) return; list.forEach((S0, i) => {
     const own = i > 0 || (art !== 'generic' && S0.body === s.body), S = own ? S0 : { ...S0, body: s.body, lat: s.lat, lon: s.lon }, Rb = s.body === 'earth' ? R : P.BODIES[s.body].R;
-    const L = buildSiteLOD(S, { phone: TOUCH }); placeSite(L, S, Rb); const po = !i && padOfs(S); if (po) { L.translateX(po[0]); L.translateY(po[1]); L.translateZ(po[2]); } (s.body === 'earth' ? earth : siteHolder).add(L); siteArt.obj.push(L); if (!i) { siteArt.objMain = L; siteArt.S = S; } }); }).catch(e => console.warn('site art', e)); }
+    const L = buildSiteLOD(S, { phone: phoneLod() }); placeSite(L, S, Rb); const po = !i && padOfs(S); if (po) { L.translateX(po[0]); L.translateY(po[1]); L.translateZ(po[2]); } (s.body === 'earth' ? earth : siteHolder).add(L); siteArt.obj.push(L); if (!i) { siteArt.objMain = L; siteArt.S = S; } }); }).catch(e => console.warn('site art', e)); }
 const offPad = (() => { const g = new THREE.Group(), m = new THREE.MeshStandardMaterial({ color: 0x8d9096, roughness: 0.85 }), d = new THREE.MeshStandardMaterial({ color: 0x2a2c30, roughness: 0.9 });
   const slab = new THREE.Mesh(new THREE.CylinderGeometry(40, 44, 1.6, 40), m); slab.rotation.x = Math.PI / 2; g.add(slab);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(9, 1.2, 8, 32), d); ring.position.z = 0.85; g.add(ring);
@@ -955,19 +957,19 @@ const ART_ALIAS = { 'titan-ss-v3': 'colossus-v3', 'titan-ss-v4': 'colossus-v4' }
 let hero = null;
 const HERO_READY = new Map(), HERO_WARM = new Set();
 function prewarmHeavy() { // rockets-3: build the heavy hero LODs in idle slices while the player sits in the home/hangar
-  const ids = ['heron-heavy', 'colossus-v3', 'colossus-v4'].filter(id => !HERO_READY.has(id + (TOUCH ? ':p' : '')));
-  const W = heroPrewarm(ids, { phone: TOUCH });
-  for (const id of ids) { const k = id + (TOUCH ? ':p' : ''), p = W.get(k); if (!p || HERO_WARM.has(k)) continue; HERO_WARM.add(k); p.then(l => { if (HERO_WARM.has(k)) { HERO_READY.set(k, l); HERO_WARM.delete(k); W.delete(k); } }).catch(() => HERO_WARM.delete(k)); } }
+  const ids = ['heron-heavy', 'colossus-v3', 'colossus-v4'].filter(id => !HERO_READY.has(id + (phoneLod() ? ':p' : '')));
+  const W = heroPrewarm(ids, { phone: phoneLod() });
+  for (const id of ids) { const k = id + (phoneLod() ? ':p' : ''), p = W.get(k); if (!p || HERO_WARM.has(k)) continue; HERO_WARM.add(k); p.then(l => { if (HERO_WARM.has(k)) { HERO_READY.set(k, l); HERO_WARM.delete(k); W.delete(k); } }).catch(() => HERO_WARM.delete(k)); } }
 function fixTangents(root) { if (!root) return; root.traverse(o => { const g = o.isMesh && o.geometry, m = o.material; if (!g || !m || Array.isArray(m) || g.attributes.tangent) return; if (!(m.normalMap || m.clearcoatNormalMap)) return; if (g.index && g.attributes.uv && g.attributes.normal) { try { g.computeTangents(); } catch (e) { } } }); } /* f5.9-20 (owner: super-heavies froze on iPhone): a normal-mapped mesh without tangents makes an invalid WebGPU pipeline, and the whole frame is dropped from then on */
 function attachHero() { showFrame = null; padFrameKey = ''; // re-frame from the new model at once (showroom, and the pad chase once the legs/fins mesh is in)
   // f6.0 Blender stage assets: the rocket's per-stage .glb files load in the background (phones: mid+lo only). Until they are parsed the procedural model stands in;
   // once ready, a model that has not ignited yet is rebuilt from the manifest (the pad sits idle until STAGE, so this lands before anyone flies it).
-  { const m0 = design.model; if (m0 && !stagedReady(m0, TOUCH ? 'mid' : 'hi')) preloadStaged(m0, { phone: TOUCH }).then(ok => { try { if (ok && design.model === m0 && F && !F.ignited && hero && !(hero.userData && hero.userData.staged)) { HERO_READY.delete(m0 + (TOUCH ? ':p' : '')); attachHero(); } } catch (e) { console.warn('[Orbit Rush] staged swap', e); } }); }
+  { const m0 = design.model; if (m0 && !stagedReady(m0, phoneLod() ? 'mid' : 'hi')) preloadStaged(m0, { phone: phoneLod() }).then(ok => { try { if (ok && design.model === m0 && F && !F.ignited && hero && !(hero.userData && hero.userData.staged)) { HERO_READY.delete(m0 + (phoneLod() ? ':p' : '')); attachHero(); } } catch (e) { console.warn('[Orbit Rush] staged swap', e); } }); }
   if (hero) { const old = hero; hero = null; heroRelease(old, renderer, scene, camera).catch(() => heroDispose(old)); } // rockets-3: leak-safe swap
   if (!design.model || !SG.length) return;
   if (ART_ALIAS[design.model]) design.model = ART_ALIAS[design.model]; // saved designs from before the art public-name audit
-  const wk = design.model + (TOUCH ? ':p' : ''); // rockets-3: heavy models are prewarmed at the hangar; take a finished one if ready
-  try { hero = HERO_READY.get(wk) || heroLOD(design.model, { phone: TOUCH }); HERO_READY.delete(wk); if (HERO_WARM.has(wk)) { takeWarm(design.model, { phone: TOUCH }); HERO_WARM.delete(wk); } } catch (e) { console.warn('[Orbit Rush] hero model', e); hero = null; return; }
+  const wk = design.model + (phoneLod() ? ':p' : ''); // rockets-3: heavy models are prewarmed at the hangar; take a finished one if ready
+  try { hero = HERO_READY.get(wk) || heroLOD(design.model, { phone: phoneLod() }); HERO_READY.delete(wk); if (HERO_WARM.has(wk)) { takeWarm(design.model, { phone: phoneLod() }); HERO_WARM.delete(wk); } } catch (e) { console.warn('[Orbit Rush] hero model', e); hero = null; return; }
   let L = 0; try { L = P.stackGeom(v).L; } catch (e) {} if (!(L > 0)) for (const g of SG) L += g.userData.h; const hH = new THREE.Box3().setFromObject(hero.userData.hi || hero).getSize(new THREE.Vector3()).y || L;
   const dm = dimsOf(design.model), sy = L / hH; // sizes-1: the physics stack is already the real height (parts.js fitDims); xz fixes the model's body width
   hero.scale.set(sy * (dm ? dm.xz : 1), sy, sy * (dm ? dm.xz : 1)); rocketG.add(hero); { hero.position.y = 0; hero.updateMatrixWorld(true); const bb = new THREE.Box3(), m0 = hero.userData.hi || hero; rocketG.updateMatrixWorld(true); bb.setFromObject(m0, true); const inv = new THREE.Matrix4().copy(rocketG.matrixWorld).invert(); bb.applyMatrix4(inv); if (isFinite(bb.min.y) && Math.abs(bb.min.y) < 3) hero.position.y = -bb.min.y; } /* f5.9-20 (owner): every model's lowest point sits on the pad deck */ heroKind = null; bayK = 0; bayTarget = 0; heroSyncPayload(); heroBayApply(); // rockets-pass-1: payload under the shell from t=0
@@ -1886,25 +1888,28 @@ const U = new THREE.Vector3(), E = new THREE.Vector3(), N = new THREE.Vector3(),
 const setRel = (obj, p, O) => obj.position.set(p[0] - O[0], p[1] - O[1], p[2] - O[2]);
 const dirQ = (obj, d) => obj.quaternion.setFromUnitVectors(Y_AXIS, dv3.set(d[0], d[1], d[2]));
 performance.mark('or:compile0');
-setBoot(80, 'Warming shaders…');
-// f5.9-21 (owner: desktop loads far slower than phone): the high tier's shader compile (huge on Windows WebGPU) used to hold the
-// loading screen until every material was built. Wait at most 2.5 s, then show Home and let the rest finish in the background.
-{ const done = renderer.compileAsync(scene, camera).catch(() => {}).then(() => performance.mark('or:compileAll'));
-  await Promise.race([done, new Promise(r => setTimeout(r, 2500))]); }
-performance.mark('or:compile1');
-if (params.get('perf')) { const t = s => (s / 1000).toFixed(1) + ' s'; toast('Ready in ' + t(performance.now()), '#7fd1ff'); setTimeout(() => { const a = performance.getEntriesByName('or:compileAll')[0]; toast('Ready in ' + t(performance.getEntriesByName('or:compile1')[0].startTime) + (a ? ' · all shaders ' + t(a.startTime) : ' · shaders still compiling'), '#7fd1ff'); }, 15000); }
-setBoot(100, 'Ready');
-$('loading') && $('loading').remove();
+setBoot(80, 'Compiling shaders…');
+// f5.9-47: keep the boot card up until a real frame has presented or compileAsync settles (cap BOOT_CAP_MS).
+// Dropping it on a 2.5 s race left Home on screen while shaders were still compiling, which read as a freeze.
+const compileP = renderer.compileAsync(scene, camera).catch(() => {}).then(() => performance.mark('or:compileAll'));
+let noteFrame = null;
+const frameP = new Promise(r => { noteFrame = r; });
+waitToShowHome({ compile: compileP, frame: frameP, capMs: BOOT_CAP_MS }).then(() => {
+  performance.mark('or:compile1');
+  if (params.get('perf')) { const t = s => (s / 1000).toFixed(1) + ' s'; toast('Ready in ' + t(performance.now()), '#7fd1ff'); setTimeout(() => { const a = performance.getEntriesByName('or:compileAll')[0]; toast('Ready in ' + t(performance.getEntriesByName('or:compile1')[0].startTime) + (a ? ' · all shaders ' + t(a.startTime) : ' · shaders still compiling'), '#7fd1ff'); }, 15000); }
+  setBoot(100, 'Ready');
+  $('loading') && $('loading').remove();
+});
 // f5.6 (owner): no Academy / welcome card
 renderer.setAnimationLoop(() => {
   GX.oceanTime.value = performance.now() / 1000; // flight-ground-2: ocean wave clock
   const now = performance.now(), rdt = Math.min(0.1, (now - last) / 1000); last = now;
   let pdt = 0;
   slowT = rdt > 0.045 ? slowT + rdt : Math.max(0, slowT - rdt * 0.5);
-  if (slowT > 2 && state === 'flight' && !fxLocked && QUALITY_ORDER.indexOf(fx.q) === 0 && post.on && !params.get('gfx')) { post.enable(false); mapPost.enable(false); slowT = 0; toast('Frame rate low — bloom off', '#ffb35c'); }
-  if (slowT > 2 && state === 'flight' && !fxLocked && QUALITY_ORDER.indexOf(fx.q) > 0 && lastFx) { // effects quality first, then resolution
-    const q = QUALITY_ORDER[QUALITY_ORDER.indexOf(fx.q) - 1]; setFx(q, false); fxAuto++; slowT = 0; toast('Frame rate low — effects set to ' + q.toUpperCase(), '#ffb35c'); console.info('[Orbit Rush] lowering effects quality to', q);
-  } else if (slowT > 2 && pixR > 0.6) { pixR = Math.max(0.6, pixR - 0.25); renderer.setPixelRatio(pixR); slowT = 0; console.info('[Orbit Rush] lowering render resolution to', pixR); }
+  { const step = qualityLadderStep({ slowT, fxQ: fx.q, fxLocked, bloomOn: !!(post && post.on), gfxPinned: !!params.get('gfx'), pixR }); // Home included: effects, then bloom, then pixels
+    if (step && step.kind === 'bloom') { post.enable(false); mapPost.enable(false); slowT = 0; toast('Frame rate low — bloom off', '#ffb35c'); }
+    else if (step && step.kind === 'fx') { setFx(step.q, false); fxAuto++; slowT = 0; toast('Frame rate low — effects set to ' + step.q.toUpperCase(), '#ffb35c'); console.info('[Orbit Rush] lowering effects quality to', step.q); }
+    else if (step && step.kind === 'pixel') { pixR = step.pixR; renderer.setPixelRatio(pixR); slowT = 0; console.info('[Orbit Rush] lowering render resolution to', pixR); } }
   if (state === 'flight' && !paused && replay) replayStep(rdt);
   else if (state === 'flight' && !paused && !photoOn) {
     readControls(rdt);
@@ -2064,6 +2069,7 @@ renderer.setAnimationLoop(() => {
   else if (state === 'flight' && split.on && !split.full) { const R2 = paneRect(); if (splitPortrait()) camera.setViewOffset(innerWidth, innerHeight, 0, booster2 ? innerHeight / 2 - ctlTop() / 6 : innerHeight * 0.25, innerWidth, innerHeight); else camera.setViewOffset(innerWidth, innerHeight, innerWidth * 0.25, 0, innerWidth, innerHeight); }
   if (mapOn) { smap.update(rdt); mapPost.render(); }
   else { post.render(); renderSplit(O); }
+  if (noteFrame) { const done = noteFrame; noteFrame = null; done(); } // a presented frame may dismiss the boot card
   if (snapReq) { const f = snapReq; snapReq = null; savePhoto(f); }
   if (bugSnapReq) { const f = bugSnapReq; bugSnapReq = null; let u = null; try { const cv = renderer.domElement, k = Math.min(1, 960 / Math.max(cv.width, cv.height)), c2 = document.createElement('canvas'); c2.width = Math.round(cv.width * k); c2.height = Math.round(cv.height * k); c2.getContext('2d').drawImage(cv, 0, 0, c2.width, c2.height); u = c2.toDataURL('image/jpeg', 0.72); if (u.length < 2000) u = null; } catch (e) { } f(u); } // f5.9-18: bug-report screenshot, grabbed right after the frame renders
   if (state === 'build' && snapAnim > 0 && rocketG) { snapAnim = Math.max(0, snapAnim - rdt * 3); const k = 1 + Math.sin(snapAnim * Math.PI) * 0.06; rocketG.scale.set(k, 1 / k, k); }

@@ -7,7 +7,7 @@
 import * as UN from './fun/units.js?v=f5.9-27';
 import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
-import * as GX from './gfx/gfx.js?v=f5.9-27';
+import * as GX from './gfx/gfx.js?v=f5.9-47';
 import * as P from './physics.js?v=f5.9-27';
 import * as C from './physics/patched.js?v=f5.9-27';
 import { fmtDur } from './flight.js?v=f5.9-27';
